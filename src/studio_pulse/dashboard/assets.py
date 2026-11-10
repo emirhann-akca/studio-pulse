@@ -91,6 +91,21 @@ figure.chart figcaption p { margin: 2px 0 0; color: var(--ink-2); font-size: 12p
 .bars .cat:hover, .bars .cat:focus { background: var(--hover); outline: none; }
 .bars .bar { width: min(24px, 100%); border-radius: 4px 4px 0 0; min-height: 1px; flex: 0 1 24px; }
 .xaxis.cats span { transform: translateX(-50%); }
+.bench { display: grid; grid-template-columns: 34px minmax(0, 1fr) 104px; align-items: center; gap: 10px; margin: 16px 0 24px; }
+.bench .bl { font-weight: 600; font-size: 13px; }
+.bench .track { position: relative; height: 14px; border-radius: 4px; }
+.bench .zone { position: absolute; top: 0; bottom: 0; background: color-mix(in oklab, var(--s1) 6%, var(--surface)); }
+.bench .zone.z1 { background: color-mix(in oklab, var(--s1) 16%, var(--surface)); }
+.bench .zone.z2 { background: color-mix(in oklab, var(--s1) 28%, var(--surface)); }
+.bench .zone.z3 { background: color-mix(in oklab, var(--s1) 42%, var(--surface)); }
+.bench .zone:first-child { border-radius: 4px 0 0 4px; }
+.bench .zone:last-of-type { border-radius: 0 4px 4px 0; }
+.bench .cut { position: absolute; top: -3px; bottom: -3px; }
+.bench .cut i { position: absolute; left: -1px; top: 0; bottom: 0; width: 2px; background: var(--axis); }
+.bench .cut b { position: absolute; top: 21px; transform: translateX(-50%); font-size: 10px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+.bench .mark { position: absolute; top: -5px; width: 4px; height: 24px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
+.bench .bv { font-variant-numeric: tabular-nums; font-weight: 600; }
+.bench .bv em { display: block; font-style: normal; font-weight: 400; font-size: 12px; color: var(--ink-2); }
 details.data { margin-top: 6px; }
 details.data summary { cursor: pointer; color: var(--ink-2); font-size: 12px; }
 .tbl-wrap { overflow-x: auto; max-height: 320px; overflow-y: auto; margin-top: 6px; }

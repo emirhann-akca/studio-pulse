@@ -158,7 +158,10 @@ def line_chart(
     zero: bool = True,
     x_fmt: Callable[[dt.date | str], str] = fmt_date,
     x_name: str = "Date",
+    cap: float | None = None,
 ) -> str:
+    """cap: the largest value the metric can take (1.0 for a share), so the
+    padded axis does not invent ticks such as 100.5%."""
     series = [s for s in series if any(v is not None for v in s.values)]  # drop series with no data
     vals = [v for s in series for v in s.values if v is not None]
     if not x or not vals:
@@ -168,7 +171,11 @@ def line_chart(
         pad = (hi - lo) * 0.08
         floor = 0.0 if min(vals) >= 0 else -math.inf
         lo, hi = max(floor, lo - pad), hi + pad
+    if cap is not None:
+        hi = min(hi, cap)
     ticks = nice_ticks(lo, hi)
+    if cap is not None and len(ticks) > 2 and ticks[-1] > cap:
+        ticks[-1] = cap
     lo, hi = ticks[0], ticks[-1]
     n = len(x)
 
@@ -338,6 +345,44 @@ def heatmap(
     )
     plain = _table([corner or "Row"] + list(col_labels), [[r] + [fmt(v) for v in row] for r, row in zip(row_labels, values, strict=False)])
     return _figure(title, subtitle, legend + table + plain, _uid("h", title))
+
+
+def benchmark_chart(
+    title: str,
+    rows: Sequence[tuple[str, Num, Sequence[tuple[float, str, str]], str | None]],
+    fmt: Callable[[Num], str] = fmt_pct,
+    subtitle: str = "",
+) -> str:
+    """Bullet rows: the value as a marker on a track with reference cuts.
+
+    rows: (label, value, [(cut, cut name, cut text as in the source)], verdict).
+    Zones between cuts get darker towards the top bracket; each row has its own
+    scale (25% headroom above the larger of the value and the top cut).
+    """
+    if not rows:
+        return empty_chart(title, subtitle=subtitle)
+    lines, table_rows = [], []
+    for label, value, cuts, verdict in rows:
+        top = max([value or 0.0] + [c for c, _, _ in cuts]) * 1.25 or 1.0
+        edges = [0.0] + [c for c, _, _ in cuts] + [top]
+        zones = "".join(
+            f'<span class="zone z{i}" style="left:{a / top * 100:.2f}%;width:{(b - a) / top * 100:.2f}%"></span>'
+            for i, (a, b) in enumerate(zip(edges, edges[1:], strict=False))
+        )
+        ticks = "".join(
+            f'<span class="cut" style="left:{c / top * 100:.2f}%"><i></i><b>{escape(name)}</b></span>' for c, name, _ in cuts
+        )
+        mark = "" if value is None else f'<span class="mark" style="left:{min(1.0, value / top) * 100:.2f}%"></span>'
+        tip = escape("\n".join([f"{label}: {fmt(value)}"] + [f"{name}: {text}" for _, name, text in cuts]), quote=True)
+        lines.append(
+            f'<div class="bench" data-tip="{tip}"><span class="bl">{escape(label)}</span>'
+            f'<div class="track">{zones}{ticks}{mark}</div>'
+            f'<span class="bv">{escape(fmt(value))}<em>{escape(verdict or "")}</em></span></div>'
+        )
+        table_rows.append([label, fmt(value), verdict or "–", "; ".join(f"{name} {text}" for _, name, text in cuts)])
+    label = f"{title}: {len(rows)} values against reference brackets"
+    body = f'<div role="img" aria-label="{escape(label, quote=True)}">{"".join(lines)}</div>'
+    return _figure(title, subtitle, body + _table(["Day", "Value", "Bracket", "Benchmark"], table_rows), _uid("k", title))
 
 
 def tile(label: str, value: str, delta: str | None = None, tone: str | None = None, title: str | None = None) -> str:

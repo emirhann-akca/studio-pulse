@@ -16,6 +16,15 @@ formats the real connectors read, so `pulse demo` exercises the full pipeline:
 One app has a scripted incident in its last days (a release that raises crash
 rate, slows low-tier devices and hurts D1 retention) so the alert rules have
 something to find.
+
+Retention is calibrated to public benchmarks rather than to look good. Day-N
+activity follows p(n) = d1 * engagement * n^-decay with a per-user lognormal
+engagement, which lands the three apps at (D1 / D7 / D30):
+  mossy_match  a good puzzle game   ~38% / ~10% / ~3%   (top 10-25% of games)
+  pacer_pal    a fitness app        ~24% / ~8% / ~3%    (flatter: habit apps)
+  quartz_merge a weaker casual game ~27% / ~5% / ~1.3%  (around the top 25%)
+GameAnalytics' 2026 benchmarks (16,262 mobile games, all genres) put the
+median D7 just under 4% and D30 at 0.69-0.79%; see benchmarks.py.
 """
 
 from __future__ import annotations
@@ -54,12 +63,18 @@ PARAM_TYPES = {
     E.PARAM_SCENE: "string",
     E.PARAM_WINDOW_S: "double",
     E.PARAM_FRAMES: "int",
+    E.PARAM_FT_SOURCE: "string",
     E.PARAM_FT_P50: "double",
     E.PARAM_FT_P95: "double",
     E.PARAM_FT_MAX: "double",
     E.PARAM_SLOW_FRAMES: "int",
+    E.PARAM_CPU_MAIN_P95: "double",
+    E.PARAM_GPU_P95: "double",
+    E.PARAM_MEM_SOURCE: "string",
     E.PARAM_MEM_ALLOC: "int",
     E.PARAM_MEM_RESERVED: "int",
+    E.PARAM_GC_RESERVED: "int",
+    E.PARAM_SYS_USED: "int",
     E.PARAM_SYS_MEM: "int",
     E.PARAM_KIND: "string",
     E.PARAM_DURATION: "double",
@@ -131,20 +146,20 @@ class DemoApp:
 APPS = [
     DemoApp(
         id="mossy_match", name="Mossy Match", genre="puzzle", platforms=["ANDROID", "IOS"],
-        package="demo.mossymatch", apple_id="9000000001", installs=140, d1=0.41, decay=0.50, sessions=1.6,
+        package="demo.mossymatch", apple_id="9000000001", installs=260, d1=0.343, decay=0.68, sessions=1.6,
         iap="consumable", payer_rate=0.035, ads_per_session=1.4, ecpm=9.0, perf="ga4", levels=True,
         crash_rate=0.0018, versions=[(0, "2.3.0"), (38, "2.4.0"), (61, "2.4.1")],
         campaign=(28, 35, 1.7), admob_app_id="ca-app-pub-0000000000000000~1000000001", seed=11,
     ),
     DemoApp(
         id="pacer_pal", name="Pacer Pal", genre="fitness", platforms=["ANDROID", "IOS"],
-        package="demo.pacerpal", apple_id="9000000002", installs=70, d1=0.29, decay=0.42, sessions=1.2,
+        package="demo.pacerpal", apple_id="9000000002", installs=120, d1=0.217, decay=0.58, sessions=1.2,
         iap="subscription", payer_rate=0.075, ads_per_session=0.0, ecpm=0.0, perf=None, levels=False,
         crash_rate=0.0012, versions=[(0, "5.1.0"), (45, "5.2.0")], seed=22,
     ),
     DemoApp(
         id="quartz_merge", name="Quartz Merge", genre="casual", platforms=["ANDROID"],
-        package="demo.quartzmerge", apple_id=None, installs=150, d1=0.34, decay=0.55, sessions=1.9,
+        package="demo.quartzmerge", apple_id=None, installs=280, d1=0.244, decay=0.79, sessions=1.9,
         iap="ga4_consumable", payer_rate=0.015, ads_per_session=2.2, ecpm=6.0, perf="jsonl", levels=True,
         crash_rate=0.0022, versions=[(0, "1.7.2")],
         incident=Incident(days_before_end=4, version="1.8.0", crash_mult=6.5, low_ft_add=6.5, mid_ft_add=1.2, d1_mult=0.68),
@@ -360,30 +375,45 @@ class Generator:
         base_ft = {"low": 18.4 if a.id == "quartz_merge" else 17.6, "mid": 16.9, "high": 16.7}[u.tier]
         p95_add = {"low": 13.0, "mid": 5.5, "high": 1.6}[u.tier]
         slow = {"low": 0.032, "mid": 0.007, "high": 0.002}[u.tier]
+        # Share of the frame p95 spent on the CPU main thread / GPU: low-tier
+        # phones are GPU-bound, mid-tier CPU-bound, high-tier mostly waiting on vsync.
+        cpu_share, gpu_share = {"low": (0.55, 0.88), "mid": (0.74, 0.6), "high": (0.45, 0.4)}[u.tier]
         if incident:
             base_ft += a.incident.low_ft_add if u.tier == "low" else (a.incident.mid_ft_add if u.tier == "mid" else 0.0)
             p95_add *= 1.7 if u.tier == "low" else 1.15
             slow *= 3.2 if u.tier == "low" else 1.3
+            gpu_share = min(0.97, gpu_share * 1.12)  # the 1.8.0 regression is a heavier shader
+        gles = u.platform == "ANDROID" and u.tier == "low" and r.random() < 0.3  # no GPU timing on GLES by default
         windows = []
         for w in range(2):
             p50 = max(8.3, r.gauss(base_ft, 0.9 if u.tier == "low" else 0.3))
             p95 = p50 + max(0.5, r.gauss(p95_add, p95_add * 0.25))
             frames = int(30_000 / p50 * r.uniform(0.97, 1.0))
             alloc = int(r.gauss({"low": 290, "mid": 365, "high": 430}[u.tier], 35))
+            reserved = int(alloc * r.uniform(1.18, 1.35))
             params = {
                 E.PARAM_SCHEMA_VERSION: E.SCHEMA_VERSION,
                 E.PARAM_TIER: u.tier,
                 E.PARAM_SCENE: "Level" if w else "Menu",
                 E.PARAM_WINDOW_S: 30.0,
                 E.PARAM_FRAMES: frames,
+                # FrameTimingManager results lag a few frames, so a session's first
+                # 30 s window uses deltaTime: one window in (session length / 30 s).
+                E.PARAM_FT_SOURCE: E.SOURCE_DELTA_TIME if w == 0 and r.random() < 30 / max(60.0, minutes * 60) else E.SOURCE_FRAME_TIMING,
                 E.PARAM_FT_P50: round(p50, 2),
                 E.PARAM_FT_P95: round(p95, 2),
                 E.PARAM_FT_MAX: round(p95 + r.uniform(5, 60), 2),
                 E.PARAM_SLOW_FRAMES: int(frames * slow * r.uniform(0.5, 1.5)),
+                E.PARAM_CPU_MAIN_P95: round(p95 * cpu_share * r.uniform(0.92, 1.05), 2),
+                E.PARAM_MEM_SOURCE: E.SOURCE_RECORDER,
                 E.PARAM_MEM_ALLOC: alloc,
-                E.PARAM_MEM_RESERVED: int(alloc * r.uniform(1.18, 1.35)),
+                E.PARAM_MEM_RESERVED: reserved,
+                E.PARAM_GC_RESERVED: int(r.gauss({"low": 48, "mid": 64, "high": 80}[u.tier], 8)),
+                E.PARAM_SYS_USED: int(reserved + r.gauss({"low": 260, "mid": 330, "high": 400}[u.tier], 40)),
                 E.PARAM_SYS_MEM: SYS_MEM[u.tier],
             }
+            if not gles:
+                params[E.PARAM_GPU_P95] = round(p95 * gpu_share * r.uniform(0.92, 1.05), 2)
             windows.append((t + 30 * (w + 1), E.PERF_EVENT, params))
         loads = []
         if first or r.random() < 0.3:

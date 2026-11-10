@@ -39,7 +39,8 @@ def test_pages_are_self_contained(demo):
     site, _ = demo
     for page in site.rglob("*.html"):
         html = page.read_text()
-        assert not re.search(r"""(src|href)=["']https?://""", html), page
+        assert not re.search(r"""src=["']https?://""", html), page  # nothing is loaded from elsewhere
+        assert not re.search(r"""<link[^>]+href=["']https?://""", html), page
         assert "<link rel=\"stylesheet\"" not in html
         assert "prefers-color-scheme: dark" in html and 'data-theme="dark"' in html
 
@@ -95,3 +96,27 @@ def test_build_dashboard_cli_uses_existing_warehouse(demo, tmp_path: Path):
     out = tmp_path / "again"
     assert cli.main(["build-dashboard", "-c", str(work / "pulse.yaml"), "--out", str(out)]) == 0
     assert (out / "index.html").exists()
+
+
+def test_retention_benchmarks_on_game_pages_only(demo):
+    site, _ = demo
+    game = (site / "apps" / "mossy_match.html").read_text()
+    fitness = (site / "apps" / "pacer_pal.html").read_text()
+    assert 'class="bench"' in game and "top 10%" in game
+    assert 'class="bench"' not in fitness and "describe games" in fitness
+    for html in (game, fitness, (site / "index.html").read_text()):
+        assert "GameAnalytics" in html and "16,262" in html
+
+
+def test_benchmark_brackets():
+    from studio_pulse import benchmarks as B
+
+    assert B.bracket(1, 0.38) == "top 25%" and B.bracket(1, 0.41) == "top 10%" and B.bracket(1, 0.22) == "below top 25%"
+    assert B.bracket(7, 0.03) == "below median" and B.bracket(7, 0.05) == "above median" and B.bracket(7, 0.12) == "top 10%"
+    assert B.bracket(30, 0.02) == "top 25%" and B.bracket(30, None) is None
+    assert not B.applies_to("fitness") and B.applies_to("puzzle")
+
+
+def test_share_axis_never_exceeds_100_percent():
+    html = charts.line_chart("Crash-free", ["a", "b"], [charts.Series("s", [0.991, 0.9995])], charts.fmt_pct2, zero=False, cap=1.0)
+    assert "100.50%" not in html and "100.20%" not in html and ">100.00%<" in html

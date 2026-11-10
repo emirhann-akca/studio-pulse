@@ -60,7 +60,28 @@ used, so every cohort is complete from day 0.
 | Headline D1 / D7 / D14 / D30 | sum of retained users / sum of cohort sizes over the 28 most recent cohorts that are complete for that N (a cohort-size weighted mean) | `fct_retention_summary.retention` |
 
 This is "classic" (day-N) retention, not rolling/unbounded retention: a user
-counts for D7 only if active exactly on day 7.
+counts for D7 only if active exactly on day 7. Rolling retention (active on day
+7 or later) is always higher and is not comparable with the benchmarks below.
+
+### Benchmarks
+
+Game pages show the headline D1/D7/D30 against the public brackets from
+GameAnalytics' "Mobile and PC Game Benchmarks 2026": 16,262 mobile games with
+at least 1,000 MAU, iOS and Android, all genres combined (summary:
+<https://gamedevreports.substack.com/p/gameanalytics-mobile-and-pc-game>).
+
+| Day | Median | Top 25% | Top 10% |
+|---|---|---|---|
+| D1 | not given in the summary | just above 30% | 40% |
+| D7 | just under 4% | 6-7% | 11-12% |
+| D30 | 0.69-0.79% | about 1.6-1.8% | not given |
+
+The bracket a game falls into uses the middle of each range
+(`src/studio_pulse/benchmarks.py`). These figures mix every genre, so a puzzle
+game should beat them; they are not drawn for non-game apps (genre `fitness`,
+`health`, `app`, ...). The synthetic demo is calibrated to them: the good
+puzzle game lands between the top 25% and top 10% on D1 and D7, the weaker
+casual game just above the median on D7.
 
 ## Revenue
 
