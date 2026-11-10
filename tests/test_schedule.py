@@ -43,10 +43,12 @@ def _job(tmp_path: Path, name: str = "refresh", **kw) -> schedule.Job:
 class Recorder:
     """Fake launchctl: `registered` holds the targets that `print` finds."""
 
-    def __init__(self, fail: dict[str, list[int]] | None = None, registered=()):
+    def __init__(self, fail: dict[str, list[int]] | None = None, registered=(), linger: int = 0):
         self.calls: list[list[str]] = []
         self.fail = fail or {}
         self.registered = set(registered)
+        self.linger = linger  # `print` still finds a booted-out job this many times
+        self.leaving: dict[str, int] = {}
 
     def __call__(self, argv):
         argv = list(argv)
@@ -57,13 +59,21 @@ class Recorder:
         code = (codes.pop(0) if len(codes) > 1 else codes[0]) if codes else 0
         out = ""
         if verb == "print":
+            if rest[0] in self.leaving:
+                self.leaving[rest[0]] -= 1
+                if self.leaving[rest[0]] < 0:
+                    del self.leaving[rest[0]]
+                    self.registered.discard(rest[0])
             code = 0 if rest[0] in self.registered else 113
             if code == 0:
                 out = "x = {\n\tstate = not running\n\truns = 3\n\tlast exit code = 0\n}\n"
         elif verb == "bootstrap" and code == 0:
             self.registered.add(f"{rest[0]}/{Path(rest[1]).stem}")
         elif verb == "bootout":
-            self.registered.discard(rest[0])
+            if self.linger:
+                self.leaving[rest[0]] = self.linger
+            else:
+                self.registered.discard(rest[0])
         return schedule.CmdResult(code, out, "" if code == 0 else "Bootstrap failed: 5")
 
 
@@ -119,6 +129,8 @@ def test_launchd_commands(tmp_path):
         ["launchctl", "kickstart", gui],
         ["launchctl", "print", gui],
         ["launchctl", "bootout", gui],
+        ["launchctl", "print", gui],  # gone from both domains?
+        ["launchctl", "print", user],
     ]
     assert st["registered"] and st["id"] == gui and st["state"] == "not running"
     assert st["last_exit_code"] == 0 and st["runs"] == 3
@@ -154,6 +166,19 @@ def test_launchd_bootstrap_is_retried_then_reported(tmp_path, monkeypatch):
     broken = Recorder(fail={"bootstrap gui/501": [5], "bootstrap user/501": [5]})
     with pytest.raises(schedule.ScheduleError, match="failed in every domain"):
         schedule.Launchd(broken, agents_dir=tmp_path, uid=501).install(_job(tmp_path))
+
+
+def test_launchd_remove_waits_for_a_running_job_to_go(tmp_path, monkeypatch):
+    monkeypatch.setattr(schedule.time, "sleep", lambda s: None)
+    target = "gui/501/dev.studio-pulse.refresh"
+    run = Recorder(registered={target}, linger=3)
+    b = schedule.Launchd(run, agents_dir=tmp_path, uid=501)
+    assert b.remove("refresh") is True
+    assert not b.status("refresh")["registered"]
+    assert [c[1] for c in run.calls].count("print") >= 4
+    stuck = Recorder(registered={target}, linger=10_000)
+    with pytest.raises(schedule.ScheduleError, match="did not remove"):
+        schedule.Launchd(stuck, agents_dir=tmp_path, uid=501).remove("refresh", wait_s=0)
 
 
 def test_parse_launchctl_print_never_exited():
@@ -358,3 +383,23 @@ def test_cli_install_status_run_remove_with_fake_scheduler(
     else:
         assert verbs[0] == "/create" and "/run" in verbs and "/delete" in verbs
     assert not (tmp_path / "home" / "schedules" / "test-x.json").exists()
+
+
+def test_run_now_wait_ignores_the_previous_run(tmp_path, monkeypatch, capsys, demo_build):
+    """A success that finished just before the kick must not count as this run."""
+    from studio_pulse import runstate
+
+    cfg = demo_build.copy(tmp_path / "data")
+    with runstate.RunRecorder(cfg.state_dir, "demo"):
+        pass  # a successful run that ends right now
+    fake = tmp_path / "fake.py"
+    fake.write_text(
+        "import sys; print('state = not running'); sys.exit(0)", encoding="utf-8"
+    )  # a scheduler that accepts the kick but starts nothing
+    monkeypatch.setenv(
+        "PULSE_SCHEDULER_CMD", json.dumps({"launchctl": [sys.executable, str(fake)]})
+    )
+    monkeypatch.setenv("PULSE_SCHEDULER_BACKEND", "launchd")
+    monkeypatch.setenv("PULSE_HOME", str(tmp_path / "home"))
+    rc = cli.main(["schedule", "run-now", "-c", str(cfg.path), "--name", "x", "--wait", "2"])
+    assert rc == 1 and "No finished run within 2 s" in capsys.readouterr().err

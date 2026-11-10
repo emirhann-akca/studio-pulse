@@ -53,7 +53,13 @@
 
     $bin = (& $uv tool dir --bin).Trim()
     if (-not (($env:Path -split ';') -contains $bin)) { $env:Path = "$bin;$env:Path" }
-    if (-not $env:UV_NO_MODIFY_PATH) { & $uv tool update-shell *> $null }
+    if (-not $env:UV_NO_MODIFY_PATH) {
+        # Windows PowerShell 5.1 turns a redirected native stderr line into a terminating
+        # error under 'Stop'; this call is best effort, so relax it here only.
+        $ErrorActionPreference = 'Continue'
+        & $uv tool update-shell 2>&1 | Out-Null
+        $ErrorActionPreference = 'Stop'
+    }
     Invoke-Native (Join-Path $bin 'pulse.exe') @('doctor')
 
     if ($env:PULSE_DEMO -eq '1') {

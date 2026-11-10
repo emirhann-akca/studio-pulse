@@ -293,14 +293,19 @@ class Launchd:
                 f"launchctl kickstart failed (exit {r.returncode}): {(r.stderr or r.stdout).strip()}"
             )
 
-    def remove(self, name: str) -> bool:
+    def remove(self, name: str, wait_s: float = 20.0) -> bool:
         domain, _ = self._find(name)
         if domain:
             r = self._lc("bootout", f"{domain}/{LABEL_PREFIX}{name}")
-            if r.returncode != 0 and self._find(name)[0]:
-                raise ScheduleError(
-                    f"launchctl bootout failed (exit {r.returncode}): {(r.stderr or r.stdout).strip()}"
-                )
+            # A running job is stopped first; launchd lists it until it exits.
+            deadline = time.monotonic() + wait_s
+            while self._find(name)[0]:
+                if time.monotonic() >= deadline:
+                    raise ScheduleError(
+                        f"launchctl bootout {domain}/{LABEL_PREFIX}{name} did not remove the job "
+                        f"(exit {r.returncode}): {(r.stderr or r.stdout).strip()}"
+                    )
+                time.sleep(0.5)
         path = self.plist_path(name)
         existed = path.exists()
         path.unlink(missing_ok=True)

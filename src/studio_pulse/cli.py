@@ -306,7 +306,12 @@ def cmd_schedule_run_now(args: argparse.Namespace) -> int:
     b = schedule.backend(args.backend)
     rec = schedule.load_record(args.name)
     state_dir = _schedule_state_dir(args, rec)
-    kicked = dt.datetime.now(dt.UTC).replace(microsecond=0) - dt.timedelta(seconds=1)
+    # The run we start must be told apart from the last one, even if that
+    # finished a moment ago: remember its identity; the new run's start time
+    # (second resolution) can only be at or after the time of the kick.
+    before = (runstate.read_heartbeat(state_dir) or {}) if state_dir else {}
+    before_id = (before.get("last_start"), before.get("pid"))
+    kicked = dt.datetime.now(dt.UTC).replace(microsecond=0)
     b.run_now(args.name)
     print(f"Started {args.name} through {b.kind}.")
     if not args.wait:
@@ -319,7 +324,8 @@ def cmd_schedule_run_now(args: argparse.Namespace) -> int:
         hb = runstate.read_heartbeat(state_dir) or {}
         started = runstate.parse_iso(hb.get("last_start"))
         if (
-            started
+            (hb.get("last_start"), hb.get("pid")) != before_id
+            and started
             and started >= kicked
             and hb.get("status") in ("success", "failed", "interrupted")
         ):
