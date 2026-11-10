@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Local / private data: real configs, warehouses, private dashboards
+local/
+pulse.local.yaml
+*.duckdb
+*.duckdb.wal
+.pulse-demo/
+.pulse-cache/
+demo-site/
+
+# Credentials (never commit)
+*.json.key
+service-account*.json
+.env
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Unity package metadata generated on import
+unity/**/*.meta
