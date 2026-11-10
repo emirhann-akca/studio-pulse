@@ -1,0 +1,59 @@
+# TEMPLATE - a scheduled refresh for a PRIVATE deployment. It does nothing here:
+# there is no schedule, and the job only runs when the repository variable
+# PULSE_REFRESH_ENABLED is "true". Copy it into a private repository (the
+# dashboard it builds contains real numbers) and fill in the placeholders.
+#
+# Secrets (names are placeholders, pick your own):
+#   GCP_SA_KEY_JSON   key of a service account with BigQuery Job User on the
+#                     billing project, BigQuery Data Viewer on the export datasets
+#                     and Storage Object Viewer on the RevenueCat bucket. Prefer
+#                     Workload Identity Federation (workload_identity_provider +
+#                     service_account inputs) over a key where you can.
+#   PULSE_CONFIG_YAML your pulse.local.yaml (no credentials in it)
+#   PULSE_SLACK_WEBHOOK_URL  optional, for alert notifications
+name: refresh (example)
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "30 6 * * *"   # daily, after the GA4 daily export has landed
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  refresh:
+    if: ${{ vars.PULSE_REFRESH_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install .[gcp]
+      - uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_JSON }}
+      - name: Write config
+        env:
+          PULSE_CONFIG_YAML: ${{ secrets.PULSE_CONFIG_YAML }}
+        run: printf '%s' "$PULSE_CONFIG_YAML" > pulse.local.yaml
+      - uses: actions/cache@v6
+        with:
+          path: .pulse-cache          # RevenueCat export files already downloaded
+          key: pulse-cache-${{ github.run_id }}
+          restore-keys: pulse-cache-
+      - name: Dry run (bytes estimate per query, loads nothing)
+        run: pulse ingest --dry-run
+      - name: Refresh
+        env:
+          PULSE_SLACK_WEBHOOK_URL: ${{ secrets.PULSE_SLACK_WEBHOOK_URL }}
+        run: pulse run --notify
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dashboard
+          path: local/site
+          retention-days: 14
