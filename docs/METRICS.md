@@ -104,12 +104,15 @@ table).
 | Metric | Formula | Model / column |
 |---|---|---|
 | Crashed users | Crashlytics export: distinct `installation_uuid` with an `is_fatal` event that day (UTC date of `event_timestamp`); without the export: GA4 users with `app_exception` and `fatal = 1` | `fct_app_daily.crashed_users` |
-| Crash-free users | 1 - crashed users / DAU | `fct_app_daily.crash_free_users` |
-| Crash-free sessions | 1 - fatal crash events / sessions (Crashlytics); 1 - sessions with a fatal `app_exception` / sessions (GA4) | `fct_app_daily.crash_free_sessions` |
-| 7-day crash-free users | 1 - sum(crashed users) / sum(DAU) over 7 days | `fct_app_summary.crash_free_users_7d` |
+| Crash-free users | 1 - min(crashed users, DAU) / DAU | `fct_app_daily.crash_free_users` |
+| Crash-free sessions | 1 - min(fatal crash events, sessions) / sessions (Crashlytics); 1 - sessions with a fatal `app_exception` / sessions (GA4) | `fct_app_daily.crash_free_sessions` |
+| 7-day crash-free users | 1 - sum(min(crashed users, DAU)) / sum(DAU) over 7 days | `fct_app_summary.crash_free_users_7d` |
 
 The Crashlytics export contains crashes only, no sessions, so its numerator is
-divided by GA4 DAU/sessions. The ids (Crashlytics installation vs GA4 app
+divided by GA4 DAU/sessions. The numerator is capped at the denominator: a
+device stuck in a crash loop can report more fatal crashes in a day than GA4
+recorded sessions (often the app dies before `session_start` is sent), which
+would otherwise push the rate below zero. The ids (Crashlytics installation vs GA4 app
 instance) and the day boundaries (UTC vs property time zone) differ, so the
 result approximates the Firebase console's figure rather than reproducing it.
 

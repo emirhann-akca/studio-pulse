@@ -80,6 +80,8 @@ def test_charts_handle_empty_and_gaps():
     html = charts.line_chart("Gaps", ["a", "b", "c"], [charts.Series("s", [1.0, None, 3.0])])
     assert html.count("M") >= 2  # the gap splits the path
     assert "Data table" in charts.bar_chart("Bars", ["x"], [charts.Series("s", [2.0])])
+    one = charts.line_chart("One", ["a", "b"], [charts.Series("kept", [1.0, 2.0]), charts.Series("empty", [None, None])])
+    assert "kept" in one and "empty" not in one
 
 
 def test_nice_ticks_cover_range():

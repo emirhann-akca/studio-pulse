@@ -86,7 +86,10 @@ SELECT
     (COALESCE(iap_revenue_usd, 0) + COALESCE(ad_revenue_usd, 0)) / NULLIF(dau, 0) AS arpdau,
     CAST(payers AS DOUBLE) / NULLIF(dau, 0) AS payer_conversion,
     admob_earnings_usd * 1000.0 / NULLIF(ad_impressions, 0) AS ecpm_usd,
-    1 - CAST(crashed_users AS DOUBLE) / NULLIF(dau, 0) AS crash_free_users,
-    1 - CAST(crashed_sessions AS DOUBLE) / NULLIF(sessions, 0) AS crash_free_sessions
+    -- Crash counts come from Crashlytics while DAU/sessions come from GA4. A
+    -- crash loop on one device can produce more fatal events than GA4 saw
+    -- sessions, so numerators are capped at their denominators.
+    1 - CAST(LEAST(crashed_users, dau) AS DOUBLE) / NULLIF(dau, 0) AS crash_free_users,
+    1 - CAST(LEAST(crashed_sessions, sessions) AS DOUBLE) / NULLIF(sessions, 0) AS crash_free_sessions
 FROM joined
 ORDER BY app_id, date

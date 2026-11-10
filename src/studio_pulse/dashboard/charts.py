@@ -159,6 +159,7 @@ def line_chart(
     x_fmt: Callable[[dt.date | str], str] = fmt_date,
     x_name: str = "Date",
 ) -> str:
+    series = [s for s in series if any(v is not None for v in s.values)]  # drop series with no data
     vals = [v for s in series for v in s.values if v is not None]
     if not x or not vals:
         return empty_chart(title, subtitle=subtitle)

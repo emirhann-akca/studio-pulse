@@ -161,6 +161,16 @@ def test_crashlytics_daily_aggregates(con, tmp_path):
     assert r == (pytest.approx(1 - 2 / 200), pytest.approx(1 - 3 / 250), "crashlytics")
 
 
+def test_crash_loop_cannot_push_crash_free_below_zero(con):
+    """23 fatal crashes from one device on a day GA4 saw 2 sessions."""
+    con.execute("INSERT INTO raw_crashlytics_daily VALUES ('g', ?, 'ANDROID', 23, 0, 1, 1, 'crash', now())", [D0])
+    con.execute("INSERT INTO raw_ga4_active_users (app_id, platform, date, dau, sessions, history_days, _source) VALUES ('g', 'ANDROID', ?, 1, 2, 1, 'ga4')", [D0])
+    con.execute("INSERT INTO meta_apps VALUES ('g', 'G', 'app', 'ANDROID', FALSE)")
+    run_models(con)
+    assert con.execute("SELECT crash_free_users, crash_free_sessions FROM fct_app_daily").fetchone() == (0.0, 0.0)
+    assert con.execute("SELECT crash_free_sessions_7d FROM fct_app_summary").fetchone()[0] == 0.0
+
+
 def test_crashlytics_bigquery_sql_prunes_partitions():
     sql = crashlytics.daily_query(BigQueryDialect("p", "firebase_crashlytics"), "com_example_game_ANDROID", D0, D0)
     assert "`p.firebase_crashlytics.com_example_game_ANDROID`" in sql
