@@ -1,0 +1,107 @@
+[
+ {
+  "header": {
+   "dateRange": {
+    "startDate": {
+     "year": 2026,
+     "month": 10,
+     "day": 1
+    },
+    "endDate": {
+     "year": 2026,
+     "month": 10,
+     "day": 2
+    }
+   },
+   "localizationSettings": {
+    "currencyCode": "USD"
+   }
+  }
+ },
+ {
+  "row": {
+   "dimensionValues": {
+    "DATE": {
+     "value": "20261001"
+    },
+    "APP": {
+     "value": "ca-app-pub-0000000000000000~1111111111",
+     "displayLabel": "Example Game"
+    }
+   },
+   "metricValues": {
+    "ESTIMATED_EARNINGS": {
+     "microsValue": "12500000"
+    },
+    "IMPRESSIONS": {
+     "integerValue": "2500"
+    },
+    "CLICKS": {
+     "integerValue": "31"
+    },
+    "AD_REQUESTS": {
+     "integerValue": "2900"
+    },
+    "MATCHED_REQUESTS": {
+     "integerValue": "2700"
+    }
+   }
+  }
+ },
+ {
+  "row": {
+   "dimensionValues": {
+    "DATE": {
+     "value": "20261002"
+    },
+    "APP": {
+     "value": "ca-app-pub-0000000000000000~1111111111",
+     "displayLabel": "Example Game"
+    }
+   },
+   "metricValues": {
+    "ESTIMATED_EARNINGS": {
+     "microsValue": "9000000"
+    },
+    "IMPRESSIONS": {
+     "integerValue": "2000"
+    },
+    "CLICKS": {
+     "integerValue": "20"
+    },
+    "AD_REQUESTS": {
+     "integerValue": "2400"
+    },
+    "MATCHED_REQUESTS": {
+     "integerValue": "2200"
+    }
+   }
+  }
+ },
+ {
+  "row": {
+   "dimensionValues": {
+    "DATE": {
+     "value": "20261001"
+    },
+    "APP": {
+     "value": "ca-app-pub-0000000000000000~2222222222",
+     "displayLabel": "Other App"
+    }
+   },
+   "metricValues": {
+    "ESTIMATED_EARNINGS": {
+     "microsValue": "1000000"
+    },
+    "IMPRESSIONS": {
+     "integerValue": "100"
+    }
+   }
+  }
+ },
+ {
+  "footer": {
+   "matchingRowCount": "3"
+  }
+ }
+]

@@ -1,0 +1,7 @@
+Provider	Provider Country	SKU	Developer	Title	Version	Product Type Identifier	Units	Developer Proceeds	Begin Date	End Date	Customer Currency	Country Code	Currency of Proceeds	Apple Identifier	Customer Price	Promo Code	Parent Identifier	Subscription	Period	Category	CMB	Device	Supported Platforms	Proceeds Reason	Preserved Pricing	Client	Order Type
+APPLE	US	com.example.game	Example Studio	Example		1F	50	0	10/01/2026	10/01/2026	USD	US	USD	1234567890	0					Games		iPhone	iOS				
+APPLE	US	com.example.game	Example Studio	Example		3F	7	0	10/01/2026	10/01/2026	USD	US	USD	1234567890	0					Games		iPhone	iOS				
+APPLE	US	com.example.game	Example Studio	Example		7F	200	0	10/01/2026	10/01/2026	USD	US	USD	1234567890	0					Games		iPhone	iOS				
+APPLE	US	coins_small	Example Studio	Example		IA1	4	0.70	10/01/2026	10/01/2026	USD	US	USD	2234567890	0		com.example.game			Games		iPhone	iOS				
+APPLE	US	coins_small	Example Studio	Example		IA1	2	0.62	10/01/2026	10/01/2026	EUR	US	EUR	2234567890	0		com.example.game			Games		iPhone	iOS				
+APPLE	US	other.app	Example Studio	Example		1F	999	0	10/01/2026	10/01/2026	USD	US	USD	9999999999	0					Games		iPhone	iOS				

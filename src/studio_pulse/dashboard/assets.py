@@ -63,6 +63,7 @@ figure.chart figcaption p { margin: 2px 0 0; color: var(--ink-2); font-size: 12p
 .legend .key { display: inline-flex; align-items: center; gap: 6px; }
 .legend .sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
 .legend .sw.box { height: 10px; width: 10px; border-radius: 3px; }
+.legend .ramp { display: inline-block; width: 72px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, color-mix(in oklab, var(--s1) 8%, var(--surface)), var(--s1)); }
 .plot { display: grid; grid-template-columns: 52px minmax(0, 1fr) var(--endw, 0px); grid-template-rows: var(--h, 200px) 22px; margin-top: 6px; }
 .yaxis { position: relative; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .yaxis span { position: absolute; right: 6px; transform: translateY(50%); white-space: nowrap; }

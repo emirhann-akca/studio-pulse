@@ -117,7 +117,7 @@ def _uid(prefix: str, title: str) -> str:
 
 
 def _legend(series: Sequence[Series], box: bool = False) -> str:
-    if len(series) < 2:
+    if not series:
         return ""
     keys = []
     for i, s in enumerate(series):
@@ -330,7 +330,13 @@ def heatmap(
         f'<div class="tbl-wrap" style="max-height:none"><table class="heat" aria-label="{lab}">'
         f'<thead><tr>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'
     )
-    return _figure(title, subtitle, table, _uid("h", title))
+    legend = (
+        '<div class="legend" aria-hidden="true"><span class="key">'
+        f'{escape(fmt(0))} <i class="ramp"></i> {escape(fmt(top))}</span>'
+        '<span class="key"><i class="sw box" style="background:var(--grid)"></i>· not observed yet</span></div>'
+    )
+    plain = _table([corner or "Row"] + list(col_labels), [[r] + [fmt(v) for v in row] for r, row in zip(row_labels, values, strict=False)])
+    return _figure(title, subtitle, legend + table + plain, _uid("h", title))
 
 
 def tile(label: str, value: str, delta: str | None = None, tone: str | None = None, title: str | None = None) -> str:
