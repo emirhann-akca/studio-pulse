@@ -20,12 +20,18 @@ PARAM_TIER = "tier"
 PARAM_SCENE = "scene"
 PARAM_WINDOW_S = "window_s"
 PARAM_FRAMES = "frames"
+PARAM_FT_SOURCE = "ft_src"
 PARAM_FT_P50 = "ft_p50_ms"
 PARAM_FT_P95 = "ft_p95_ms"
 PARAM_FT_MAX = "ft_max_ms"
 PARAM_SLOW_FRAMES = "slow_frames"
+PARAM_CPU_MAIN_P95 = "cpu_main_p95_ms"
+PARAM_GPU_P95 = "gpu_p95_ms"
+PARAM_MEM_SOURCE = "mem_src"
 PARAM_MEM_ALLOC = "mem_alloc_mb"
 PARAM_MEM_RESERVED = "mem_reserved_mb"
+PARAM_GC_RESERVED = "gc_reserved_mb"
+PARAM_SYS_USED = "sys_used_mb"
 PARAM_SYS_MEM = "sys_mem_mb"
 PARAM_KIND = "kind"
 PARAM_DURATION = "duration_ms"
@@ -36,12 +42,18 @@ PERF_PARAMS: dict[str, str] = {
     PARAM_SCENE: "string",
     PARAM_WINDOW_S: "double",
     PARAM_FRAMES: "int",
+    PARAM_FT_SOURCE: "string",
     PARAM_FT_P50: "double",
     PARAM_FT_P95: "double",
     PARAM_FT_MAX: "double",
     PARAM_SLOW_FRAMES: "int",
+    PARAM_CPU_MAIN_P95: "double",  # optional: only when the counter reported
+    PARAM_GPU_P95: "double",  # optional: off on OpenGL ES by default
+    PARAM_MEM_SOURCE: "string",
     PARAM_MEM_ALLOC: "int",
     PARAM_MEM_RESERVED: "int",
+    PARAM_GC_RESERVED: "int",
+    PARAM_SYS_USED: "int",  # optional: System Used Memory counter
     PARAM_SYS_MEM: "int",
 }
 
@@ -52,6 +64,12 @@ LOAD_PARAMS: dict[str, str] = {
     PARAM_SCENE: "string",
     PARAM_DURATION: "double",
 }
+
+# ft_src / mem_src values: which Unity API produced the numbers.
+SOURCE_FRAME_TIMING = "ftm"  # FrameTimingManager "CPU Total Frame Time" via ProfilerRecorder
+SOURCE_DELTA_TIME = "dt"  # Time.unscaledDeltaTime fallback
+SOURCE_RECORDER = "recorder"  # ProfilerRecorder memory counters
+SOURCE_PROFILER_API = "profiler_api"  # Profiler.GetTotal*Memory fallback
 
 LOAD_KIND_COLD_START = "cold_start"
 LOAD_KIND_SCENE = "scene_load"

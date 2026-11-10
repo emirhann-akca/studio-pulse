@@ -151,7 +151,10 @@ From `pulse_perf` windows (see `docs/EVENTS.md`).
 | Frame time p50 (tier, period) | median over windows of the window's `ft_p50_ms` | `fct_perf_by_tier.ft_p50_ms`, `fct_perf_daily.ft_p50_ms` |
 | Frame time p95 (tier, period) | median over windows of the window's `ft_p95_ms` (the typical session's tail) | `.ft_p95_ms` |
 | Slow-frame share | sum(`slow_frames`) / sum(`frames`) - exact share of frames slower than 33.3 ms | `.slow_frame_share` |
+| CPU main thread / GPU p95 | median over windows of the window's p95 FrameTimingManager CPU main-thread / GPU time. A GPU p95 close to the frame p95 means GPU-bound | `fct_perf_by_tier.cpu_main_p95_ms`, `.gpu_p95_ms`, `fct_perf_by_version` |
+| Frame timing coverage | share of windows whose frame times came from FrameTimingManager (`ft_src = 'ftm'`) rather than `Time.unscaledDeltaTime` | `fct_perf_by_tier.ftm_share` |
 | Memory p95 | 95th percentile over windows of peak allocated MB (and reserved MB) | `.mem_alloc_p95_mb`, `.mem_reserved_p95_mb` |
+| Process memory p95 | the same for System Used Memory, the OS view that low-memory kills act on | `.sys_used_p95_mb` |
 | By version | the same per `app_version` and tier, with the first day each version appeared | `fct_perf_by_version` |
 | Cold start p50 / p95 | percentiles of `duration_ms` over `cold_start` samples | `fct_load_times`, `fct_load_daily` |
 | Scene load p50 / p95 | the same for `scene_load`, per scene | `fct_load_times` |

@@ -3,11 +3,14 @@
 Client performance telemetry for mobile games, in the event schema the
 [studio-pulse](../../README.md) warehouse reads:
 
-- **PerfSampler** - frame time of every frame (`Time.unscaledDeltaTime`) in a
-  ring buffer; one `pulse_perf` event per 30 s window with p50 / p95 / max
-  frame time, the number of frames slower than 33.3 ms, and peak allocated /
-  reserved memory (`Profiler.GetTotalAllocatedMemoryLong` /
-  `GetTotalReservedMemoryLong`).
+- **PerfSampler** - one `pulse_perf` event per 30 s window with p50 / p95 / max
+  frame time, the number of frames slower than 33.3 ms, CPU main-thread and
+  GPU p95, and peak memory. It reads Unity's release-player APIs through
+  `ProfilerRecorder`: FrameTimingManager's "CPU Total Frame Time", "CPU Main
+  Thread Frame Time" and "GPU Frame Time", and the "Total Reserved Memory",
+  "GC Reserved Memory" and "System Used Memory" counters. When a counter is
+  not valid it falls back to `Time.unscaledDeltaTime` / the `Profiler` API, and
+  the event records which source it used (`ft_src`, `mem_src`).
 - **LoadTimer** - cold start (engine start to first interactive frame) and
   scene load times as `pulse_load` events.
 - **Device tier** - `low` / `mid` / `high` from `SystemInfo.systemMemorySize`,
@@ -71,12 +74,21 @@ the `unity_jsonl` source of studio-pulse reads the resulting files.
 
 ## Overhead
 
-Per frame: one float store into a preallocated ring buffer, a few comparisons
-and additions, and a boolean check for pending scene loads - no allocations
-(`tests/test_event_schema.py` checks the per-frame methods statically, and the
-Mono harness measured 0 bytes allocated across 100 000 `FrameWindow.Add`
-calls). Memory is read once per second. Sorting the window (at most 4096
-floats), building the event and serialising it happen once per window.
+Per frame: up to three `ProfilerRecorder.LastValue` reads, three float stores
+into preallocated ring buffers and a boolean check for pending scene loads - no
+allocations (the compiled IL of `PerfSampler.Tick` contains no `newobj`,
+`newarr` or `box`; `tests/test_event_schema.py` also checks the per-frame
+methods statically, and the Mono harness measured 0 bytes allocated across
+100 000 `FrameWindow.Add` calls). Memory is read once per second. Sorting the
+windows (at most 3 x 4096 floats), building the event and serialising it
+happen once per window. Sessions outside `sessionSampleRate` create no
+recorders at all.
+
+FrameTimingManager is off by default in release builds because GPU timing has
+a cost on some graphics APIs (OpenGL ES). Attaching a `ProfilerRecorder` to a
+specific counter makes it record only that counter, so the "Frame Timing
+Stats" player setting is not required; GPU time is not requested on OpenGL ES
+unless `recordGpuTimeOnOpenGLES` is set.
 
 ## Config
 
@@ -86,6 +98,7 @@ floats), building the event and serialising it happen once per window.
 | `flushIntervalSeconds` | 30 | How often queued events go to the sinks |
 | `sessionSampleRate` | 1 | Share of sessions that record frame times (loads are always recorded) |
 | `ringCapacity` | 4096 | Frames kept for percentiles (a full window up to ~136 fps) |
+| `recordGpuTimeOnOpenGLES` | false | Also record GPU frame time on OpenGL ES (costs GPU time there) |
 | `autoMarkInteractive` | false | Report cold start at the first frame if `MarkInteractive()` is never called |
 | `logBatches` | false | Log each flush to the console |
 

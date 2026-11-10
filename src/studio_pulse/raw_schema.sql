@@ -89,9 +89,23 @@ CREATE TABLE IF NOT EXISTS raw_perf_windows (
     slow_frames       BIGINT,
     mem_alloc_mb      DOUBLE,
     mem_reserved_mb   DOUBLE,
+    ft_src            VARCHAR,   -- 'ftm' FrameTimingManager | 'dt' unscaledDeltaTime
+    cpu_main_p95_ms   DOUBLE,
+    gpu_p95_ms        DOUBLE,
+    mem_src           VARCHAR,   -- 'recorder' ProfilerRecorder | 'profiler_api'
+    gc_reserved_mb    DOUBLE,
+    sys_used_mb       DOUBLE,
     _source           VARCHAR NOT NULL,
     _loaded_at        TIMESTAMP
 );
+
+-- Warehouses created before the ProfilerRecorder-based sampler.
+ALTER TABLE raw_perf_windows ADD COLUMN IF NOT EXISTS ft_src VARCHAR;
+ALTER TABLE raw_perf_windows ADD COLUMN IF NOT EXISTS cpu_main_p95_ms DOUBLE;
+ALTER TABLE raw_perf_windows ADD COLUMN IF NOT EXISTS gpu_p95_ms DOUBLE;
+ALTER TABLE raw_perf_windows ADD COLUMN IF NOT EXISTS mem_src VARCHAR;
+ALTER TABLE raw_perf_windows ADD COLUMN IF NOT EXISTS gc_reserved_mb DOUBLE;
+ALTER TABLE raw_perf_windows ADD COLUMN IF NOT EXISTS sys_used_mb DOUBLE;
 
 -- One row per pulse_load event. kind in ('cold_start', 'scene_load').
 CREATE TABLE IF NOT EXISTS raw_load_times (

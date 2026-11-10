@@ -60,6 +60,11 @@ def test_connector_parses_csharp_output():
     p = perf[0]
     assert p["device_tier"] == "low" and p["scene"] == 'Level "7"' and p["platform"] == "ANDROID"
     assert p["frames"] == 1800 and p["window_s"] == 30.0
+    assert (p["ft_src"], p["mem_src"]) == (E.SOURCE_FRAME_TIMING, E.SOURCE_RECORDER)
+    assert (p["gc_reserved_mb"], p["sys_used_mb"]) == (96, 688)
+    # The harness fed the CPU / GPU rings 0.55x / 0.8x of each frame; percentiles scale with it.
+    assert p["cpu_main_p95_ms"] == pytest.approx(0.55 * p["ft_p95_ms"], abs=2e-3)
+    assert p["gpu_p95_ms"] == pytest.approx(0.8 * p["ft_p95_ms"], abs=2e-3)
     assert load[0]["kind"] == "cold_start" and load[0]["duration_ms"] == 3912.25
 
 
@@ -92,3 +97,18 @@ def test_no_per_frame_allocation_patterns_in_update_path():
     sampler = (RUNTIME / "PerfSampler.cs").read_text()
     tick = sampler[sampler.index("public PulseEvent Tick("): sampler.index("void SampleMemory()")]
     assert "new " not in tick and "ToString" not in tick and "GetActiveScene" not in tick
+    memory = sampler[sampler.index("void SampleMemory()"): sampler.index("public PulseEvent CloseWindow(")]
+    assert "new " not in memory and "ToString" not in memory
+
+
+def test_sampler_uses_documented_counters_and_disposes_them():
+    """Counter names from the Unity 6.3 manual; every recorder is released."""
+    src = (RUNTIME / "PerfSampler.cs").read_text()
+    started = re.findall(r'ProfilerRecorder\.StartNew\(ProfilerCategory\.(\w+), "([^"]+)"\)', src)
+    assert sorted(started) == sorted([
+        ("Internal", "CPU Total Frame Time"), ("Internal", "CPU Main Thread Frame Time"), ("Internal", "GPU Frame Time"),
+        ("Memory", "Total Reserved Memory"), ("Memory", "GC Reserved Memory"), ("Memory", "System Used Memory"),
+    ])
+    fields = re.findall(r"^\s*ProfilerRecorder (_\w+);", src, flags=re.M)
+    assert len(fields) == 6 and all(f"{f}.Dispose()" in src for f in fields)
+    assert "_sampler.Dispose()" in (RUNTIME / "Pulse.cs").read_text()

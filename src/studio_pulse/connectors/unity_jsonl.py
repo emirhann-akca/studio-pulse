@@ -4,9 +4,10 @@ One event per line, see docs/EVENTS.md:
 
   {"v":1,"event":"pulse_perf","ts":"2026-10-01T12:00:30.000Z","app":"com.example.game",
    "app_version":"1.4.0","platform":"ANDROID","session":"6f1c...",
-   "params":{"pulse_v":1,"tier":"low","scene":"Level","window_s":30.0,"frames":1712,
-             "ft_p50_ms":16.7,"ft_p95_ms":24.1,"ft_max_ms":71.3,"slow_frames":9,
-             "mem_alloc_mb":412,"mem_reserved_mb":520,"sys_mem_mb":3072}}
+   "params":{"pulse_v":1,"tier":"low","scene":"Level","window_s":30.0,"frames":1712,"ft_src":"ftm",
+             "ft_p50_ms":16.7,"ft_p95_ms":24.1,"ft_max_ms":71.3,"slow_frames":9,"cpu_main_p95_ms":11.2,
+             "gpu_p95_ms":19.8,"mem_src":"recorder","mem_alloc_mb":412,"mem_reserved_mb":520,
+             "gc_reserved_mb":96,"sys_used_mb":690,"sys_mem_mb":3072}}
 
 The same events can also reach the warehouse through GA4 (Firebase sink); the
 GA4 connector reads them from event_params with identical names.
@@ -98,6 +99,12 @@ def parse_lines(
                     "slow_frames": _i(params.get(E.PARAM_SLOW_FRAMES)),
                     "mem_alloc_mb": _f(params.get(E.PARAM_MEM_ALLOC)),
                     "mem_reserved_mb": _f(params.get(E.PARAM_MEM_RESERVED)),
+                    "ft_src": params.get(E.PARAM_FT_SOURCE),
+                    "cpu_main_p95_ms": _f(params.get(E.PARAM_CPU_MAIN_P95)),
+                    "gpu_p95_ms": _f(params.get(E.PARAM_GPU_P95)),
+                    "mem_src": params.get(E.PARAM_MEM_SOURCE),
+                    "gc_reserved_mb": _f(params.get(E.PARAM_GC_RESERVED)),
+                    "sys_used_mb": _f(params.get(E.PARAM_SYS_USED)),
                 }
             )
             st.perf += 1

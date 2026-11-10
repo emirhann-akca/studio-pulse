@@ -12,8 +12,14 @@ SELECT
     ft_p95_ms,
     ft_max_ms,
     slow_frames,
+    ft_src,            -- 'ftm' (FrameTimingManager) | 'dt' (unscaledDeltaTime) | NULL (older clients, fps events)
+    cpu_main_p95_ms,
+    gpu_p95_ms,
+    mem_src,
     mem_alloc_mb,
-    mem_reserved_mb
+    mem_reserved_mb,
+    gc_reserved_mb,
+    sys_used_mb
 FROM raw_perf_windows
 WHERE ft_p50_ms > 0 AND ft_p50_ms < 10000
   AND (frames IS NULL OR frames > 0)

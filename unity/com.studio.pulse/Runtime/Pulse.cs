@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 
 namespace Studio.Pulse
@@ -16,6 +17,8 @@ namespace Studio.Pulse
         [Range(0f, 1f)] public float sessionSampleRate = 1f;
         [Tooltip("Ring buffer capacity in frames (4096 covers 30 s at 120 fps).")]
         public int ringCapacity = 4096;
+        [Tooltip("Record GPU frame time on OpenGL ES too. Off by default: GPU timing queries cost GPU time there (Unity manual, FrameTimingManager). Also needs Player Settings > OpenGL: Profiler GPU Recorders.")]
+        public bool recordGpuTimeOnOpenGLES = false;
         [Tooltip("Report cold start on the first frame if the game never calls Pulse.MarkInteractive().")]
         public bool autoMarkInteractive = false;
         [Tooltip("Log every flushed batch to the console (development builds).")]
@@ -60,7 +63,9 @@ namespace Studio.Pulse
             UnityEngine.Object.DontDestroyOnLoad(go);
             _runtime = go.AddComponent<PulseRuntime>();
             bool sampled = UnityEngine.Random.value < Config.sessionSampleRate;
-            _runtime.Setup(Config, sampled ? new PerfSampler(Config.windowSeconds, Config.ringCapacity) : null);
+            bool gpu = Config.recordGpuTimeOnOpenGLES || SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES3;
+            // Unsampled sessions create no recorders, so they pay nothing.
+            _runtime.Setup(Config, sampled ? new PerfSampler(Config.windowSeconds, Config.ringCapacity, 1f, gpu) : null);
         }
 
         /// <summary>Call when the first screen accepts input; reports the cold start time.</summary>
@@ -170,6 +175,7 @@ namespace Studio.Pulse
         void OnDestroy()
         {
             SceneManager.sceneLoaded -= LoadTimer.OnSceneLoaded;
+            if (_sampler != null) _sampler.Dispose();
         }
     }
 }

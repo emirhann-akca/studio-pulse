@@ -8,6 +8,8 @@ SELECT
     COUNT(*) AS windows,
     quantile_cont(CAST(ft_p50_ms AS DOUBLE), 0.5) AS ft_p50_ms,
     quantile_cont(CAST(ft_p95_ms AS DOUBLE), 0.5) AS ft_p95_ms,
+    quantile_cont(cpu_main_p95_ms, 0.5) AS cpu_main_p95_ms,
+    quantile_cont(gpu_p95_ms, 0.5) AS gpu_p95_ms,
     CAST(SUM(slow_frames) AS DOUBLE) / NULLIF(SUM(frames), 0) AS slow_frame_share
 FROM stg_perf_windows
 WHERE app_version IS NOT NULL

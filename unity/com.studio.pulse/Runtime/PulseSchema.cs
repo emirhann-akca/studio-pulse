@@ -14,18 +14,31 @@ namespace Studio.Pulse
         public const string ParamScene = "scene";
         public const string ParamWindowS = "window_s";
         public const string ParamFrames = "frames";
+        public const string ParamFtSource = "ft_src";
         public const string ParamFtP50 = "ft_p50_ms";
         public const string ParamFtP95 = "ft_p95_ms";
         public const string ParamFtMax = "ft_max_ms";
         public const string ParamSlowFrames = "slow_frames";
+        public const string ParamCpuMainP95 = "cpu_main_p95_ms";
+        public const string ParamGpuP95 = "gpu_p95_ms";
+        public const string ParamMemSource = "mem_src";
         public const string ParamMemAlloc = "mem_alloc_mb";
         public const string ParamMemReserved = "mem_reserved_mb";
+        public const string ParamGcReserved = "gc_reserved_mb";
+        public const string ParamSysUsed = "sys_used_mb";
         public const string ParamSysMem = "sys_mem_mb";
         public const string ParamKind = "kind";
         public const string ParamDuration = "duration_ms";
 
         public const string LoadKindColdStart = "cold_start";
         public const string LoadKindScene = "scene_load";
+
+        /// <summary>ft_src values: FrameTimingManager counter, or Time.unscaledDeltaTime.</summary>
+        public const string SourceFrameTiming = "ftm";
+        public const string SourceDeltaTime = "dt";
+        /// <summary>mem_src values: ProfilerRecorder memory counters, or the Profiler.GetTotal* API.</summary>
+        public const string SourceRecorder = "recorder";
+        public const string SourceProfilerApi = "profiler_api";
 
         /// <summary>A frame slower than two 60 Hz vsync intervals (below 30 fps).</summary>
         public const float SlowFrameMs = 33.3f;

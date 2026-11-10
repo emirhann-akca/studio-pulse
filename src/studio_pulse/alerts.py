@@ -66,6 +66,8 @@ METRICS: dict[str, MetricSpec] = {
     "frame_time_p95_ms": MetricSpec("SELECT app_id, date, ft_p95_ms AS value, windows AS sample, device_tier FROM fct_perf_daily", "ms", ("device_tier",)),
     "slow_frame_share": MetricSpec("SELECT app_id, date, slow_frame_share AS value, windows AS sample, device_tier FROM fct_perf_daily", "pct", ("device_tier",)),
     "memory_p95_mb": MetricSpec("SELECT app_id, date, mem_alloc_p95_mb AS value, windows AS sample, device_tier FROM fct_perf_daily", "mb", ("device_tier",)),
+    "process_memory_p95_mb": MetricSpec("SELECT app_id, date, sys_used_p95_mb AS value, windows AS sample, device_tier FROM fct_perf_daily", "mb", ("device_tier",),
+                                        "System Used Memory (what the OS counts against the app), p95 over windows"),
     "cold_start_p50_ms": MetricSpec("SELECT app_id, date, p50_ms AS value, samples AS sample FROM fct_load_daily WHERE kind = 'cold_start'", "ms"),
     "scene_load_p50_ms": MetricSpec("SELECT app_id, date, p50_ms AS value, samples AS sample FROM fct_load_daily WHERE kind = 'scene_load'", "ms"),
 }

@@ -38,19 +38,53 @@ Sessions can be sampled with `PulseConfig.sessionSampleRate`.
 | `scene` | string | - | Active scene when the window closed |
 | `window_s` | double | s | Window length actually covered |
 | `frames` | int | frames | Frames rendered in the window |
+| `ft_src` | string | - | Where the frame times came from: `ftm` or `dt` (below) |
 | `ft_p50_ms` | double | ms | Median frame time of the window |
 | `ft_p95_ms` | double | ms | 95th percentile frame time of the window |
 | `ft_max_ms` | double | ms | Slowest frame of the window |
 | `slow_frames` | int | frames | Frames slower than 33.3 ms (below 30 fps) |
+| `cpu_main_p95_ms` | double | ms | p95 of FrameTimingManager "CPU Main Thread Frame Time" (main thread work, vsync and render-thread waits excluded). Optional |
+| `gpu_p95_ms` | double | ms | p95 of FrameTimingManager "GPU Frame Time". Optional; off on OpenGL ES by default |
+| `mem_src` | string | - | `recorder` (ProfilerRecorder memory counters) or `profiler_api` (fallback) |
 | `mem_alloc_mb` | int | MB | Peak `Profiler.GetTotalAllocatedMemoryLong()`, sampled once per second |
-| `mem_reserved_mb` | int | MB | Peak `Profiler.GetTotalReservedMemoryLong()` |
-| `sys_mem_mb` | int | MB | `SystemInfo.systemMemorySize` |
+| `mem_reserved_mb` | int | MB | Peak "Total Reserved Memory" counter (fallback `Profiler.GetTotalReservedMemoryLong()`) |
+| `gc_reserved_mb` | int | MB | Peak "GC Reserved Memory" counter (fallback `Profiler.GetMonoHeapSizeLong()`) |
+| `sys_used_mb` | int | MB | Peak "System Used Memory" counter: what the OS counts against the process. Optional (no API fallback) |
+| `sys_mem_mb` | int | MB | `SystemInfo.systemMemorySize` (device RAM) |
 
-Frame times are `Time.unscaledDeltaTime`. The first frame after resuming from
-the background and any delta above 5 s are skipped. Percentiles use linear
-interpolation between closest ranks over the most recent frames in the ring
-buffer (4096 frames by default, i.e. a full 30 s window up to ~136 fps);
-`frames` and `slow_frames` count every frame of the window.
+### Where the numbers come from
+
+The sampler uses the runtime APIs Unity documents for release players and says
+which one it used, so a dashboard never silently mixes two definitions:
+
+- **Frame time (`ft_src`).** `ftm`: FrameTimingManager's "CPU Total Frame Time"
+  read through a `ProfilerRecorder` (`ProfilerCategory.Internal`), i.e. the
+  time between the ends of two frames, vsync waits included and
+  `Application.Pause` excluded. Attaching a recorder makes FrameTimingManager
+  record just that counter, so the "Frame Timing Stats" player setting is not
+  needed. FrameTimingManager results lag by a few frames, so the first window of
+  a session, and every window on a platform where the counter reports nothing,
+  uses `dt`: `Time.unscaledDeltaTime`. The source is fixed per window.
+- **CPU vs GPU.** "CPU Main Thread Frame Time" and "GPU Frame Time" are recorded
+  the same way and reported as window p95s. Next to `ft_p95_ms` they show the
+  bottleneck: a GPU p95 close to the frame p95 means the GPU is the limit. A
+  value is sent only when it covers at least half of the window's frames. GPU
+  timing is skipped on OpenGL ES unless `PulseConfig.recordGpuTimeOnOpenGLES` is
+  set, because Unity notes that measuring it there costs GPU time (it also
+  needs Player Settings > "OpenGL: Profiler GPU Recorders").
+- **Memory (`mem_src`).** "Total Reserved Memory", "GC Reserved Memory" and
+  "System Used Memory" (`ProfilerCategory.Memory`), which the Unity manual
+  lists as available in release players. If a counter is not valid the
+  sampler falls back to the `Profiler` API; System Used Memory has no
+  equivalent and is then omitted.
+
+The first frame after resuming from the background and any delta above 5 s are
+skipped. Percentiles use linear interpolation between closest ranks over the
+most recent frames in the ring buffer (4096 frames by default, i.e. a full 30 s
+window up to ~136 fps); `frames` and `slow_frames` count every frame of the
+window. Per frame the sampler does up to three `ProfilerRecorder.LastValue`
+reads and three stores into preallocated rings, nothing that allocates (the
+compiled IL of `PerfSampler.Tick` has no `newobj`, `newarr` or `box`).
 
 ## `pulse_load` - a load time
 
@@ -87,14 +121,14 @@ place if your audience differs. Rows without a tier are reported as `unknown`.
 One event per line, UTF-8, `\n` terminated:
 
 ```json
-{"v":1,"event":"pulse_perf","ts":"2026-10-01T12:00:30.000Z","app":"com.example.game","app_version":"1.4.0","platform":"ANDROID","session":"0123456789abcdef0123456789abcdef","params":{"pulse_v":1,"tier":"low","scene":"Level","window_s":30,"frames":1800,"ft_p50_ms":17.332,"ft_p95_ms":18.026,"ft_max_ms":50.465,"slow_frames":19,"mem_alloc_mb":412,"mem_reserved_mb":530,"sys_mem_mb":3072}}
+{"v":1,"event":"pulse_perf","ts":"2026-10-01T12:00:30.000Z","app":"com.example.game","app_version":"1.4.0","platform":"ANDROID","session":"0123456789abcdef0123456789abcdef","params":{"pulse_v":1,"tier":"low","scene":"Level","window_s":30,"frames":1800,"ft_src":"ftm","ft_p50_ms":17.332,"ft_p95_ms":18.026,"ft_max_ms":50.465,"slow_frames":19,"cpu_main_p95_ms":9.914,"gpu_p95_ms":14.421,"mem_src":"recorder","mem_alloc_mb":412,"mem_reserved_mb":530,"gc_reserved_mb":96,"sys_used_mb":688,"sys_mem_mb":3072}}
 ```
 
 | Key | Meaning |
 |---|---|
 | `v` | Envelope version (`1`); other versions are counted as malformed |
 | `event` | `pulse_perf` or `pulse_load` |
-| `ts` | UTC timestamp, ISO 8601 with milliseconds; the warehouse date is the UTC date |
+| `ts` | UTC timestamp, ISO 8601 with milliseconds; the warehouse date is its calendar day in the app's configured `timezone` |
 | `app` | `Application.identifier` (bundle id / package name) |
 | `app_version` | `Application.version` |
 | `platform` | `ANDROID`, `IOS`, `WEB`, `EDITOR` or the upper-cased `RuntimePlatform` |

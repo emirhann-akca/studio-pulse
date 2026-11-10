@@ -337,7 +337,13 @@ SELECT
     {only_perf(d.param_num(E.PARAM_FT_MAX))} AS ft_max_ms,
     CAST({only_perf(d.param_num(E.PARAM_SLOW_FRAMES))} AS {d.int_type}) AS slow_frames,
     {only_perf(d.param_num(E.PARAM_MEM_ALLOC))} AS mem_alloc_mb,
-    {only_perf(d.param_num(E.PARAM_MEM_RESERVED))} AS mem_reserved_mb
+    {only_perf(d.param_num(E.PARAM_MEM_RESERVED))} AS mem_reserved_mb,
+    {only_perf(d.param_str(E.PARAM_FT_SOURCE))} AS ft_src,
+    {only_perf(d.param_num(E.PARAM_CPU_MAIN_P95))} AS cpu_main_p95_ms,
+    {only_perf(d.param_num(E.PARAM_GPU_P95))} AS gpu_p95_ms,
+    {only_perf(d.param_str(E.PARAM_MEM_SOURCE))} AS mem_src,
+    {only_perf(d.param_num(E.PARAM_GC_RESERVED))} AS gc_reserved_mb,
+    {only_perf(d.param_num(E.PARAM_SYS_USED))} AS sys_used_mb
 FROM {d.ga4_events()}
 WHERE {self._where(None, f"event_name IN ({sql_list(names)})")}
 """
