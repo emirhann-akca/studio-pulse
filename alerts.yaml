@@ -1,0 +1,63 @@
+# Alert rules evaluated by `pulse alerts` (and shown on the dashboard).
+# Metrics are listed in src/studio_pulse/alerts.py (METRICS); formulas are in
+# docs/METRICS.md. Conditions: above | below | drop_vs_baseline | rise_vs_baseline.
+
+defaults:
+  severity: warning
+
+rules:
+  - name: d1_retention_drop
+    description: Newest complete install cohort keeps >20% fewer users on day 1 than the trailing 14 cohorts.
+    metric: d1_retention
+    condition: drop_vs_baseline
+    baseline_days: 14
+    threshold_pct: 20
+    min_sample: 50          # ignore cohorts smaller than 50 users
+
+  - name: crash_free_users_low
+    description: Fewer than 99% of daily active users were crash-free.
+    metric: crash_free_users
+    condition: below
+    threshold: 0.99
+    min_sample: 100         # needs at least 100 DAU
+    severity: critical
+
+  - name: low_tier_frame_time_high
+    description: Median frame time on low-tier devices above 20 ms (below ~50 fps).
+    metric: frame_time_p50_ms
+    where: {device_tier: low}
+    condition: above
+    threshold: 20
+    min_sample: 20          # perf windows that day
+
+  - name: slow_frames_high
+    description: More than 5% of all frames took longer than 33.3 ms.
+    metric: slow_frame_share
+    where: {device_tier: all}
+    condition: above
+    threshold: 0.05
+    min_sample: 20
+
+  - name: dau_drop
+    description: DAU 25% below its trailing 14-day mean.
+    metric: dau
+    condition: drop_vs_baseline
+    baseline_days: 14
+    threshold_pct: 25
+    min_sample: 50
+
+  - name: arpdau_drop
+    description: ARPDAU (3-day average) 30% below its trailing 14-day mean.
+    metric: arpdau
+    condition: drop_vs_baseline
+    evaluate_days: 3
+    baseline_days: 14
+    threshold_pct: 30
+    min_sample: 100
+
+  - name: cold_start_slow
+    description: Median cold start above 5 seconds.
+    metric: cold_start_p50_ms
+    condition: above
+    threshold: 5000
+    min_sample: 20
