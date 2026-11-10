@@ -72,3 +72,12 @@ def test_config_errors(tmp_path: Path):
         config_from_dict({"apps": [{"id": "Bad-Id"}]}, tmp_path)
     with pytest.raises(ConfigError, match="NOT_SET_ANYWHERE"):
         config_from_dict({"apps": [{"id": "a", "name": "${NOT_SET_ANYWHERE}"}]}, tmp_path)
+
+
+def test_app_timezone_is_validated(tmp_path: Path):
+    ok = config_from_dict({"apps": [{"id": "a", "timezone": "Europe/Istanbul"}]}, base_dir=tmp_path)
+    assert ok.apps[0].timezone == "Europe/Istanbul"
+    assert config_from_dict({"apps": [{"id": "a"}]}, base_dir=tmp_path).apps[0].timezone == "UTC"
+    for bad in ("Mars/Olympus", "UTC'; --", "../etc/localtime"):
+        with pytest.raises(ConfigError):
+            config_from_dict({"apps": [{"id": "a", "timezone": bad}]}, base_dir=tmp_path)

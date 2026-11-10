@@ -70,6 +70,22 @@ def test_missing_baseline_points_skip(db):
     assert alerts.evaluate(db, [r]) == []  # only 2 baseline days < 7 required
 
 
+def test_min_z_ignores_drops_a_small_cohort_makes_by_chance():
+    c = duckdb.connect()
+    c.execute("CREATE TABLE fct_retention (app_id VARCHAR, cohort_date DATE, day_n INT, retention DOUBLE, cohort_size INT, is_complete BOOLEAN)")
+    for app, size in (("small", 60), ("big", 2000)):
+        for i in range(15):  # 35% baseline, newest cohort 26% (-26%)
+            c.execute("INSERT INTO fct_retention VALUES (?, ?, 1, ?, ?, TRUE)", [app, D + dt.timedelta(days=i), 0.35 if i < 14 else 0.26, size])
+    plain = rule(name="d1", metric="d1_retention", condition="drop_vs_baseline", threshold_pct=20, min_sample=50)
+    guarded = rule(name="d1z", metric="d1_retention", condition="drop_vs_baseline", threshold_pct=20, min_sample=50, min_z=3)
+    assert sorted(a.app_id for a in alerts.evaluate(c, [plain])) == ["big", "small"]
+    fired = alerts.evaluate(c, [guarded])
+    # 60 users: SE = sqrt(.35 * .65 / 60) = 6.2 points, the drop is 1.5 SE. 2000 users: 8.4 SE.
+    assert [a.app_id for a in fired] == ["big"] and "z=-8.4" in fired[0].message
+    with pytest.raises(RuleError):
+        rule(name="x", metric="dau", condition="below", threshold=1, min_z=2)
+
+
 def test_rule_validation():
     with pytest.raises(RuleError):
         rule(name="x", metric="nope", condition="above", threshold=1)

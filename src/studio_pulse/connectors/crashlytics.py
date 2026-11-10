@@ -8,6 +8,11 @@ fct_app_daily against GA4 DAU and sessions (see docs/METRICS.md).
 
 Only daily aggregates are pulled: fatal/non-fatal event counts, distinct
 crashing installations and distinct fatal issues.
+
+`event_timestamp` is UTC while GA4's `event_date` is in the property's
+reporting time zone. Crashes are therefore bucketed by the app's configured
+`timezone`, otherwise a crash at 23:30 in Istanbul would land on the next GA4
+day and be divided by the wrong DAU.
 """
 
 from __future__ import annotations
@@ -21,18 +26,22 @@ from ..warehouse import record_load, replace_slice
 from .dialect import Dialect
 
 
-def daily_query(d: Dialect, table: str, start: dt.date, end: dt.date) -> str:
-    end_excl = end + dt.timedelta(days=1)
+def daily_query(d: Dialect, table: str, start: dt.date, end: dt.date, tz: str = "UTC") -> str:
+    # One extra UTC day on each side covers every offset; the timestamp range
+    # still prunes partitions, the local-date filter does the exact cut.
+    lo, hi = start - dt.timedelta(days=1), end + dt.timedelta(days=2)
+    local = d.local_date("event_timestamp", tz)
     return f"""
 SELECT
-    {d.ts_to_date('event_timestamp')} AS date,
+    {local} AS date,
     UPPER(platform) AS platform,
     SUM(CASE WHEN is_fatal THEN 1 ELSE 0 END) AS fatal_events,
     SUM(CASE WHEN is_fatal THEN 0 ELSE 1 END) AS nonfatal_events,
     COUNT(DISTINCT CASE WHEN is_fatal THEN installation_uuid END) AS crashed_installs,
     COUNT(DISTINCT CASE WHEN is_fatal THEN issue_id END) AS fatal_issues
 FROM {d.table(table)}
-WHERE event_timestamp >= {d.ts_lit(start)} AND event_timestamp < {d.ts_lit(end_excl)}
+WHERE event_timestamp >= {d.ts_lit(lo)} AND event_timestamp < {d.ts_lit(hi)}
+  AND {local} BETWEEN {d.date_lit(start)} AND {d.date_lit(end)}
 GROUP BY 1, 2
 """
 
@@ -47,6 +56,7 @@ def ingest(
     tables: list[str],
     start: dt.date,
     end: dt.date,
+    timezone: str = "UTC",
     log: Any = print,
 ) -> int:
     import pyarrow as pa
@@ -55,7 +65,7 @@ def ingest(
     billed = 0
     for t in tables:
         before = len(executor.stats)
-        res = executor.run(f"{app_id}.crashlytics.{t}", daily_query(dialect, t, start, end))
+        res = executor.run(f"{app_id}.crashlytics.{t}", daily_query(dialect, t, start, end, timezone))
         if len(executor.stats) > before and executor.stats[-1].billed_bytes:
             billed += executor.stats[-1].billed_bytes
         if res is not None:

@@ -13,6 +13,7 @@ rules:
     baseline_days: 14
     threshold_pct: 20
     min_sample: 50          # ignore cohorts smaller than 50 users
+    min_z: 3                # and drops that a cohort this size produces by chance
 
   - name: crash_free_users_low
     description: Fewer than 99% of daily active users were crash-free.

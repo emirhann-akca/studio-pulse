@@ -11,7 +11,9 @@ its parameters:
 Optional per rule: where (dimension filter, e.g. {device_tier: low}),
 min_sample (skip points backed by fewer users/windows/samples), apps (limit to
 some app ids), severity (warning | critical), evaluate_days (average the last N
-points instead of using only the latest one).
+points instead of using only the latest one), min_z (proportion metrics only:
+also require the move to be at least min_z binomial standard errors, see
+_z_score).
 
 Notifications: always printed; also sent to Slack when
 $PULSE_SLACK_WEBHOOK_URL is set and by e-mail when $PULSE_SMTP_HOST and
@@ -22,6 +24,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import math
 import os
 import smtplib
 from dataclasses import dataclass, field
@@ -85,6 +88,7 @@ class Rule:
     min_baseline_points: int | None = None
     min_sample: float = 0
     evaluate_days: int = 1
+    min_z: float | None = None
     where: dict[str, Any] = field(default_factory=dict)
     apps: list[str] = field(default_factory=list)
     severity: str = "warning"
@@ -108,6 +112,8 @@ class Rule:
             raise RuleError(f"rule {r.name!r}: needs threshold_pct")
         if r.severity not in ("warning", "critical"):
             raise RuleError(f"rule {r.name!r}: severity must be warning or critical")
+        if r.min_z is not None and METRICS[r.metric].unit != "pct":
+            raise RuleError(f"rule {r.name!r}: min_z applies to proportion metrics only")
         bad_dims = set(r.where) - set(METRICS[r.metric].dims)
         if bad_dims:
             raise RuleError(f"rule {r.name!r}: metric {r.metric} has no dimension(s) {sorted(bad_dims)}")
@@ -174,6 +180,18 @@ def _series(con: duckdb.DuckDBPyConnection, rule: Rule) -> dict[str, list[tuple[
     return out
 
 
+def _z_score(value: float, reference: float, n: float) -> float | None:
+    """How many binomial standard errors `value` (a share of n) is from `reference`.
+
+    D1 retention of a 50-user cohort has a standard error of about 6.7 points
+    at 35%, so a 20% relative drop is well inside the noise; without this check
+    the d1 rule fired on small cohorts that were simply unlucky.
+    """
+    if n <= 0 or not 0 < reference < 1:
+        return None
+    return (value - reference) / math.sqrt(reference * (1 - reference) / n)
+
+
 def evaluate(con: duckdb.DuckDBPyConnection, rules: list[Rule]) -> list[Alert]:
     alerts: list[Alert] = []
     for rule in rules:
@@ -212,6 +230,12 @@ def evaluate(con: duckdb.DuckDBPyConnection, rules: list[Rule]) -> list[Alert]:
                     f"{rule.metric} {_fmt(value, unit)} is {word} {abs(change) * 100:.1f}% vs the "
                     f"trailing {rule.baseline_days}-day mean {_fmt(baseline, unit)} (limit {thr:.0f}%)"
                 )
+            if hit and rule.min_z is not None:
+                n = sum(p[2] or 0 for p in latest)
+                z = _z_score(value, baseline if baseline is not None else thr, n)
+                if z is not None:
+                    hit = abs(z) >= rule.min_z
+                    msg += f" (z={z:.1f}, n={n:,.0f})"
             if hit:
                 where = "".join(f" [{k}={v}]" for k, v in rule.where.items())
                 alerts.append(Alert(rule.name, app_id, rule.severity, rule.metric, day, value, baseline, thr, msg + where))

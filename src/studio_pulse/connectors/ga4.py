@@ -5,9 +5,15 @@ Every query aggregates inside the source engine; only aggregates (and
 per-window performance samples without any user identifier) are returned. User
 ids never leave BigQuery.
 
-Columns used: event_date, event_name, event_params (key/value), user_pseudo_id,
-user_first_touch_timestamp, platform, app_info.id, app_info.version,
-event_value_in_usd. Each query is a full refresh of the configured window.
+Columns used: event_date, event_timestamp, event_name, event_params (key/value),
+user_pseudo_id, user_first_touch_timestamp, platform, app_info.id,
+app_info.version, event_value_in_usd. Each query is a full refresh of the
+configured window, which also picks up events GA4 adds to a day's table late
+(up to 72 hours after the day).
+
+Every value that ends up inside the SQL text is validated first (event and
+parameter names, app ids, the time zone): config files are trusted, but a
+quote or backslash in an app id must not be able to change the query.
 """
 
 from __future__ import annotations
@@ -20,7 +26,7 @@ import duckdb
 
 from .. import events as E
 from ..warehouse import record_load, replace_slice
-from .dialect import Dialect, check_key, sql_list
+from .dialect import Dialect, check_ident, check_key, check_tz, sql_list
 
 # Events that are logged without the user actively using the app.
 PASSIVE_EVENTS = (
@@ -44,6 +50,9 @@ class GA4Options:
     # {"event": "camera_session_completed", "fps_param": "median_fps", "scene": "camera"}
     fps_events: list[dict[str, str]] = field(default_factory=list)
     churn_window_days: int = 7
+    # The GA4 property's reporting time zone (event_date is already in it);
+    # used for the first-touch fallback date. Set from the app's `timezone`.
+    timezone: str = "UTC"
     queries: list[str] = field(
         default_factory=lambda: ["active_users", "cohorts", "event_counts", "levels", "level_max", "perf", "loads"]
     )
@@ -58,6 +67,8 @@ class GA4Options:
             o.churn_window_days = int(src["churn_window_days"])
         for e in o.iap_events + o.ad_events + o.new_user_events:
             check_key(e)
+        for i in o.app_info_ids:
+            check_ident(i, "app_info_id")
         for f in o.fps_events:
             check_key(f["event"])
             check_key(f["fps_param"])
@@ -67,12 +78,15 @@ class GA4Options:
 class GA4Queries:
     def __init__(self, d: Dialect, start: dt.date, end: dt.date, opts: GA4Options):
         self.d, self.start, self.end, self.o = d, start, end, opts
+        check_tz(opts.timezone)
 
     # -- shared fragments -----------------------------------------------------
     def _where(self, start: dt.date | None = None, extra: str = "") -> str:
         parts = [self.d.ga4_window(start or self.start, self.end), "user_pseudo_id IS NOT NULL"]
         if self.o.app_info_ids:
-            ids = ", ".join("'" + i.replace("'", "") + "'" for i in self.o.app_info_ids)
+            # Validated, not escaped: BigQuery string literals honour backslash
+            # escapes, so stripping quotes alone would not be safe.
+            ids = ", ".join(f"'{check_ident(i, 'app_info_id')}'" for i in self.o.app_info_ids)
             parts.append(f"app_info.id IN ({ids})")
         if extra:
             parts.append(extra)
@@ -94,25 +108,29 @@ WITH ev AS (
         user_pseudo_id AS u,
         UPPER(platform) AS platform,
         event_name,
+        event_timestamp AS ts,
         {d.param_int('ga_session_id')} AS sid,
         {d.param_num('engagement_time_msec')} AS eng_ms,
         {d.param_num('fatal')} AS fatal,
         event_value_in_usd AS value_usd
     FROM {d.ga4_events()}
     WHERE {self._where(hist_start, self._active_filter())}
-),
-user_day AS (
+),{self._money_day(iap, ad)},
+activity_day AS (
     SELECT
         d, platform, u,
         COUNT(DISTINCT sid) AS sessions,
         SUM(COALESCE(eng_ms, 0)) / 1000.0 AS eng_sec,
         MAX(CASE WHEN event_name IN ({new}) THEN 1 ELSE 0 END) AS is_new,
         MAX(CASE WHEN event_name = 'app_exception' AND fatal = 1 THEN 1 ELSE 0 END) AS crashed,
-        COUNT(DISTINCT CASE WHEN event_name = 'app_exception' AND fatal = 1 THEN sid END) AS crashed_sessions,
-        SUM(CASE WHEN event_name IN ({iap}) THEN COALESCE(value_usd, 0) ELSE 0 END) AS iap_usd,
-        SUM(CASE WHEN event_name IN ({ad}) THEN COALESCE(value_usd, 0) ELSE 0 END) AS ad_usd
+        COUNT(DISTINCT CASE WHEN event_name = 'app_exception' AND fatal = 1 THEN sid END) AS crashed_sessions
     FROM ev
     GROUP BY d, platform, u
+),
+user_day AS (
+    SELECT a.*, COALESCE(m.iap_usd, 0) AS iap_usd, COALESCE(m.ad_usd, 0) AS ad_usd
+    FROM activity_day a
+    LEFT JOIN money_day m ON m.d = a.d AND m.platform = a.platform AND m.u = a.u
 ),
 bounds AS (SELECT MIN(d) AS first_d FROM user_day),
 spine AS ({d.date_spine(self.start, self.end)})
@@ -148,12 +166,13 @@ WITH ev AS (
         user_pseudo_id AS u,
         UPPER(platform) AS platform,
         event_name,
-        {d.micros_to_date('user_first_touch_timestamp')} AS first_touch_d,
+        event_timestamp AS ts,
+        {d.micros_to_date('user_first_touch_timestamp', self.o.timezone)} AS first_touch_d,
         {d.param_int('ga_session_id')} AS sid,
         event_value_in_usd AS value_usd
     FROM {d.ga4_events()}
     WHERE {self._where(None, self._active_filter())}
-),
+),{self._money_day(iap, ad)},
 cohort AS (
     SELECT u, platform,
            COALESCE(MIN(CASE WHEN event_name IN ({new}) THEN d END), MIN(first_touch_d)) AS cohort_date
@@ -161,12 +180,10 @@ cohort AS (
     GROUP BY u, platform
 ),
 user_day AS (
-    SELECT d, platform, u,
-           COUNT(DISTINCT sid) AS sessions,
-           SUM(CASE WHEN event_name IN ({iap}) THEN COALESCE(value_usd, 0) ELSE 0 END) AS iap_usd,
-           SUM(CASE WHEN event_name IN ({ad}) THEN COALESCE(value_usd, 0) ELSE 0 END) AS ad_usd
-    FROM ev
-    GROUP BY d, platform, u
+    SELECT a.d, a.platform, a.u, a.sessions,
+           COALESCE(m.iap_usd, 0) AS iap_usd, COALESCE(m.ad_usd, 0) AS ad_usd
+    FROM (SELECT d, platform, u, COUNT(DISTINCT sid) AS sessions FROM ev GROUP BY d, platform, u) a
+    LEFT JOIN money_day m ON m.d = a.d AND m.platform = a.platform AND m.u = a.u
 ),
 first_pay AS (
     SELECT u, platform, MIN(d) AS pay_d
@@ -206,6 +223,29 @@ FROM activity a
 FULL OUTER JOIN payers p
     ON a.platform = p.platform AND a.cohort_date = p.cohort_date AND a.day_n = p.day_n
 """
+
+    @staticmethod
+    def _money_day(iap: str, ad: str) -> str:
+        """Purchase and ad revenue per user and day, each event counted once.
+
+        The export can hold the same event twice (client retries); for revenue
+        that would double count, so rows identical in user, timestamp, name and
+        value are collapsed before summing. Only monetary events are deduped,
+        which keeps the DISTINCT small.
+        """
+        return f"""
+money AS (
+    SELECT DISTINCT d, platform, u, event_name, ts, value_usd
+    FROM ev
+    WHERE event_name IN ({iap}) OR event_name IN ({ad})
+),
+money_day AS (
+    SELECT d, platform, u,
+           SUM(CASE WHEN event_name IN ({iap}) THEN COALESCE(value_usd, 0) ELSE 0 END) AS iap_usd,
+           SUM(CASE WHEN event_name IN ({ad}) THEN COALESCE(value_usd, 0) ELSE 0 END) AS ad_usd
+    FROM money
+    GROUP BY d, platform, u
+)"""
 
     def event_counts(self) -> str:
         d = self.d

@@ -20,6 +20,7 @@ apps:
     name: Puzzle Game
     genre: puzzle
     platforms: [ANDROID, IOS]
+    timezone: Europe/Istanbul      # the GA4 property's reporting time zone (default UTC)
     sources:
       ga4_bigquery:
         project: ${PULSE_GCP_PROJECT}

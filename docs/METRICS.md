@@ -2,7 +2,30 @@
 
 Every number on the dashboard comes from one of the SQL models in `models/`.
 This page gives the exact formula, the model that computes it and the caveats.
-"Day" is the GA4 `event_date` (the property's reporting time zone) unless noted.
+
+## What "a day" is
+
+"Day" is the GA4 `event_date`, which GA4 writes in the property's reporting
+time zone. Each app sets that zone in the config (`timezone: Europe/Istanbul`,
+default `UTC`), and every source that delivers UTC timestamps is converted to
+it before it is cut into days: Crashlytics `event_timestamp`, RevenueCat
+`start_time` / `first_seen_time`, the Unity package's `ts` and GA4's own
+`user_first_touch_timestamp`. Without this, a crash at 23:30 in Istanbul is
+counted on the next day and divided by the wrong DAU. The warehouse session
+runs in UTC, so a run gives the same dates on any machine (DuckDB otherwise
+converts time-zone-aware Parquet timestamps to the local zone of whoever runs
+it). AdMob and the store reports already arrive as days in their own reporting
+zone and are not shifted.
+
+Late data: GA4 adds late events to a day's table for up to 72 hours, and
+RevenueCat re-delivers changed transactions. Every run re-reads the whole
+lookback window (60 days by default), so recent days are revised as data
+arrives; the last two or three days can still move.
+
+Duplicates: the GA4 export can contain the same event twice (client retries).
+Counts of users and sessions are distinct counts and unaffected; purchase and
+ad-impression rows that are identical in user, timestamp, name and value are
+counted once before revenue is summed.
 
 ## Activity
 
@@ -25,7 +48,7 @@ instance, so the same person on Android and iOS counts twice (as in GA4).
 ## Retention
 
 Cohort = install day. A user's cohort date is the day of their `first_open`
-inside the loaded window, or, if that event is outside the window, the UTC date
+inside the loaded window, or, if that event is outside the window, the date (in the app's time zone)
 of `user_first_touch_timestamp`. Only cohorts that start inside the window are
 used, so every cohort is complete from day 0.
 
@@ -53,7 +76,7 @@ All revenue is in USD. Two bases are kept apart and labelled on the dashboard
 | Ad revenue per day | AdMob `ESTIMATED_EARNINGS` (converted to USD) when AdMob is connected; otherwise the sum of GA4 `ad_impression` `event_value_in_usd` | `fct_app_daily.ad_revenue_usd` |
 | Net revenue | IAP revenue + ad revenue | `fct_app_daily.revenue_usd` |
 | ARPDAU | net revenue / DAU | `fct_app_daily.arpdau` |
-| Payers | RevenueCat: distinct customers with a transaction with revenue > 0 that day; GA4: distinct users with a purchase event of value > 0 | `fct_app_daily.payers` |
+| Payers | RevenueCat: distinct customers with a transaction with revenue > 0 that day (renewals and trial conversions included, so for subscription apps this is "customers charged", not only users who bought in-app); GA4: distinct users with a purchase event of value > 0 | `fct_app_daily.payers` |
 | Payer conversion (daily) | payers / DAU | `fct_app_daily.payer_conversion` |
 | eCPM | AdMob earnings x 1000 / impressions | `fct_app_daily.ecpm_usd` |
 
@@ -101,9 +124,13 @@ table).
 
 ## Stability
 
+Crash-free users here is the share of DAU without a fatal crash that day
+(Firebase's definition, computed per day), so a 7-day figure is a DAU-weighted
+mean of daily rates, not the console's distinct-user count over 7 days.
+
 | Metric | Formula | Model / column |
 |---|---|---|
-| Crashed users | Crashlytics export: distinct `installation_uuid` with an `is_fatal` event that day (UTC date of `event_timestamp`); without the export: GA4 users with `app_exception` and `fatal = 1` | `fct_app_daily.crashed_users` |
+| Crashed users | Crashlytics export: distinct `installation_uuid` with an `is_fatal` event that day (`event_timestamp` converted to the app's time zone); without the export: GA4 users with `app_exception` and `fatal = 1` | `fct_app_daily.crashed_users` |
 | Crash-free users | 1 - min(crashed users, DAU) / DAU | `fct_app_daily.crash_free_users` |
 | Crash-free sessions | 1 - min(fatal crash events, sessions) / sessions (Crashlytics); 1 - sessions with a fatal `app_exception` / sessions (GA4) | `fct_app_daily.crash_free_sessions` |
 | 7-day crash-free users | 1 - sum(min(crashed users, DAU)) / sum(DAU) over 7 days | `fct_app_summary.crash_free_users_7d` |
@@ -113,8 +140,7 @@ divided by GA4 DAU/sessions. The numerator is capped at the denominator: a
 device stuck in a crash loop can report more fatal crashes in a day than GA4
 recorded sessions (often the app dies before `session_start` is sent), which
 would otherwise push the rate below zero. The ids (Crashlytics installation vs GA4 app
-instance) and the day boundaries (UTC vs property time zone) differ, so the
-result approximates the Firebase console's figure rather than reproducing it.
+instance) differ, so the result approximates the Firebase console's figure rather than reproducing it.
 
 ## Client performance
 

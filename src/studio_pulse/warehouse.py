@@ -16,6 +16,10 @@ def connect(path: str | Path = ":memory:") -> duckdb.DuckDBPyConnection:
     if str(path) != ":memory:":
         Path(path).parent.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(str(path))
+    # Source timestamps are UTC. DuckDB defaults to the machine's time zone,
+    # which made TIMESTAMPTZ -> TIMESTAMP casts (e.g. RevenueCat Parquet) shift
+    # purchase dates depending on where the pipeline ran.
+    con.execute("SET TimeZone = 'UTC'")
     init_schema(con)
     return con
 
@@ -117,8 +121,8 @@ def upsert_apps(con: duckdb.DuckDBPyConnection, apps: Iterable[Any], is_demo: bo
     con.execute("DELETE FROM meta_apps")
     for a in apps:
         con.execute(
-            "INSERT INTO meta_apps VALUES (?, ?, ?, ?, ?)",
-            [a.id, a.name, a.genre, ",".join(a.platforms), is_demo],
+            "INSERT INTO meta_apps (app_id, name, genre, platforms, is_demo, timezone) VALUES (?, ?, ?, ?, ?, ?)",
+            [a.id, a.name, a.genre, ",".join(a.platforms), is_demo, getattr(a, "timezone", "UTC")],
         )
 
 

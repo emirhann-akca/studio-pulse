@@ -5,6 +5,8 @@
 -- (store_transaction_id, renewal_number) and recommends `updated_at` to find
 -- the latest version; file timestamp and row order break remaining ties.
 -- Sandbox transactions are dropped. price_in_usd is already net of refunds.
+-- Export timestamps are UTC; purchase_date / first_seen_date are calendar days
+-- in the app's reporting time zone (meta_apps.timezone), like GA4 event_date.
 WITH ranked AS (
     SELECT
         r.*,
@@ -19,8 +21,13 @@ WITH ranked AS (
     WHERE store_transaction_id IS NOT NULL
 ),
 latest AS (
-    SELECT * FROM ranked
-    WHERE version_rank = 1 AND NOT COALESCE(is_sandbox, FALSE)
+    SELECT
+        r.*,
+        CAST(timezone(COALESCE(a.timezone, 'UTC'), CAST(r.start_time AS TIMESTAMPTZ)) AS DATE) AS purchase_date,
+        CAST(timezone(COALESCE(a.timezone, 'UTC'), CAST(r.first_seen_time AS TIMESTAMPTZ)) AS DATE) AS first_seen_date
+    FROM ranked r
+    LEFT JOIN meta_apps a ON a.app_id = r.app_id
+    WHERE r.version_rank = 1 AND NOT COALESCE(r.is_sandbox, FALSE)
 ),
 fx AS (
     SELECT
@@ -33,7 +40,6 @@ fx AS (
 priced AS (
     SELECT
         l.*,
-        CAST(l.start_time AS DATE) AS purchase_date,
         fx.usd_per_unit,
         COALESCE(l.price_in_usd, l.price_in_purchased_currency * fx.usd_per_unit) AS revenue_usd,
         COALESCE(
@@ -44,8 +50,8 @@ priced AS (
     FROM latest l
     LEFT JOIN fx
         ON fx.currency = upper(l.purchased_currency)
-        AND CAST(l.start_time AS DATE) >= fx.valid_from
-        AND (fx.valid_to IS NULL OR CAST(l.start_time AS DATE) < fx.valid_to)
+        AND l.purchase_date >= fx.valid_from
+        AND (fx.valid_to IS NULL OR l.purchase_date < fx.valid_to)
 )
 SELECT
     app_id,
@@ -58,7 +64,7 @@ SELECT
     upper(platform) AS platform,
     country,
     purchase_date,
-    CAST(first_seen_time AS DATE) AS first_seen_date,
+    first_seen_date,
     COALESCE(is_trial_period, FALSE) AS is_trial_period,
     COALESCE(is_trial_conversion, FALSE) AS is_trial_conversion,
     refunded_at IS NOT NULL AS is_refunded,

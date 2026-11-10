@@ -14,11 +14,14 @@ from __future__ import annotations
 import datetime as dt
 import os
 import re
+import zoneinfo
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+from .connectors.dialect import check_tz
 
 _ENV_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
 
@@ -53,6 +56,10 @@ class AppConfig:
     genre: str = "app"
     platforms: list[str] = field(default_factory=list)
     sources: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # IANA name of the GA4 property's reporting time zone. GA4 event_date is
+    # already in it; UTC timestamps from Crashlytics, RevenueCat and the Unity
+    # package are converted to it so every source agrees on what "a day" is.
+    timezone: str = "UTC"
 
 
 @dataclass
@@ -95,6 +102,16 @@ def _date(v: Any) -> dt.date | None:
     if isinstance(v, dt.date):
         return v
     return dt.date.fromisoformat(str(v))
+
+
+def _timezone(value: Any, app_id: str) -> str:
+    tz = str(value or "UTC")
+    try:
+        check_tz(tz)
+        zoneinfo.ZoneInfo(tz)
+    except (ValueError, zoneinfo.ZoneInfoNotFoundError) as exc:
+        raise ConfigError(f"app {app_id!r}: unknown time zone {tz!r}") from exc
+    return tz
 
 
 def find_config(explicit: str | Path | None = None) -> Path:
@@ -142,6 +159,7 @@ def config_from_dict(data: dict[str, Any], base_dir: Path, path: Path | None = N
                 genre=a.get("genre", "app"),
                 platforms=[str(x).upper() for x in a.get("platforms", [])],
                 sources=a.get("sources") or {},
+                timezone=_timezone(a.get("timezone"), a["id"]),
             )
         )
 

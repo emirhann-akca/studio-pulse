@@ -126,6 +126,9 @@ class DuckDBExecutor:
 
     def __post_init__(self) -> None:
         self.con = duckdb.connect()
+        # Naive timestamps in export files are UTC; never let the machine's
+        # local time zone leak into a TIMESTAMP <-> TIMESTAMPTZ cast.
+        self.con.execute("SET TimeZone = 'UTC'")
         for stmt in DUCKDB_MACROS:
             self.con.execute(stmt)
         for view, src in self.views.items():

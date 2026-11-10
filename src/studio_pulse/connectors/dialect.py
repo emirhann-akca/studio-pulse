@@ -13,6 +13,7 @@ import re
 
 _IDENT_RE = re.compile(r"^[A-Za-z0-9_\-\.]+$")
 _KEY_RE = re.compile(r"^[A-Za-z0-9_]+$")
+_TZ_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_+\-]*(/[A-Za-z0-9_+\-]+)*$")
 
 
 def check_ident(value: str, what: str = "identifier") -> str:
@@ -24,6 +25,13 @@ def check_ident(value: str, what: str = "identifier") -> str:
 def check_key(value: str) -> str:
     if not _KEY_RE.match(value or ""):
         raise ValueError(f"invalid event/param name: {value!r}")
+    return value
+
+
+def check_tz(value: str) -> str:
+    """An IANA time zone name such as UTC or Europe/Istanbul (rendered into SQL)."""
+    if not _TZ_RE.match(value or ""):
+        raise ValueError(f"invalid time zone: {value!r}")
     return value
 
 
@@ -63,10 +71,11 @@ class Dialect:
     def days_between(self, later: str, earlier: str) -> str:
         raise NotImplementedError
 
-    def micros_to_date(self, expr: str) -> str:
+    def local_date(self, ts_expr: str, tz: str) -> str:
+        """Calendar date in `tz` of a UTC timestamp expression."""
         raise NotImplementedError
 
-    def ts_to_date(self, expr: str) -> str:
+    def micros_to_date(self, expr: str, tz: str = "UTC") -> str:
         raise NotImplementedError
 
     def ts_lit(self, d: dt.date) -> str:
@@ -121,11 +130,11 @@ class BigQueryDialect(Dialect):
     def days_between(self, later: str, earlier: str) -> str:
         return f"DATE_DIFF({later}, {earlier}, DAY)"
 
-    def micros_to_date(self, expr: str) -> str:
-        return f"DATE(TIMESTAMP_MICROS({expr}))"
+    def local_date(self, ts_expr: str, tz: str) -> str:
+        return f"DATE({ts_expr}, '{check_tz(tz)}')"
 
-    def ts_to_date(self, expr: str) -> str:
-        return f"DATE({expr})"
+    def micros_to_date(self, expr: str, tz: str = "UTC") -> str:
+        return self.local_date(f"TIMESTAMP_MICROS({expr})", tz)
 
     def date_spine(self, start: dt.date, end: dt.date) -> str:
         return (
@@ -183,11 +192,12 @@ class DuckDBDialect(Dialect):
     def days_between(self, later: str, earlier: str) -> str:
         return f"CAST(date_diff('day', {earlier}, {later}) AS BIGINT)"
 
-    def micros_to_date(self, expr: str) -> str:
-        return f"CAST(make_timestamp({expr}) AS DATE)"
+    def local_date(self, ts_expr: str, tz: str) -> str:
+        # The executor's session time zone is UTC, so naive timestamps are read as UTC.
+        return f"CAST(timezone('{check_tz(tz)}', CAST({ts_expr} AS TIMESTAMPTZ)) AS DATE)"
 
-    def ts_to_date(self, expr: str) -> str:
-        return f"CAST({expr} AS DATE)"
+    def micros_to_date(self, expr: str, tz: str = "UTC") -> str:
+        return self.local_date(f"make_timestamp({expr})", tz)
 
     def date_spine(self, start: dt.date, end: dt.date) -> str:
         return (

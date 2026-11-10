@@ -165,17 +165,37 @@ def test_crash_loop_cannot_push_crash_free_below_zero(con):
     """23 fatal crashes from one device on a day GA4 saw 2 sessions."""
     con.execute("INSERT INTO raw_crashlytics_daily VALUES ('g', ?, 'ANDROID', 23, 0, 1, 1, 'crash', now())", [D0])
     con.execute("INSERT INTO raw_ga4_active_users (app_id, platform, date, dau, sessions, history_days, _source) VALUES ('g', 'ANDROID', ?, 1, 2, 1, 'ga4')", [D0])
-    con.execute("INSERT INTO meta_apps VALUES ('g', 'G', 'app', 'ANDROID', FALSE)")
+    con.execute("INSERT INTO meta_apps (app_id, name, genre, platforms, is_demo) VALUES ('g', 'G', 'app', 'ANDROID', FALSE)")
     run_models(con)
     assert con.execute("SELECT crash_free_users, crash_free_sessions FROM fct_app_daily").fetchone() == (0.0, 0.0)
     assert con.execute("SELECT crash_free_sessions_7d FROM fct_app_summary").fetchone()[0] == 0.0
 
 
+def test_crashlytics_days_follow_the_app_timezone(con, tmp_path):
+    """22:30 UTC on Oct 1 is already Oct 2 in Istanbul, where GA4's event_date lives."""
+    late = dt.datetime(2026, 10, 1, 22, 30)
+    path = write_crashlytics_parquet({
+        "event_timestamp": [late, dt.datetime(2026, 10, 1, 12)], "platform": ["ANDROID"] * 2, "is_fatal": [True, True],
+        "installation_uuid": ["i1", "i2"], "issue_id": ["x", "x"], "app_version": ["1.0"] * 2,
+    }, tmp_path / "c.parquet")
+    for tz, expected in (("UTC", [(D0, 2)]), ("Europe/Istanbul", [(D0, 1), (D0 + dt.timedelta(days=1), 1)])):
+        ex = DuckDBExecutor({"crashlytics_events": path})
+        crashlytics.ingest(con, app_id="g", source="crash", dialect=DuckDBDialect(), executor=ex, tables=["crashlytics_events"],
+                           start=D0, end=D0 + dt.timedelta(days=1), timezone=tz, log=lambda *_: None)
+        assert con.execute("SELECT date, fatal_events FROM raw_crashlytics_daily ORDER BY date").fetchall() == expected, tz
+    sql = crashlytics.daily_query(BigQueryDialect("p", "firebase_crashlytics"), "t", D0, D0, "Europe/Istanbul")
+    assert "DATE(event_timestamp, 'Europe/Istanbul') BETWEEN" in sql
+    with pytest.raises(ValueError):
+        crashlytics.daily_query(BigQueryDialect("p", "firebase_crashlytics"), "t", D0, D0, "UTC') --")
+
+
 def test_crashlytics_bigquery_sql_prunes_partitions():
     sql = crashlytics.daily_query(BigQueryDialect("p", "firebase_crashlytics"), "com_example_game_ANDROID", D0, D0)
     assert "`p.firebase_crashlytics.com_example_game_ANDROID`" in sql
-    assert "event_timestamp >= TIMESTAMP '2026-10-01 00:00:00'" in sql
-    assert "event_timestamp < TIMESTAMP '2026-10-02 00:00:00'" in sql
+    # +-1 UTC day for the partition filter, the exact cut on the local date
+    assert "event_timestamp >= TIMESTAMP '2026-09-30 00:00:00'" in sql
+    assert "event_timestamp < TIMESTAMP '2026-10-03 00:00:00'" in sql
+    assert "DATE(event_timestamp, 'UTC') BETWEEN DATE '2026-10-01' AND DATE '2026-10-01'" in sql
     assert_read_only(sql)
 
 
@@ -297,6 +317,15 @@ def test_revenuecat_gcs_sync_downloads_only_new_files(con, tmp_path):
     assert con.execute("SELECT store_transaction_id, price_in_usd FROM raw_revenuecat_transactions").fetchall() == [("T1", 2.99)]
 
 
+def test_revenuecat_gcs_sync_refuses_paths_outside_the_cache(con, tmp_path):
+    csv = b"store_transaction_id,renewal_number,price_in_usd,start_time\nT1,1,2.99,2026-10-01 10:00:00\n"
+    evil = FakeBlob("exports/../../escaped/transactions_1790820000.csv", csv)
+    cache = tmp_path / "a" / "b" / "cache"
+    revenuecat.sync_gcs("gs://rc-bucket/exports", cache, client=FakeGCS([evil]), log=lambda *_: None)
+    assert evil.downloads == 0
+    assert not (tmp_path / "a" / "escaped").exists()
+
+
 # -- Unity JSON lines --------------------------------------------------------------------------
 
 
@@ -326,3 +355,18 @@ def test_unity_jsonl_ingest_is_idempotent(con, tmp_path):
         unity_jsonl.ingest(con, app_id="g", source="unity", path=tmp_path, log=lambda *_: None)
     assert con.execute("SELECT COUNT(*) FROM raw_perf_windows").fetchone()[0] == 2
     assert con.execute("SELECT COUNT(*) FROM raw_load_times").fetchone()[0] == 1
+
+
+def test_unity_jsonl_files_with_the_same_name_from_two_devices(con, tmp_path):
+    """JsonLinesSink always writes pulse/events.jsonl, so collected files share a name."""
+    for device, ft in (("device_a", 17.0), ("device_b", 25.0)):
+        (tmp_path / device).mkdir()
+        (tmp_path / device / "events.jsonl").write_text(_line(ft_p50_ms=ft) + "\n")
+    for _ in range(2):
+        unity_jsonl.ingest(con, app_id="g", source="unity", path=tmp_path, log=lambda *_: None)
+    assert sorted(r[0] for r in con.execute("SELECT ft_p50_ms FROM raw_perf_windows").fetchall()) == [17.0, 25.0]
+
+
+def test_unity_jsonl_dates_follow_the_app_timezone():
+    perf, _, _ = unity_jsonl.parse_lines([_line()], timezone="Europe/Istanbul")
+    assert perf[0]["date"] == D0 + dt.timedelta(days=1)  # 23:59:59 UTC = 02:59 next day in Istanbul

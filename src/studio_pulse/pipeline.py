@@ -69,6 +69,7 @@ def _ingest_source(
     name = src.get("name", kind)
     if kind in ("ga4_bigquery", "ga4_files"):
         opts = ga4.GA4Options.from_source(src)
+        opts.timezone = app.timezone
         if kind == "ga4_bigquery":
             dialect = BigQueryDialect(src["project"], src["dataset"])
             ex = BigQueryExecutor(
@@ -107,7 +108,7 @@ def _ingest_source(
             if dry_run:
                 return "skipped (dry run)"
         try:
-            return crashlytics.ingest(con, app_id=app.id, source=name, dialect=dialect, executor=ex, tables=tables, start=start, end=end, log=log)
+            return crashlytics.ingest(con, app_id=app.id, source=name, dialect=dialect, executor=ex, tables=tables, start=start, end=end, timezone=app.timezone, log=log)
         finally:
             bq_stats.extend(ex.stats if kind == "crashlytics_bigquery" else [])
     if dry_run:
@@ -130,7 +131,7 @@ def _ingest_source(
     if kind == "app_store":
         return stores.ingest_appstore(con, app_id=app.id, source=name, path=cfg.resolve(src["path"]), apple_id=src.get("apple_id"), sku=src.get("sku"), log=log)
     if kind == "unity_jsonl":
-        return unity_jsonl.ingest(con, app_id=app.id, source=name, path=cfg.resolve(src["path"]), app=src.get("app"), log=log)
+        return unity_jsonl.ingest(con, app_id=app.id, source=name, path=cfg.resolve(src["path"]), app=src.get("app"), timezone=app.timezone, log=log)
     raise ConfigError(f"unknown source type {kind!r} (known: {', '.join(SOURCE_TYPES)})")
 
 

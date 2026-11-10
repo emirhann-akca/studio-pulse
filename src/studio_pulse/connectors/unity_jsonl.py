@@ -17,6 +17,7 @@ from __future__ import annotations
 import datetime as dt
 import gzip
 import json
+import zoneinfo
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -37,8 +38,9 @@ class ParseStats:
     malformed: int = 0
 
 
-def _ts_to_date(ts: str) -> dt.date:
-    return dt.datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(dt.UTC).date()
+def _ts_to_date(ts: str, tz: dt.tzinfo = dt.UTC) -> dt.date:
+    """Calendar date of a UTC ISO timestamp in the app's reporting time zone."""
+    return dt.datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(tz).date()
 
 
 def _f(v: Any) -> float | None:
@@ -55,8 +57,11 @@ def _i(v: Any) -> int | None:
     return int(round(f)) if f is not None else None
 
 
-def parse_lines(lines: list[str], app: str | None = None) -> tuple[list[dict], list[dict], ParseStats]:
+def parse_lines(
+    lines: list[str], app: str | None = None, timezone: str = "UTC"
+) -> tuple[list[dict], list[dict], ParseStats]:
     perf, load, st = [], [], ParseStats()
+    tz = zoneinfo.ZoneInfo(timezone)
     for raw in lines:
         raw = raw.strip()
         if not raw:
@@ -67,7 +72,7 @@ def parse_lines(lines: list[str], app: str | None = None) -> tuple[list[dict], l
             if ev.get("v") != E.SCHEMA_VERSION:
                 raise ValueError("unsupported schema version")
             name, params = ev["event"], ev.get("params") or {}
-            day = _ts_to_date(ev["ts"])
+            day = _ts_to_date(ev["ts"], tz)
         except (ValueError, KeyError, TypeError, AttributeError):
             st.malformed += 1
             continue
@@ -125,14 +130,18 @@ def ingest(
     source: str,
     path: str | Path,
     app: str | None = None,
+    timezone: str = "UTC",
     log: Any = print,
 ) -> ParseStats:
     root = Path(path)
     files = [root] if root.is_file() else sorted([*root.rglob("*.jsonl"), *root.rglob("*.jsonl.gz")])
     total = ParseStats()
     for f in files:
-        perf, load, st = parse_lines(_read(f), app=app)
-        key = f.name
+        perf, load, st = parse_lines(_read(f), app=app, timezone=timezone)
+        # Slice key = path relative to the source root. JsonLinesSink writes
+        # pulse/events.jsonl on every device, so files collected per device
+        # share a name; keying on the bare name made each overwrite the last.
+        key = f.name if f == root else f.relative_to(root).as_posix()
         replace_slice(con, "raw_perf_windows", perf, app_id=app_id, source=f"{source}:{key}")
         replace_slice(con, "raw_load_times", load, app_id=app_id, source=f"{source}:{key}")
         for k in vars(total):

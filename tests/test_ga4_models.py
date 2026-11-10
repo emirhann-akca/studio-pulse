@@ -46,7 +46,7 @@ def loaded(con, tmp_path):
     opts = ga4.GA4Options(app_info_ids=["com.example.app"])
     ga4.ingest(con, app_id="demo", source="ga4_files", dialect=DuckDBDialect(), executor=ex,
                start=day(0), end=day(8), opts=opts, log=lambda *_: None)
-    con.execute("INSERT INTO meta_apps VALUES ('demo', 'Demo', 'puzzle', 'ANDROID', TRUE)")
+    con.execute("INSERT INTO meta_apps (app_id, name, genre, platforms, is_demo) VALUES ('demo', 'Demo', 'puzzle', 'ANDROID', TRUE)")
     run_models(con)
     return con
 
@@ -176,3 +176,41 @@ def test_perf_events_and_fps_mapping_from_ga4(con, tmp_path):
         ("unknown", "camera", None, pytest.approx(40.0), None),  # 1000 / 25 fps
     ]
     assert con.execute("SELECT kind, scene, duration_ms FROM raw_load_times").fetchall() == [("cold_start", "Boot", 4000.0)]
+
+
+def test_duplicate_monetary_events_count_once(con, tmp_path):
+    """The export can contain the same purchase twice (client retry): count it once."""
+    b = GA4Builder()
+    ts = 1_790_000_000_000_000
+    b.add(0, "first_open", "A").add(0, "session_start", "A", ga_session_id=1)
+    for _ in range(2):  # identical user, timestamp, name and value
+        b.add(0, "in_app_purchase", "A", ga_session_id=1, value_usd=4.99, ts_micros=ts)
+        b.add(0, "ad_impression", "A", ga_session_id=1, value_usd=0.02, value=0.02, ts_micros=ts + 1)
+    b.add(0, "in_app_purchase", "A", ga_session_id=1, value_usd=0.99, ts_micros=ts + 2)  # a second, real purchase
+    ex = DuckDBExecutor({"ga4_events": b.write(tmp_path / "dup.parquet")})
+    ga4.ingest(con, app_id="d", source="ga4", dialect=DuckDBDialect(), executor=ex, start=day(0), end=day(1),
+               opts=ga4.GA4Options(queries=["active_users", "cohorts"]), log=lambda *_: None)
+    run_models(con)
+    iap, ad = con.execute("SELECT iap_revenue_usd, ad_revenue_usd FROM fct_app_daily WHERE date = ?", [day(0)]).fetchone()
+    assert iap == pytest.approx(4.99 + 0.99) and ad == pytest.approx(0.02)
+    cohort = con.execute("SELECT iap_revenue_usd, ad_revenue_usd FROM stg_cohort_days WHERE day_n = 0").fetchone()
+    assert cohort == (pytest.approx(5.98), pytest.approx(0.02))
+
+
+def test_app_info_ids_cannot_inject_sql():
+    # BigQuery string literals honour backslash escapes, so stripping quotes is not enough.
+    evil = "com.x\\', ') OR TRUE --"
+    with pytest.raises(ValueError):
+        ga4.GA4Options.from_source({"app_info_ids": [evil]})
+    q = ga4.GA4Queries(DuckDBDialect(), day(0), day(1), ga4.GA4Options(app_info_ids=[evil]))
+    with pytest.raises(ValueError):
+        q.active_users()
+    with pytest.raises(ValueError):
+        ga4.GA4Queries(DuckDBDialect(), day(0), day(1), ga4.GA4Options(timezone="UTC'; --"))
+
+
+def test_first_touch_fallback_uses_app_timezone():
+    from studio_pulse.connectors.dialect import BigQueryDialect
+
+    sql = ga4.GA4Queries(BigQueryDialect("p", "analytics_1"), day(0), day(1), ga4.GA4Options(timezone="Europe/Istanbul")).cohorts()
+    assert "DATE(TIMESTAMP_MICROS(user_first_touch_timestamp), 'Europe/Istanbul')" in sql

@@ -213,8 +213,12 @@ CREATE TABLE IF NOT EXISTS meta_apps (
     name              VARCHAR,
     genre             VARCHAR,
     platforms         VARCHAR,
-    is_demo           BOOLEAN
+    is_demo           BOOLEAN,
+    timezone          VARCHAR DEFAULT 'UTC'   -- the GA4 property's reporting time zone
 );
+
+-- Warehouses created before the timezone column existed.
+ALTER TABLE meta_apps ADD COLUMN IF NOT EXISTS timezone VARCHAR DEFAULT 'UTC';
 
 CREATE TABLE IF NOT EXISTS meta_loads (
     app_id            VARCHAR,

@@ -105,12 +105,17 @@ def sync_gcs(uri: str, cache_dir: Path, client: Any = None, log: Any = print) ->
 
         client = storage.Client()
     cache_dir.mkdir(parents=True, exist_ok=True)
+    root = cache_dir.resolve()
     fetched = 0
     for blob in client.list_blobs(bucket, prefix=prefix or None):
         if not blob.name.endswith(_SUFFIXES):
             continue
         rel = blob.name[len(prefix):].lstrip("/") if prefix else blob.name
-        target = cache_dir / rel
+        target = (root / rel).resolve()
+        # Object names are arbitrary strings: "../" must not write outside the cache.
+        if not target.is_relative_to(root):
+            log(f"    revenuecat: skipped object outside the export prefix: {blob.name!r}")
+            continue
         if target.exists() and blob.size is not None and target.stat().st_size == blob.size:
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -147,11 +152,9 @@ def load_file(
             select.append(f"{expr} AS {col}")
         else:
             select.append(f"CAST(NULL AS {typ}) AS {col}")
-    where = ""
-    if product_prefixes:
-        ors = " OR ".join(
-            "starts_with(CAST(product_identifier AS VARCHAR), '" + p.replace("'", "") + "')" for p in product_prefixes
-        )
+    where, prefix_args = "", list(product_prefixes or [])
+    if prefix_args:
+        ors = " OR ".join("starts_with(CAST(product_identifier AS VARCHAR), ?)" for _ in prefix_args)
         where = f"WHERE {ors}"
     con.execute("DELETE FROM raw_revenuecat_transactions WHERE app_id = ? AND _source = ? AND _file = ?", [app_id, source, rel])
     con.execute(
@@ -162,7 +165,7 @@ def load_file(
                row_number() OVER () AS _row, ? AS _source, ? AS _loaded_at
         FROM {reader} {where}
         """,
-        [app_id, rel, file_timestamp(rel), source, utcnow()],
+        [app_id, rel, file_timestamp(rel), source, utcnow(), *prefix_args],
     )
     return con.execute(
         "SELECT COUNT(*) FROM raw_revenuecat_transactions WHERE app_id = ? AND _source = ? AND _file = ?",

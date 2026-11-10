@@ -71,7 +71,7 @@ def rc(con, tmp_path):
     warehouse.load_fx_rates(con, {"TRY": 0.03, "EUR": 1.08}, dt.date(2000, 1, 1))
     n = revenuecat.ingest(con, app_id="sub", source="revenuecat", path=str(root), log=lambda *_: None)
     assert n == 9  # every received version is stored
-    con.execute("INSERT INTO meta_apps VALUES ('sub', 'Sub app', 'fitness', 'ANDROID', TRUE)")
+    con.execute("INSERT INTO meta_apps (app_id, name, genre, platforms, is_demo) VALUES ('sub', 'Sub app', 'fitness', 'ANDROID', TRUE)")
     run_models(con)
     return con, root
 
@@ -165,3 +165,41 @@ def test_admob_ecpm_and_ad_revenue(con):
     assert r[2] == pytest.approx(23.5 / 3500 * 1000)
     assert r[3] == pytest.approx(23.5 / 500)
     assert r[4] == "admob_earnings"
+
+
+def test_purchase_dates_are_utc_based_and_in_the_app_timezone(con, tmp_path):
+    """RevenueCat timestamps are UTC. Loading must not depend on the machine's
+    time zone (DuckDB's default), and dates follow the app's reporting zone."""
+    assert con.execute("SELECT current_setting('TimeZone')").fetchone()[0] == "UTC"
+    row = tx("T1", usd=4.99, start="2026-10-01T22:30:00")
+    row["start_time"] = row["start_time"].replace(tzinfo=dt.UTC)  # tz-aware Parquet column
+    write(tmp_path / "rc", "2026-10-01", 1790820000, [row])
+    revenuecat.ingest(con, app_id="tz", source="revenuecat", path=str(tmp_path / "rc"), log=lambda *_: None)
+    assert con.execute("SELECT start_time FROM raw_revenuecat_transactions").fetchone()[0] == dt.datetime(2026, 10, 1, 22, 30)
+    con.execute("INSERT INTO meta_apps (app_id, name, timezone) VALUES ('tz', 'TZ', 'Europe/Istanbul')")
+    run_models(con)
+    assert con.execute("SELECT purchase_date FROM stg_rc_transactions").fetchone()[0] == dt.date(2026, 10, 2)
+    con.execute("UPDATE meta_apps SET timezone = 'UTC'")
+    run_models(con)
+    assert con.execute("SELECT purchase_date FROM stg_rc_transactions").fetchone()[0] == dt.date(2026, 10, 1)
+
+
+def test_product_prefix_filter_is_parameterised(con, tmp_path):
+    rows = [tx("A", usd=1.0), {**tx("B", usd=2.0), "product_identifier": "coins_small"}]
+    write(tmp_path / "rc", "2026-10-01", 1790820000, rows)
+    revenuecat.ingest(con, app_id="p", source="rc", path=str(tmp_path / "rc"), product_prefixes=["coins", "x' OR TRUE --"],
+                      log=lambda *_: None)
+    assert con.execute("SELECT store_transaction_id FROM raw_revenuecat_transactions").fetchall() == [("B",)]
+
+
+def test_old_warehouse_gains_timezone_column(tmp_path):
+    import duckdb
+
+    path = tmp_path / "old.duckdb"
+    old = duckdb.connect(str(path))
+    old.execute("CREATE TABLE meta_apps (app_id VARCHAR PRIMARY KEY, name VARCHAR, genre VARCHAR, platforms VARCHAR, is_demo BOOLEAN)")
+    old.execute("INSERT INTO meta_apps VALUES ('a', 'A', 'puzzle', 'IOS', FALSE)")
+    old.close()
+    con = warehouse.connect(path)
+    assert con.execute("SELECT timezone FROM meta_apps").fetchone()[0] == "UTC"
+    con.close()
