@@ -35,7 +35,7 @@ for three fictional apps, built by `pulse demo`.
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.
-- 176 tests, ruff; CI on Windows, macOS and Linux x Python 3.11-3.13.
+- 178 tests, ruff; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install
 
@@ -244,7 +244,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 176 tests, ~20 s on an M4
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 178 tests (1 Windows-only), ~20 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 

@@ -19,7 +19,6 @@ import sys
 import zoneinfo
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
 
 from . import __version__
 
@@ -277,7 +276,3 @@ def format_console(results: list[Result]) -> str:
     fails = sum(r.status == "fail" for r in results)
     lines.append("All required checks passed." if not fails else f"{fails} check(s) failed.")
     return "\n".join(lines)
-
-
-def to_dict(results: list[Result]) -> list[dict[str, Any]]:
-    return [asdict(r) for r in results]

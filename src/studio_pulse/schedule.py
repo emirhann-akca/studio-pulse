@@ -37,7 +37,7 @@ import sys
 import tempfile
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from xml.sax.saxutils import escape
@@ -528,8 +528,3 @@ def list_records() -> list[dict[str, Any]]:
         if rec:
             out.append(rec)
     return out
-
-
-def job_dict(job: Job) -> dict[str, Any]:
-    d = asdict(job)
-    return {k: (str(v) if isinstance(v, Path) else v) for k, v in d.items()}
