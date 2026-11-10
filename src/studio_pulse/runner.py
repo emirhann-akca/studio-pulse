@@ -66,7 +66,9 @@ def discover(models_dir: Path | None = None) -> list[Model]:
                 path=path,
                 sql=sql,
                 materialized=headers.get("materialized", "table"),
-                depends_on={d.strip() for d in headers.get("depends_on", "").split(",") if d.strip()},
+                depends_on={
+                    d.strip() for d in headers.get("depends_on", "").split(",") if d.strip()
+                },
                 description=" ".join(desc_lines).strip(),
             )
         )

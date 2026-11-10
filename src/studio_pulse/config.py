@@ -179,7 +179,9 @@ def config_from_dict(data: dict[str, Any], base_dir: Path, path: Path | None = N
         as_of=_date(data.get("as_of")),
         title=data.get("title", "Studio Pulse"),
         is_demo=bool(data.get("demo", False)),
-        alerts_path=(base_dir / alerts) if alerts and not Path(alerts).is_absolute() else (Path(alerts) if alerts else None),
+        alerts_path=(base_dir / alerts)
+        if alerts and not Path(alerts).is_absolute()
+        else (Path(alerts) if alerts else None),
         fx_rates={str(k).upper(): float(v) for k, v in (data.get("fx_rates") or {}).items()},
         max_bytes_billed=int(data.get("max_bytes_billed", 2_000_000_000)),
         raw=data,

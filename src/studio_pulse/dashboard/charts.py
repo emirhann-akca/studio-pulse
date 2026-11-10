@@ -23,6 +23,7 @@ Num = float | int | None
 
 # -- number formatting ---------------------------------------------------------
 
+
 def fmt_int(v: Num) -> str:
     return "–" if v is None else f"{v:,.0f}"
 
@@ -87,6 +88,7 @@ def fmt_date(d: dt.date | str) -> str:
 
 # -- scales --------------------------------------------------------------------
 
+
 def nice_ticks(lo: float, hi: float, target: int = 4) -> list[float]:
     if hi == lo:
         hi = lo + (abs(lo) or 1.0)
@@ -123,8 +125,14 @@ def _legend(series: Sequence[Series], box: bool = False) -> str:
     for i, s in enumerate(series):
         slot = s.slot or (i + 1)
         style = "sw box" if box else "sw"
-        dash = ' style="background-image:linear-gradient(90deg,transparent 50%,var(--surface) 50%);background-size:6px 3px"' if s.dashed else ""
-        keys.append(f'<span class="key"><i class="{style} b{slot}"{dash}></i>{escape(s.name)}</span>')
+        dash = (
+            ' style="background-image:linear-gradient(90deg,transparent 50%,var(--surface) 50%);background-size:6px 3px"'
+            if s.dashed
+            else ""
+        )
+        keys.append(
+            f'<span class="key"><i class="{style} b{slot}"{dash}></i>{escape(s.name)}</span>'
+        )
     return '<div class="legend" aria-hidden="true">' + "".join(keys) + "</div>"
 
 
@@ -139,8 +147,15 @@ def _figure(title: str, subtitle: str, inner: str, fid: str) -> str:
     return f'<figure class="chart" id="{fid}"><figcaption><h3>{escape(title)}</h3>{sub}</figcaption>{inner}</figure>'
 
 
-def empty_chart(title: str, message: str = "No data for this chart yet.", subtitle: str = "") -> str:
-    return _figure(title, subtitle, f'<p class="note" style="margin:12px 0">{escape(message)}</p>', _uid("c", title))
+def empty_chart(
+    title: str, message: str = "No data for this chart yet.", subtitle: str = ""
+) -> str:
+    return _figure(
+        title,
+        subtitle,
+        f'<p class="note" style="margin:12px 0">{escape(message)}</p>',
+        _uid("c", title),
+    )
 
 
 def _label_positions(ys: list[tuple[int, float]], min_gap: float = 11.0) -> bool:
@@ -203,7 +218,9 @@ def line_chart(
             last = (i, v)
         if d:
             cls = f"ln c{slot}" + (" dashed" if s.dashed else "")
-            paths.append(f'<path class="{cls}" d="{" ".join(d)}" vector-effect="non-scaling-stroke"/>')
+            paths.append(
+                f'<path class="{cls}" d="{" ".join(d)}" vector-effect="non-scaling-stroke"/>'
+            )
         if last:
             xi, yv = px(last[0]), py(last[1])
             seg = f'x1="{xi:.2f}" x2="{xi:.2f}" y1="{yv:.3f}" y2="{yv:.3f}" vector-effect="non-scaling-stroke"'
@@ -218,12 +235,16 @@ def line_chart(
             lines.append(f"{s.name}: {fmt(v)}")
         tip = escape("\n".join(lines), quote=True)
         left = max(0.0, px(i) - step / 2)
-        hits.append(f'<rect x="{left:.2f}" y="0" width="{step:.2f}" height="100" data-tip="{tip}"/>')
+        hits.append(
+            f'<rect x="{left:.2f}" y="0" width="{step:.2f}" height="100" data-tip="{tip}"/>'
+        )
     svg = (
         '<svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">'
         f'<g class="grid">{grid}</g>{"".join(paths)}{"".join(dots)}<g class="hits">{"".join(hits)}</g></svg>'
     )
-    yaxis = "".join(f'<span style="bottom:{100 - py(t):.2f}%">{escape(fmt(t))}</span>' for t in ticks)
+    yaxis = "".join(
+        f'<span style="bottom:{100 - py(t):.2f}%">{escape(fmt(t))}</span>' for t in ticks
+    )
     m = min(n, 5)
     idx = sorted({round(i * (n - 1) / (m - 1)) for i in range(m)}) if m > 1 else [0]
     xlabels = []
@@ -244,12 +265,20 @@ def line_chart(
         f'<div class="xaxis">{"".join(xlabels)}</div></div>'
     )
     rows = [
-        [x_fmt(x[i]) if not isinstance(x[i], str) else x[i]] + [fmt(s.values[i] if i < len(s.values) else None) for s in series]
+        [x_fmt(x[i]) if not isinstance(x[i], str) else x[i]]
+        + [fmt(s.values[i] if i < len(s.values) else None) for s in series]
         for i in range(n)
     ]
     table = _table([x_name] + [s.name for s in series], rows)
     label = f"{title}: line chart, {len(series)} series, {n} points"
-    return _figure(title, subtitle, _legend(series) + f'<div role="img" aria-label="{escape(label, quote=True)}">{plot}</div>' + table, _uid("c", title))
+    return _figure(
+        title,
+        subtitle,
+        _legend(series)
+        + f'<div role="img" aria-label="{escape(label, quote=True)}">{plot}</div>'
+        + table,
+        _uid("c", title),
+    )
 
 
 def bar_chart(
@@ -284,22 +313,32 @@ def bar_chart(
         for t in ticks[1:]
     )
     svg = f'<svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid">{grid}</g></svg>'
-    yaxis = "".join(f'<span style="bottom:{(t - lo) / (hi - lo) * 100:.2f}%">{escape(fmt(t))}</span>' for t in ticks)
+    yaxis = "".join(
+        f'<span style="bottom:{(t - lo) / (hi - lo) * 100:.2f}%">{escape(fmt(t))}</span>'
+        for t in ticks
+    )
     n = len(categories)
     k = max(1, math.ceil(n / max_labels))
     xl = "".join(
-        f'<span style="left:{(i + 0.5) * 100 / n:.2f}%">{escape(categories[i])}</span>' for i in range(0, n, k)
+        f'<span style="left:{(i + 0.5) * 100 / n:.2f}%">{escape(categories[i])}</span>'
+        for i in range(0, n, k)
     )
     plot = (
         f'<div class="plot" style="--h:{height}px"><div class="yaxis">{yaxis}</div>'
         f'<div class="area">{svg}<div class="bars">{"".join(cats)}</div></div><div class="endlabels"></div>'
         f'<div class="xaxis cats">{xl}</div></div>'
     )
-    rows = [[categories[i]] + [fmt(s.values[i] if i < len(s.values) else None) for s in series] for i in range(n)]
+    rows = [
+        [categories[i]] + [fmt(s.values[i] if i < len(s.values) else None) for s in series]
+        for i in range(n)
+    ]
     label = f"{title}: bar chart, {len(series)} series, {n} categories"
     return _figure(
-        title, subtitle,
-        _legend(series, box=True) + f'<div role="img" aria-label="{escape(label, quote=True)}">{plot}</div>' + _table([x_name] + [s.name for s in series], rows),
+        title,
+        subtitle,
+        _legend(series, box=True)
+        + f'<div role="img" aria-label="{escape(label, quote=True)}">{plot}</div>'
+        + _table([x_name] + [s.name for s in series], rows),
         _uid("b", title),
     )
 
@@ -319,7 +358,9 @@ def heatmap(
         return empty_chart(title, subtitle=subtitle)
     top = scale_max or max(flat) or 1.0
     lab = escape(title, quote=True)
-    head = f'<th class="l">{escape(corner)}</th>' + "".join(f"<th>{escape(c)}</th>" for c in col_labels)
+    head = f'<th class="l">{escape(corner)}</th>' + "".join(
+        f"<th>{escape(c)}</th>" for c in col_labels
+    )
     body = []
     for label, row in zip(row_labels, values, strict=False):
         cells = []
@@ -336,14 +377,17 @@ def heatmap(
         body.append(f'<tr><td class="l">{escape(label)}</td>{"".join(cells)}</tr>')
     table = (
         f'<div class="tbl-wrap" style="max-height:none"><table class="heat" aria-label="{lab}">'
-        f'<thead><tr>{head}</tr></thead><tbody>{"".join(body)}</tbody></table></div>'
+        f"<thead><tr>{head}</tr></thead><tbody>{''.join(body)}</tbody></table></div>"
     )
     legend = (
         '<div class="legend" aria-hidden="true"><span class="key">'
         f'{escape(fmt(0))} <i class="ramp"></i> {escape(fmt(top))}</span>'
         '<span class="key"><i class="sw box" style="background:var(--grid)"></i>· not observed yet</span></div>'
     )
-    plain = _table([corner or "Row"] + list(col_labels), [[r] + [fmt(v) for v in row] for r, row in zip(row_labels, values, strict=False)])
+    plain = _table(
+        [corner or "Row"] + list(col_labels),
+        [[r] + [fmt(v) for v in row] for r, row in zip(row_labels, values, strict=False)],
+    )
     return _figure(title, subtitle, legend + table + plain, _uid("h", title))
 
 
@@ -370,32 +414,64 @@ def benchmark_chart(
             for i, (a, b) in enumerate(zip(edges, edges[1:], strict=False))
         )
         ticks = "".join(
-            f'<span class="cut" style="left:{c / top * 100:.2f}%"><i></i><b>{escape(name)}</b></span>' for c, name, _ in cuts
+            f'<span class="cut" style="left:{c / top * 100:.2f}%"><i></i><b>{escape(name)}</b></span>'
+            for c, name, _ in cuts
         )
-        mark = "" if value is None else f'<span class="mark" style="left:{min(1.0, value / top) * 100:.2f}%"></span>'
-        tip = escape("\n".join([f"{label}: {fmt(value)}"] + [f"{name}: {text}" for _, name, text in cuts]), quote=True)
+        mark = (
+            ""
+            if value is None
+            else f'<span class="mark" style="left:{min(1.0, value / top) * 100:.2f}%"></span>'
+        )
+        tip = escape(
+            "\n".join([f"{label}: {fmt(value)}"] + [f"{name}: {text}" for _, name, text in cuts]),
+            quote=True,
+        )
         lines.append(
             f'<div class="bench" data-tip="{tip}"><span class="bl">{escape(label)}</span>'
             f'<div class="track">{zones}{ticks}{mark}</div>'
             f'<span class="bv">{escape(fmt(value))}<em>{escape(verdict or "")}</em></span></div>'
         )
-        table_rows.append([label, fmt(value), verdict or "–", "; ".join(f"{name} {text}" for _, name, text in cuts)])
+        table_rows.append(
+            [
+                label,
+                fmt(value),
+                verdict or "–",
+                "; ".join(f"{name} {text}" for _, name, text in cuts),
+            ]
+        )
     label = f"{title}: {len(rows)} values against reference brackets"
     body = f'<div role="img" aria-label="{escape(label, quote=True)}">{"".join(lines)}</div>'
-    return _figure(title, subtitle, body + _table(["Day", "Value", "Bracket", "Benchmark"], table_rows), _uid("k", title))
+    return _figure(
+        title,
+        subtitle,
+        body + _table(["Day", "Value", "Bracket", "Benchmark"], table_rows),
+        _uid("k", title),
+    )
 
 
-def tile(label: str, value: str, delta: str | None = None, tone: str | None = None, title: str | None = None) -> str:
+def tile(
+    label: str,
+    value: str,
+    delta: str | None = None,
+    tone: str | None = None,
+    title: str | None = None,
+) -> str:
     d = f'<div class="delta {tone or ""}">{escape(delta)}</div>' if delta else ""
     t = f' title="{escape(title, quote=True)}"' if title else ""
     return f'<div class="tile"{t}><div class="label">{escape(label)}</div><div class="value">{escape(value)}</div>{d}</div>'
 
 
 def data_table(
-    header: Sequence[str], rows: Sequence[Sequence[str]], raw_html_cols: Sequence[int] = (), left_cols: Sequence[int] = (0,)
+    header: Sequence[str],
+    rows: Sequence[Sequence[str]],
+    raw_html_cols: Sequence[int] = (),
+    left_cols: Sequence[int] = (0,),
 ) -> str:
     """A plain table; text columns (left_cols) are left-aligned, numbers right-aligned."""
-    th = "".join(f'<th class="{"l" if i in left_cols else ""}">{escape(h)}</th>' for i, h in enumerate(header))
+    th = "".join(
+        f'<th class="{"l" if i in left_cols else ""}">{escape(h)}</th>'
+        for i, h in enumerate(header)
+    )
     out = []
     for r in rows:
         cells = []

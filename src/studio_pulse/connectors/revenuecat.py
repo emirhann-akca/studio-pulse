@@ -80,7 +80,9 @@ def file_timestamp(rel_path: str) -> dt.datetime | None:
         try:
             if fmt == "epoch":
                 v = int(raw)
-                return dt.datetime.fromtimestamp(v / 1000 if v > 1e11 else v, dt.UTC).replace(tzinfo=None)
+                return dt.datetime.fromtimestamp(v / 1000 if v > 1e11 else v, dt.UTC).replace(
+                    tzinfo=None
+                )
             if fmt == "iso":
                 return dt.datetime.fromisoformat(raw[:10] + "T" + raw[11:].replace("-", ":"))
             return dt.datetime.strptime(raw, fmt)
@@ -91,7 +93,9 @@ def file_timestamp(rel_path: str) -> dt.datetime | None:
 
 def discover_files(root: Path) -> list[Path]:
     files = [p for p in root.rglob("*") if p.is_file() and p.name.endswith(_SUFFIXES)]
-    return sorted(files, key=lambda p: (file_timestamp(str(p.relative_to(root))) or dt.datetime.min, str(p)))
+    return sorted(
+        files, key=lambda p: (file_timestamp(str(p.relative_to(root))) or dt.datetime.min, str(p))
+    )
 
 
 def sync_gcs(uri: str, cache_dir: Path, client: Any = None, log: Any = print) -> Path:
@@ -110,7 +114,7 @@ def sync_gcs(uri: str, cache_dir: Path, client: Any = None, log: Any = print) ->
     for blob in client.list_blobs(bucket, prefix=prefix or None):
         if not blob.name.endswith(_SUFFIXES):
             continue
-        rel = blob.name[len(prefix):].lstrip("/") if prefix else blob.name
+        rel = blob.name[len(prefix) :].lstrip("/") if prefix else blob.name
         target = (root / rel).resolve()
         # Object names are arbitrary strings: "../" must not write outside the cache.
         if not target.is_relative_to(root):
@@ -148,19 +152,24 @@ def load_file(
         if col in cols:
             expr = f'TRY_CAST("{col}" AS {typ})'
             if typ == "BOOLEAN":
-                expr = f"TRY_CAST(lower(CAST(\"{col}\" AS VARCHAR)) AS BOOLEAN)"
+                expr = f'TRY_CAST(lower(CAST("{col}" AS VARCHAR)) AS BOOLEAN)'
             select.append(f"{expr} AS {col}")
         else:
             select.append(f"CAST(NULL AS {typ}) AS {col}")
     where, prefix_args = "", list(product_prefixes or [])
     if prefix_args:
-        ors = " OR ".join("starts_with(CAST(product_identifier AS VARCHAR), ?)" for _ in prefix_args)
+        ors = " OR ".join(
+            "starts_with(CAST(product_identifier AS VARCHAR), ?)" for _ in prefix_args
+        )
         where = f"WHERE {ors}"
-    con.execute("DELETE FROM raw_revenuecat_transactions WHERE app_id = ? AND _source = ? AND _file = ?", [app_id, source, rel])
+    con.execute(
+        "DELETE FROM raw_revenuecat_transactions WHERE app_id = ? AND _source = ? AND _file = ?",
+        [app_id, source, rel],
+    )
     con.execute(
         f"""
         INSERT INTO raw_revenuecat_transactions BY NAME
-        SELECT {', '.join(select)},
+        SELECT {", ".join(select)},
                ? AS app_id, ? AS _file, ? AS _file_ts,
                row_number() OVER () AS _row, ? AS _source, ? AS _loaded_at
         FROM {reader} {where}
@@ -186,7 +195,12 @@ def ingest(
     log: Any = print,
 ) -> int:
     if path.startswith("gs://"):
-        root = sync_gcs(path, cache_dir or Path(".pulse-cache") / "revenuecat" / app_id, client=gcs_client, log=log)
+        root = sync_gcs(
+            path,
+            cache_dir or Path(".pulse-cache") / "revenuecat" / app_id,
+            client=gcs_client,
+            log=log,
+        )
     else:
         root = Path(path)
     if not root.exists():
@@ -203,7 +217,9 @@ def ingest(
         rel = str(f.relative_to(root)).replace("\\", "/")
         if rel in loaded and not full_refresh:
             continue
-        total += load_file(con, app_id=app_id, source=source, path=f, rel=rel, product_prefixes=product_prefixes)
+        total += load_file(
+            con, app_id=app_id, source=source, path=f, rel=rel, product_prefixes=product_prefixes
+        )
         files += 1
     con.execute(
         "INSERT INTO meta_loads SELECT ?, ?, 'raw_revenuecat_transactions', ?, "
@@ -211,7 +227,9 @@ def ingest(
         "FROM raw_revenuecat_transactions WHERE app_id = ? AND _source = ?",
         [app_id, source, total, utcnow(), f"{files} new file(s)", app_id, source],
     )
-    log(f"    revenuecat    -> raw_revenuecat_transactions {total:>5} rows from {files} new file(s)")
+    log(
+        f"    revenuecat    -> raw_revenuecat_transactions {total:>5} rows from {files} new file(s)"
+    )
     return total
 
 

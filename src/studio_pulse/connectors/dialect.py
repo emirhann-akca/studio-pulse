@@ -112,7 +112,9 @@ class BigQueryDialect(Dialect):
         return "PARSE_DATE('%Y%m%d', event_date)"
 
     def param_str(self, key: str) -> str:
-        return f"(SELECT value.string_value FROM UNNEST(event_params) WHERE key = '{check_key(key)}')"
+        return (
+            f"(SELECT value.string_value FROM UNNEST(event_params) WHERE key = '{check_key(key)}')"
+        )
 
     def param_num(self, key: str) -> str:
         return (

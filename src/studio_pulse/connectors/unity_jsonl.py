@@ -141,7 +141,9 @@ def ingest(
     log: Any = print,
 ) -> ParseStats:
     root = Path(path)
-    files = [root] if root.is_file() else sorted([*root.rglob("*.jsonl"), *root.rglob("*.jsonl.gz")])
+    files = (
+        [root] if root.is_file() else sorted([*root.rglob("*.jsonl"), *root.rglob("*.jsonl.gz")])
+    )
     total = ParseStats()
     for f in files:
         perf, load, st = parse_lines(_read(f), app=app, timezone=timezone)
@@ -156,7 +158,15 @@ def ingest(
     con.execute(
         "INSERT INTO meta_loads SELECT ?, ?, 'raw_perf_windows', ?, MIN(date), MAX(date), ?, NULL, ? "
         "FROM raw_perf_windows WHERE app_id = ? AND starts_with(_source, ?)",
-        [app_id, source, total.perf, utcnow(), f"{len(files)} file(s), {total.malformed} malformed line(s)", app_id, source + ":"],
+        [
+            app_id,
+            source,
+            total.perf,
+            utcnow(),
+            f"{len(files)} file(s), {total.malformed} malformed line(s)",
+            app_id,
+            source + ":",
+        ],
     )
     log(
         f"    unity_jsonl   -> perf {total.perf}, load {total.load} rows from {len(files)} file(s)"

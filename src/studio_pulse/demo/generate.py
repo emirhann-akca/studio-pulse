@@ -93,8 +93,29 @@ COUNTRIES = [
     ("Indonesia", "ID", "IDR", 0.13, 0.3),
 ]
 # Fictional, fixed demo exchange rates (USD per unit of currency).
-DEMO_FX = {"USD": 1.0, "EUR": 1.08, "GBP": 1.27, "BRL": 0.18, "INR": 0.012, "TRY": 0.029, "MXN": 0.055, "JPY": 0.0066, "IDR": 0.000063}
-TAX = {"DE": 0.16, "FR": 0.167, "GB": 0.167, "TR": 0.167, "IN": 0.153, "JP": 0.091, "BR": 0.09, "MX": 0.138, "ID": 0.1, "US": 0.0}
+DEMO_FX = {
+    "USD": 1.0,
+    "EUR": 1.08,
+    "GBP": 1.27,
+    "BRL": 0.18,
+    "INR": 0.012,
+    "TRY": 0.029,
+    "MXN": 0.055,
+    "JPY": 0.0066,
+    "IDR": 0.000063,
+}
+TAX = {
+    "DE": 0.16,
+    "FR": 0.167,
+    "GB": 0.167,
+    "TR": 0.167,
+    "IN": 0.153,
+    "JP": 0.091,
+    "BR": 0.09,
+    "MX": 0.138,
+    "ID": 0.1,
+    "US": 0.0,
+}
 
 MODELS = {
     ("ANDROID", "low"): ["SM-A055F", "Redmi 12C", "moto e13"],
@@ -145,25 +166,78 @@ class DemoApp:
 
 APPS = [
     DemoApp(
-        id="mossy_match", name="Mossy Match", genre="puzzle", platforms=["ANDROID", "IOS"],
-        package="demo.mossymatch", apple_id="9000000001", installs=260, d1=0.343, decay=0.68, sessions=1.6,
-        iap="consumable", payer_rate=0.035, ads_per_session=1.4, ecpm=9.0, perf="ga4", levels=True,
-        crash_rate=0.0018, versions=[(0, "2.3.0"), (38, "2.4.0"), (61, "2.4.1")],
-        campaign=(28, 35, 1.7), admob_app_id="ca-app-pub-0000000000000000~1000000001", seed=11,
+        id="mossy_match",
+        name="Mossy Match",
+        genre="puzzle",
+        platforms=["ANDROID", "IOS"],
+        package="demo.mossymatch",
+        apple_id="9000000001",
+        installs=260,
+        d1=0.343,
+        decay=0.68,
+        sessions=1.6,
+        iap="consumable",
+        payer_rate=0.035,
+        ads_per_session=1.4,
+        ecpm=9.0,
+        perf="ga4",
+        levels=True,
+        crash_rate=0.0018,
+        versions=[(0, "2.3.0"), (38, "2.4.0"), (61, "2.4.1")],
+        campaign=(28, 35, 1.7),
+        admob_app_id="ca-app-pub-0000000000000000~1000000001",
+        seed=11,
     ),
     DemoApp(
-        id="pacer_pal", name="Pacer Pal", genre="fitness", platforms=["ANDROID", "IOS"],
-        package="demo.pacerpal", apple_id="9000000002", installs=120, d1=0.217, decay=0.58, sessions=1.2,
-        iap="subscription", payer_rate=0.075, ads_per_session=0.0, ecpm=0.0, perf=None, levels=False,
-        crash_rate=0.0012, versions=[(0, "5.1.0"), (45, "5.2.0")], seed=22,
+        id="pacer_pal",
+        name="Pacer Pal",
+        genre="fitness",
+        platforms=["ANDROID", "IOS"],
+        package="demo.pacerpal",
+        apple_id="9000000002",
+        installs=120,
+        d1=0.217,
+        decay=0.58,
+        sessions=1.2,
+        iap="subscription",
+        payer_rate=0.075,
+        ads_per_session=0.0,
+        ecpm=0.0,
+        perf=None,
+        levels=False,
+        crash_rate=0.0012,
+        versions=[(0, "5.1.0"), (45, "5.2.0")],
+        seed=22,
     ),
     DemoApp(
-        id="quartz_merge", name="Quartz Merge", genre="casual", platforms=["ANDROID"],
-        package="demo.quartzmerge", apple_id=None, installs=280, d1=0.244, decay=0.79, sessions=1.9,
-        iap="ga4_consumable", payer_rate=0.015, ads_per_session=2.2, ecpm=6.0, perf="jsonl", levels=True,
-        crash_rate=0.0022, versions=[(0, "1.7.2")],
-        incident=Incident(days_before_end=4, version="1.8.0", crash_mult=6.5, low_ft_add=6.5, mid_ft_add=1.2, d1_mult=0.68),
-        admob_app_id="ca-app-pub-0000000000000000~1000000003", seed=33,
+        id="quartz_merge",
+        name="Quartz Merge",
+        genre="casual",
+        platforms=["ANDROID"],
+        package="demo.quartzmerge",
+        apple_id=None,
+        installs=280,
+        d1=0.244,
+        decay=0.79,
+        sessions=1.9,
+        iap="ga4_consumable",
+        payer_rate=0.015,
+        ads_per_session=2.2,
+        ecpm=6.0,
+        perf="jsonl",
+        levels=True,
+        crash_rate=0.0022,
+        versions=[(0, "1.7.2")],
+        incident=Incident(
+            days_before_end=4,
+            version="1.8.0",
+            crash_mult=6.5,
+            low_ft_add=6.5,
+            mid_ft_add=1.2,
+            d1_mult=0.68,
+        ),
+        admob_app_id="ca-app-pub-0000000000000000~1000000003",
+        seed=33,
     ),
 ]
 
@@ -188,7 +262,14 @@ class EventBuffer:
     def __init__(self) -> None:
         self.groups: dict[tuple[str, ...], dict[str, list[Any]]] = {}
 
-    def add(self, base: dict[str, Any], name: str, ts: int, value_usd: float | None, params: dict[str, Any]) -> None:
+    def add(
+        self,
+        base: dict[str, Any],
+        name: str,
+        ts: int,
+        value_usd: float | None,
+        params: dict[str, Any],
+    ) -> None:
         key = tuple(params)
         g = self.groups.get(key)
         if g is None:
@@ -215,12 +296,17 @@ class EventBuffer:
             tables.append(flat_table(g, types))
         full = pa.concat_tables(tables, promote_options="default")
         # put every param column in a stable order
-        cols = [c for c in full.column_names if not c.startswith("p_")] + sorted(c for c in full.column_names if c.startswith("p_"))
+        cols = [c for c in full.column_names if not c.startswith("p_")] + sorted(
+            c for c in full.column_names if c.startswith("p_")
+        )
         return full.select(cols)
 
 
 def _micros(day: dt.date, seconds: float) -> int:
-    return int((dt.datetime.combine(day, dt.time()) - dt.datetime(1970, 1, 1)).total_seconds() * 1e6 + seconds * 1e6)
+    return int(
+        (dt.datetime.combine(day, dt.time()) - dt.datetime(1970, 1, 1)).total_seconds() * 1e6
+        + seconds * 1e6
+    )
 
 
 def _choice_w(rng: random.Random, items: list, weights: list[float]):
@@ -252,22 +338,38 @@ class Generator:
         self.unity_lines: dict[dt.date, list[str]] = defaultdict(list)
         self.new_by_day: dict[tuple[int, str], int] = defaultdict(int)
         self.ad_by_day: dict[int, list[float]] = defaultdict(list)
-        self.iap_store: dict[tuple[int, str, str], list[float]] = defaultdict(list)  # (day, platform, currency)
+        self.iap_store: dict[tuple[int, str, str], list[float]] = defaultdict(
+            list
+        )  # (day, platform, currency)
         self.dau_by_day: dict[tuple[int, str], int] = defaultdict(int)
 
     # -- population ---------------------------------------------------------------
     def _new_user(self, day_idx: int) -> User:
         a, r = self.app, self.rng
-        platform = a.platforms[0] if len(a.platforms) == 1 else _choice_w(r, ["ANDROID", "IOS"], [0.64, 0.36])
+        platform = (
+            a.platforms[0]
+            if len(a.platforms) == 1
+            else _choice_w(r, ["ANDROID", "IOS"], [0.64, 0.36])
+        )
         country = _choice_w(r, COUNTRIES, [c[3] for c in COUNTRIES])
-        tier = _choice_w(r, ["low", "mid", "high"], [0.32, 0.45, 0.23] if platform == "ANDROID" else [0.12, 0.48, 0.40])
+        tier = _choice_w(
+            r,
+            ["low", "mid", "high"],
+            [0.32, 0.45, 0.23] if platform == "ANDROID" else [0.12, 0.48, 0.40],
+        )
         engage = r.lognormvariate(0, 0.45)
         if a.incident and day_idx >= self.days - a.incident.days_before_end:
             engage *= a.incident.d1_mult
         payer = r.random() < a.payer_rate * (1.6 if country[4] > 1 else 0.7)
         return User(
-            uid=f"{r.getrandbits(64):016X}{r.getrandbits(64):016X}", install=day_idx, platform=platform,
-            country=country, tier=tier, model=r.choice(MODELS[(platform, tier)]), engage=engage, payer=payer,
+            uid=f"{r.getrandbits(64):016X}{r.getrandbits(64):016X}",
+            install=day_idx,
+            platform=platform,
+            country=country,
+            tier=tier,
+            model=r.choice(MODELS[(platform, tier)]),
+            engage=engage,
+            payer=payer,
         )
 
     def _p_active(self, u: User, n: int) -> float:
@@ -310,35 +412,63 @@ class Generator:
         if n == 0:
             self.ev.add(base, "first_open", _micros(day, t - 1), None, {})
             self.new_by_day[(di, u.platform)] += 1
-        n_sessions = 1 + (1 if r.random() < a.sessions - 1 else 0) + (1 if r.random() < (a.sessions - 1) / 3 else 0)
-        crashed_today = r.random() < a.crash_rate * (a.incident.crash_mult if incident else 1.0) * (1.5 if u.tier == "low" else 1.0)
+        n_sessions = (
+            1
+            + (1 if r.random() < a.sessions - 1 else 0)
+            + (1 if r.random() < (a.sessions - 1) / 3 else 0)
+        )
+        crashed_today = r.random() < a.crash_rate * (a.incident.crash_mult if incident else 1.0) * (
+            1.5 if u.tier == "low" else 1.0
+        )
         for s in range(n_sessions):
             t = min(t + (r.uniform(600, 4 * 3600) if s else 0), 22.5 * 3600)
             sid = int(_micros(day, t) // 1_000_000)
             sp = {"ga_session_id": sid}
             self.ev.add(base, "session_start", _micros(day, t), None, sp)
-            minutes = max(0.3, r.lognormvariate(math.log(5.5 if a.genre != "fitness" else 7.0), 0.6))
-            self.ev.add(base, "user_engagement", _micros(day, t + minutes * 60), None, {**sp, "engagement_time_msec": int(minutes * 60000)})
+            minutes = max(
+                0.3, r.lognormvariate(math.log(5.5 if a.genre != "fitness" else 7.0), 0.6)
+            )
+            self.ev.add(
+                base,
+                "user_engagement",
+                _micros(day, t + minutes * 60),
+                None,
+                {**sp, "engagement_time_msec": int(minutes * 60000)},
+            )
             if a.levels:
                 self._levels(u, base, day, t, sp)
             ads = self._poisson(a.ads_per_session) if a.ads_per_session else 0
             for k in range(ads):
                 val = a.ecpm / 1000 * u.country[4] * r.uniform(0.5, 1.6)
                 fmt = "rewarded" if r.random() < 0.35 else "interstitial"
-                self.ev.add(base, "ad_impression", _micros(day, t + 30 + k * 40), round(val, 6), {**sp, "value": round(val, 6), "currency": "USD", "ad_format": fmt})
+                self.ev.add(
+                    base,
+                    "ad_impression",
+                    _micros(day, t + 30 + k * 40),
+                    round(val, 6),
+                    {**sp, "value": round(val, 6), "currency": "USD", "ad_format": fmt},
+                )
                 self.ad_by_day[di].append(val)
             if a.perf and r.random() < 0.6:
                 self._perf(u, base, day, t, sp, version, incident, minutes, s == 0)
             if crashed_today and s == n_sessions - 1:
-                self.ev.add(base, "app_exception", _micros(day, t + minutes * 30), None, {**sp, "fatal": 1})
-                self.crash["event_timestamp"].append(dt.datetime.combine(day, dt.time()) + dt.timedelta(seconds=t + minutes * 30))
+                self.ev.add(
+                    base, "app_exception", _micros(day, t + minutes * 30), None, {**sp, "fatal": 1}
+                )
+                self.crash["event_timestamp"].append(
+                    dt.datetime.combine(day, dt.time()) + dt.timedelta(seconds=t + minutes * 30)
+                )
                 self.crash["platform"].append(u.platform)
                 self.crash["is_fatal"].append(True)
                 self.crash["installation_uuid"].append(u.uid.lower())
-                self.crash["issue_id"].append(f"issue-{(r.randrange(3) if not incident else 7 + r.randrange(2)):02d}")
+                self.crash["issue_id"].append(
+                    f"issue-{(r.randrange(3) if not incident else 7 + r.randrange(2)):02d}"
+                )
                 self.crash["app_version"].append(version)
             if r.random() < 0.004:  # non-fatal
-                self.crash["event_timestamp"].append(dt.datetime.combine(day, dt.time()) + dt.timedelta(seconds=t + 5))
+                self.crash["event_timestamp"].append(
+                    dt.datetime.combine(day, dt.time()) + dt.timedelta(seconds=t + 5)
+                )
                 self.crash["platform"].append(u.platform)
                 self.crash["is_fatal"].append(False)
                 self.crash["installation_uuid"].append(u.uid.lower())
@@ -370,20 +500,41 @@ class Generator:
                 if hard:
                     u.engage *= 0.9
 
-    def _perf(self, u: User, base: dict, day: dt.date, t: float, sp: dict, version: str, incident: bool, minutes: float, first: bool) -> None:
+    def _perf(
+        self,
+        u: User,
+        base: dict,
+        day: dt.date,
+        t: float,
+        sp: dict,
+        version: str,
+        incident: bool,
+        minutes: float,
+        first: bool,
+    ) -> None:
         r, a = self.rng, self.app
-        base_ft = {"low": 18.4 if a.id == "quartz_merge" else 17.6, "mid": 16.9, "high": 16.7}[u.tier]
+        base_ft = {"low": 18.4 if a.id == "quartz_merge" else 17.6, "mid": 16.9, "high": 16.7}[
+            u.tier
+        ]
         p95_add = {"low": 13.0, "mid": 5.5, "high": 1.6}[u.tier]
         slow = {"low": 0.032, "mid": 0.007, "high": 0.002}[u.tier]
         # Share of the frame p95 spent on the CPU main thread / GPU: low-tier
         # phones are GPU-bound, mid-tier CPU-bound, high-tier mostly waiting on vsync.
-        cpu_share, gpu_share = {"low": (0.55, 0.88), "mid": (0.74, 0.6), "high": (0.45, 0.4)}[u.tier]
+        cpu_share, gpu_share = {"low": (0.55, 0.88), "mid": (0.74, 0.6), "high": (0.45, 0.4)}[
+            u.tier
+        ]
         if incident:
-            base_ft += a.incident.low_ft_add if u.tier == "low" else (a.incident.mid_ft_add if u.tier == "mid" else 0.0)
+            base_ft += (
+                a.incident.low_ft_add
+                if u.tier == "low"
+                else (a.incident.mid_ft_add if u.tier == "mid" else 0.0)
+            )
             p95_add *= 1.7 if u.tier == "low" else 1.15
             slow *= 3.2 if u.tier == "low" else 1.3
             gpu_share = min(0.97, gpu_share * 1.12)  # the 1.8.0 regression is a heavier shader
-        gles = u.platform == "ANDROID" and u.tier == "low" and r.random() < 0.3  # no GPU timing on GLES by default
+        gles = (
+            u.platform == "ANDROID" and u.tier == "low" and r.random() < 0.3
+        )  # no GPU timing on GLES by default
         windows = []
         for w in range(2):
             p50 = max(8.3, r.gauss(base_ft, 0.9 if u.tier == "low" else 0.3))
@@ -399,7 +550,9 @@ class Generator:
                 E.PARAM_FRAMES: frames,
                 # FrameTimingManager results lag a few frames, so a session's first
                 # 30 s window uses deltaTime: one window in (session length / 30 s).
-                E.PARAM_FT_SOURCE: E.SOURCE_DELTA_TIME if w == 0 and r.random() < 30 / max(60.0, minutes * 60) else E.SOURCE_FRAME_TIMING,
+                E.PARAM_FT_SOURCE: E.SOURCE_DELTA_TIME
+                if w == 0 and r.random() < 30 / max(60.0, minutes * 60)
+                else E.SOURCE_FRAME_TIMING,
                 E.PARAM_FT_P50: round(p50, 2),
                 E.PARAM_FT_P95: round(p95, 2),
                 E.PARAM_FT_MAX: round(p95 + r.uniform(5, 60), 2),
@@ -409,7 +562,9 @@ class Generator:
                 E.PARAM_MEM_ALLOC: alloc,
                 E.PARAM_MEM_RESERVED: reserved,
                 E.PARAM_GC_RESERVED: int(r.gauss({"low": 48, "mid": 64, "high": 80}[u.tier], 8)),
-                E.PARAM_SYS_USED: int(reserved + r.gauss({"low": 260, "mid": 330, "high": 400}[u.tier], 40)),
+                E.PARAM_SYS_USED: int(
+                    reserved + r.gauss({"low": 260, "mid": 330, "high": 400}[u.tier], 40)
+                ),
                 E.PARAM_SYS_MEM: SYS_MEM[u.tier],
             }
             if not gles:
@@ -417,24 +572,69 @@ class Generator:
             windows.append((t + 30 * (w + 1), E.PERF_EVENT, params))
         loads = []
         if first or r.random() < 0.3:
-            cold = r.lognormvariate(math.log({"low": 4300, "mid": 2900, "high": 2100}[u.tier]), 0.22)
-            loads.append((t + 1, E.LOAD_EVENT, {E.PARAM_SCHEMA_VERSION: 1, E.PARAM_TIER: u.tier, E.PARAM_KIND: E.LOAD_KIND_COLD_START, E.PARAM_SCENE: "Boot", E.PARAM_DURATION: round(cold, 1)}))
+            cold = r.lognormvariate(
+                math.log({"low": 4300, "mid": 2900, "high": 2100}[u.tier]), 0.22
+            )
+            loads.append(
+                (
+                    t + 1,
+                    E.LOAD_EVENT,
+                    {
+                        E.PARAM_SCHEMA_VERSION: 1,
+                        E.PARAM_TIER: u.tier,
+                        E.PARAM_KIND: E.LOAD_KIND_COLD_START,
+                        E.PARAM_SCENE: "Boot",
+                        E.PARAM_DURATION: round(cold, 1),
+                    },
+                )
+            )
         scene_ms = r.lognormvariate(math.log({"low": 1350, "mid": 880, "high": 610}[u.tier]), 0.25)
-        loads.append((t + 25, E.LOAD_EVENT, {E.PARAM_SCHEMA_VERSION: 1, E.PARAM_TIER: u.tier, E.PARAM_KIND: E.LOAD_KIND_SCENE, E.PARAM_SCENE: "Level", E.PARAM_DURATION: round(scene_ms, 1)}))
+        loads.append(
+            (
+                t + 25,
+                E.LOAD_EVENT,
+                {
+                    E.PARAM_SCHEMA_VERSION: 1,
+                    E.PARAM_TIER: u.tier,
+                    E.PARAM_KIND: E.LOAD_KIND_SCENE,
+                    E.PARAM_SCENE: "Level",
+                    E.PARAM_DURATION: round(scene_ms, 1),
+                },
+            )
+        )
         for ts, name, params in windows + loads:
             if a.perf == "ga4":
                 self.ev.add(base, name, _micros(day, ts), None, {**sp, **params})
             else:
                 stamp = dt.datetime.combine(day, dt.time()) + dt.timedelta(seconds=ts)
                 line = {
-                    "v": E.SCHEMA_VERSION, "event": name, "ts": stamp.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    "app": a.package, "app_version": base["app_version"], "platform": u.platform,
-                    "session": f"{sp['ga_session_id']:x}-{u.uid[:8].lower()}", "params": params,
+                    "v": E.SCHEMA_VERSION,
+                    "event": name,
+                    "ts": stamp.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    "app": a.package,
+                    "app_version": base["app_version"],
+                    "platform": u.platform,
+                    "session": f"{sp['ga_session_id']:x}-{u.uid[:8].lower()}",
+                    "params": params,
                 }
                 self.unity_lines[day].append(json.dumps(line, separators=(",", ":")))
 
     # -- monetisation ---------------------------------------------------------------
-    def _rc_row(self, u: User, day: dt.date, t: float, usd: float, product: str, renewal: int, trial: bool, conv: bool, auto: bool, period_days: int | None, tx: str, orig: str) -> dict[str, Any]:
+    def _rc_row(
+        self,
+        u: User,
+        day: dt.date,
+        t: float,
+        usd: float,
+        product: str,
+        renewal: int,
+        trial: bool,
+        conv: bool,
+        auto: bool,
+        period_days: int | None,
+        tx: str,
+        orig: str,
+    ) -> dict[str, Any]:
         cur = u.country[2]
         start = dt.datetime.combine(day, dt.time()) + dt.timedelta(seconds=t)
         local = round(usd / DEMO_FX[cur], 2 if cur not in ("JPY", "IDR") else 0)
@@ -466,7 +666,9 @@ class Generator:
             "is_trial_conversion": conv,
             "ownership_type": "PURCHASED",
             "platform": u.platform.lower() if u.platform == "ANDROID" else "iOS",
-            "first_seen_time": dt.datetime.combine(self.start + dt.timedelta(days=u.install), dt.time(1)),
+            "first_seen_time": dt.datetime.combine(
+                self.start + dt.timedelta(days=u.install), dt.time(1)
+            ),
             "updated_at": start,
             "_deliver": day,
         }
@@ -485,15 +687,24 @@ class Generator:
             when = day + dt.timedelta(days=r.randint(2, 12))
             if when <= last:
                 upd = dict(row)
-                upd.update(refunded_at=dt.datetime.combine(when, dt.time(10)), price_in_usd=0.0, price_in_purchased_currency=0.0,
-                           updated_at=dt.datetime.combine(when, dt.time(10)), _deliver=when)
+                upd.update(
+                    refunded_at=dt.datetime.combine(when, dt.time(10)),
+                    price_in_usd=0.0,
+                    price_in_purchased_currency=0.0,
+                    updated_at=dt.datetime.combine(when, dt.time(10)),
+                    _deliver=when,
+                )
                 self.rc_tx.append(upd)
                 return
         if row["is_auto_renewable"] and r.random() < 0.25:  # unsubscribe detected
             when = day + dt.timedelta(days=r.randint(1, 20))
             if when <= last:
                 upd = dict(row)
-                upd.update(unsubscribe_detected_at=dt.datetime.combine(when, dt.time(8)), updated_at=dt.datetime.combine(when, dt.time(8)), _deliver=when)
+                upd.update(
+                    unsubscribe_detected_at=dt.datetime.combine(when, dt.time(8)),
+                    updated_at=dt.datetime.combine(when, dt.time(8)),
+                    _deliver=when,
+                )
                 self.rc_tx.append(upd)
         if r.random() < 0.03:  # plain re-send, identical content
             when = day + dt.timedelta(days=1)
@@ -504,14 +715,32 @@ class Generator:
 
     def _purchases(self, u: User, base: dict, di: int, day: dt.date, t: float) -> None:
         a, r = self.app, self.rng
-        if a.iap in ("consumable", "ga4_consumable") and u.payer and r.random() < (0.35 if di - u.install < 3 else 0.12):
+        if (
+            a.iap in ("consumable", "ga4_consumable")
+            and u.payer
+            and r.random() < (0.35 if di - u.install < 3 else 0.12)
+        ):
             usd = _choice_w(r, [0.99, 1.99, 4.99, 9.99, 19.99], [0.25, 0.3, 0.28, 0.12, 0.05])
-            product = {0.99: "coins_small", 1.99: "coins_medium", 4.99: "coins_large", 9.99: "starter_bundle", 19.99: "mega_bundle"}[usd]
-            self.ev.add(base, "in_app_purchase", _micros(day, t + 200), usd, {"value": usd, "currency": "USD"})
+            product = {
+                0.99: "coins_small",
+                1.99: "coins_medium",
+                4.99: "coins_large",
+                9.99: "starter_bundle",
+                19.99: "mega_bundle",
+            }[usd]
+            self.ev.add(
+                base,
+                "in_app_purchase",
+                _micros(day, t + 200),
+                usd,
+                {"value": usd, "currency": "USD"},
+            )
             self.iap_store[(di, u.platform, u.country[2])].append(usd)
             if a.iap == "consumable":
                 tx = self._tx_id(u)
-                row = self._rc_row(u, day, t + 200, usd, product, 1, False, False, False, None, tx, tx)
+                row = self._rc_row(
+                    u, day, t + 200, usd, product, 1, False, False, False, None, tx, tx
+                )
                 self.rc_tx.append(row)
                 self._maybe_update(row, day)
         if a.iap == "subscription":
@@ -542,19 +771,35 @@ class Generator:
             while di <= last:
                 day = self.start + dt.timedelta(days=di)
                 row = dict(tr)
-                tx = tr["original_store_transaction_id"] + (f"..{renewal - 2}" if tr["store"] == "play_store" else str(renewal))
-                start = dt.datetime.combine(day, dt.time()) + dt.timedelta(seconds=tr["start_time"].hour * 3600)
+                tx = tr["original_store_transaction_id"] + (
+                    f"..{renewal - 2}" if tr["store"] == "play_store" else str(renewal)
+                )
+                start = dt.datetime.combine(day, dt.time()) + dt.timedelta(
+                    seconds=tr["start_time"].hour * 3600
+                )
                 cur = row["purchased_currency"]
                 local = round(usd / DEMO_FX[cur], 2 if cur not in ("JPY", "IDR") else 0)
                 row.update(
-                    store_transaction_id=tx, renewal_number=renewal, is_trial_period=False, is_trial_conversion=renewal == 2,
-                    price_in_usd=usd, purchase_price_in_usd=usd, price_in_purchased_currency=local, purchase_price_in_purchased_currency=local,
-                    tax_percentage=TAX.get(row["country"], 0.1), commission_percentage=0.15,
-                    start_time=start, end_time=start + dt.timedelta(days=365 if annual else 30), updated_at=start, _deliver=day,
+                    store_transaction_id=tx,
+                    renewal_number=renewal,
+                    is_trial_period=False,
+                    is_trial_conversion=renewal == 2,
+                    price_in_usd=usd,
+                    purchase_price_in_usd=usd,
+                    price_in_purchased_currency=local,
+                    purchase_price_in_purchased_currency=local,
+                    tax_percentage=TAX.get(row["country"], 0.1),
+                    commission_percentage=0.15,
+                    start_time=start,
+                    end_time=start + dt.timedelta(days=365 if annual else 30),
+                    updated_at=start,
+                    _deliver=day,
                 )
                 self.rc_tx.append(row)
                 self._maybe_update(row, day)
-                self.iap_store[(di, "ANDROID" if tr["store"] == "play_store" else "IOS", cur)].append(usd)
+                self.iap_store[
+                    (di, "ANDROID" if tr["store"] == "play_store" else "IOS", cur)
+                ].append(usd)
                 if annual or r.random() > 0.83:
                     break
                 di += 30
@@ -580,12 +825,18 @@ class Generator:
             sources["play_console"] = {"path": f"play/{a.id}", "package": a.package}
         if "IOS" in a.platforms:
             self._write_appstore(out / "appstore" / a.id)
-            sources["app_store"] = {"path": f"appstore/{a.id}", "apple_id": a.apple_id, "sku": a.package}
+            sources["app_store"] = {
+                "path": f"appstore/{a.id}",
+                "apple_id": a.apple_id,
+                "sku": a.package,
+            }
         if self.unity_lines:
             d = out / "unity" / a.id
             d.mkdir(parents=True, exist_ok=True)
             for day, lines in sorted(self.unity_lines.items()):
-                (d / f"pulse-{day:%Y%m%d}.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+                (d / f"pulse-{day:%Y%m%d}.jsonl").write_text(
+                    "\n".join(lines) + "\n", encoding="utf-8"
+                )
             sources["unity_jsonl"] = {"path": f"unity/{a.id}", "app": a.package}
         return sources
 
@@ -596,7 +847,12 @@ class Generator:
         for day, rows in sorted(by_day.items()):
             d = root / day.isoformat()
             d.mkdir(parents=True, exist_ok=True)
-            epoch = int((dt.datetime.combine(day + dt.timedelta(days=1), dt.time(3)) - dt.datetime(1970, 1, 1)).total_seconds())
+            epoch = int(
+                (
+                    dt.datetime.combine(day + dt.timedelta(days=1), dt.time(3))
+                    - dt.datetime(1970, 1, 1)
+                ).total_seconds()
+            )
             # A few rows arrive without a USD price, to exercise the FX fallback.
             for row in rows:
                 if row["price_in_usd"] and self.rng.random() < 0.02:
@@ -606,22 +862,33 @@ class Generator:
     def _write_admob(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         r = self.rng
-        elements: list[dict[str, Any]] = [{"header": {"dateRange": {}, "localizationSettings": {"currencyCode": "USD"}}}]
+        elements: list[dict[str, Any]] = [
+            {"header": {"dateRange": {}, "localizationSettings": {"currencyCode": "USD"}}}
+        ]
         for di in sorted(self.ad_by_day):
             vals = self.ad_by_day[di]
             day = self.start + dt.timedelta(days=di)
             imps = int(len(vals) * r.uniform(1.0, 1.04))
             earn = sum(vals) * r.uniform(0.95, 1.0)
-            elements.append({"row": {
-                "dimensionValues": {"DATE": {"value": day.strftime("%Y%m%d")}, "APP": {"value": self.app.admob_app_id, "displayLabel": self.app.name}},
-                "metricValues": {
-                    "ESTIMATED_EARNINGS": {"microsValue": str(int(earn * 1e6))},
-                    "IMPRESSIONS": {"integerValue": str(imps)},
-                    "CLICKS": {"integerValue": str(int(imps * r.uniform(0.008, 0.016)))},
-                    "AD_REQUESTS": {"integerValue": str(int(imps / r.uniform(0.86, 0.93)))},
-                    "MATCHED_REQUESTS": {"integerValue": str(int(imps / r.uniform(0.95, 0.99)))},
-                },
-            }})
+            elements.append(
+                {
+                    "row": {
+                        "dimensionValues": {
+                            "DATE": {"value": day.strftime("%Y%m%d")},
+                            "APP": {"value": self.app.admob_app_id, "displayLabel": self.app.name},
+                        },
+                        "metricValues": {
+                            "ESTIMATED_EARNINGS": {"microsValue": str(int(earn * 1e6))},
+                            "IMPRESSIONS": {"integerValue": str(imps)},
+                            "CLICKS": {"integerValue": str(int(imps * r.uniform(0.008, 0.016)))},
+                            "AD_REQUESTS": {"integerValue": str(int(imps / r.uniform(0.86, 0.93)))},
+                            "MATCHED_REQUESTS": {
+                                "integerValue": str(int(imps / r.uniform(0.95, 0.99)))
+                            },
+                        },
+                    }
+                }
+            )
         elements.append({"footer": {"matchingRowCount": str(len(elements) - 1)}})
         path.write_text(json.dumps(elements, indent=1), encoding="utf-8")
 
@@ -637,12 +904,41 @@ class Generator:
             inst = int(new * r.uniform(1.03, 1.09))
             un = int(inst * r.uniform(0.28, 0.4) + self.dau_by_day.get((di, "ANDROID"), 0) * 0.004)
             key = day.strftime("%Y%m")
-            months[key].append([day.isoformat(), self.app.package, str(inst), str(un), str(inst), str(un), str(inst), str(int(self.dau_by_day.get((di, "ANDROID"), 0) * 0.02)), str(un)])
+            months[key].append(
+                [
+                    day.isoformat(),
+                    self.app.package,
+                    str(inst),
+                    str(un),
+                    str(inst),
+                    str(un),
+                    str(inst),
+                    str(int(self.dau_by_day.get((di, "ANDROID"), 0) * 0.02)),
+                    str(un),
+                ]
+            )
             daily = r.gauss(4.4, 0.3) if new else None
             if daily:
                 total = total * 0.985 + min(5.0, daily) * 0.015
-            ratings[key].append([day.isoformat(), self.app.package, f"{min(5.0, daily):.2f}" if daily else "NA", f"{total:.2f}"])
-        head_i = ["Date", "Package Name", "Daily Device Installs", "Daily Device Uninstalls", "Daily User Installs", "Daily User Uninstalls", "Install events", "Update events", "Uninstall events"]
+            ratings[key].append(
+                [
+                    day.isoformat(),
+                    self.app.package,
+                    f"{min(5.0, daily):.2f}" if daily else "NA",
+                    f"{total:.2f}",
+                ]
+            )
+        head_i = [
+            "Date",
+            "Package Name",
+            "Daily Device Installs",
+            "Daily Device Uninstalls",
+            "Daily User Installs",
+            "Daily User Uninstalls",
+            "Install events",
+            "Update events",
+            "Uninstall events",
+        ]
         head_r = ["Date", "Package Name", "Daily Average Rating", "Total Average Rating"]
         for key, rows in months.items():
             self._utf16_csv(root / f"installs_{self.app.package}_{key}_overview.csv", head_i, rows)
@@ -660,10 +956,36 @@ class Generator:
     def _write_appstore(self, root: Path) -> None:
         root.mkdir(parents=True, exist_ok=True)
         r = self.rng
-        head = ["Provider", "Provider Country", "SKU", "Developer", "Title", "Version", "Product Type Identifier", "Units",
-                "Developer Proceeds", "Begin Date", "End Date", "Customer Currency", "Country Code", "Currency of Proceeds",
-                "Apple Identifier", "Customer Price", "Promo Code", "Parent Identifier", "Subscription", "Period", "Category",
-                "CMB", "Device", "Supported Platforms", "Proceeds Reason", "Preserved Pricing", "Client", "Order Type"]
+        head = [
+            "Provider",
+            "Provider Country",
+            "SKU",
+            "Developer",
+            "Title",
+            "Version",
+            "Product Type Identifier",
+            "Units",
+            "Developer Proceeds",
+            "Begin Date",
+            "End Date",
+            "Customer Currency",
+            "Country Code",
+            "Currency of Proceeds",
+            "Apple Identifier",
+            "Customer Price",
+            "Promo Code",
+            "Parent Identifier",
+            "Subscription",
+            "Period",
+            "Category",
+            "CMB",
+            "Device",
+            "Supported Platforms",
+            "Proceeds Reason",
+            "Preserved Pricing",
+            "Client",
+            "Order Type",
+        ]
         for di in range(self.days):
             day = self.start + dt.timedelta(days=di)
             ds = day.strftime("%m/%d/%Y")
@@ -671,9 +993,71 @@ class Generator:
             new = self.new_by_day.get((di, "IOS"), 0)
             units = int(new * r.uniform(1.0, 1.06))
             if units:
-                rows.append(["APPLE", "US", self.app.package, "Demo Studio", self.app.name, "", "1F", str(units), "0", ds, ds, "USD", "US", "USD", self.app.apple_id, "0", "", "", "", "", "Games", "", "iPhone", "iOS", "", "", "", ""])
+                rows.append(
+                    [
+                        "APPLE",
+                        "US",
+                        self.app.package,
+                        "Demo Studio",
+                        self.app.name,
+                        "",
+                        "1F",
+                        str(units),
+                        "0",
+                        ds,
+                        ds,
+                        "USD",
+                        "US",
+                        "USD",
+                        self.app.apple_id,
+                        "0",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "Games",
+                        "",
+                        "iPhone",
+                        "iOS",
+                        "",
+                        "",
+                        "",
+                        "",
+                    ]
+                )
                 re_units = int(units * r.uniform(0.08, 0.15))
-                rows.append(["APPLE", "US", self.app.package, "Demo Studio", self.app.name, "", "3F", str(re_units), "0", ds, ds, "USD", "US", "USD", self.app.apple_id, "0", "", "", "", "", "Games", "", "iPhone", "iOS", "", "", "", ""])
+                rows.append(
+                    [
+                        "APPLE",
+                        "US",
+                        self.app.package,
+                        "Demo Studio",
+                        self.app.name,
+                        "",
+                        "3F",
+                        str(re_units),
+                        "0",
+                        ds,
+                        ds,
+                        "USD",
+                        "US",
+                        "USD",
+                        self.app.apple_id,
+                        "0",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "Games",
+                        "",
+                        "iPhone",
+                        "iOS",
+                        "",
+                        "",
+                        "",
+                        "",
+                    ]
+                )
             for (d2, plat, cur), vals in self.iap_store.items():
                 if d2 != di or plat != "IOS":
                     continue
@@ -682,12 +1066,56 @@ class Generator:
                     cnt = vals.count(usd)
                     local = usd / DEMO_FX[cur]
                     proceeds = local * 0.85 * (1 - 0.1)
-                    rows.append(["APPLE", "US", f"{self.app.package}.iap", "Demo Studio", "In-app item", "", ptype, str(cnt), f"{proceeds:.2f}", ds, ds, cur, "", cur, f"8{self.app.apple_id[1:]}", f"{local:.2f}", "", self.app.package, "", "", "Games", "", "iPhone", "iOS", "", "", "", ""])
-            text = "\t".join(head) + "\n" + "\n".join("\t".join(x) for x in rows) + ("\n" if rows else "")
+                    rows.append(
+                        [
+                            "APPLE",
+                            "US",
+                            f"{self.app.package}.iap",
+                            "Demo Studio",
+                            "In-app item",
+                            "",
+                            ptype,
+                            str(cnt),
+                            f"{proceeds:.2f}",
+                            ds,
+                            ds,
+                            cur,
+                            "",
+                            cur,
+                            f"8{self.app.apple_id[1:]}",
+                            f"{local:.2f}",
+                            "",
+                            self.app.package,
+                            "",
+                            "",
+                            "Games",
+                            "",
+                            "iPhone",
+                            "iOS",
+                            "",
+                            "",
+                            "",
+                            "",
+                        ]
+                    )
+            text = (
+                "\t".join(head)
+                + "\n"
+                + "\n".join("\t".join(x) for x in rows)
+                + ("\n" if rows else "")
+            )
             (root / f"S_D_80000000_{day:%Y%m%d}.txt").write_text(text, encoding="utf-8")
 
 
-def generate(out_dir: Path, *, scale: float = 1.0, end: dt.date = DEMO_END, days: int = DEMO_DAYS, apps: list[DemoApp] | None = None, log: Any = print) -> Path:
+def generate(
+    out_dir: Path,
+    *,
+    scale: float = 1.0,
+    end: dt.date = DEMO_END,
+    days: int = DEMO_DAYS,
+    apps: list[DemoApp] | None = None,
+    log: Any = print,
+) -> Path:
     """Write demo source files and a pulse.yaml into out_dir. Returns the config path."""
     out_dir.mkdir(parents=True, exist_ok=True)
     start = end - dt.timedelta(days=days - 1)
@@ -707,9 +1135,23 @@ def generate(out_dir: Path, *, scale: float = 1.0, end: dt.date = DEMO_END, days
         g.run()
         g.run_subscriptions()
         sources = g.write()
-        cfg["apps"].append({"id": app.id, "name": app.name, "genre": app.genre, "platforms": app.platforms, "sources": sources})
+        cfg["apps"].append(
+            {
+                "id": app.id,
+                "name": app.name,
+                "genre": app.genre,
+                "platforms": app.platforms,
+                "sources": sources,
+            }
+        )
         n_events = sum(len(v["event_name"]) for v in g.ev.groups.values())
-        log(f"  generated {app.name}: {n_events:,} GA4 events, {len(g.rc_tx)} RevenueCat rows, {sum(len(v) for v in g.unity_lines.values())} Unity lines")
+        log(
+            f"  generated {app.name}: {n_events:,} GA4 events, {len(g.rc_tx)} RevenueCat rows, {sum(len(v) for v in g.unity_lines.values())} Unity lines"
+        )
     path = out_dir / "pulse.yaml"
-    path.write_text("# Generated by `pulse demo`. Synthetic data only.\n" + yaml.safe_dump(cfg, sort_keys=False), encoding="utf-8")
+    path.write_text(
+        "# Generated by `pulse demo`. Synthetic data only.\n"
+        + yaml.safe_dump(cfg, sort_keys=False),
+        encoding="utf-8",
+    )
     return path

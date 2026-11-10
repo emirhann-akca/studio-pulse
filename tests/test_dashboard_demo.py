@@ -24,7 +24,12 @@ def demo(tmp_path_factory):
 def test_demo_builds_every_page(demo):
     site, _ = demo
     pages = sorted(p.relative_to(site).as_posix() for p in site.rglob("*.html"))
-    assert pages == ["apps/mossy_match.html", "apps/pacer_pal.html", "apps/quartz_merge.html", "index.html"]
+    assert pages == [
+        "apps/mossy_match.html",
+        "apps/pacer_pal.html",
+        "apps/quartz_merge.html",
+        "index.html",
+    ]
 
 
 def test_demo_banner_and_fictional_names(demo):
@@ -39,9 +44,11 @@ def test_pages_are_self_contained(demo):
     site, _ = demo
     for page in site.rglob("*.html"):
         html = page.read_text()
-        assert not re.search(r"""src=["']https?://""", html), page  # nothing is loaded from elsewhere
+        assert not re.search(r"""src=["']https?://""", html), (
+            page
+        )  # nothing is loaded from elsewhere
         assert not re.search(r"""<link[^>]+href=["']https?://""", html), page
-        assert "<link rel=\"stylesheet\"" not in html
+        assert '<link rel="stylesheet"' not in html
         assert "prefers-color-scheme: dark" in html and 'data-theme="dark"' in html
 
 
@@ -62,16 +69,34 @@ def test_every_chart_has_a_data_table_and_legend_rules(demo):
 def test_demo_pipeline_loaded_all_sources(demo):
     _, work = demo
     con = duckdb.connect(str(work / "warehouse.duckdb"), read_only=True)
-    sources = {r[0] for r in con.execute("SELECT DISTINCT source FROM fct_source_freshness").fetchall()}
-    assert {"ga4_files", "crashlytics_files", "revenuecat", "admob", "play_console", "app_store", "unity_jsonl"} <= sources
+    sources = {
+        r[0] for r in con.execute("SELECT DISTINCT source FROM fct_source_freshness").fetchall()
+    }
+    assert {
+        "ga4_files",
+        "crashlytics_files",
+        "revenuecat",
+        "admob",
+        "play_console",
+        "app_store",
+        "unity_jsonl",
+    } <= sources
     # The incremental RevenueCat export re-delivers rows; the model keeps one version.
     raw, deduped, multi = con.execute(
         "SELECT (SELECT COUNT(*) FROM raw_revenuecat_transactions), (SELECT COUNT(*) FROM stg_rc_transactions), "
-        "(SELECT COUNT(*) FROM stg_rc_transactions WHERE versions_seen > 1)").fetchone()
+        "(SELECT COUNT(*) FROM stg_rc_transactions WHERE versions_seen > 1)"
+    ).fetchone()
     assert raw > deduped and multi > 0
-    apps = {r[0] for r in con.execute("SELECT app_id FROM fct_app_summary WHERE dau_7d > 0").fetchall()}
+    apps = {
+        r[0] for r in con.execute("SELECT app_id FROM fct_app_summary WHERE dau_7d > 0").fetchall()
+    }
     assert apps == {"mossy_match", "pacer_pal", "quartz_merge"}
-    tiers = {r[0] for r in con.execute("SELECT DISTINCT device_tier FROM fct_perf_by_tier WHERE app_id = 'quartz_merge'").fetchall()}
+    tiers = {
+        r[0]
+        for r in con.execute(
+            "SELECT DISTINCT device_tier FROM fct_perf_by_tier WHERE app_id = 'quartz_merge'"
+        ).fetchall()
+    }
     assert {"low", "mid", "high", "all"} <= tiers
     con.close()
 
@@ -81,7 +106,9 @@ def test_charts_handle_empty_and_gaps():
     html = charts.line_chart("Gaps", ["a", "b", "c"], [charts.Series("s", [1.0, None, 3.0])])
     assert html.count("M") >= 2  # the gap splits the path
     assert "Data table" in charts.bar_chart("Bars", ["x"], [charts.Series("s", [2.0])])
-    one = charts.line_chart("One", ["a", "b"], [charts.Series("kept", [1.0, 2.0]), charts.Series("empty", [None, None])])
+    one = charts.line_chart(
+        "One", ["a", "b"], [charts.Series("kept", [1.0, 2.0]), charts.Series("empty", [None, None])]
+    )
     assert "kept" in one and "empty" not in one
 
 
@@ -111,12 +138,27 @@ def test_retention_benchmarks_on_game_pages_only(demo):
 def test_benchmark_brackets():
     from studio_pulse import benchmarks as B
 
-    assert B.bracket(1, 0.38) == "top 25%" and B.bracket(1, 0.41) == "top 10%" and B.bracket(1, 0.22) == "below top 25%"
-    assert B.bracket(7, 0.03) == "below median" and B.bracket(7, 0.05) == "above median" and B.bracket(7, 0.12) == "top 10%"
+    assert (
+        B.bracket(1, 0.38) == "top 25%"
+        and B.bracket(1, 0.41) == "top 10%"
+        and B.bracket(1, 0.22) == "below top 25%"
+    )
+    assert (
+        B.bracket(7, 0.03) == "below median"
+        and B.bracket(7, 0.05) == "above median"
+        and B.bracket(7, 0.12) == "top 10%"
+    )
     assert B.bracket(30, 0.02) == "top 25%" and B.bracket(30, None) is None
     assert not B.applies_to("fitness") and B.applies_to("puzzle")
 
 
 def test_share_axis_never_exceeds_100_percent():
-    html = charts.line_chart("Crash-free", ["a", "b"], [charts.Series("s", [0.991, 0.9995])], charts.fmt_pct2, zero=False, cap=1.0)
+    html = charts.line_chart(
+        "Crash-free",
+        ["a", "b"],
+        [charts.Series("s", [0.991, 0.9995])],
+        charts.fmt_pct2,
+        zero=False,
+        cap=1.0,
+    )
     assert "100.50%" not in html and "100.20%" not in html and ">100.00%<" in html

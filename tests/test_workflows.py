@@ -15,7 +15,9 @@ def test_pages_deploys_the_demo_dashboard_as_site_root():
     uses = [s.get("uses", "") for s in steps]
     assert any(u.startswith("actions/configure-pages@") for u in uses)
     assert any(u.startswith("actions/deploy-pages@") for u in uses)
-    upload = next(s for s in steps if s.get("uses", "").startswith("actions/upload-pages-artifact@"))
+    upload = next(
+        s for s in steps if s.get("uses", "").startswith("actions/upload-pages-artifact@")
+    )
     assert upload["with"]["path"] == "docs/demo"
     assert (WORKFLOWS.parents[1] / "docs" / "demo" / "index.html").exists()
 

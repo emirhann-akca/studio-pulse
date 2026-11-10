@@ -45,31 +45,81 @@ class MetricSpec:
 
 
 METRICS: dict[str, MetricSpec] = {
-    "dau": MetricSpec("SELECT app_id, date, dau AS value, dau AS sample FROM fct_app_daily WHERE dau IS NOT NULL", "count"),
-    "new_users": MetricSpec("SELECT app_id, date, new_users AS value, dau AS sample FROM fct_app_daily WHERE new_users IS NOT NULL", "count"),
-    "sessions_per_dau": MetricSpec("SELECT app_id, date, sessions_per_dau AS value, dau AS sample FROM fct_app_daily", "ratio"),
-    "revenue_usd": MetricSpec("SELECT app_id, date, revenue_usd AS value, dau AS sample FROM fct_app_daily WHERE dau IS NOT NULL", "usd"),
-    "arpdau": MetricSpec("SELECT app_id, date, arpdau AS value, dau AS sample FROM fct_app_daily", "usd"),
-    "payer_conversion": MetricSpec("SELECT app_id, date, payer_conversion AS value, dau AS sample FROM fct_app_daily", "pct"),
-    "ecpm_usd": MetricSpec("SELECT app_id, date, ecpm_usd AS value, ad_impressions AS sample FROM fct_app_daily", "usd"),
-    "crash_free_users": MetricSpec("SELECT app_id, date, crash_free_users AS value, dau AS sample FROM fct_app_daily", "pct"),
-    "crash_free_sessions": MetricSpec("SELECT app_id, date, crash_free_sessions AS value, sessions AS sample FROM fct_app_daily", "pct"),
+    "dau": MetricSpec(
+        "SELECT app_id, date, dau AS value, dau AS sample FROM fct_app_daily WHERE dau IS NOT NULL",
+        "count",
+    ),
+    "new_users": MetricSpec(
+        "SELECT app_id, date, new_users AS value, dau AS sample FROM fct_app_daily WHERE new_users IS NOT NULL",
+        "count",
+    ),
+    "sessions_per_dau": MetricSpec(
+        "SELECT app_id, date, sessions_per_dau AS value, dau AS sample FROM fct_app_daily", "ratio"
+    ),
+    "revenue_usd": MetricSpec(
+        "SELECT app_id, date, revenue_usd AS value, dau AS sample FROM fct_app_daily WHERE dau IS NOT NULL",
+        "usd",
+    ),
+    "arpdau": MetricSpec(
+        "SELECT app_id, date, arpdau AS value, dau AS sample FROM fct_app_daily", "usd"
+    ),
+    "payer_conversion": MetricSpec(
+        "SELECT app_id, date, payer_conversion AS value, dau AS sample FROM fct_app_daily", "pct"
+    ),
+    "ecpm_usd": MetricSpec(
+        "SELECT app_id, date, ecpm_usd AS value, ad_impressions AS sample FROM fct_app_daily", "usd"
+    ),
+    "crash_free_users": MetricSpec(
+        "SELECT app_id, date, crash_free_users AS value, dau AS sample FROM fct_app_daily", "pct"
+    ),
+    "crash_free_sessions": MetricSpec(
+        "SELECT app_id, date, crash_free_sessions AS value, sessions AS sample FROM fct_app_daily",
+        "pct",
+    ),
     "d1_retention": MetricSpec(
         "SELECT app_id, cohort_date AS date, retention AS value, cohort_size AS sample FROM fct_retention WHERE day_n = 1 AND is_complete",
-        "pct", description="D1 retention by install cohort date",
+        "pct",
+        description="D1 retention by install cohort date",
     ),
     "d7_retention": MetricSpec(
         "SELECT app_id, cohort_date AS date, retention AS value, cohort_size AS sample FROM fct_retention WHERE day_n = 7 AND is_complete",
-        "pct", description="D7 retention by install cohort date",
+        "pct",
+        description="D7 retention by install cohort date",
     ),
-    "frame_time_p50_ms": MetricSpec("SELECT app_id, date, ft_p50_ms AS value, windows AS sample, device_tier FROM fct_perf_daily", "ms", ("device_tier",)),
-    "frame_time_p95_ms": MetricSpec("SELECT app_id, date, ft_p95_ms AS value, windows AS sample, device_tier FROM fct_perf_daily", "ms", ("device_tier",)),
-    "slow_frame_share": MetricSpec("SELECT app_id, date, slow_frame_share AS value, windows AS sample, device_tier FROM fct_perf_daily", "pct", ("device_tier",)),
-    "memory_p95_mb": MetricSpec("SELECT app_id, date, mem_alloc_p95_mb AS value, windows AS sample, device_tier FROM fct_perf_daily", "mb", ("device_tier",)),
-    "process_memory_p95_mb": MetricSpec("SELECT app_id, date, sys_used_p95_mb AS value, windows AS sample, device_tier FROM fct_perf_daily", "mb", ("device_tier",),
-                                        "System Used Memory (what the OS counts against the app), p95 over windows"),
-    "cold_start_p50_ms": MetricSpec("SELECT app_id, date, p50_ms AS value, samples AS sample FROM fct_load_daily WHERE kind = 'cold_start'", "ms"),
-    "scene_load_p50_ms": MetricSpec("SELECT app_id, date, p50_ms AS value, samples AS sample FROM fct_load_daily WHERE kind = 'scene_load'", "ms"),
+    "frame_time_p50_ms": MetricSpec(
+        "SELECT app_id, date, ft_p50_ms AS value, windows AS sample, device_tier FROM fct_perf_daily",
+        "ms",
+        ("device_tier",),
+    ),
+    "frame_time_p95_ms": MetricSpec(
+        "SELECT app_id, date, ft_p95_ms AS value, windows AS sample, device_tier FROM fct_perf_daily",
+        "ms",
+        ("device_tier",),
+    ),
+    "slow_frame_share": MetricSpec(
+        "SELECT app_id, date, slow_frame_share AS value, windows AS sample, device_tier FROM fct_perf_daily",
+        "pct",
+        ("device_tier",),
+    ),
+    "memory_p95_mb": MetricSpec(
+        "SELECT app_id, date, mem_alloc_p95_mb AS value, windows AS sample, device_tier FROM fct_perf_daily",
+        "mb",
+        ("device_tier",),
+    ),
+    "process_memory_p95_mb": MetricSpec(
+        "SELECT app_id, date, sys_used_p95_mb AS value, windows AS sample, device_tier FROM fct_perf_daily",
+        "mb",
+        ("device_tier",),
+        "System Used Memory (what the OS counts against the app), p95 over windows",
+    ),
+    "cold_start_p50_ms": MetricSpec(
+        "SELECT app_id, date, p50_ms AS value, samples AS sample FROM fct_load_daily WHERE kind = 'cold_start'",
+        "ms",
+    ),
+    "scene_load_p50_ms": MetricSpec(
+        "SELECT app_id, date, p50_ms AS value, samples AS sample FROM fct_load_daily WHERE kind = 'scene_load'",
+        "ms",
+    ),
 }
 
 CONDITIONS = ("above", "below", "drop_vs_baseline", "rise_vs_baseline")
@@ -105,7 +155,9 @@ class Rule:
             raise RuleError(f"rule {d.get('name')!r}: unknown keys {sorted(unknown)}")
         r = cls(**merged)
         if r.metric not in METRICS:
-            raise RuleError(f"rule {r.name!r}: unknown metric {r.metric!r} (known: {', '.join(sorted(METRICS))})")
+            raise RuleError(
+                f"rule {r.name!r}: unknown metric {r.metric!r} (known: {', '.join(sorted(METRICS))})"
+            )
         if r.condition not in CONDITIONS:
             raise RuleError(f"rule {r.name!r}: condition must be one of {CONDITIONS}")
         if r.condition in ("above", "below") and r.threshold is None:
@@ -118,7 +170,9 @@ class Rule:
             raise RuleError(f"rule {r.name!r}: min_z applies to proportion metrics only")
         bad_dims = set(r.where) - set(METRICS[r.metric].dims)
         if bad_dims:
-            raise RuleError(f"rule {r.name!r}: metric {r.metric} has no dimension(s) {sorted(bad_dims)}")
+            raise RuleError(
+                f"rule {r.name!r}: metric {r.metric} has no dimension(s) {sorted(bad_dims)}"
+            )
         return r
 
 
@@ -161,7 +215,9 @@ def _fmt(v: float | None, unit: str) -> str:
     return f"{v:.2f}"
 
 
-def _series(con: duckdb.DuckDBPyConnection, rule: Rule) -> dict[str, list[tuple[dt.date, float, float | None]]]:
+def _series(
+    con: duckdb.DuckDBPyConnection, rule: Rule
+) -> dict[str, list[tuple[dt.date, float, float | None]]]:
     spec = METRICS[rule.metric]
     sql = f"SELECT * FROM ({spec.sql}) WHERE value IS NOT NULL"
     params: list[Any] = []
@@ -202,13 +258,15 @@ def evaluate(con: duckdb.DuckDBPyConnection, rules: list[Rule]) -> list[Alert]:
             pts = [p for p in pts if p[2] is None or p[2] >= rule.min_sample]
             if len(pts) < rule.evaluate_days:
                 continue
-            latest = pts[-rule.evaluate_days:]
+            latest = pts[-rule.evaluate_days :]
             value = sum(p[1] for p in latest) / len(latest)
             day = latest[-1][0]
             first_eval_day = latest[0][0]
             baseline = None
             if rule.condition in ("above", "below"):
-                hit = value > rule.threshold if rule.condition == "above" else value < rule.threshold
+                hit = (
+                    value > rule.threshold if rule.condition == "above" else value < rule.threshold
+                )
                 thr = float(rule.threshold)
                 msg = f"{rule.metric} {_fmt(value, unit)} is {rule.condition} {_fmt(thr, unit)}"
             else:
@@ -240,7 +298,19 @@ def evaluate(con: duckdb.DuckDBPyConnection, rules: list[Rule]) -> list[Alert]:
                     msg += f" (z={z:.1f}, n={n:,.0f})"
             if hit:
                 where = "".join(f" [{k}={v}]" for k, v in rule.where.items())
-                alerts.append(Alert(rule.name, app_id, rule.severity, rule.metric, day, value, baseline, thr, msg + where))
+                alerts.append(
+                    Alert(
+                        rule.name,
+                        app_id,
+                        rule.severity,
+                        rule.metric,
+                        day,
+                        value,
+                        baseline,
+                        thr,
+                        msg + where,
+                    )
+                )
     alerts.sort(key=lambda a: (a.severity != "critical", a.app_id, a.rule))
     return alerts
 
@@ -250,7 +320,9 @@ def format_console(alerts: list[Alert]) -> str:
         return "No alerts."
     lines = [f"{len(alerts)} alert(s):"]
     for a in alerts:
-        lines.append(f"  [{a.severity.upper():8}] {a.app_id:<16} {a.rule:<28} {a.date}  {a.message}")
+        lines.append(
+            f"  [{a.severity.upper():8}] {a.app_id:<16} {a.rule:<28} {a.date}  {a.message}"
+        )
     return "\n".join(lines)
 
 
@@ -262,7 +334,15 @@ def slack_payload(alerts: list[Alert], title: str) -> dict[str, Any]:
     return {"text": "\n".join(lines)}
 
 
-def notify(alerts: list[Alert], *, title: str = "Studio Pulse", dry_run: bool = False, session: Any = None, smtp_factory: Any = None, log: Any = print) -> dict[str, str]:
+def notify(
+    alerts: list[Alert],
+    *,
+    title: str = "Studio Pulse",
+    dry_run: bool = False,
+    session: Any = None,
+    smtp_factory: Any = None,
+    log: Any = print,
+) -> dict[str, str]:
     """Send alerts to the configured channels. Returns {channel: status}."""
     status: dict[str, str] = {}
     if not alerts:
@@ -301,5 +381,7 @@ def notify(alerts: list[Alert], *, title: str = "Studio Pulse", dry_run: bool = 
                 s.send_message(msg)
             status["email"] = "sent"
     if not status:
-        log("(no notification channel configured: set PULSE_SLACK_WEBHOOK_URL or PULSE_SMTP_HOST + PULSE_ALERT_EMAIL_TO)")
+        log(
+            "(no notification channel configured: set PULSE_SLACK_WEBHOOK_URL or PULSE_SMTP_HOST + PULSE_ALERT_EMAIL_TO)"
+        )
     return status

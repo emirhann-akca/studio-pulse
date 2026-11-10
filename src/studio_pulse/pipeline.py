@@ -74,7 +74,9 @@ def _ingest_source(
             dialect = BigQueryDialect(src["project"], src["dataset"])
             ex = BigQueryExecutor(
                 billing_project=src.get("billing_project", src["project"]),
-                max_bytes_billed=min(int(src.get("max_bytes_billed", cfg.max_bytes_billed)), cfg.max_bytes_billed),
+                max_bytes_billed=min(
+                    int(src.get("max_bytes_billed", cfg.max_bytes_billed)), cfg.max_bytes_billed
+                ),
                 location=src.get("location"),
                 dry_run_only=dry_run,
                 client=bq_client,
@@ -86,7 +88,17 @@ def _ingest_source(
             if dry_run:
                 return "skipped (dry run)"
         try:
-            return ga4.ingest(con, app_id=app.id, source=name, dialect=dialect, executor=ex, start=start, end=end, opts=opts, log=log)
+            return ga4.ingest(
+                con,
+                app_id=app.id,
+                source=name,
+                dialect=dialect,
+                executor=ex,
+                start=start,
+                end=end,
+                opts=opts,
+                log=log,
+            )
         finally:
             bq_stats.extend(ex.stats if kind == "ga4_bigquery" else [])
     if kind in ("crashlytics_bigquery", "crashlytics_files"):
@@ -94,7 +106,9 @@ def _ingest_source(
             dialect = BigQueryDialect(src["project"], src["dataset"])
             ex = BigQueryExecutor(
                 billing_project=src.get("billing_project", src["project"]),
-                max_bytes_billed=min(int(src.get("max_bytes_billed", cfg.max_bytes_billed)), cfg.max_bytes_billed),
+                max_bytes_billed=min(
+                    int(src.get("max_bytes_billed", cfg.max_bytes_billed)), cfg.max_bytes_billed
+                ),
                 location=src.get("location"),
                 dry_run_only=dry_run,
                 client=bq_client,
@@ -108,7 +122,18 @@ def _ingest_source(
             if dry_run:
                 return "skipped (dry run)"
         try:
-            return crashlytics.ingest(con, app_id=app.id, source=name, dialect=dialect, executor=ex, tables=tables, start=start, end=end, timezone=app.timezone, log=log)
+            return crashlytics.ingest(
+                con,
+                app_id=app.id,
+                source=name,
+                dialect=dialect,
+                executor=ex,
+                tables=tables,
+                start=start,
+                end=end,
+                timezone=app.timezone,
+                log=log,
+            )
         finally:
             bq_stats.extend(ex.stats if kind == "crashlytics_bigquery" else [])
     if dry_run:
@@ -118,20 +143,57 @@ def _ingest_source(
         if not str(path).startswith("gs://"):
             path = str(cfg.resolve(path))
         cache = cfg.resolve(src.get("cache_dir", f".pulse-cache/revenuecat/{app.id}"))
-        return revenuecat.ingest(con, app_id=app.id, source=name, path=path, cache_dir=cache, product_prefixes=src.get("product_prefixes"), log=log)
+        return revenuecat.ingest(
+            con,
+            app_id=app.id,
+            source=name,
+            path=path,
+            cache_dir=cache,
+            product_prefixes=src.get("product_prefixes"),
+            log=log,
+        )
     if kind == "admob":
         rf = src.get("response_file")
         return admob.ingest(
-            con, app_id=app.id, source=name, start=start, end=end,
-            publisher_id=src.get("publisher_id"), app_ids=src.get("app_ids"),
-            response_file=cfg.resolve(rf) if rf else None, log=log,
+            con,
+            app_id=app.id,
+            source=name,
+            start=start,
+            end=end,
+            publisher_id=src.get("publisher_id"),
+            app_ids=src.get("app_ids"),
+            response_file=cfg.resolve(rf) if rf else None,
+            log=log,
         )
     if kind == "play_console":
-        return stores.ingest_play(con, app_id=app.id, source=name, path=cfg.resolve(src["path"]), package=src.get("package"), log=log)
+        return stores.ingest_play(
+            con,
+            app_id=app.id,
+            source=name,
+            path=cfg.resolve(src["path"]),
+            package=src.get("package"),
+            log=log,
+        )
     if kind == "app_store":
-        return stores.ingest_appstore(con, app_id=app.id, source=name, path=cfg.resolve(src["path"]), apple_id=src.get("apple_id"), sku=src.get("sku"), log=log)
+        return stores.ingest_appstore(
+            con,
+            app_id=app.id,
+            source=name,
+            path=cfg.resolve(src["path"]),
+            apple_id=src.get("apple_id"),
+            sku=src.get("sku"),
+            log=log,
+        )
     if kind == "unity_jsonl":
-        return unity_jsonl.ingest(con, app_id=app.id, source=name, path=cfg.resolve(src["path"]), app=src.get("app"), timezone=app.timezone, log=log)
+        return unity_jsonl.ingest(
+            con,
+            app_id=app.id,
+            source=name,
+            path=cfg.resolve(src["path"]),
+            app=src.get("app"),
+            timezone=app.timezone,
+            log=log,
+        )
     raise ConfigError(f"unknown source type {kind!r} (known: {', '.join(SOURCE_TYPES)})")
 
 
@@ -161,7 +223,19 @@ def ingest(
                 continue
             key = f"{app.id}.{kind}"
             try:
-                report.loaded[key] = _ingest_source(con, cfg, app, kind, src or {}, start, end, dry_run, report.bigquery, log, bq_client)
+                report.loaded[key] = _ingest_source(
+                    con,
+                    cfg,
+                    app,
+                    kind,
+                    src or {},
+                    start,
+                    end,
+                    dry_run,
+                    report.bigquery,
+                    log,
+                    bq_client,
+                )
             except Exception as exc:  # report and continue with the other sources
                 report.errors[key] = f"{type(exc).__name__}: {exc}"
                 log(f"    ERROR {key}: {report.errors[key]}")

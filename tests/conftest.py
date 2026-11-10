@@ -50,17 +50,32 @@ class GA4Builder:
         self.cols: dict[str, list[Any]] = {}
         self.n = 0
 
-    def add(self, day: int, name: str, user: str, *, platform: str = "ANDROID", first_touch_day: int | None = None,
-            value_usd: float | None = None, version: str = "1.0.0", app: str = "com.example.app",
-            ts_micros: int | None = None, **params: Any) -> GA4Builder:
+    def add(
+        self,
+        day: int,
+        name: str,
+        user: str,
+        *,
+        platform: str = "ANDROID",
+        first_touch_day: int | None = None,
+        value_usd: float | None = None,
+        version: str = "1.0.0",
+        app: str = "com.example.app",
+        ts_micros: int | None = None,
+        **params: Any,
+    ) -> GA4Builder:
         d = D0 + dt.timedelta(days=day)
         ft = D0 + dt.timedelta(days=first_touch_day if first_touch_day is not None else 0)
         base = {
             "event_date": d.strftime("%Y%m%d"),
-            "event_timestamp": ts_micros if ts_micros is not None else int(dt.datetime(d.year, d.month, d.day, 12).timestamp() * 1e6) + self.n,
+            "event_timestamp": ts_micros
+            if ts_micros is not None
+            else int(dt.datetime(d.year, d.month, d.day, 12).timestamp() * 1e6) + self.n,
             "event_name": name,
             "user_pseudo_id": user,
-            "user_first_touch_timestamp": int(dt.datetime(ft.year, ft.month, ft.day, 9).timestamp() * 1e6),
+            "user_first_touch_timestamp": int(
+                dt.datetime(ft.year, ft.month, ft.day, 9).timestamp() * 1e6
+            ),
             "platform": platform,
             "app_id": app,
             "app_version": version,

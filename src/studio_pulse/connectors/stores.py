@@ -80,8 +80,14 @@ def parse_play_installs(text: str, package: str | None = None) -> list[dict[str,
         out.append(
             {
                 "date": dt.date.fromisoformat(row["Date"]),
-                "installs": _int(_first(row, "Daily User Installs", "Install events", "Daily Device Installs")),
-                "uninstalls": _int(_first(row, "Daily User Uninstalls", "Uninstall events", "Daily Device Uninstalls")),
+                "installs": _int(
+                    _first(row, "Daily User Installs", "Install events", "Daily Device Installs")
+                ),
+                "uninstalls": _int(
+                    _first(
+                        row, "Daily User Uninstalls", "Uninstall events", "Daily Device Uninstalls"
+                    )
+                ),
                 "updates": _int(_first(row, "Update events", "Daily Device Upgrades")),
             }
         )
@@ -104,7 +110,9 @@ def parse_play_ratings(text: str, package: str | None = None) -> list[dict[str, 
     return out
 
 
-def parse_appstore_sales(text: str, apple_id: str | None = None, sku: str | None = None) -> list[dict[str, Any]]:
+def parse_appstore_sales(
+    text: str, apple_id: str | None = None, sku: str | None = None
+) -> list[dict[str, Any]]:
     """Aggregate a Summary Sales Report to (date, proceeds currency) rows."""
     acc: dict[tuple[dt.date, str], dict[str, Any]] = defaultdict(
         lambda: {"installs": 0, "redownloads": 0, "updates": 0, "iap_units": 0, "proceeds": 0.0}
@@ -144,22 +152,39 @@ def _files(path: Path, patterns: Iterable[str]) -> list[Path]:
 
 
 def ingest_play(
-    con: duckdb.DuckDBPyConnection, *, app_id: str, source: str, path: str | Path,
-    package: str | None = None, log: Any = print,
+    con: duckdb.DuckDBPyConnection,
+    *,
+    app_id: str,
+    source: str,
+    path: str | Path,
+    package: str | None = None,
+    log: Any = print,
 ) -> int:
     root, total = Path(path), 0
     for f in _files(root, ["installs_*overview.csv"]):
         rows = parse_play_installs(read_text(f), package)
         total += replace_slice(
-            con, "raw_store_installs", rows, app_id=app_id, source=source,
-            where="_file = ?", params=[f.name], constants={"store": "google_play", "_file": f.name},
+            con,
+            "raw_store_installs",
+            rows,
+            app_id=app_id,
+            source=source,
+            where="_file = ?",
+            params=[f.name],
+            constants={"store": "google_play", "_file": f.name},
         )
     n_r = 0
     for f in _files(root, ["ratings_*overview.csv"]):
         rows = parse_play_ratings(read_text(f), package)
         n_r += replace_slice(
-            con, "raw_store_ratings", rows, app_id=app_id, source=source,
-            where="_file = ?", params=[f.name], constants={"store": "google_play", "_file": f.name},
+            con,
+            "raw_store_ratings",
+            rows,
+            app_id=app_id,
+            source=source,
+            where="_file = ?",
+            params=[f.name],
+            constants={"store": "google_play", "_file": f.name},
         )
     record_load(con, app_id=app_id, source=source, table="raw_store_installs", rows=total)
     log(f"    play_console  -> raw_store_installs     {total:>7} rows, ratings {n_r}")
@@ -167,15 +192,27 @@ def ingest_play(
 
 
 def ingest_appstore(
-    con: duckdb.DuckDBPyConnection, *, app_id: str, source: str, path: str | Path,
-    apple_id: str | None = None, sku: str | None = None, log: Any = print,
+    con: duckdb.DuckDBPyConnection,
+    *,
+    app_id: str,
+    source: str,
+    path: str | Path,
+    apple_id: str | None = None,
+    sku: str | None = None,
+    log: Any = print,
 ) -> int:
     root, total = Path(path), 0
     for f in _files(root, ["*.txt", "*.txt.gz", "*.tsv"]):
         rows = parse_appstore_sales(read_text(f), apple_id=apple_id, sku=sku)
         total += replace_slice(
-            con, "raw_store_installs", rows, app_id=app_id, source=source,
-            where="_file = ?", params=[f.name], constants={"store": "app_store", "_file": f.name},
+            con,
+            "raw_store_installs",
+            rows,
+            app_id=app_id,
+            source=source,
+            where="_file = ?",
+            params=[f.name],
+            constants={"store": "app_store", "_file": f.name},
         )
     record_load(con, app_id=app_id, source=source, table="raw_store_installs", rows=total)
     log(f"    app_store     -> raw_store_installs     {total:>7} rows")

@@ -15,10 +15,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-SOURCE = "GameAnalytics, Mobile and PC Game Benchmarks 2026 (16,262 mobile games with at least 1,000 MAU, all genres)"
 SOURCE_URL = "https://gamedevreports.substack.com/p/gameanalytics-mobile-and-pc-game"
 
-NON_GAME_GENRES = frozenset({"app", "fitness", "health", "education", "productivity", "utility", "lifestyle"})
+NON_GAME_GENRES = frozenset(
+    {"app", "fitness", "health", "education", "productivity", "utility", "lifestyle"}
+)
 
 
 @dataclass(frozen=True)
@@ -30,7 +31,11 @@ class Band:
 
 RETENTION: dict[int, tuple[Band, ...]] = {
     1: (Band("top 25%", 0.30, "just above 30%"), Band("top 10%", 0.40, "40%")),
-    7: (Band("median", 0.039, "just under 4%"), Band("top 25%", 0.065, "6-7%"), Band("top 10%", 0.115, "11-12%")),
+    7: (
+        Band("median", 0.039, "just under 4%"),
+        Band("top 25%", 0.065, "6-7%"),
+        Band("top 10%", 0.115, "11-12%"),
+    ),
     30: (Band("median", 0.0074, "0.69-0.79%"), Band("top 25%", 0.017, "about 1.6-1.8%")),
 }
 

@@ -66,7 +66,9 @@ def test_read_only_guard():
 def test_bigquery_dry_run_then_capped_run():
     table = pa.table({"x": [1]})
     client = FakeBQ(nbytes=1_000, table=table)
-    ex = BigQueryExecutor("proj", max_bytes_billed=2_000_000_000, client=client, log=lambda *_: None)
+    ex = BigQueryExecutor(
+        "proj", max_bytes_billed=2_000_000_000, client=client, log=lambda *_: None
+    )
     out = ex.run("q", "SELECT 1 AS x")
     assert out.num_rows == 1
     (_, dry_cfg), (_, run_cfg) = client.calls
@@ -79,7 +81,9 @@ def test_bigquery_dry_run_then_capped_run():
 
 def test_bigquery_refuses_query_over_cap():
     client = FakeBQ(nbytes=3_000_000_000)
-    ex = BigQueryExecutor("proj", max_bytes_billed=2_000_000_000, client=client, log=lambda *_: None)
+    ex = BigQueryExecutor(
+        "proj", max_bytes_billed=2_000_000_000, client=client, log=lambda *_: None
+    )
     with pytest.raises(BytesCapExceeded):
         ex.run("big", "SELECT 1")
     assert len(client.calls) == 1  # only the dry run was sent
@@ -88,16 +92,29 @@ def test_bigquery_refuses_query_over_cap():
 def test_bigquery_dry_run_only_mode_loads_nothing(con):
     client = FakeBQ()
     ex = BigQueryExecutor("proj", client=client, dry_run_only=True, log=lambda *_: None)
-    ga4.ingest(con, app_id="g", source="ga4_bigquery", dialect=BigQueryDialect("proj", "analytics_1"), executor=ex,
-               start=D0, end=D0 + dt.timedelta(days=9), opts=ga4.GA4Options(), log=lambda *_: None)
+    ga4.ingest(
+        con,
+        app_id="g",
+        source="ga4_bigquery",
+        dialect=BigQueryDialect("proj", "analytics_1"),
+        executor=ex,
+        start=D0,
+        end=D0 + dt.timedelta(days=9),
+        opts=ga4.GA4Options(),
+        log=lambda *_: None,
+    )
     assert all(cfg.dry_run for _, cfg in client.calls)
     assert len(client.calls) == len(ga4.GA4Options().queries)
     assert con.execute("SELECT COUNT(*) FROM raw_ga4_active_users").fetchone()[0] == 0
 
 
 def test_bigquery_sql_rendering():
-    q = ga4.GA4Queries(BigQueryDialect("my-proj", "analytics_42"), dt.date(2026, 9, 1), dt.date(2026, 10, 30),
-                       ga4.GA4Options(app_info_ids=["com.example.game"]))
+    q = ga4.GA4Queries(
+        BigQueryDialect("my-proj", "analytics_42"),
+        dt.date(2026, 9, 1),
+        dt.date(2026, 10, 30),
+        ga4.GA4Options(app_info_ids=["com.example.game"]),
+    )
     sql = q.active_users()
     assert "`my-proj.analytics_42.events_*`" in sql
     assert "_TABLE_SUFFIX BETWEEN '20260803' AND '20261030'" in sql  # 29 days of history for MAU
@@ -110,15 +127,37 @@ def test_bigquery_sql_rendering():
 
 
 def test_bigquery_ga4_ingest_records_bytes(con):
-    canned = pa.table({
-        "date": [D0], "platform": ["ANDROID"], "dau": [10], "wau": [12], "mau": [20], "new_users": [3], "sessions": [14],
-        "engagement_sec": [600.0], "crashed_users": [0], "crashed_sessions": [0], "iap_revenue_usd": [0.0],
-        "ad_revenue_usd": [0.5], "payers": [0], "history_days": [30],
-    })
+    canned = pa.table(
+        {
+            "date": [D0],
+            "platform": ["ANDROID"],
+            "dau": [10],
+            "wau": [12],
+            "mau": [20],
+            "new_users": [3],
+            "sessions": [14],
+            "engagement_sec": [600.0],
+            "crashed_users": [0],
+            "crashed_sessions": [0],
+            "iap_revenue_usd": [0.0],
+            "ad_revenue_usd": [0.5],
+            "payers": [0],
+            "history_days": [30],
+        }
+    )
     client = FakeBQ(nbytes=7_340_032, table=canned)
     ex = BigQueryExecutor("proj", client=client, log=lambda *_: None)
-    ga4.ingest(con, app_id="g", source="ga4_bigquery", dialect=BigQueryDialect("proj", "analytics_1"), executor=ex,
-               start=D0, end=D0, opts=ga4.GA4Options(queries=["active_users"]), log=lambda *_: None)
+    ga4.ingest(
+        con,
+        app_id="g",
+        source="ga4_bigquery",
+        dialect=BigQueryDialect("proj", "analytics_1"),
+        executor=ex,
+        start=D0,
+        end=D0,
+        opts=ga4.GA4Options(queries=["active_users"]),
+        log=lambda *_: None,
+    )
     assert con.execute("SELECT dau, mau FROM raw_ga4_active_users").fetchall() == [(10, 20)]
     assert con.execute("SELECT bytes_billed FROM meta_loads").fetchone()[0] == 7_340_032
 
@@ -126,7 +165,9 @@ def test_bigquery_ga4_ingest_records_bytes(con):
 def test_ga4_outputs_carry_no_user_ids(tmp_path):
     b = GA4Builder()
     for u in ("user-aaa", "user-bbb"):
-        b.add(0, "first_open", u).add(0, "session_start", u, ga_session_id=1).add(1, "level_start", u, level=1)
+        b.add(0, "first_open", u).add(0, "session_start", u, ga_session_id=1).add(
+            1, "level_start", u, level=1
+        )
         b.add(0, "pulse_perf", u, tier="low", frames=100, ft_p50_ms=20.0)
     ex = DuckDBExecutor({"ga4_events": b.write(tmp_path / "e.parquet")})
     q = ga4.GA4Queries(DuckDBDialect(), D0, D0 + dt.timedelta(days=2), ga4.GA4Options())
@@ -142,55 +183,116 @@ def test_ga4_outputs_carry_no_user_ids(tmp_path):
 
 def test_crashlytics_daily_aggregates(con, tmp_path):
     ts = dt.datetime(2026, 10, 1, 12)
-    path = write_crashlytics_parquet({
-        "event_timestamp": [ts, ts, ts, ts + dt.timedelta(days=1), ts],
-        "platform": ["ANDROID"] * 5,
-        "is_fatal": [True, True, True, True, False],
-        "installation_uuid": ["i1", "i1", "i2", "i1", "i3"],
-        "issue_id": ["x", "y", "x", "x", "z"],
-        "app_version": ["1.0"] * 5,
-    }, tmp_path / "c.parquet")
+    path = write_crashlytics_parquet(
+        {
+            "event_timestamp": [ts, ts, ts, ts + dt.timedelta(days=1), ts],
+            "platform": ["ANDROID"] * 5,
+            "is_fatal": [True, True, True, True, False],
+            "installation_uuid": ["i1", "i1", "i2", "i1", "i3"],
+            "issue_id": ["x", "y", "x", "x", "z"],
+            "app_version": ["1.0"] * 5,
+        },
+        tmp_path / "c.parquet",
+    )
     ex = DuckDBExecutor({"crashlytics_events": path})
-    crashlytics.ingest(con, app_id="g", source="crash", dialect=DuckDBDialect(), executor=ex, tables=["crashlytics_events"],
-                       start=D0, end=D0 + dt.timedelta(days=1), log=lambda *_: None)
-    rows = con.execute("SELECT date, fatal_events, nonfatal_events, crashed_installs, fatal_issues FROM raw_crashlytics_daily ORDER BY date").fetchall()
+    crashlytics.ingest(
+        con,
+        app_id="g",
+        source="crash",
+        dialect=DuckDBDialect(),
+        executor=ex,
+        tables=["crashlytics_events"],
+        start=D0,
+        end=D0 + dt.timedelta(days=1),
+        log=lambda *_: None,
+    )
+    rows = con.execute(
+        "SELECT date, fatal_events, nonfatal_events, crashed_installs, fatal_issues FROM raw_crashlytics_daily ORDER BY date"
+    ).fetchall()
     assert rows == [(D0, 3, 1, 2, 2), (D0 + dt.timedelta(days=1), 1, 0, 1, 1)]
-    con.execute("INSERT INTO raw_ga4_active_users (app_id, platform, date, dau, sessions, crashed_users, history_days, _source) VALUES ('g', 'ANDROID', ?, 200, 250, 0, 1, 'ga4')", [D0])
+    con.execute(
+        "INSERT INTO raw_ga4_active_users (app_id, platform, date, dau, sessions, crashed_users, history_days, _source) VALUES ('g', 'ANDROID', ?, 200, 250, 0, 1, 'ga4')",
+        [D0],
+    )
     run_models(con)
-    r = con.execute("SELECT crash_free_users, crash_free_sessions, crash_basis FROM fct_app_daily WHERE date = ?", [D0]).fetchone()
+    r = con.execute(
+        "SELECT crash_free_users, crash_free_sessions, crash_basis FROM fct_app_daily WHERE date = ?",
+        [D0],
+    ).fetchone()
     assert r == (pytest.approx(1 - 2 / 200), pytest.approx(1 - 3 / 250), "crashlytics")
 
 
 def test_crash_loop_cannot_push_crash_free_below_zero(con):
     """23 fatal crashes from one device on a day GA4 saw 2 sessions."""
-    con.execute("INSERT INTO raw_crashlytics_daily VALUES ('g', ?, 'ANDROID', 23, 0, 1, 1, 'crash', now())", [D0])
-    con.execute("INSERT INTO raw_ga4_active_users (app_id, platform, date, dau, sessions, history_days, _source) VALUES ('g', 'ANDROID', ?, 1, 2, 1, 'ga4')", [D0])
-    con.execute("INSERT INTO meta_apps (app_id, name, genre, platforms, is_demo) VALUES ('g', 'G', 'app', 'ANDROID', FALSE)")
+    con.execute(
+        "INSERT INTO raw_crashlytics_daily VALUES ('g', ?, 'ANDROID', 23, 0, 1, 1, 'crash', now())",
+        [D0],
+    )
+    con.execute(
+        "INSERT INTO raw_ga4_active_users (app_id, platform, date, dau, sessions, history_days, _source) VALUES ('g', 'ANDROID', ?, 1, 2, 1, 'ga4')",
+        [D0],
+    )
+    con.execute(
+        "INSERT INTO meta_apps (app_id, name, genre, platforms, is_demo) VALUES ('g', 'G', 'app', 'ANDROID', FALSE)"
+    )
     run_models(con)
-    assert con.execute("SELECT crash_free_users, crash_free_sessions FROM fct_app_daily").fetchone() == (0.0, 0.0)
+    assert con.execute(
+        "SELECT crash_free_users, crash_free_sessions FROM fct_app_daily"
+    ).fetchone() == (0.0, 0.0)
     assert con.execute("SELECT crash_free_sessions_7d FROM fct_app_summary").fetchone()[0] == 0.0
 
 
 def test_crashlytics_days_follow_the_app_timezone(con, tmp_path):
     """22:30 UTC on Oct 1 is already Oct 2 in Istanbul, where GA4's event_date lives."""
     late = dt.datetime(2026, 10, 1, 22, 30)
-    path = write_crashlytics_parquet({
-        "event_timestamp": [late, dt.datetime(2026, 10, 1, 12)], "platform": ["ANDROID"] * 2, "is_fatal": [True, True],
-        "installation_uuid": ["i1", "i2"], "issue_id": ["x", "x"], "app_version": ["1.0"] * 2,
-    }, tmp_path / "c.parquet")
-    for tz, expected in (("UTC", [(D0, 2)]), ("Europe/Istanbul", [(D0, 1), (D0 + dt.timedelta(days=1), 1)])):
+    path = write_crashlytics_parquet(
+        {
+            "event_timestamp": [late, dt.datetime(2026, 10, 1, 12)],
+            "platform": ["ANDROID"] * 2,
+            "is_fatal": [True, True],
+            "installation_uuid": ["i1", "i2"],
+            "issue_id": ["x", "x"],
+            "app_version": ["1.0"] * 2,
+        },
+        tmp_path / "c.parquet",
+    )
+    for tz, expected in (
+        ("UTC", [(D0, 2)]),
+        ("Europe/Istanbul", [(D0, 1), (D0 + dt.timedelta(days=1), 1)]),
+    ):
         ex = DuckDBExecutor({"crashlytics_events": path})
-        crashlytics.ingest(con, app_id="g", source="crash", dialect=DuckDBDialect(), executor=ex, tables=["crashlytics_events"],
-                           start=D0, end=D0 + dt.timedelta(days=1), timezone=tz, log=lambda *_: None)
-        assert con.execute("SELECT date, fatal_events FROM raw_crashlytics_daily ORDER BY date").fetchall() == expected, tz
-    sql = crashlytics.daily_query(BigQueryDialect("p", "firebase_crashlytics"), "t", D0, D0, "Europe/Istanbul")
+        crashlytics.ingest(
+            con,
+            app_id="g",
+            source="crash",
+            dialect=DuckDBDialect(),
+            executor=ex,
+            tables=["crashlytics_events"],
+            start=D0,
+            end=D0 + dt.timedelta(days=1),
+            timezone=tz,
+            log=lambda *_: None,
+        )
+        assert (
+            con.execute(
+                "SELECT date, fatal_events FROM raw_crashlytics_daily ORDER BY date"
+            ).fetchall()
+            == expected
+        ), tz
+    sql = crashlytics.daily_query(
+        BigQueryDialect("p", "firebase_crashlytics"), "t", D0, D0, "Europe/Istanbul"
+    )
     assert "DATE(event_timestamp, 'Europe/Istanbul') BETWEEN" in sql
     with pytest.raises(ValueError):
-        crashlytics.daily_query(BigQueryDialect("p", "firebase_crashlytics"), "t", D0, D0, "UTC') --")
+        crashlytics.daily_query(
+            BigQueryDialect("p", "firebase_crashlytics"), "t", D0, D0, "UTC') --"
+        )
 
 
 def test_crashlytics_bigquery_sql_prunes_partitions():
-    sql = crashlytics.daily_query(BigQueryDialect("p", "firebase_crashlytics"), "com_example_game_ANDROID", D0, D0)
+    sql = crashlytics.daily_query(
+        BigQueryDialect("p", "firebase_crashlytics"), "com_example_game_ANDROID", D0, D0
+    )
     assert "`p.firebase_crashlytics.com_example_game_ANDROID`" in sql
     # +-1 UTC day for the partition filter, the exact cut on the local date
     assert "event_timestamp >= TIMESTAMP '2026-09-30 00:00:00'" in sql
@@ -221,11 +323,19 @@ class FakeHTTP:
 
 
 def test_admob_parse_recorded_report():
-    rows, currency = admob.parse_report(json.loads((FIXTURES / "admob_network_report.json").read_text()))
+    rows, currency = admob.parse_report(
+        json.loads((FIXTURES / "admob_network_report.json").read_text())
+    )
     assert currency == "USD" and len(rows) == 3
     assert rows[0] == {
-        "date": D0, "admob_app_id": "ca-app-pub-0000000000000000~1111111111", "earnings": 12.5, "currency": "USD",
-        "impressions": 2500, "clicks": 31, "ad_requests": 2900, "matched_requests": 2700,
+        "date": D0,
+        "admob_app_id": "ca-app-pub-0000000000000000~1111111111",
+        "earnings": 12.5,
+        "currency": "USD",
+        "impressions": 2500,
+        "clicks": 31,
+        "ad_requests": 2900,
+        "matched_requests": 2700,
     }
     assert rows[2]["clicks"] is None
 
@@ -233,15 +343,27 @@ def test_admob_parse_recorded_report():
 def test_admob_fetch_builds_request():
     body = json.loads((FIXTURES / "admob_network_report.json").read_text())
     http = FakeHTTP(body=body)
-    out = admob.fetch_report("pub-0000000000000000", D0, D0 + dt.timedelta(days=1), ["ca-app-pub-0000000000000000~1111111111"], session=http, token="t0k")
+    out = admob.fetch_report(
+        "pub-0000000000000000",
+        D0,
+        D0 + dt.timedelta(days=1),
+        ["ca-app-pub-0000000000000000~1111111111"],
+        session=http,
+        token="t0k",
+    )
     assert out == body
     url, headers, payload = http.calls[0]
-    assert url == "https://admob.googleapis.com/v1/accounts/pub-0000000000000000/networkReport:generate"
+    assert (
+        url
+        == "https://admob.googleapis.com/v1/accounts/pub-0000000000000000/networkReport:generate"
+    )
     assert headers["Authorization"] == "Bearer t0k"
     spec = payload["reportSpec"]
     assert spec["dateRange"]["startDate"] == {"year": 2026, "month": 10, "day": 1}
     assert spec["dimensions"] == ["DATE", "APP"] and "ESTIMATED_EARNINGS" in spec["metrics"]
-    assert spec["dimensionFilters"][0]["matchesAny"]["values"] == ["ca-app-pub-0000000000000000~1111111111"]
+    assert spec["dimensionFilters"][0]["matchesAny"]["values"] == [
+        "ca-app-pub-0000000000000000~1111111111"
+    ]
 
 
 def test_admob_http_error_and_bad_account():
@@ -253,23 +375,53 @@ def test_admob_http_error_and_bad_account():
 
 def test_admob_ingest_filters_app_and_window(con):
     body = json.loads((FIXTURES / "admob_network_report.json").read_text())
-    n = admob.ingest(con, app_id="g", source="admob", start=D0, end=D0, publisher_id="pub-0000000000000000",
-                     app_ids=["ca-app-pub-0000000000000000~1111111111"], session=FakeHTTP(body=body), token="t", log=lambda *_: None)
+    n = admob.ingest(
+        con,
+        app_id="g",
+        source="admob",
+        start=D0,
+        end=D0,
+        publisher_id="pub-0000000000000000",
+        app_ids=["ca-app-pub-0000000000000000~1111111111"],
+        session=FakeHTTP(body=body),
+        token="t",
+        log=lambda *_: None,
+    )
     assert n == 1
-    assert con.execute("SELECT earnings, impressions FROM raw_admob_daily").fetchall() == [(12.5, 2500)]
+    assert con.execute("SELECT earnings, impressions FROM raw_admob_daily").fetchall() == [
+        (12.5, 2500)
+    ]
 
 
 # -- Store reports ---------------------------------------------------------------------------
 
 
 def test_play_console_utf16_reports(con):
-    stores.ingest_play(con, app_id="g", source="play", path=FIXTURES / "play", package="com.example.game", log=lambda *_: None)
-    assert con.execute("SELECT date, installs, uninstalls FROM raw_store_installs ORDER BY date").fetchall() == [
-        (D0, 120, 35), (D0 + dt.timedelta(days=1), 100, 30)]
-    assert con.execute("SELECT daily_avg_rating, total_avg_rating FROM raw_store_ratings ORDER BY date").fetchall() == [
-        (4.5, 4.31), (None, 4.31)]
-    stores.ingest_play(con, app_id="g", source="play", path=FIXTURES / "play", package="com.example.game", log=lambda *_: None)
-    assert con.execute("SELECT COUNT(*) FROM raw_store_installs").fetchone()[0] == 2  # idempotent per file
+    stores.ingest_play(
+        con,
+        app_id="g",
+        source="play",
+        path=FIXTURES / "play",
+        package="com.example.game",
+        log=lambda *_: None,
+    )
+    assert con.execute(
+        "SELECT date, installs, uninstalls FROM raw_store_installs ORDER BY date"
+    ).fetchall() == [(D0, 120, 35), (D0 + dt.timedelta(days=1), 100, 30)]
+    assert con.execute(
+        "SELECT daily_avg_rating, total_avg_rating FROM raw_store_ratings ORDER BY date"
+    ).fetchall() == [(4.5, 4.31), (None, 4.31)]
+    stores.ingest_play(
+        con,
+        app_id="g",
+        source="play",
+        path=FIXTURES / "play",
+        package="com.example.game",
+        log=lambda *_: None,
+    )
+    assert (
+        con.execute("SELECT COUNT(*) FROM raw_store_installs").fetchone()[0] == 2
+    )  # idempotent per file
 
 
 def test_app_store_sales_report():
@@ -277,7 +429,12 @@ def test_app_store_sales_report():
     rows = stores.parse_appstore_sales(text, apple_id="1234567890", sku="com.example.game")
     by_cur = {r["proceeds_currency"]: r for r in rows}
     usd, eur = by_cur["USD"], by_cur["EUR"]
-    assert (usd["installs"], usd["redownloads"], usd["updates"], usd["iap_units"]) == (50, 7, 200, 4)
+    assert (usd["installs"], usd["redownloads"], usd["updates"], usd["iap_units"]) == (
+        50,
+        7,
+        200,
+        4,
+    )
     assert usd["proceeds"] == pytest.approx(4 * 0.70)  # Developer Proceeds is per unit
     assert eur["iap_units"] == 2 and eur["proceeds"] == pytest.approx(2 * 0.62)
     assert all(r["date"] == D0 for r in rows)
@@ -308,20 +465,43 @@ class FakeGCS:
 
 def test_revenuecat_gcs_sync_downloads_only_new_files(con, tmp_path):
     csv = b"store_transaction_id,renewal_number,price_in_usd,start_time\nT1,1,2.99,2026-10-01 10:00:00\n"
-    blobs = [FakeBlob("exports/2026-10-01/transactions_1790820000.csv", csv), FakeBlob("exports/README.txt", b"x")]
+    blobs = [
+        FakeBlob("exports/2026-10-01/transactions_1790820000.csv", csv),
+        FakeBlob("exports/README.txt", b"x"),
+    ]
     gcs = FakeGCS(blobs)
     cache = tmp_path / "cache"
-    revenuecat.ingest(con, app_id="g", source="rc", path="gs://rc-bucket/exports", cache_dir=cache, gcs_client=gcs, log=lambda *_: None)
-    revenuecat.ingest(con, app_id="g", source="rc", path="gs://rc-bucket/exports", cache_dir=cache, gcs_client=gcs, log=lambda *_: None)
+    revenuecat.ingest(
+        con,
+        app_id="g",
+        source="rc",
+        path="gs://rc-bucket/exports",
+        cache_dir=cache,
+        gcs_client=gcs,
+        log=lambda *_: None,
+    )
+    revenuecat.ingest(
+        con,
+        app_id="g",
+        source="rc",
+        path="gs://rc-bucket/exports",
+        cache_dir=cache,
+        gcs_client=gcs,
+        log=lambda *_: None,
+    )
     assert blobs[0].downloads == 1 and blobs[1].downloads == 0
-    assert con.execute("SELECT store_transaction_id, price_in_usd FROM raw_revenuecat_transactions").fetchall() == [("T1", 2.99)]
+    assert con.execute(
+        "SELECT store_transaction_id, price_in_usd FROM raw_revenuecat_transactions"
+    ).fetchall() == [("T1", 2.99)]
 
 
 def test_revenuecat_gcs_sync_refuses_paths_outside_the_cache(con, tmp_path):
     csv = b"store_transaction_id,renewal_number,price_in_usd,start_time\nT1,1,2.99,2026-10-01 10:00:00\n"
     evil = FakeBlob("exports/../../escaped/transactions_1790820000.csv", csv)
     cache = tmp_path / "a" / "b" / "cache"
-    revenuecat.sync_gcs("gs://rc-bucket/exports", cache, client=FakeGCS([evil]), log=lambda *_: None)
+    revenuecat.sync_gcs(
+        "gs://rc-bucket/exports", cache, client=FakeGCS([evil]), log=lambda *_: None
+    )
     assert evil.downloads == 0
     assert not (tmp_path / "a" / "escaped").exists()
 
@@ -330,19 +510,61 @@ def test_revenuecat_gcs_sync_refuses_paths_outside_the_cache(con, tmp_path):
 
 
 def _line(event="pulse_perf", app="com.example.game", **params):
-    base = {"pulse_v": 1, "tier": "low", "scene": "Level", "window_s": 30.0, "frames": 1700, "ft_p50_ms": 17.2,
-            "ft_p95_ms": 25.0, "ft_max_ms": 70.0, "slow_frames": 12, "mem_alloc_mb": 410, "mem_reserved_mb": 520, "sys_mem_mb": 3072}
+    base = {
+        "pulse_v": 1,
+        "tier": "low",
+        "scene": "Level",
+        "window_s": 30.0,
+        "frames": 1700,
+        "ft_p50_ms": 17.2,
+        "ft_p95_ms": 25.0,
+        "ft_max_ms": 70.0,
+        "slow_frames": 12,
+        "mem_alloc_mb": 410,
+        "mem_reserved_mb": 520,
+        "sys_mem_mb": 3072,
+    }
     if event == "pulse_load":
-        base = {"pulse_v": 1, "tier": "low", "kind": "cold_start", "scene": "Boot", "duration_ms": 3900.5}
-    return json.dumps({"v": 1, "event": event, "ts": "2026-10-01T23:59:59.500Z", "app": app, "app_version": "1.2.0",
-                       "platform": "IPhonePlayer", "session": "abc", "params": {**base, **params}})
+        base = {
+            "pulse_v": 1,
+            "tier": "low",
+            "kind": "cold_start",
+            "scene": "Boot",
+            "duration_ms": 3900.5,
+        }
+    return json.dumps(
+        {
+            "v": 1,
+            "event": event,
+            "ts": "2026-10-01T23:59:59.500Z",
+            "app": app,
+            "app_version": "1.2.0",
+            "platform": "IPhonePlayer",
+            "session": "abc",
+            "params": {**base, **params},
+        }
+    )
 
 
 def test_unity_jsonl_parse():
-    lines = [_line(), _line("pulse_load"), _line(app="com.other"), "{not json", json.dumps({"v": 2, "event": "pulse_perf"}),
-             _line("level_start"), ""]
+    lines = [
+        _line(),
+        _line("pulse_load"),
+        _line(app="com.other"),
+        "{not json",
+        json.dumps({"v": 2, "event": "pulse_perf"}),
+        _line("level_start"),
+        "",
+    ]
     perf, load, st = unity_jsonl.parse_lines(lines, app="com.example.game")
-    assert (st.lines, st.perf, st.load, st.skipped_other_app, st.malformed, st.unknown_event) == (6, 1, 1, 1, 2, 1)
+    assert (st.lines, st.perf, st.load, st.skipped_other_app, st.malformed, st.unknown_event) == (
+        6,
+        1,
+        1,
+        1,
+        2,
+        1,
+    )
     assert perf[0]["date"] == D0 and perf[0]["platform"] == "IOS" and perf[0]["frames"] == 1700
     assert perf[0]["ft_p50_ms"] == 17.2 and perf[0]["slow_frames"] == 12
     assert load[0]["kind"] == "cold_start" and load[0]["duration_ms"] == 3900.5
@@ -364,7 +586,9 @@ def test_unity_jsonl_files_with_the_same_name_from_two_devices(con, tmp_path):
         (tmp_path / device / "events.jsonl").write_text(_line(ft_p50_ms=ft) + "\n")
     for _ in range(2):
         unity_jsonl.ingest(con, app_id="g", source="unity", path=tmp_path, log=lambda *_: None)
-    assert sorted(r[0] for r in con.execute("SELECT ft_p50_ms FROM raw_perf_windows").fetchall()) == [17.0, 25.0]
+    assert sorted(
+        r[0] for r in con.execute("SELECT ft_p50_ms FROM raw_perf_windows").fetchall()
+    ) == [17.0, 25.0]
 
 
 def test_unity_jsonl_dates_follow_the_app_timezone():

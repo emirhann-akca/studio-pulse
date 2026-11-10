@@ -90,13 +90,17 @@ class BigQueryExecutor:
 
     def dry_run(self, sql: str) -> int:
         assert_read_only(sql)
-        job = self._client().query(sql, job_config=self._job_config(dry_run=True, use_query_cache=False))
+        job = self._client().query(
+            sql, job_config=self._job_config(dry_run=True, use_query_cache=False)
+        )
         return int(job.total_bytes_processed or 0)
 
     def run(self, name: str, sql: str) -> pa.Table | None:
         assert_read_only(sql)
         estimate = self.dry_run(sql)
-        self.log(f"    [bq] {name}: dry-run estimate {estimate / 1e6:,.1f} MB (cap {self.max_bytes_billed / 1e6:,.0f} MB)")
+        self.log(
+            f"    [bq] {name}: dry-run estimate {estimate / 1e6:,.1f} MB (cap {self.max_bytes_billed / 1e6:,.0f} MB)"
+        )
         if estimate > self.max_bytes_billed:
             self.stats.append(QueryStat(name, estimate, None, None))
             raise BytesCapExceeded(

@@ -69,7 +69,15 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         print("\nBigQuery queries:")
         for s in rep.bigquery:
             est = f"{(s.estimated_bytes or 0) / 1e6:,.1f} MB est"
-            billed = "dry-run only" if s.dry_run_only else (f"{(s.billed_bytes or 0) / 1e6:,.1f} MB billed" if s.billed_bytes is not None else "not run")
+            billed = (
+                "dry-run only"
+                if s.dry_run_only
+                else (
+                    f"{(s.billed_bytes or 0) / 1e6:,.1f} MB billed"
+                    if s.billed_bytes is not None
+                    else "not run"
+                )
+            )
             print(f"  {s.name:<40} {est:>16}  {billed}")
     if rep.errors:
         print("\nErrors:")
@@ -134,33 +142,56 @@ def cmd_build_dashboard(args: argparse.Namespace) -> int:
 
 def cmd_run(args: argparse.Namespace) -> int:
     cfg = load_config(args.config)
-    res = pipeline.run_all(cfg, rules_path=_default_rules(cfg, args.rules), dry_run_notify=not args.notify)
+    res = pipeline.run_all(
+        cfg, rules_path=_default_rules(cfg, args.rules), dry_run_notify=not args.notify
+    )
     print(f"{len(res['pages'])} page(s) written to {cfg.site_dir}/")
     return 1 if res["ingest"].errors else 0
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="pulse", description="Studio Pulse: app portfolio data and monitoring.")
+    p = argparse.ArgumentParser(
+        prog="pulse", description="Studio Pulse: app portfolio data and monitoring."
+    )
     p.add_argument("--version", action="version", version=f"studio-pulse {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    d = sub.add_parser("demo", help="generate synthetic data for 3 fictional apps, run everything, build the dashboard")
-    d.add_argument("--out", default="demo-site", help="dashboard output directory (default: demo-site)")
-    d.add_argument("--workdir", default=".pulse-demo", help="where generated source files and the warehouse go")
-    d.add_argument("--scale", type=float, default=1.0, help="multiply synthetic install volume (default 1.0)")
+    d = sub.add_parser(
+        "demo",
+        help="generate synthetic data for 3 fictional apps, run everything, build the dashboard",
+    )
+    d.add_argument(
+        "--out", default="demo-site", help="dashboard output directory (default: demo-site)"
+    )
+    d.add_argument(
+        "--workdir", default=".pulse-demo", help="where generated source files and the warehouse go"
+    )
+    d.add_argument(
+        "--scale", type=float, default=1.0, help="multiply synthetic install volume (default 1.0)"
+    )
     d.add_argument("--rules", help="alert rules file (default: alerts.yaml)")
-    d.add_argument("--no-clean", dest="clean", action="store_false", help="keep an existing workdir")
+    d.add_argument(
+        "--no-clean", dest="clean", action="store_false", help="keep an existing workdir"
+    )
     d.add_argument("-v", "--verbose", action="store_true")
     d.set_defaults(func=cmd_demo)
 
     def with_config(sp: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        sp.add_argument("-c", "--config", help="config file (default: $PULSE_CONFIG, pulse.local.yaml, pulse.yaml)")
+        sp.add_argument(
+            "-c",
+            "--config",
+            help="config file (default: $PULSE_CONFIG, pulse.local.yaml, pulse.yaml)",
+        )
         return sp
 
     i = with_config(sub.add_parser("ingest", help="load configured sources into the warehouse"))
     i.add_argument("--app", action="append", help="only this app id (repeatable)")
     i.add_argument("--source", action="append", help="only this source type (repeatable)")
-    i.add_argument("--dry-run", action="store_true", help="BigQuery: dry-run every query and print bytes; load nothing")
+    i.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="BigQuery: dry-run every query and print bytes; load nothing",
+    )
     i.set_defaults(func=cmd_ingest)
 
     m = with_config(sub.add_parser("run-models", help="(re)build all SQL models"))
@@ -172,8 +203,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     a = with_config(sub.add_parser("alerts", help="evaluate alert rules and notify"))
     a.add_argument("--rules", help="alert rules file (default: alerts.yaml)")
-    a.add_argument("--dry-run", action="store_true", help="print notifications instead of sending them")
-    a.add_argument("--fail-on-alert", action="store_true", help="exit with status 3 when any alert fires")
+    a.add_argument(
+        "--dry-run", action="store_true", help="print notifications instead of sending them"
+    )
+    a.add_argument(
+        "--fail-on-alert", action="store_true", help="exit with status 3 when any alert fires"
+    )
     a.set_defaults(func=cmd_alerts)
 
     b = with_config(sub.add_parser("build-dashboard", help="write the static HTML dashboard"))
@@ -183,7 +218,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     r = with_config(sub.add_parser("run", help="ingest + models + alerts + dashboard"))
     r.add_argument("--rules", help="alert rules file")
-    r.add_argument("--notify", action="store_true", help="actually send notifications (default: dry run)")
+    r.add_argument(
+        "--notify", action="store_true", help="actually send notifications (default: dry run)"
+    )
     r.set_defaults(func=cmd_run)
     return p
 

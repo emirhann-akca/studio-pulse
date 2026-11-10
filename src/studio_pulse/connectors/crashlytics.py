@@ -65,7 +65,9 @@ def ingest(
     billed = 0
     for t in tables:
         before = len(executor.stats)
-        res = executor.run(f"{app_id}.crashlytics.{t}", daily_query(dialect, t, start, end, timezone))
+        res = executor.run(
+            f"{app_id}.crashlytics.{t}", daily_query(dialect, t, start, end, timezone)
+        )
         if len(executor.stats) > before and executor.stats[-1].billed_bytes:
             billed += executor.stats[-1].billed_bytes
         if res is not None:
@@ -74,6 +76,13 @@ def ingest(
         return 0
     table = pa.concat_tables(parts, promote_options="permissive") if len(parts) > 1 else parts[0]
     n = replace_slice(con, "raw_crashlytics_daily", table, app_id=app_id, source=source)
-    record_load(con, app_id=app_id, source=source, table="raw_crashlytics_daily", rows=n, bytes_billed=billed or None)
+    record_load(
+        con,
+        app_id=app_id,
+        source=source,
+        table="raw_crashlytics_daily",
+        rows=n,
+        bytes_billed=billed or None,
+    )
     log(f"    crashlytics   -> raw_crashlytics_daily  {n:>7} rows")
     return n

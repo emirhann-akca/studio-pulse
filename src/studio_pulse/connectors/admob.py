@@ -33,7 +33,9 @@ def _date_obj(d: dt.date) -> dict[str, int]:
     return {"year": d.year, "month": d.month, "day": d.day}
 
 
-def report_request(start: dt.date, end: dt.date, app_ids: list[str] | None = None) -> dict[str, Any]:
+def report_request(
+    start: dt.date, end: dt.date, app_ids: list[str] | None = None
+) -> dict[str, Any]:
     spec: dict[str, Any] = {
         "dateRange": {"startDate": _date_obj(start), "endDate": _date_obj(end)},
         "dimensions": ["DATE", "APP"],
@@ -75,7 +77,10 @@ def fetch_report(
     url = f"{API_ROOT}/accounts/{publisher_id}/networkReport:generate"
     resp = session.post(
         url,
-        headers={"Authorization": f"Bearer {token or _access_token()}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {token or _access_token()}",
+            "Content-Type": "application/json",
+        },
         data=json.dumps(report_request(start, end, app_ids)),
         timeout=timeout,
     )
@@ -143,8 +148,13 @@ def ingest(
         rows = [r for r in rows if r["admob_app_id"] in app_ids]
     rows = [r for r in rows if start <= r["date"] <= end]
     n = replace_slice(
-        con, "raw_admob_daily", rows, app_id=app_id, source=source,
-        where="date BETWEEN ? AND ?", params=[start, end],
+        con,
+        "raw_admob_daily",
+        rows,
+        app_id=app_id,
+        source=source,
+        where="date BETWEEN ? AND ?",
+        params=[start, end],
     )
     record_load(con, app_id=app_id, source=source, table="raw_admob_daily", rows=n)
     log(f"    admob         -> raw_admob_daily        {n:>7} rows")

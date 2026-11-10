@@ -46,7 +46,9 @@ SOURCE_LABELS = {
 }
 
 
-def q(con: duckdb.DuckDBPyConnection, sql: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
+def q(
+    con: duckdb.DuckDBPyConnection, sql: str, params: list[Any] | None = None
+) -> list[dict[str, Any]]:
     try:
         cur = con.execute(sql, params or [])
     except duckdb.CatalogException:
@@ -55,7 +57,9 @@ def q(con: duckdb.DuckDBPyConnection, sql: str, params: list[Any] | None = None)
     return [dict(zip(cols, r, strict=False)) for r in cur.fetchall()]
 
 
-def _delta(cur: float | None, prev: float | None, good_up: bool = True) -> tuple[str | None, str | None]:
+def _delta(
+    cur: float | None, prev: float | None, good_up: bool = True
+) -> tuple[str | None, str | None]:
     if cur is None or prev in (None, 0):
         return None, None
     ch = cur / prev - 1
@@ -65,12 +69,23 @@ def _delta(cur: float | None, prev: float | None, good_up: bool = True) -> tuple
     return f"{ch * 100:+.1f}% vs prior 7 days", tone
 
 
-def _page(cfg: Config, title: str, body: str, apps: list[dict[str, Any]], current: str | None, demo: bool, as_of: dt.date, prefix: str) -> str:
+def _page(
+    cfg: Config,
+    title: str,
+    body: str,
+    apps: list[dict[str, Any]],
+    current: str | None,
+    demo: bool,
+    as_of: dt.date,
+    prefix: str,
+) -> str:
     here = ' aria-current="page"' if current is None else ""
     nav = [f'<a href="{prefix}index.html"{here}>Portfolio</a>']
     for a in apps:
         cur = ' aria-current="page"' if current == a["app_id"] else ""
-        nav.append(f'<a href="{prefix}apps/{a["app_id"]}.html"{cur}>{escape(a["name"] or a["app_id"])}</a>')
+        nav.append(
+            f'<a href="{prefix}apps/{a["app_id"]}.html"{cur}>{escape(a["name"] or a["app_id"])}</a>'
+        )
     banner = ""
     if demo:
         banner = (
@@ -96,7 +111,7 @@ def _page(cfg: Config, title: str, body: str, apps: list[dict[str, Any]], curren
   <button class="theme" type="button">Dark mode</button>
 </header>
 {banner}
-<nav class="apps" aria-label="Apps">{''.join(nav)}</nav>
+<nav class="apps" aria-label="Apps">{"".join(nav)}</nav>
 <main>
 {body}
 </main>
@@ -120,14 +135,22 @@ def _alerts_html(alerts: list[Alert], app_names: dict[str, str], rules: list[Rul
         icon = "✖" if a.severity == "critical" else "▲"
         items.append(
             f'<li class="{a.severity}"><span class="sev">{icon} {a.severity.title()}</span>'
-            f'<strong>{escape(app_names.get(a.app_id, a.app_id))}</strong> · <code>{escape(a.rule)}</code> · {a.date}'
+            f"<strong>{escape(app_names.get(a.app_id, a.app_id))}</strong> · <code>{escape(a.rule)}</code> · {a.date}"
             f"<br>{escape(a.message)}</li>"
         )
     return '<ul class="alerts">' + "".join(items) + "</ul>"
 
 
-def _freshness(con: duckdb.DuckDBPyConnection, as_of: dt.date, app_id: str | None, names: dict[str, str]) -> str:
-    rows = q(con, "SELECT * FROM fct_source_freshness" + (" WHERE app_id = ?" if app_id else "") + " ORDER BY app_id, source", [app_id] if app_id else [])
+def _freshness(
+    con: duckdb.DuckDBPyConnection, as_of: dt.date, app_id: str | None, names: dict[str, str]
+) -> str:
+    rows = q(
+        con,
+        "SELECT * FROM fct_source_freshness"
+        + (" WHERE app_id = ?" if app_id else "")
+        + " ORDER BY app_id, source",
+        [app_id] if app_id else [],
+    )
     if not rows:
         return '<p class="note">No loads recorded yet.</p>'
     out = []
@@ -142,8 +165,16 @@ def _freshness(con: duckdb.DuckDBPyConnection, as_of: dt.date, app_id: str | Non
             st = f'<span class="status stale"><i></i>stale ({lag} d)</span>'
         else:
             st = f'<span class="status old"><i></i>old ({lag} d)</span>'
-        loaded = r["last_loaded_at"].strftime("%Y-%m-%d %H:%M") + " UTC" if r["last_loaded_at"] else "–"
-        row = [SOURCE_LABELS.get(r["source"], r["source"]), str(through or "–"), st, loaded, fmt_int(r["rows_loaded"])]
+        loaded = (
+            r["last_loaded_at"].strftime("%Y-%m-%d %H:%M") + " UTC" if r["last_loaded_at"] else "–"
+        )
+        row = [
+            SOURCE_LABELS.get(r["source"], r["source"]),
+            str(through or "–"),
+            st,
+            loaded,
+            fmt_int(r["rows_loaded"]),
+        ]
         if not app_id:
             row.insert(0, names.get(r["app_id"], r["app_id"]))
         out.append(row)
@@ -151,7 +182,9 @@ def _freshness(con: duckdb.DuckDBPyConnection, as_of: dt.date, app_id: str | Non
     if not app_id:
         header.insert(0, "App")
     status_col = 3 if not app_id else 2
-    return data_table(header, out, raw_html_cols=(status_col,), left_cols=(0, 1) if not app_id else (0,))
+    return data_table(
+        header, out, raw_html_cols=(status_col,), left_cols=(0, 1) if not app_id else (0,)
+    )
 
 
 def _series_by_date(rows: list[dict[str, Any]], key: str) -> list[Any]:
@@ -161,12 +194,13 @@ def _series_by_date(rows: list[dict[str, Any]], key: str) -> list[Any]:
 def _rolling(values: list[Any], window: int) -> list[float | None]:
     out: list[float | None] = []
     for i in range(len(values)):
-        chunk = [v for v in values[max(0, i - window + 1): i + 1] if v is not None]
+        chunk = [v for v in values[max(0, i - window + 1) : i + 1] if v is not None]
         out.append(sum(chunk) / len(chunk) if len(chunk) == min(window, i + 1) and chunk else None)
     return out
 
 
 # -- portfolio -------------------------------------------------------------------
+
 
 def portfolio_page(con, cfg, apps, alerts, rules, demo, as_of) -> str:
     names = {a["app_id"]: a["name"] for a in apps}
@@ -183,23 +217,56 @@ def portfolio_page(con, cfg, apps, alerts, rules, demo, as_of) -> str:
         tile("Portfolio DAU (7-day avg)", fmt_compact(tot_dau), d1, t1),
         tile("New users (7 days)", fmt_compact(new)),
         tile("Net revenue (7 days)", fmt_usd(rev), d2, t2, "IAP proceeds + ad earnings, USD"),
-        tile("Active alerts", str(len(alerts)), f"{crit} critical" if alerts else None, "bad" if crit else None),
+        tile(
+            "Active alerts",
+            str(len(alerts)),
+            f"{crit} critical" if alerts else None,
+            "bad" if crit else None,
+        ),
     ]
-    header = ["App", "Genre", "DAU 7d", "Δ DAU", "MAU", "DAU/MAU", "D1", "D7", "D30", "Revenue 7d", "ARPDAU", "Crash-free users", "Low-tier p50", "Rating"]
+    header = [
+        "App",
+        "Genre",
+        "DAU 7d",
+        "Δ DAU",
+        "MAU",
+        "DAU/MAU",
+        "D1",
+        "D7",
+        "D30",
+        "Revenue 7d",
+        "ARPDAU",
+        "Crash-free users",
+        "Low-tier p50",
+        "Rating",
+    ]
     rows = []
     for a in apps:
         link = f'<a href="apps/{a["app_id"]}.html">{escape(a["name"])}</a>'
-        rows.append([
-            link, escape(a["genre"] or ""), fmt_int(a["dau_7d"]),
-            fmt_pct(a["dau_change"]) if a["dau_change"] is not None else "–",
-            fmt_int(a["mau"]), fmt_pct(a["stickiness"]), fmt_pct(a["d1_retention"]), fmt_pct(a["d7_retention"]),
-            fmt_pct(a["d30_retention"]), fmt_usd(a["revenue_7d_usd"]), fmt_usd(a["arpdau_7d"]),
-            fmt_pct2(a["crash_free_users_7d"]), fmt_ms(a["low_tier_ft_p50_ms"]),
-            f"{a['rating']:.2f}" if a["rating"] is not None else "–",
-        ])
+        rows.append(
+            [
+                link,
+                escape(a["genre"] or ""),
+                fmt_int(a["dau_7d"]),
+                fmt_pct(a["dau_change"]) if a["dau_change"] is not None else "–",
+                fmt_int(a["mau"]),
+                fmt_pct(a["stickiness"]),
+                fmt_pct(a["d1_retention"]),
+                fmt_pct(a["d7_retention"]),
+                fmt_pct(a["d30_retention"]),
+                fmt_usd(a["revenue_7d_usd"]),
+                fmt_usd(a["arpdau_7d"]),
+                fmt_pct2(a["crash_free_users_7d"]),
+                fmt_ms(a["low_tier_ft_p50_ms"]),
+                f"{a['rating']:.2f}" if a["rating"] is not None else "–",
+            ]
+        )
     table = data_table(header, rows, raw_html_cols=(0,), left_cols=(0, 1))
     table += f'<p class="note" style="margin-top:8px">Mobile game benchmarks (all genres, GameAnalytics 2026): {escape(benchmarks.summary_text())}.</p>'
-    daily = q(con, "SELECT app_id, date, dau, revenue_usd FROM fct_app_daily WHERE dau IS NOT NULL ORDER BY date")
+    daily = q(
+        con,
+        "SELECT app_id, date, dau, revenue_usd FROM fct_app_daily WHERE dau IS NOT NULL ORDER BY date",
+    )
     dates = sorted({r["date"] for r in daily})
     idx = {d: i for i, d in enumerate(dates)}
     dau_series, rev_series = [], []
@@ -214,8 +281,20 @@ def portfolio_page(con, cfg, apps, alerts, rules, demo, as_of) -> str:
     rev_series = [Series(s.name, _rolling(s.values, 7), slot=s.slot) for s in rev_series]
     charts = (
         '<div class="grid2">'
-        + line_chart("Daily active users by app", dates, dau_series, fmt_compact, "Distinct users with at least one non-passive event per day")
-        + line_chart("Net revenue by app (7-day average)", dates, rev_series, fmt_usd, "IAP proceeds + ad earnings per day, USD, trailing 7-day mean")
+        + line_chart(
+            "Daily active users by app",
+            dates,
+            dau_series,
+            fmt_compact,
+            "Distinct users with at least one non-passive event per day",
+        )
+        + line_chart(
+            "Net revenue by app (7-day average)",
+            dates,
+            rev_series,
+            fmt_usd,
+            "IAP proceeds + ad earnings per day, USD, trailing 7-day mean",
+        )
         + "</div>"
     )
     body = (
@@ -230,10 +309,13 @@ def portfolio_page(con, cfg, apps, alerts, rules, demo, as_of) -> str:
 
 # -- app page --------------------------------------------------------------------
 
+
 def app_page(con, cfg, apps, app, alerts, rules, demo, as_of) -> str:
     aid = app["app_id"]
     names = {a["app_id"]: a["name"] for a in apps}
-    daily = q(con, "SELECT * FROM fct_app_daily WHERE app_id = ? AND dau IS NOT NULL ORDER BY date", [aid])
+    daily = q(
+        con, "SELECT * FROM fct_app_daily WHERE app_id = ? AND dau IS NOT NULL ORDER BY date", [aid]
+    )
     dates = [r["date"] for r in daily]
     d_dau, t_dau = _delta(app["dau_7d"], app["dau_prev_7d"])
     d_rev, t_rev = _delta(app["revenue_7d_usd"], app["revenue_prev_7d_usd"])
@@ -241,10 +323,19 @@ def app_page(con, cfg, apps, app, alerts, rules, demo, as_of) -> str:
         tile("DAU (7-day avg)", fmt_compact(app["dau_7d"]), d_dau, t_dau),
         tile("MAU", fmt_compact(app["mau"])),
         tile("DAU/MAU", fmt_pct(app["stickiness"])),
-        tile("D1 / D7 / D30", " / ".join(fmt_pct(app[k], 0) for k in ("d1_retention", "d7_retention", "d30_retention"))),
+        tile(
+            "D1 / D7 / D30",
+            " / ".join(
+                fmt_pct(app[k], 0) for k in ("d1_retention", "d7_retention", "d30_retention")
+            ),
+        ),
         tile("Net revenue (7 days)", fmt_usd(app["revenue_7d_usd"]), d_rev, t_rev),
         tile("ARPDAU (7 days)", fmt_usd(app["arpdau_7d"])),
-        tile(f"Cumulative ARPU D{app['ltv_latest_day'] or 30}", fmt_usd(app["ltv_latest_usd"]), title="LTV curve value at the latest complete day <= 30"),
+        tile(
+            f"Cumulative ARPU D{app['ltv_latest_day'] or 30}",
+            fmt_usd(app["ltv_latest_usd"]),
+            title="LTV curve value at the latest complete day <= 30",
+        ),
         tile("Crash-free users (7 days)", fmt_pct2(app["crash_free_users_7d"])),
     ]
     parts = [f'<div class="tiles">{"".join(tiles)}</div>']
@@ -252,81 +343,226 @@ def app_page(con, cfg, apps, app, alerts, rules, demo, as_of) -> str:
     # Engagement
     stores_rows = [r.get("store_installs") for r in daily]
     eng = [
-        line_chart("Active users", dates, [Series("DAU", _series_by_date(daily, "dau")), Series("WAU", _series_by_date(daily, "wau")), Series("MAU", _series_by_date(daily, "mau"))], fmt_compact,
-                   "WAU/MAU are shown once 7/30 days of history are available"),
-        line_chart("New users vs store installs", dates, [Series("New users (GA4 first_open)", _series_by_date(daily, "new_users")), Series("Store installs", stores_rows, slot=2)], fmt_compact,
-                   "Store numbers come from Play Console / App Store Connect reports"),
-        line_chart("Stickiness (DAU/MAU)", dates, [Series("DAU/MAU", _series_by_date(daily, "stickiness"))], fmt_pct, zero=False),
-        line_chart("Sessions per DAU", dates, [Series("Sessions per DAU", _series_by_date(daily, "sessions_per_dau"))], fmt_num, zero=False),
+        line_chart(
+            "Active users",
+            dates,
+            [
+                Series("DAU", _series_by_date(daily, "dau")),
+                Series("WAU", _series_by_date(daily, "wau")),
+                Series("MAU", _series_by_date(daily, "mau")),
+            ],
+            fmt_compact,
+            "WAU/MAU are shown once 7/30 days of history are available",
+        ),
+        line_chart(
+            "New users vs store installs",
+            dates,
+            [
+                Series("New users (GA4 first_open)", _series_by_date(daily, "new_users")),
+                Series("Store installs", stores_rows, slot=2),
+            ],
+            fmt_compact,
+            "Store numbers come from Play Console / App Store Connect reports",
+        ),
+        line_chart(
+            "Stickiness (DAU/MAU)",
+            dates,
+            [Series("DAU/MAU", _series_by_date(daily, "stickiness"))],
+            fmt_pct,
+            zero=False,
+        ),
+        line_chart(
+            "Sessions per DAU",
+            dates,
+            [Series("Sessions per DAU", _series_by_date(daily, "sessions_per_dau"))],
+            fmt_num,
+            zero=False,
+        ),
     ]
     parts.append('<h2>Engagement</h2><div class="grid2">' + "".join(eng) + "</div>")
 
     # Retention
     ret = q(con, "SELECT * FROM fct_retention WHERE app_id = ? ORDER BY cohort_date, day_n", [aid])
-    summ = {r["day_n"]: r for r in q(con, "SELECT * FROM fct_retention_summary WHERE app_id = ?", [aid])}
+    summ = {
+        r["day_n"]: r for r in q(con, "SELECT * FROM fct_retention_summary WHERE app_id = ?", [aid])
+    }
     cohorts = sorted({r["cohort_date"] for r in ret})
     by = {(r["cohort_date"], r["day_n"]): r for r in ret}
     ret_series = []
     for slot, n in ((1, 1), (2, 7), (3, 30)):
-        vals = [by[(c, n)]["retention"] if (c, n) in by and by[(c, n)]["is_complete"] else None for c in cohorts]
+        vals = [
+            by[(c, n)]["retention"] if (c, n) in by and by[(c, n)]["is_complete"] else None
+            for c in cohorts
+        ]
         ret_series.append(Series(f"D{n}", vals, slot=slot))
     days = [1, 2, 3, 7, 14, 21, 30]
     recent = cohorts[-14:][::-1]
-    matrix = [[by[(c, n)]["retention"] if (c, n) in by and by[(c, n)]["is_complete"] else None for n in days] for c in recent]
+    matrix = [
+        [
+            by[(c, n)]["retention"] if (c, n) in by and by[(c, n)]["is_complete"] else None
+            for n in days
+        ]
+        for c in recent
+    ]
     sizes = {c: by[(c, 0)]["cohort_size"] for c in recent if (c, 0) in by}
     summary_txt = ", ".join(
-        f"D{n} {fmt_pct(summ[n]['retention'])} ({summ[n]['cohorts']} cohorts, {fmt_int(summ[n]['cohort_users'])} users)" for n in (1, 7, 30) if n in summ
+        f"D{n} {fmt_pct(summ[n]['retention'])} ({summ[n]['cohorts']} cohorts, {fmt_int(summ[n]['cohort_users'])} users)"
+        for n in (1, 7, 30)
+        if n in summ
     )
     if benchmarks.applies_to(app["genre"]):
         bench_rows = [
-            (f"D{n}", summ[n]["retention"], [(b.cut, b.label, b.text) for b in benchmarks.RETENTION[n]], benchmarks.bracket(n, summ[n]["retention"]))
-            for n in (1, 7, 30) if n in summ
+            (
+                f"D{n}",
+                summ[n]["retention"],
+                [(b.cut, b.label, b.text) for b in benchmarks.RETENTION[n]],
+                benchmarks.bracket(n, summ[n]["retention"]),
+            )
+            for n in (1, 7, 30)
+            if n in summ
         ]
-        bench = benchmark_chart("Retention vs mobile game benchmarks", bench_rows, fmt_pct,
-                                "Headline D1/D7/D30 (marker) against GameAnalytics 2026 brackets, all genres combined")
+        bench = benchmark_chart(
+            "Retention vs mobile game benchmarks",
+            bench_rows,
+            fmt_pct,
+            "Headline D1/D7/D30 (marker) against GameAnalytics 2026 brackets, all genres combined",
+        )
     else:
-        bench = empty_chart("Retention vs mobile game benchmarks",
-                            f"Not shown: the published benchmarks describe games, and this app's genre is {app['genre'] or 'not set'}.")
+        bench = empty_chart(
+            "Retention vs mobile game benchmarks",
+            f"Not shown: the published benchmarks describe games, and this app's genre is {app['genre'] or 'not set'}.",
+        )
     parts.append(
         "<h2>Retention</h2>"
-        + (f'<p class="note">Headline (last 28 complete cohorts, size-weighted, classic day-N): {escape(summary_txt)}</p>' if summary_txt else "")
+        + (
+            f'<p class="note">Headline (last 28 complete cohorts, size-weighted, classic day-N): {escape(summary_txt)}</p>'
+            if summary_txt
+            else ""
+        )
         + '<div class="grid2">'
-        + line_chart("Retention by install cohort", cohorts, ret_series, fmt_pct, "Share of each day's new users active again on day N", x_name="Cohort")
-        + heatmap("Cohort matrix (latest 14 cohorts)", [f"{c:%b} {c.day} · {fmt_int(sizes.get(c))}" for c in recent], [f"D{n}" for n in days], matrix, fmt_pct,
-                  "Rows: install date · cohort size. Dots mark days not observed yet.", corner="Cohort · users")
+        + line_chart(
+            "Retention by install cohort",
+            cohorts,
+            ret_series,
+            fmt_pct,
+            "Share of each day's new users active again on day N",
+            x_name="Cohort",
+        )
+        + heatmap(
+            "Cohort matrix (latest 14 cohorts)",
+            [f"{c:%b} {c.day} · {fmt_int(sizes.get(c))}" for c in recent],
+            [f"D{n}" for n in days],
+            matrix,
+            fmt_pct,
+            "Rows: install date · cohort size. Dots mark days not observed yet.",
+            corner="Cohort · users",
+        )
         + bench
         + "</div>"
     )
 
     # Monetization
-    ltv = q(con, "SELECT * FROM fct_ltv_curve WHERE app_id = ? AND day_n <= 60 ORDER BY day_n", [aid])
+    ltv = q(
+        con, "SELECT * FROM fct_ltv_curve WHERE app_id = ? AND day_n <= 60 ORDER BY day_n", [aid]
+    )
     iap_basis = next((r["iap_basis"] for r in daily if r.get("iap_basis")), None)
     ad_basis = next((r["ad_basis"] for r in daily if r.get("ad_basis")), None)
     basis_note = f"IAP: {iap_basis or 'none'} · Ads: {ad_basis or 'none'}"
     mon = [
-        line_chart("Net revenue per day", dates, [Series("IAP", _series_by_date(daily, "iap_revenue_usd")), Series("Ads", _series_by_date(daily, "ad_revenue_usd"), slot=2)], fmt_usd, basis_note),
-        line_chart("ARPDAU", dates, [Series("ARPDAU", _series_by_date(daily, "arpdau"))], fmt_usd, "Net revenue / DAU", zero=False),
-        line_chart("LTV curve (cumulative ARPU)", [f"D{r['day_n']}" for r in ltv],
-                   [Series("Total", [r["cumulative_arpu_usd"] for r in ltv]), Series("IAP", [r["iap_arpu_usd"] for r in ltv], slot=2), Series("Ads", [r["ad_arpu_usd"] for r in ltv], slot=3)],
-                   fmt_usd, "Cumulative net revenue per installed user by days since install (complete cohorts only)", x_fmt=str, x_name="Day"),
-        line_chart("Payer conversion", dates, [Series("Payers / DAU", _series_by_date(daily, "payer_conversion"))], fmt_pct2, "Share of daily active users who paid that day", zero=False)
-        if any(r.get("payer_conversion") for r in daily) else empty_chart("Payer conversion", "No purchases recorded."),
+        line_chart(
+            "Net revenue per day",
+            dates,
+            [
+                Series("IAP", _series_by_date(daily, "iap_revenue_usd")),
+                Series("Ads", _series_by_date(daily, "ad_revenue_usd"), slot=2),
+            ],
+            fmt_usd,
+            basis_note,
+        ),
+        line_chart(
+            "ARPDAU",
+            dates,
+            [Series("ARPDAU", _series_by_date(daily, "arpdau"))],
+            fmt_usd,
+            "Net revenue / DAU",
+            zero=False,
+        ),
+        line_chart(
+            "LTV curve (cumulative ARPU)",
+            [f"D{r['day_n']}" for r in ltv],
+            [
+                Series("Total", [r["cumulative_arpu_usd"] for r in ltv]),
+                Series("IAP", [r["iap_arpu_usd"] for r in ltv], slot=2),
+                Series("Ads", [r["ad_arpu_usd"] for r in ltv], slot=3),
+            ],
+            fmt_usd,
+            "Cumulative net revenue per installed user by days since install (complete cohorts only)",
+            x_fmt=str,
+            x_name="Day",
+        ),
+        line_chart(
+            "Payer conversion",
+            dates,
+            [Series("Payers / DAU", _series_by_date(daily, "payer_conversion"))],
+            fmt_pct2,
+            "Share of daily active users who paid that day",
+            zero=False,
+        )
+        if any(r.get("payer_conversion") for r in daily)
+        else empty_chart("Payer conversion", "No purchases recorded."),
     ]
     if any(r.get("payer_rate") for r in ltv):
-        mon.append(line_chart("Cumulative payer rate by cohort day", [f"D{r['day_n']}" for r in ltv], [Series("Paid at least once", [r["payer_rate"] for r in ltv])], fmt_pct2, x_fmt=str, x_name="Day"))
+        mon.append(
+            line_chart(
+                "Cumulative payer rate by cohort day",
+                [f"D{r['day_n']}" for r in ltv],
+                [Series("Paid at least once", [r["payer_rate"] for r in ltv])],
+                fmt_pct2,
+                x_fmt=str,
+                x_name="Day",
+            )
+        )
     if any(r.get("ecpm_usd") for r in daily):
-        mon.append(line_chart("AdMob eCPM", dates, [Series("eCPM", _series_by_date(daily, "ecpm_usd"))], fmt_usd, "Earnings per 1,000 impressions", zero=False))
+        mon.append(
+            line_chart(
+                "AdMob eCPM",
+                dates,
+                [Series("eCPM", _series_by_date(daily, "ecpm_usd"))],
+                fmt_usd,
+                "Earnings per 1,000 impressions",
+                zero=False,
+            )
+        )
     parts.append('<h2>Monetization</h2><div class="grid2">' + "".join(mon) + "</div>")
 
     # Stability
     stab = [
-        line_chart("Crash-free users and sessions", dates,
-                   [Series("Crash-free users", _series_by_date(daily, "crash_free_users")), Series("Crash-free sessions", _series_by_date(daily, "crash_free_sessions"), slot=2)],
-                   fmt_pct2, f"Source: {next((r['crash_basis'] for r in daily if r.get('crash_basis')), 'none')}", zero=False, cap=1.0),
+        line_chart(
+            "Crash-free users and sessions",
+            dates,
+            [
+                Series("Crash-free users", _series_by_date(daily, "crash_free_users")),
+                Series(
+                    "Crash-free sessions", _series_by_date(daily, "crash_free_sessions"), slot=2
+                ),
+            ],
+            fmt_pct2,
+            f"Source: {next((r['crash_basis'] for r in daily if r.get('crash_basis')), 'none')}",
+            zero=False,
+            cap=1.0,
+        ),
     ]
     rating = [r.get("rating") for r in daily]
     if any(v is not None for v in rating):
-        stab.append(line_chart("Store rating (cumulative average)", dates, [Series("Rating", rating)], fmt_num, zero=False))
+        stab.append(
+            line_chart(
+                "Store rating (cumulative average)",
+                dates,
+                [Series("Rating", rating)],
+                fmt_num,
+                zero=False,
+            )
+        )
     parts.append('<h2>Stability</h2><div class="grid2">' + "".join(stab) + "</div>")
 
     # Performance
@@ -337,50 +573,159 @@ def app_page(con, cfg, apps, app, alerts, rules, demo, as_of) -> str:
         pdates = sorted({r["date"] for r in pdaily})
         pidx = {d: i for i, d in enumerate(pdates)}
         tier_series = []
-        for tname in [t for t in ("low", "mid", "high", "unknown") if any(r["device_tier"] == t for r in pdaily)]:
+        for tname in [
+            t
+            for t in ("low", "mid", "high", "unknown")
+            if any(r["device_tier"] == t for r in pdaily)
+        ]:
             vals = [None] * len(pdates)
             for r in pdaily:
                 if r["device_tier"] == tname:
                     vals[pidx[r["date"]]] = r["ft_p50_ms"]
             tier_series.append(Series(f"{tname} tier", vals, slot=TIER_SLOTS[tname]))
         perf = [
-            bar_chart("Frame time by device tier (last 28 days)", cats, [Series("p50", [t["ft_p50_ms"] for t in tiers]), Series("p95", [t["ft_p95_ms"] for t in tiers], slot=2)], fmt_ms,
-                      "Median over 30 s windows of the window p50 / p95 frame time", x_name="Tier"),
-            bar_chart("Slow frames (> 33.3 ms)", cats, [Series("Share of frames", [t["slow_frame_share"] for t in tiers])], fmt_pct, "sum(slow frames) / sum(frames)", x_name="Tier"),
-            bar_chart("Memory p95 by tier", cats, [Series("Allocated (p95)", [t["mem_alloc_p95_mb"] for t in tiers]), Series("Reserved (p95)", [t["mem_reserved_p95_mb"] for t in tiers], slot=2),
-                                                   Series("Process, OS view (p95)", [t.get("sys_used_p95_mb") for t in tiers], slot=4)], fmt_mb,
-                      "Peak per window, 95th percentile. OS view = System Used Memory, what low-memory kills act on", x_name="Tier"),
-            line_chart("Median frame time per day", pdates, tier_series, fmt_ms, "16.7 ms = 60 fps, 33.3 ms = 30 fps", zero=False),
+            bar_chart(
+                "Frame time by device tier (last 28 days)",
+                cats,
+                [
+                    Series("p50", [t["ft_p50_ms"] for t in tiers]),
+                    Series("p95", [t["ft_p95_ms"] for t in tiers], slot=2),
+                ],
+                fmt_ms,
+                "Median over 30 s windows of the window p50 / p95 frame time",
+                x_name="Tier",
+            ),
+            bar_chart(
+                "Slow frames (> 33.3 ms)",
+                cats,
+                [Series("Share of frames", [t["slow_frame_share"] for t in tiers])],
+                fmt_pct,
+                "sum(slow frames) / sum(frames)",
+                x_name="Tier",
+            ),
+            bar_chart(
+                "Memory p95 by tier",
+                cats,
+                [
+                    Series("Allocated (p95)", [t["mem_alloc_p95_mb"] for t in tiers]),
+                    Series("Reserved (p95)", [t["mem_reserved_p95_mb"] for t in tiers], slot=2),
+                    Series(
+                        "Process, OS view (p95)", [t.get("sys_used_p95_mb") for t in tiers], slot=4
+                    ),
+                ],
+                fmt_mb,
+                "Peak per window, 95th percentile. OS view = System Used Memory, what low-memory kills act on",
+                x_name="Tier",
+            ),
+            line_chart(
+                "Median frame time per day",
+                pdates,
+                tier_series,
+                fmt_ms,
+                "16.7 ms = 60 fps, 33.3 ms = 30 fps",
+                zero=False,
+            ),
         ]
         if any(t.get("cpu_main_p95_ms") or t.get("gpu_p95_ms") for t in tiers):
             ftm = next((t.get("ftm_share") for t in tiers if t["device_tier"] == "all"), None)
-            perf.insert(1, bar_chart(
-                "CPU or GPU bound? p95 by tier", cats,
-                [Series("Frame", [t["ft_p95_ms"] for t in tiers]), Series("CPU main thread", [t.get("cpu_main_p95_ms") for t in tiers], slot=2),
-                 Series("GPU", [t.get("gpu_p95_ms") for t in tiers], slot=3)], fmt_ms,
-                "FrameTimingManager via ProfilerRecorder. GPU near the frame time = GPU-bound"
-                + (f" · {fmt_pct(ftm, 0)} of windows timed by FrameTimingManager, the rest by deltaTime" if ftm is not None else ""),
-                x_name="Tier"))
-        loads = q(con, "SELECT * FROM fct_load_daily WHERE app_id = ? AND kind = 'cold_start' ORDER BY date", [aid])
+            perf.insert(
+                1,
+                bar_chart(
+                    "CPU or GPU bound? p95 by tier",
+                    cats,
+                    [
+                        Series("Frame", [t["ft_p95_ms"] for t in tiers]),
+                        Series(
+                            "CPU main thread", [t.get("cpu_main_p95_ms") for t in tiers], slot=2
+                        ),
+                        Series("GPU", [t.get("gpu_p95_ms") for t in tiers], slot=3),
+                    ],
+                    fmt_ms,
+                    "FrameTimingManager via ProfilerRecorder. GPU near the frame time = GPU-bound"
+                    + (
+                        f" · {fmt_pct(ftm, 0)} of windows timed by FrameTimingManager, the rest by deltaTime"
+                        if ftm is not None
+                        else ""
+                    ),
+                    x_name="Tier",
+                ),
+            )
+        loads = q(
+            con,
+            "SELECT * FROM fct_load_daily WHERE app_id = ? AND kind = 'cold_start' ORDER BY date",
+            [aid],
+        )
         if loads:
-            perf.append(line_chart("Cold start p50 / p95", [r["date"] for r in loads], [Series("p50", [r["p50_ms"] for r in loads]), Series("p95", [r["p95_ms"] for r in loads], slot=2)], fmt_ms,
-                                   "Process start to first interactive frame", zero=False))
+            perf.append(
+                line_chart(
+                    "Cold start p50 / p95",
+                    [r["date"] for r in loads],
+                    [
+                        Series("p50", [r["p50_ms"] for r in loads]),
+                        Series("p95", [r["p95_ms"] for r in loads], slot=2),
+                    ],
+                    fmt_ms,
+                    "Process start to first interactive frame",
+                    zero=False,
+                )
+            )
         parts.append('<h2>Client performance</h2><div class="grid2">' + "".join(perf) + "</div>")
-        ver = q(con, "SELECT * FROM fct_perf_by_version WHERE app_id = ? ORDER BY first_seen, device_tier", [aid])
+        ver = q(
+            con,
+            "SELECT * FROM fct_perf_by_version WHERE app_id = ? ORDER BY first_seen, device_tier",
+            [aid],
+        )
         if ver:
-            parts.append('<h2>Performance by app version</h2><p class="note">Use this to spot a regression introduced by a release.</p>' + data_table(
-                ["Version", "Tier", "First seen", "Windows", "p50", "p95", "CPU p95", "GPU p95", "Slow frames"],
-                [[str(r["app_version"]), r["device_tier"], str(r["first_seen"]), fmt_int(r["windows"]), fmt_ms(r["ft_p50_ms"]), fmt_ms(r["ft_p95_ms"]),
-                  fmt_ms(r.get("cpu_main_p95_ms")), fmt_ms(r.get("gpu_p95_ms")), fmt_pct(r["slow_frame_share"])] for r in ver],
-                left_cols=(0, 1, 2),
-            ))
+            parts.append(
+                '<h2>Performance by app version</h2><p class="note">Use this to spot a regression introduced by a release.</p>'
+                + data_table(
+                    [
+                        "Version",
+                        "Tier",
+                        "First seen",
+                        "Windows",
+                        "p50",
+                        "p95",
+                        "CPU p95",
+                        "GPU p95",
+                        "Slow frames",
+                    ],
+                    [
+                        [
+                            str(r["app_version"]),
+                            r["device_tier"],
+                            str(r["first_seen"]),
+                            fmt_int(r["windows"]),
+                            fmt_ms(r["ft_p50_ms"]),
+                            fmt_ms(r["ft_p95_ms"]),
+                            fmt_ms(r.get("cpu_main_p95_ms")),
+                            fmt_ms(r.get("gpu_p95_ms")),
+                            fmt_pct(r["slow_frame_share"]),
+                        ]
+                        for r in ver
+                    ],
+                    left_cols=(0, 1, 2),
+                )
+            )
         lt = q(con, "SELECT * FROM fct_load_times WHERE app_id = ? ORDER BY kind, scene", [aid])
         if lt:
-            parts.append("<h2>Load times (last 28 days)</h2>" + data_table(
-                ["Kind", "Scene", "Samples", "p50", "p95"],
-                [[r["kind"], r["scene"] or "–", fmt_int(r["samples"]), fmt_ms(r["p50_ms"]), fmt_ms(r["p95_ms"])] for r in lt],
-                left_cols=(0, 1),
-            ))
+            parts.append(
+                "<h2>Load times (last 28 days)</h2>"
+                + data_table(
+                    ["Kind", "Scene", "Samples", "p50", "p95"],
+                    [
+                        [
+                            r["kind"],
+                            r["scene"] or "–",
+                            fmt_int(r["samples"]),
+                            fmt_ms(r["p50_ms"]),
+                            fmt_ms(r["p95_ms"]),
+                        ]
+                        for r in lt
+                    ],
+                    left_cols=(0, 1),
+                )
+            )
 
     # Levels
     lv = q(con, "SELECT * FROM fct_level_funnel WHERE app_id = ? ORDER BY level", [aid])
@@ -391,11 +736,36 @@ def app_page(con, cfg, apps, app, alerts, rules, demo, as_of) -> str:
     if lv:
         cats = [str(r["level"]) for r in lv]
         levels = [
-            bar_chart("Players reaching each level", cats, [Series("Users reached", [r["users_reached"] for r in lv])], fmt_compact, "Users whose highest started level is at least this level", x_name="Level"),
-            bar_chart("Churn by level", cats, [Series("Churn rate", [r["churn_rate"] for r in lv], slot=2)], fmt_pct,
-                      f"Stopped at this level and inactive for {lv[0].get('churn_window_days') or 7} days / users reached", x_name="Level"),
-            bar_chart("Win rate by level", cats, [Series("Completes / (completes + fails)", [r["win_rate"] for r in lv], slot=3)], fmt_pct, x_name="Level"),
-            bar_chart("Attempts per completion", cats, [Series("Starts / completes", [r["attempts_per_completion"] for r in lv], slot=4)], fmt_num, x_name="Level"),
+            bar_chart(
+                "Players reaching each level",
+                cats,
+                [Series("Users reached", [r["users_reached"] for r in lv])],
+                fmt_compact,
+                "Users whose highest started level is at least this level",
+                x_name="Level",
+            ),
+            bar_chart(
+                "Churn by level",
+                cats,
+                [Series("Churn rate", [r["churn_rate"] for r in lv], slot=2)],
+                fmt_pct,
+                f"Stopped at this level and inactive for {lv[0].get('churn_window_days') or 7} days / users reached",
+                x_name="Level",
+            ),
+            bar_chart(
+                "Win rate by level",
+                cats,
+                [Series("Completes / (completes + fails)", [r["win_rate"] for r in lv], slot=3)],
+                fmt_pct,
+                x_name="Level",
+            ),
+            bar_chart(
+                "Attempts per completion",
+                cats,
+                [Series("Starts / completes", [r["attempts_per_completion"] for r in lv], slot=4)],
+                fmt_num,
+                x_name="Level",
+            ),
         ]
         parts.append('<h2>Level funnel</h2><div class="grid2">' + "".join(levels) + "</div>")
 
@@ -406,7 +776,13 @@ def app_page(con, cfg, apps, app, alerts, rules, demo, as_of) -> str:
     return _page(cfg, title, "\n".join(parts), apps, aid, demo, as_of, "../")
 
 
-def build_site(con: duckdb.DuckDBPyConnection, cfg: Config, out_dir: Path, alerts: list[Alert] | None = None, rules: list[Rule] | None = None) -> list[Path]:
+def build_site(
+    con: duckdb.DuckDBPyConnection,
+    cfg: Config,
+    out_dir: Path,
+    alerts: list[Alert] | None = None,
+    rules: list[Rule] | None = None,
+) -> list[Path]:
     alerts, rules = alerts or [], rules or []
     apps = q(con, "SELECT * FROM fct_app_summary ORDER BY app_id")
     order = {a.id: i for i, a in enumerate(cfg.apps)}

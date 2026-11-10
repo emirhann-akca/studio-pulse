@@ -54,13 +54,28 @@ class GA4Options:
     # used for the first-touch fallback date. Set from the app's `timezone`.
     timezone: str = "UTC"
     queries: list[str] = field(
-        default_factory=lambda: ["active_users", "cohorts", "event_counts", "levels", "level_max", "perf", "loads"]
+        default_factory=lambda: [
+            "active_users",
+            "cohorts",
+            "event_counts",
+            "levels",
+            "level_max",
+            "perf",
+            "loads",
+        ]
     )
 
     @classmethod
     def from_source(cls, src: dict[str, Any]) -> GA4Options:
         o = cls()
-        for k in ("app_info_ids", "iap_events", "ad_events", "new_user_events", "fps_events", "queries"):
+        for k in (
+            "app_info_ids",
+            "iap_events",
+            "ad_events",
+            "new_user_events",
+            "fps_events",
+            "queries",
+        ):
             if k in src:
                 setattr(o, k, list(src[k]))
         if "churn_window_days" in src:
@@ -100,7 +115,11 @@ class GA4Queries:
         """Daily DAU/WAU/MAU per platform, plus same-day sessions, crashes, revenue."""
         d = self.d
         hist_start = self.start - dt.timedelta(days=29)
-        iap, ad, new = sql_list(self.o.iap_events), sql_list(self.o.ad_events), sql_list(self.o.new_user_events)
+        iap, ad, new = (
+            sql_list(self.o.iap_events),
+            sql_list(self.o.ad_events),
+            sql_list(self.o.new_user_events),
+        )
         return f"""
 WITH ev AS (
     SELECT
@@ -109,9 +128,9 @@ WITH ev AS (
         UPPER(platform) AS platform,
         event_name,
         event_timestamp AS ts,
-        {d.param_int('ga_session_id')} AS sid,
-        {d.param_num('engagement_time_msec')} AS eng_ms,
-        {d.param_num('fatal')} AS fatal,
+        {d.param_int("ga_session_id")} AS sid,
+        {d.param_num("engagement_time_msec")} AS eng_ms,
+        {d.param_num("fatal")} AS fatal,
         event_value_in_usd AS value_usd
     FROM {d.ga4_events()}
     WHERE {self._where(hist_start, self._active_filter())}
@@ -138,7 +157,7 @@ SELECT
     s.day AS date,
     ud.platform,
     COUNT(DISTINCT CASE WHEN ud.d = s.day THEN ud.u END) AS dau,
-    COUNT(DISTINCT CASE WHEN ud.d >= {d.add_days('s.day', -6)} THEN ud.u END) AS wau,
+    COUNT(DISTINCT CASE WHEN ud.d >= {d.add_days("s.day", -6)} THEN ud.u END) AS wau,
     COUNT(DISTINCT ud.u) AS mau,
     SUM(CASE WHEN ud.d = s.day THEN ud.is_new ELSE 0 END) AS new_users,
     SUM(CASE WHEN ud.d = s.day THEN ud.sessions ELSE 0 END) AS sessions,
@@ -148,9 +167,9 @@ SELECT
     SUM(CASE WHEN ud.d = s.day THEN ud.iap_usd ELSE 0 END) AS iap_revenue_usd,
     SUM(CASE WHEN ud.d = s.day THEN ud.ad_usd ELSE 0 END) AS ad_revenue_usd,
     COUNT(DISTINCT CASE WHEN ud.d = s.day AND ud.iap_usd > 0 THEN ud.u END) AS payers,
-    MIN({d.days_between('s.day', 'b.first_d')}) + 1 AS history_days
+    MIN({d.days_between("s.day", "b.first_d")}) + 1 AS history_days
 FROM spine s
-JOIN user_day ud ON ud.d BETWEEN {d.add_days('s.day', -29)} AND s.day
+JOIN user_day ud ON ud.d BETWEEN {d.add_days("s.day", -29)} AND s.day
 CROSS JOIN bounds b
 GROUP BY s.day, ud.platform
 """
@@ -158,7 +177,11 @@ GROUP BY s.day, ud.platform
     def cohorts(self) -> str:
         """Install cohorts x day N: active users, sessions, revenue, first payers."""
         d = self.d
-        iap, ad, new = sql_list(self.o.iap_events), sql_list(self.o.ad_events), sql_list(self.o.new_user_events)
+        iap, ad, new = (
+            sql_list(self.o.iap_events),
+            sql_list(self.o.ad_events),
+            sql_list(self.o.new_user_events),
+        )
         return f"""
 WITH ev AS (
     SELECT
@@ -167,8 +190,8 @@ WITH ev AS (
         UPPER(platform) AS platform,
         event_name,
         event_timestamp AS ts,
-        {d.micros_to_date('user_first_touch_timestamp', self.o.timezone)} AS first_touch_d,
-        {d.param_int('ga_session_id')} AS sid,
+        {d.micros_to_date("user_first_touch_timestamp", self.o.timezone)} AS first_touch_d,
+        {d.param_int("ga_session_id")} AS sid,
         event_value_in_usd AS value_usd
     FROM {d.ga4_events()}
     WHERE {self._where(None, self._active_filter())}
@@ -192,7 +215,7 @@ first_pay AS (
     GROUP BY u, platform
 ),
 activity AS (
-    SELECT c.platform, c.cohort_date, {d.days_between('ud.d', 'c.cohort_date')} AS day_n,
+    SELECT c.platform, c.cohort_date, {d.days_between("ud.d", "c.cohort_date")} AS day_n,
            COUNT(*) AS users, SUM(ud.sessions) AS sessions,
            SUM(ud.iap_usd) AS iap_revenue_usd, SUM(ud.ad_usd) AS ad_revenue_usd
     FROM user_day ud
@@ -202,7 +225,7 @@ activity AS (
     GROUP BY 1, 2, 3
 ),
 payers AS (
-    SELECT c.platform, c.cohort_date, {d.days_between('p.pay_d', 'c.cohort_date')} AS day_n,
+    SELECT c.platform, c.cohort_date, {d.days_between("p.pay_d", "c.cohort_date")} AS day_n,
            COUNT(*) AS new_payers
     FROM first_pay p
     JOIN cohort c ON c.u = p.u AND c.platform = p.platform
@@ -267,10 +290,10 @@ GROUP BY 1, 2
             WHEN event_name = '{E.LEVEL_START}' THEN 'start'
             WHEN event_name = '{E.LEVEL_COMPLETE}' THEN 'complete'
             WHEN event_name = '{E.LEVEL_FAIL}' THEN 'fail'
-            WHEN {d.param_num('success')} = 1 OR LOWER({d.param_str('success')}) IN ('true', 'yes') THEN 'complete'
+            WHEN {d.param_num("success")} = 1 OR LOWER({d.param_str("success")}) IN ('true', 'yes') THEN 'complete'
             ELSE 'fail'
         END AS action,
-        CAST(COALESCE({d.param_num(E.PARAM_LEVEL)}, {d.param_num('level_name')}) AS {d.int_type}) AS level
+        CAST(COALESCE({d.param_num(E.PARAM_LEVEL)}, {d.param_num("level_name")}) AS {d.int_type}) AS level
     FROM {d.ga4_events()}
     WHERE {self._where(None, f"event_name IN ({names})")}"""
 
@@ -329,10 +352,10 @@ SELECT
     UPPER(platform) AS platform,
     app_info.version AS app_version,
     COALESCE({only_perf(d.param_str(E.PARAM_TIER))}, 'unknown') AS device_tier,
-    CASE {' '.join(scene)} END AS scene,
+    CASE {" ".join(scene)} END AS scene,
     {only_perf(d.param_num(E.PARAM_WINDOW_S))} AS window_s,
     CAST({only_perf(d.param_num(E.PARAM_FRAMES))} AS {d.int_type}) AS frames,
-    CASE {' '.join(ft50)} END AS ft_p50_ms,
+    CASE {" ".join(ft50)} END AS ft_p50_ms,
     {only_perf(d.param_num(E.PARAM_FT_P95))} AS ft_p95_ms,
     {only_perf(d.param_num(E.PARAM_FT_MAX))} AS ft_max_ms,
     CAST({only_perf(d.param_num(E.PARAM_SLOW_FRAMES))} AS {d.int_type}) AS slow_frames,
@@ -405,7 +428,16 @@ def ingest(
             constants = {"as_of_date": end, "churn_window_days": opts.churn_window_days}
         n = replace_slice(con, table, result, app_id=app_id, source=source, constants=constants)
         billed = executor.stats[-1].billed_bytes if len(executor.stats) > before else None
-        record_load(con, app_id=app_id, source=source, table=table, rows=n, date_col=date_col, bytes_billed=billed, detail=name)
+        record_load(
+            con,
+            app_id=app_id,
+            source=source,
+            table=table,
+            rows=n,
+            date_col=date_col,
+            bytes_billed=billed,
+            detail=name,
+        )
         loaded[name] = n
         log(f"    ga4 {name:<13} -> {table:<22} {n:>7} rows")
     return loaded

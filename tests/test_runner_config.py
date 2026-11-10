@@ -54,7 +54,17 @@ def test_config_env_expansion(monkeypatch, tmp_path: Path):
     cfg = config_from_dict(
         {
             "warehouse": "local/w.duckdb",
-            "apps": [{"id": "game_one", "sources": {"ga4_bigquery": {"project": "${PULSE_TEST_PROJECT}", "dataset": "${DS:-analytics_1}"}}}],
+            "apps": [
+                {
+                    "id": "game_one",
+                    "sources": {
+                        "ga4_bigquery": {
+                            "project": "${PULSE_TEST_PROJECT}",
+                            "dataset": "${DS:-analytics_1}",
+                        }
+                    },
+                }
+            ],
         },
         base_dir=tmp_path,
     )

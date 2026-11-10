@@ -73,10 +73,15 @@ def replace_slice(
         con.execute(f"DELETE FROM {table} WHERE {cond}", args)
         n = 0
         if data.num_rows:
-            consts = {"app_id": app_id, "_source": source, "_loaded_at": utcnow(), **(constants or {})}
+            consts = {
+                "app_id": app_id,
+                "_source": source,
+                "_loaded_at": utcnow(),
+                **(constants or {}),
+            }
             const_cols = [c for c in consts if c not in data.column_names]
             select = ", ".join(
-                [f'"{c}"' for c in data.column_names] + [f"? AS \"{c}\"" for c in const_cols]
+                [f'"{c}"' for c in data.column_names] + [f'? AS "{c}"' for c in const_cols]
             )
             con.register("_pulse_incoming", data)
             try:
@@ -126,7 +131,9 @@ def upsert_apps(con: duckdb.DuckDBPyConnection, apps: Iterable[Any], is_demo: bo
         )
 
 
-def load_fx_rates(con: duckdb.DuckDBPyConnection, rates: Mapping[str, float], valid_from: dt.date) -> None:
+def load_fx_rates(
+    con: duckdb.DuckDBPyConnection, rates: Mapping[str, float], valid_from: dt.date
+) -> None:
     """Replace the fallback FX table with a flat rate per currency."""
     con.execute("DELETE FROM raw_fx_rates")
     for cur, rate in sorted(rates.items()):
