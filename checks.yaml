@@ -1,0 +1,101 @@
+# Data-quality checks run by `pulse check` and by every `pulse run`.
+# Each check is one SQL query that returns the failing rows (types and keys are
+# documented in src/studio_pulse/checks.py). severity: error fails the run
+# (non-zero exit, red on the dashboard, notified as critical); warn is shown
+# and notified but does not fail the run.
+
+defaults:
+  severity: error
+
+checks:
+  # -- freshness: providers delete data (AdMob, Play reviews ...), so a source
+  #    that stops loading must be noticed within days.
+  - name: source_freshness
+    type: freshness
+    description: Every configured source has data no older than 3 days before the as-of date.
+    max_lag_days: 3
+    overrides: {play_console: 4}   # Play statistics CSVs land ~2 days late
+    # Rows exist only when something happens (a crash, a purchase, a sale), so a
+    # quiet week is not a stale source: these are judged by the last successful
+    # load instead of the newest data date.
+    sparse: [crashlytics_bigquery, crashlytics_files, revenuecat, app_store]
+
+  # -- keys: a loader must never duplicate rows; models must have one row per key
+  - {name: raw_active_users_unique, type: unique, table: raw_ga4_active_users, columns: [app_id, _source, platform, date]}
+  - {name: raw_cohort_days_unique, type: unique, table: raw_ga4_cohort_days, columns: [app_id, _source, platform, cohort_date, day_n]}
+  - {name: raw_event_counts_unique, type: unique, table: raw_ga4_event_counts, columns: [app_id, _source, date, event_name]}
+  - {name: raw_level_daily_unique, type: unique, table: raw_level_daily, columns: [app_id, _source, date, level, action]}
+  - {name: raw_crashlytics_unique, type: unique, table: raw_crashlytics_daily, columns: [app_id, _source, date, platform]}
+  - {name: raw_admob_unique, type: unique, table: raw_admob_daily, columns: [app_id, _source, date, admob_app_id]}
+  - {name: raw_store_ratings_unique, type: unique, table: raw_store_ratings, columns: [app_id, _source, store, date]}
+  - name: raw_revenuecat_rows_unique
+    type: unique
+    table: raw_revenuecat_transactions
+    columns: [app_id, _source, _file, _row]
+    description: Each row of each export file is loaded once (re-deliveries of a transaction in later files are expected).
+  - {name: rc_transactions_one_version, type: unique, table: stg_rc_transactions, columns: [app_id, store_transaction_id, renewal_number]}
+  - {name: app_daily_unique, type: unique, table: fct_app_daily, columns: [app_id, date]}
+  - {name: retention_unique, type: unique, table: fct_retention, columns: [app_id, cohort_date, day_n]}
+  - {name: perf_daily_unique, type: unique, table: fct_perf_daily, columns: [app_id, date, device_tier]}
+  - {name: store_daily_unique, type: unique, table: stg_store_daily, columns: [app_id, store, date]}
+
+  # -- not null
+  - {name: app_daily_keys_not_null, type: not_null, table: fct_app_daily, columns: [app_id, date]}
+  - {name: retention_keys_not_null, type: not_null, table: fct_retention, columns: [app_id, cohort_date, day_n, cohort_size]}
+  - {name: raw_active_users_platform_not_null, type: not_null, table: raw_ga4_active_users, columns: [platform, dau]}
+  - {name: raw_revenuecat_ids_not_null, type: not_null, table: raw_revenuecat_transactions, columns: [store_transaction_id, start_time]}
+
+  # -- accepted values
+  - {name: platform_values, type: accepted_values, table: raw_ga4_active_users, column: platform, values: [ANDROID, IOS, WEB]}
+  - {name: perf_tier_values, type: accepted_values, table: raw_perf_windows, column: device_tier, values: [low, mid, high, unknown]}
+  - {name: load_kind_values, type: accepted_values, table: raw_load_times, column: kind, values: [cold_start, scene_load]}
+  - {name: level_action_values, type: accepted_values, table: raw_level_daily, column: action, values: [start, complete, fail]}
+  - {name: store_values, type: accepted_values, table: raw_store_installs, column: store, values: [google_play, app_store]}
+
+  # -- referential: every row belongs to an app in the config
+  - {name: app_daily_app_known, type: relationship, table: fct_app_daily, column: app_id, to: meta_apps.app_id, severity: warn}
+  - {name: raw_revenuecat_app_known, type: relationship, table: raw_revenuecat_transactions, column: app_id, to: meta_apps.app_id, severity: warn}
+
+  # -- ranges and reconciliations: metric definitions that must hold
+  - {name: retention_between_0_and_1, type: range, table: fct_retention, column: retention, min: 0, max: 1}
+  - {name: retention_d0_is_one, type: expression, table: fct_retention, condition: "day_n <> 0 OR abs(retention - 1) < 1e-9"}
+  - {name: crash_free_users_between_0_and_1, type: range, table: fct_app_daily, column: crash_free_users, min: 0, max: 1}
+  - {name: crash_free_sessions_between_0_and_1, type: range, table: fct_app_daily, column: crash_free_sessions, min: 0, max: 1}
+  - {name: payer_conversion_between_0_and_1, type: range, table: fct_app_daily, column: payer_conversion, min: 0, max: 1}
+  - {name: revenue_not_negative, type: range, table: fct_app_daily, column: revenue_usd, min: 0, severity: warn}
+  - name: dau_le_wau_le_mau
+    type: expression
+    table: fct_app_daily
+    description: A day's users are a subset of the week's, the week's of the month's.
+    condition: "(wau IS NULL OR dau <= wau) AND (mau IS NULL OR COALESCE(wau, dau) <= mau)"
+  - name: ga4_crash_counts_within_denominators
+    type: expression
+    table: raw_ga4_active_users
+    description: GA4 app_exception counts come from the same events as DAU and sessions, so they cannot exceed them.
+    condition: "(crashed_users IS NULL OR crashed_users <= dau) AND (crashed_sessions IS NULL OR crashed_sessions <= sessions)"
+  - name: crashlytics_within_ga4_denominators
+    type: expression
+    table: fct_app_daily
+    severity: warn
+    description: Crashlytics counts above GA4 DAU or sessions mean a crash loop or a tracking gap; crash-free rates are capped at 0 then.
+    condition: "(crashed_users IS NULL OR dau IS NULL OR crashed_users <= dau) AND (crashed_sessions IS NULL OR sessions IS NULL OR crashed_sessions <= sessions)"
+  - name: ad_revenue_ga4_vs_admob
+    type: sql
+    severity: warn
+    description: Over the last 7 days GA4 ad_impression revenue is within 30% of AdMob earnings.
+    sql: |
+      WITH g AS (SELECT app_id, date, SUM(ad_revenue_usd) AS ga4 FROM raw_ga4_active_users GROUP BY 1, 2),
+      a AS (SELECT app_id, date, earnings_usd AS admob FROM stg_admob_daily),
+      last AS (SELECT app_id, MAX(date) AS d FROM a GROUP BY 1)
+      SELECT app_id, SUM(ga4) AS ga4_usd, SUM(admob) AS admob_usd, SUM(ga4) / SUM(admob) AS ratio
+      FROM g JOIN a USING (app_id, date) JOIN last USING (app_id)
+      WHERE date > last.d - 7 AND ga4 IS NOT NULL
+      GROUP BY 1
+      HAVING SUM(admob) > 0 AND (SUM(ga4) / SUM(admob) < 0.7 OR SUM(ga4) / SUM(admob) > 1.3)
+
+  # -- volume: the newest day against the median of the 14 before it. A partial
+  #    export (GA4 still landing, a telemetry upload that stopped) shows here.
+  - {name: ga4_event_volume, type: row_count_drop, table: raw_ga4_event_counts, measure: SUM(events), max_drop_pct: 60, min_baseline: 100}
+  - {name: perf_window_volume, type: row_count_drop, table: raw_perf_windows, max_drop_pct: 60, min_baseline: 20}
+  - {name: load_event_volume, type: row_count_drop, table: raw_load_times, max_drop_pct: 60, min_baseline: 20}
+  - {name: admob_impression_volume, type: row_count_drop, table: raw_admob_daily, measure: SUM(impressions), max_drop_pct: 60, min_baseline: 100, severity: warn}

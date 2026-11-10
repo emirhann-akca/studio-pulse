@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -11,7 +12,9 @@ import duckdb
 
 from .. import __version__, benchmarks
 from ..alerts import Alert, Rule
+from ..checks import CheckResult, summarize
 from ..config import Config
+from ..runstate import replace_file
 from .assets import CSS, JS
 from .charts import (
     Series,
@@ -141,6 +144,38 @@ def _alerts_html(alerts: list[Alert], app_names: dict[str, str], rules: list[Rul
     return '<ul class="alerts">' + "".join(items) + "</ul>"
 
 
+def _checks_html(checks: list[CheckResult] | None) -> str:
+    if checks is None:
+        return '<p class="note">Data-quality checks were not run for this build.</p>'
+    if not checks:
+        return '<p class="note">No data-quality checks configured (checks.yaml).</p>'
+    s = summarize(checks)
+    head = (
+        f'<p class="note">{s["passed"]} of {s["checks"]} checks passed'
+        f" · {s['errors']} error(s) · {s['warnings']} warning(s). "
+        "Checks are defined in <code>checks.yaml</code>; errors fail the refresh.</p>"
+    )
+    bad = [c for c in checks if c.status != "pass"]
+    if not bad:
+        return (
+            head
+            + '<ul class="alerts"><li class="ok"><span class="sev">OK</span>All data-quality checks passed.</li></ul>'
+        )
+    items = []
+    for c in bad:
+        cls = "critical" if c.severity == "error" else "warning"
+        label = "Error" if c.severity == "error" else "Warning"
+        if c.status == "error":
+            label += " (check could not run)"
+        items.append(
+            f'<li class="{cls}"><span class="sev">{label}</span>'
+            f"<code>{escape(c.name)}</code>"
+            + (f" · {escape(c.table)}" if c.table else "")
+            + f"<br>{escape(c.message)}</li>"
+        )
+    return head + '<ul class="alerts">' + "".join(items) + "</ul>"
+
+
 def _freshness(
     con: duckdb.DuckDBPyConnection, as_of: dt.date, app_id: str | None, names: dict[str, str]
 ) -> str:
@@ -202,7 +237,7 @@ def _rolling(values: list[Any], window: int) -> list[float | None]:
 # -- portfolio -------------------------------------------------------------------
 
 
-def portfolio_page(con, cfg, apps, alerts, rules, demo, as_of) -> str:
+def portfolio_page(con, cfg, apps, alerts, rules, demo, as_of, checks=None) -> str:
     names = {a["app_id"]: a["name"] for a in apps}
     tot_dau = sum(a["dau_7d"] or 0 for a in apps)
     prev_dau = sum(a["dau_prev_7d"] or 0 for a in apps)
@@ -302,6 +337,7 @@ def portfolio_page(con, cfg, apps, alerts, rules, demo, as_of) -> str:
         f"<h2>Apps</h2>{table}"
         f"<h2>Trends</h2>{charts}"
         f"<h2>Alerts</h2>{_alerts_html(alerts, names, rules)}"
+        f"<h2>Data quality</h2>{_checks_html(checks)}"
         f"<h2>Data freshness</h2>{_freshness(con, as_of, None, names)}"
     )
     return _page(cfg, cfg.title, body, apps, None, demo, as_of, "")
@@ -776,12 +812,21 @@ def app_page(con, cfg, apps, app, alerts, rules, demo, as_of) -> str:
     return _page(cfg, title, "\n".join(parts), apps, aid, demo, as_of, "../")
 
 
+def _write(path: Path, text: str) -> None:
+    # Write-then-rename, so `pulse serve` never sends a half-written page while
+    # a scheduled refresh rebuilds the site.
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp.write_text(text, encoding="utf-8")
+    replace_file(tmp, path)
+
+
 def build_site(
     con: duckdb.DuckDBPyConnection,
     cfg: Config,
     out_dir: Path,
     alerts: list[Alert] | None = None,
     rules: list[Rule] | None = None,
+    checks: list[CheckResult] | None = None,
 ) -> list[Path]:
     alerts, rules = alerts or [], rules or []
     apps = q(con, "SELECT * FROM fct_app_summary ORDER BY app_id")
@@ -793,11 +838,12 @@ def build_site(
     (out_dir / "apps").mkdir(exist_ok=True)
     written = []
     p = out_dir / "index.html"
-    p.write_text(portfolio_page(con, cfg, apps, alerts, rules, demo, as_of), encoding="utf-8")
+    _write(p, portfolio_page(con, cfg, apps, alerts, rules, demo, as_of, checks))
     written.append(p)
     for a in apps:
         p = out_dir / "apps" / f"{a['app_id']}.html"
-        p.write_text(app_page(con, cfg, apps, a, alerts, rules, demo, as_of), encoding="utf-8")
+        _write(p, app_page(con, cfg, apps, a, alerts, rules, demo, as_of))
         written.append(p)
-    (out_dir / ".nojekyll").write_text("", encoding="utf-8")
+    if not (out_dir / ".nojekyll").exists():
+        (out_dir / ".nojekyll").write_text("", encoding="utf-8")
     return written

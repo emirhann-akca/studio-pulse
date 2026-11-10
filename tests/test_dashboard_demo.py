@@ -35,7 +35,7 @@ def test_demo_builds_every_page(demo):
 def test_demo_banner_and_fictional_names(demo):
     site, _ = demo
     for page in site.rglob("*.html"):
-        html = page.read_text()
+        html = page.read_text(encoding="utf-8")
         assert "Synthetic demo data" in html, page
         assert "fictional" in html
 
@@ -43,7 +43,7 @@ def test_demo_banner_and_fictional_names(demo):
 def test_pages_are_self_contained(demo):
     site, _ = demo
     for page in site.rglob("*.html"):
-        html = page.read_text()
+        html = page.read_text(encoding="utf-8")
         assert not re.search(r"""src=["']https?://""", html), (
             page
         )  # nothing is loaded from elsewhere
@@ -54,7 +54,7 @@ def test_pages_are_self_contained(demo):
 
 def test_every_chart_has_a_data_table_and_legend_rules(demo):
     site, _ = demo
-    html = (site / "apps" / "mossy_match.html").read_text()
+    html = (site / "apps" / "mossy_match.html").read_text(encoding="utf-8")
     figures = re.findall(r'<figure class="chart".*?</figure>', html, flags=re.S)
     assert len(figures) >= 15
     for fig in figures:
@@ -127,11 +127,11 @@ def test_build_dashboard_cli_uses_existing_warehouse(demo, tmp_path: Path):
 
 def test_retention_benchmarks_on_game_pages_only(demo):
     site, _ = demo
-    game = (site / "apps" / "mossy_match.html").read_text()
-    fitness = (site / "apps" / "pacer_pal.html").read_text()
+    game = (site / "apps" / "mossy_match.html").read_text(encoding="utf-8")
+    fitness = (site / "apps" / "pacer_pal.html").read_text(encoding="utf-8")
     assert 'class="bench"' in game and "top 10%" in game
     assert 'class="bench"' not in fitness and "describe games" in fitness
-    for html in (game, fitness, (site / "index.html").read_text()):
+    for html in (game, fitness, (site / "index.html").read_text(encoding="utf-8")):
         assert "GameAnalytics" in html and "16,262" in html
 
 

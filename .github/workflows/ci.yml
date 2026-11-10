@@ -1,32 +1,257 @@
+# Tests on Windows, macOS (Apple Silicon) and Linux x Python 3.11-3.13, a real
+# user install on each OS, a real OS schedule round trip, and a check that the
+# demo's model tables are byte-identical on every job. Failures are published
+# as annotations (.github/scripts/annotate.py) because job logs need a token.
 name: ci
 
 on:
   push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.13"]
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.13"
+      - run: python -m pip install "ruff>=0.5"
+      - run: ruff check --output-format=github .
+      - run: python .github/scripts/annotate.py "ruff format --check" ruff format --check .
+
+  tests:
+    name: tests (${{ matrix.os }}, py${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        python: ["3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
           cache: pip
       - name: Install
-        run: pip install -e .[dev]
-      - name: Lint
+        run: python .github/scripts/annotate.py "pip install (${{ matrix.os }} py${{ matrix.python }})" python -m pip install -e ".[dev]"
+      # An implicit locale encoding is an error on every OS: this is how a
+      # cp1254 (Turkish Windows) bug shows up on macOS and Linux too. Failures
+      # become annotations through pytest-github-actions-annotate-failures.
+      - name: Tests
+        run: python -X warn_default_encoding -m pytest -W error::EncodingWarning -p no:cacheprovider
+      - name: Demo, data-quality checks and model fingerprint (same encoding gate)
+        shell: bash
         run: |
-          ruff check .
-          ruff format --check .
-      - name: Test
-        run: pytest
-      - name: Demo smoke run
-        run: pulse demo --scale 0.2 --out demo-site --workdir .pulse-demo
+          gate="python -X warn_default_encoding -W error::EncodingWarning -m studio_pulse.cli"
+          a="python .github/scripts/annotate.py"
+          tag="${{ matrix.os }} py${{ matrix.python }}"
+          $a "pulse demo ($tag)" $gate demo --scale 0.2 --out demo-site --workdir .pulse-demo
+          $a "pulse check ($tag)" $gate check --config .pulse-demo/pulse.yaml
+          $a "pulse fingerprint ($tag)" $gate fingerprint --config .pulse-demo/pulse.yaml --out fingerprint
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fingerprint-${{ matrix.os }}-py${{ matrix.python }}
+          path: fingerprint/
+          retention-days: 7
+
+  cross-os-hash:
+    name: cross-OS model hash
+    needs: tests
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: fingerprint-*
+          path: fingerprints
+      - run: python3 .github/scripts/compare_fingerprints.py fingerprints
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: python3 .github/scripts/annotate.py "uv build" uv build --out-dir dist
+      - name: The wheel carries models, defaults, UI assets and both entry points
+        run: python3 .github/scripts/check_wheel.py dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  user-install:
+    name: user install (${{ matrix.os }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      # Like a fresh machine: uv must download its own Python.
+      UV_PYTHON_PREFERENCE: only-managed
+      PY: ${{ matrix.os == 'windows-latest' && 'python' || 'python3' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - name: Install with install.sh
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          export PULSE_SOURCE="$(ls "$PWD"/dist/*.whl)"
+          $PY .github/scripts/annotate.py "install.sh (${{ matrix.os }})" sh install.sh
+      - name: Install with install.ps1 (Windows PowerShell 5.1, the irm | iex path)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $env:PULSE_SOURCE = (Get-ChildItem dist\*.whl).FullName
+          & $env:PY .github\scripts\annotate.py "install.ps1 (Windows PowerShell 5.1)" powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-Content -Raw .\install.ps1 | Invoke-Expression"
+          exit $LASTEXITCODE
+      - name: Doctor, demo, checks and UI in a folder with Turkish characters
+        shell: pwsh
+        run: |
+          $env:PATH = (Join-Path $HOME '.local/bin') + [IO.Path]::PathSeparator + $env:PATH
+          $annotate = Join-Path $env:GITHUB_WORKSPACE '.github/scripts/annotate.py'
+          function Run([string]$title) {
+            & $env:PY $annotate "$title (${{ matrix.os }})" @args
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+          # built from code points so the workflow file's encoding cannot mangle it
+          $name = 'T' + [char]0x00FC + 'rk' + [char]0x00E7 + 'e ' + [char]0x015E + [char]0x0131 + 'k demo'
+          $work = Join-Path $env:RUNNER_TEMP $name
+          New-Item -ItemType Directory -Force $work | Out-Null
+          Set-Location -LiteralPath $work
+          "PULSE_OUT=$work" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          Run 'pulse doctor' pulse doctor
+          Run 'pulse demo' pulse demo --scale 0.2
+          $cfg = Join-Path $work '.pulse-demo/pulse.yaml'
+          Run 'pulse check' pulse check --config $cfg
+          Run 'pulse doctor --config' pulse doctor --config $cfg --json
+          Run 'pulse serve --check' pulse serve --config $cfg --check
+          Run 'pulse run (second refresh)' pulse run --config $cfg
+          $hb = Get-Content -Raw -Encoding utf8 (Join-Path $work '.pulse-demo/pulse-state/heartbeat.json') | ConvertFrom-Json
+          if ($hb.status -ne 'success') { "::error title=heartbeat (${{ matrix.os }})::status $($hb.status): $($hb.error)"; exit 1 }
+          "::notice title=user install (${{ matrix.os }})::real installer; doctor, demo, $($hb.summary.checks) checks, UI check and a second refresh passed in $work"
+          exit 0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: dashboard-${{ matrix.os }}
+          path: ${{ env.PULSE_OUT }}/demo-site
+          if-no-files-found: warn
+          retention-days: 7
+
+  schedule-smoke:
+    name: schedule smoke (${{ matrix.os }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      PULSE_SCHEDULE_NAME: ci-${{ github.run_id }}-${{ github.run_attempt }}
+      PY: ${{ matrix.os == 'windows-latest' && 'python' || 'python3' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - name: Install with install.sh
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          export PULSE_SOURCE="$(ls "$PWD"/dist/*.whl)"
+          $PY .github/scripts/annotate.py "install.sh (${{ matrix.os }})" sh install.sh
+      - name: Install with install.ps1
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $env:PULSE_SOURCE = (Get-ChildItem dist\*.whl).FullName
+          & $env:PY .github\scripts\annotate.py "install.ps1" powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-Content -Raw .\install.ps1 | Invoke-Expression"
+          exit $LASTEXITCODE
+      - name: Register with the OS scheduler, fire it, wait for the heartbeat
+        shell: pwsh
+        run: |
+          $env:PATH = (Join-Path $HOME '.local/bin') + [IO.Path]::PathSeparator + $env:PATH
+          $annotate = Join-Path $env:GITHUB_WORKSPACE '.github/scripts/annotate.py'
+          function Run([string]$title) {
+            & $env:PY $annotate "$title (${{ matrix.os }})" @args
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+          $name = $env:PULSE_SCHEDULE_NAME
+          $work = Join-Path $env:RUNNER_TEMP ('sched ' + [char]0x015E + [char]0x0131 + 'k')
+          Run 'demo data' pulse demo --scale 0.05 --workdir (Join-Path $work '.pulse-demo') --out (Join-Path $work 'site')
+          $cfg = Join-Path $work '.pulse-demo/pulse.yaml'
+          Run 'pulse schedule install' pulse schedule install --name $name --config $cfg --at 03:00 --no-notify
+          Run 'pulse schedule status' pulse schedule status --name $name --config $cfg
+          Run 'pulse schedule run-now --wait' pulse schedule run-now --name $name --config $cfg --wait 240
+          # the OS records the exit code a moment after the heartbeat is written
+          for ($i = 0; $i -lt 30; $i++) {
+            $st = pulse schedule status --name $name --config $cfg --json | ConvertFrom-Json
+            $code = if ($IsWindows) { $st.scheduler.last_result } else { $st.scheduler.last_exit_code }
+            if ("$code" -eq '0') { break }
+            Start-Sleep -Seconds 2
+          }
+          $hb = $st.heartbeat
+          $log = Join-Path $work '.pulse-demo/pulse-state/logs/pulse.log'
+          if (-not $st.registered -or $hb.status -ne 'success' -or $hb.command -ne 'run' -or "$code" -ne '0' -or -not (Test-Path -LiteralPath $log)) {
+            $json = ($st | ConvertTo-Json -Depth 6 -Compress) -replace '%', '%25'
+            "::error title=schedule smoke (${{ matrix.os }})::OS exit code '$code', heartbeat '$($hb.status)', log present $(Test-Path -LiteralPath $log): $json"
+            exit 1
+          }
+          "::notice title=schedule smoke (${{ matrix.os }})::$($st.scheduler.id) ($($st.scheduler.backend)) ran pulse run in $($hb.duration_s) s; OS exit code $code; heartbeat success at $($hb.last_success)"
+          exit 0
+      - name: Remove the schedule (always) and prove it is gone
+        if: always()
+        shell: pwsh
+        run: |
+          $env:PATH = (Join-Path $HOME '.local/bin') + [IO.Path]::PathSeparator + $env:PATH
+          $name = $env:PULSE_SCHEDULE_NAME
+          & $env:PY (Join-Path $env:GITHUB_WORKSPACE '.github/scripts/annotate.py') "pulse schedule remove (${{ matrix.os }})" pulse schedule remove --name $name --missing-ok
+          $removeCode = $LASTEXITCODE
+          $left = @()
+          if ($IsMacOS) {
+            $uid = (id -u)
+            foreach ($d in "gui/$uid", "user/$uid") {
+              launchctl print "$d/dev.studio-pulse.$name" *> $null
+              if ($LASTEXITCODE -eq 0) { $left += "$d/dev.studio-pulse.$name" }
+            }
+            if (Test-Path "$HOME/Library/LaunchAgents/dev.studio-pulse.$name.plist") { $left += 'plist file' }
+          }
+          if ($IsWindows) {
+            schtasks /query /tn "StudioPulse\$name" *> $null
+            if ($LASTEXITCODE -eq 0) { $left += "\StudioPulse\$name" }
+          }
+          if ($left.Count -gt 0 -or $removeCode -ne 0) {
+            "::error title=schedule removal (${{ matrix.os }})::still present: $($left -join ', ') (remove exit $removeCode)"
+            exit 1
+          }
+          "::notice title=schedule removal (${{ matrix.os }})::$name removed; the OS scheduler no longer lists it"
+          exit 0

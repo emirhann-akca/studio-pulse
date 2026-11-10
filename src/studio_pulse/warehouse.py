@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import time
 from collections.abc import Iterable, Mapping
 from importlib import resources
 from pathlib import Path
@@ -12,15 +13,45 @@ import duckdb
 import pyarrow as pa
 
 
-def connect(path: str | Path = ":memory:") -> duckdb.DuckDBPyConnection:
-    if str(path) != ":memory:":
+class WarehouseLocked(RuntimeError):
+    """Another process holds a conflicting lock on the DuckDB file."""
+
+
+def is_lock_error(exc: BaseException) -> bool:
+    return isinstance(exc, duckdb.IOException) and "lock" in str(exc).lower()
+
+
+def connect(
+    path: str | Path = ":memory:", *, read_only: bool = False, wait_s: float = 60.0
+) -> duckdb.DuckDBPyConnection:
+    """Open the warehouse.
+
+    DuckDB allows one writing process, and a process that holds the file open
+    read-only also blocks a writer. The UI therefore opens the file read-only
+    for a single request at a time, and a writer waits up to `wait_s` seconds
+    for such readers instead of failing. A read-only open does not wait.
+    """
+    if str(path) != ":memory:" and not read_only:
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-    con = duckdb.connect(str(path))
+    deadline = time.monotonic() + (0 if read_only else wait_s)
+    delay = 0.05
+    while True:
+        try:
+            con = duckdb.connect(str(path), read_only=read_only)
+            break
+        except duckdb.IOException as exc:
+            if not is_lock_error(exc):
+                raise
+            if time.monotonic() >= deadline:
+                raise WarehouseLocked(str(exc)) from exc
+            time.sleep(delay)
+            delay = min(delay * 2, 1.0)
     # Source timestamps are UTC. DuckDB defaults to the machine's time zone,
     # which made TIMESTAMPTZ -> TIMESTAMP casts (e.g. RevenueCat Parquet) shift
     # purchase dates depending on where the pipeline ran.
     con.execute("SET TimeZone = 'UTC'")
-    init_schema(con)
+    if not read_only:
+        init_schema(con)
     return con
 
 

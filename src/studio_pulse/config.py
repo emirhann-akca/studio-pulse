@@ -75,9 +75,17 @@ class Config:
     title: str = "Studio Pulse"
     is_demo: bool = False
     alerts_path: Path | None = None
+    checks_path: Path | None = None
+    # Run lock, heartbeat, run history, logs and the warehouse snapshot the UI
+    # falls back to while a refresh holds DuckDB's single write lock.
+    state_dir: Path | None = None
     fx_rates: dict[str, float] = field(default_factory=dict)
     max_bytes_billed: int = 2_000_000_000
     raw: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.state_dir is None:
+            self.state_dir = self.warehouse.parent / "pulse-state"
 
     def window(self) -> tuple[dt.date, dt.date]:
         """Inclusive [start, end] ingest window."""
@@ -167,11 +175,18 @@ def config_from_dict(data: dict[str, Any], base_dir: Path, path: Path | None = N
         v = Path(str(data.get(key, default))).expanduser()
         return v if v.is_absolute() else base_dir / v
 
-    alerts = data.get("alerts")
+    def optional_path(key: str) -> Path | None:
+        v = data.get(key)
+        if not v:
+            return None
+        p = Path(str(v)).expanduser()
+        return p if p.is_absolute() else base_dir / p
+
+    warehouse = rp("warehouse", "local/pulse.duckdb")
     return Config(
         path=path,
         base_dir=base_dir,
-        warehouse=rp("warehouse", "local/pulse.duckdb"),
+        warehouse=warehouse,
         site_dir=rp("site_dir", "local/site"),
         apps=apps,
         lookback_days=int(data.get("lookback_days", 60)),
@@ -179,9 +194,9 @@ def config_from_dict(data: dict[str, Any], base_dir: Path, path: Path | None = N
         as_of=_date(data.get("as_of")),
         title=data.get("title", "Studio Pulse"),
         is_demo=bool(data.get("demo", False)),
-        alerts_path=(base_dir / alerts)
-        if alerts and not Path(alerts).is_absolute()
-        else (Path(alerts) if alerts else None),
+        alerts_path=optional_path("alerts"),
+        checks_path=optional_path("checks"),
+        state_dir=optional_path("state_dir") or warehouse.parent / "pulse-state",
         fx_rates={str(k).upper(): float(v) for k, v in (data.get("fx_rates") or {}).items()},
         max_bytes_billed=int(data.get("max_bytes_billed", 2_000_000_000)),
         raw=data,

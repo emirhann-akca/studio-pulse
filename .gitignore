@@ -30,3 +30,6 @@ service-account*.json
 
 # Unity package metadata generated on import
 unity/**/*.meta
+
+# pulse state (run lock, heartbeat, snapshot, logs)
+pulse-state/

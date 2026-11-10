@@ -21,15 +21,15 @@ def test_models_run_in_dependency_order():
 
 
 def test_cycle_is_detected(tmp_path: Path):
-    (tmp_path / "a.sql").write_text("SELECT * FROM b")
-    (tmp_path / "b.sql").write_text("SELECT * FROM a")
+    (tmp_path / "a.sql").write_text("SELECT * FROM b", encoding="utf-8")
+    (tmp_path / "b.sql").write_text("SELECT * FROM a", encoding="utf-8")
     with pytest.raises(runner.ModelError, match="cycle"):
         runner.resolve_order(runner.discover(tmp_path))
 
 
 def test_dependencies_ignore_comments_and_strings(tmp_path: Path):
-    (tmp_path / "a.sql").write_text("-- built from b\nSELECT 'b' AS x")
-    (tmp_path / "b.sql").write_text("SELECT 1 AS y")
+    (tmp_path / "a.sql").write_text("-- built from b\nSELECT 'b' AS x", encoding="utf-8")
+    (tmp_path / "b.sql").write_text("SELECT 1 AS y", encoding="utf-8")
     ms = {m.name: m for m in runner.discover(tmp_path)}
     assert ms["a"].depends_on == set()
 
@@ -43,7 +43,9 @@ def test_runner_is_idempotent(tmp_path: Path):
 
 
 def test_failed_model_reports_file(tmp_path: Path):
-    (tmp_path / "broken.sql").write_text("-- broken on purpose\nSELECT * FROM does_not_exist")
+    (tmp_path / "broken.sql").write_text(
+        "-- broken on purpose\nSELECT * FROM does_not_exist", encoding="utf-8"
+    )
     con = warehouse.connect()
     with pytest.raises(runner.ModelError, match="broken.sql"):
         runner.run_models(con, tmp_path)

@@ -1,0 +1,44 @@
+"""Fail (with an annotation) unless the built wheel carries everything a user install needs."""
+
+from __future__ import annotations
+
+import sys
+import zipfile
+from pathlib import Path
+
+NEED = [
+    "studio_pulse/_models/fct_app_daily.sql",
+    "studio_pulse/_defaults/alerts.yaml",
+    "studio_pulse/_defaults/checks.yaml",
+    "studio_pulse/raw_schema.sql",
+    "studio_pulse/serve/static/htmx.min.js",
+    "studio_pulse/serve/static/htmx.LICENSE",
+    "studio_pulse/serve/templates/base.html",
+]
+
+
+def main(dist: Path) -> int:
+    wheels = sorted(dist.glob("*.whl"))
+    if not wheels:
+        print(f"::error title=wheel contents::no wheel in {dist}")
+        return 1
+    whl = zipfile.ZipFile(wheels[0])
+    names = set(whl.namelist())
+    missing = [n for n in NEED if n not in names]
+    ep = next((n for n in names if n.endswith("entry_points.txt")), None)
+    eps = whl.read(ep).decode("utf-8") if ep else ""
+    for section, script in (("[console_scripts]", "pulse ="), ("[gui_scripts]", "pulse-bg =")):
+        if section not in eps or script not in eps:
+            missing.append(f"{section} {script.rstrip(' =')}")
+    meta = whl.read(next(n for n in names if n.endswith("METADATA"))).decode("utf-8")
+    if "Requires-Dist: tzdata" not in meta or "win32" not in meta:
+        missing.append("tzdata dependency for Windows")
+    if missing:
+        print(f"::error title=wheel contents ({wheels[0].name})::missing " + ", ".join(missing))
+        return 1
+    print(f"{wheels[0].name}: {len(names)} files, entry points and package data present")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(Path(sys.argv[1])))

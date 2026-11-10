@@ -250,3 +250,33 @@ CREATE TABLE IF NOT EXISTS meta_run (
     key               VARCHAR PRIMARY KEY,
     value             VARCHAR
 );
+
+-- Data-quality results written by `pulse check` / `pulse run` (checks.yaml).
+-- One row per check per run; the newest run_id is the current state.
+CREATE TABLE IF NOT EXISTS meta_check_results (
+    run_id            VARCHAR NOT NULL,
+    checked_at        TIMESTAMP NOT NULL,
+    name              VARCHAR NOT NULL,
+    check_type        VARCHAR,
+    table_name        VARCHAR,
+    severity          VARCHAR,   -- error | warn
+    status            VARCHAR,   -- pass | fail | error (the check itself could not run)
+    failing_rows      BIGINT,
+    message           VARCHAR,
+    sample            VARCHAR    -- up to 5 failing rows as JSON
+);
+
+-- Alerts fired by each run, for the UI's alert list and history.
+CREATE TABLE IF NOT EXISTS meta_alert_events (
+    run_id            VARCHAR NOT NULL,
+    fired_at          TIMESTAMP NOT NULL,
+    rule              VARCHAR,
+    app_id            VARCHAR,
+    severity          VARCHAR,
+    metric            VARCHAR,
+    date              DATE,
+    value             DOUBLE,
+    baseline          DOUBLE,
+    threshold         DOUBLE,
+    message           VARCHAR
+);

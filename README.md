@@ -15,9 +15,13 @@ for three fictional apps, built by `pulse demo`.
 
 [![Portfolio page of the demo dashboard](docs/img/dashboard.png)](https://emirhann-akca.github.io/studio-pulse/)
 
-- **9 source connectors -> 20 SQL models -> 7 alert rules -> static HTML.**
-  `pulse demo` generates export-shaped files and runs them through the real
-  connectors in about 15 seconds.
+- **9 source connectors -> 20 SQL models -> 39 data-quality checks -> 7 alert
+  rules -> static HTML.** `pulse demo` generates export-shaped files and runs
+  them through the real connectors in about 15 seconds.
+- **Runs on Windows 10/11 and macOS** (and Linux): a one-line installer, a
+  daily refresh registered with launchd or Task Scheduler, and a local web UI.
+  CI installs it with the real installers on all three and checks that the
+  demo's model tables are byte-identical everywhere.
 - **Industry-standard definitions**, one formula per metric in
   [docs/METRICS.md](docs/METRICS.md): classic day-N retention by install
   cohort, ARPDAU, payer conversion, cumulative ARPU (LTV) curve over complete
@@ -31,19 +35,44 @@ for three fictional apps, built by `pulse demo`.
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.
-- 93 tests, ruff, CI on Python 3.11 and 3.13.
+- 176 tests, ruff; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
-## Quickstart
+## Install
+
+No admin rights and no Python needed: [uv](https://docs.astral.sh/uv/) (pinned)
+installs Python 3.13 and studio-pulse for your user only.
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .[dev]
-pulse demo --out demo-site && open demo-site/index.html
+# macOS / Linux
+curl -LsSf https://raw.githubusercontent.com/emirhann-akca/studio-pulse/v0.2.0/install.sh | sh
+```
+
+```powershell
+# Windows 10/11 (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/emirhann-akca/studio-pulse/v0.2.0/install.ps1 | iex"
+```
+
+The installers download the wheel attached to the `v0.2.0` GitHub release
+(the release workflow publishes it when the tag is pushed) and finish with
+`pulse doctor`. From a clone instead: `uv tool install .`, or pip as below.
+
+```bash
+pulse demo --open           # synthetic data for 3 apps -> dashboard in the browser
+pulse serve --config .pulse-demo/pulse.yaml   # local UI on http://127.0.0.1:8765
+```
+
+From source (`py` instead of `python3` on Windows; no venv activation needed):
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"     # Windows: .venv\Scripts\python -m pip install -e ".[dev]"
+.venv/bin/pulse demo --open                     # Windows: .venv\Scripts\pulse demo --open
 ```
 
 One demo app ships a bad release in its last four days. The run ends with:
 
 ```
+Data quality: 39/39 checks passed, 0 error(s), 0 warning(s).
 3 alert(s):
   [CRITICAL] quartz_merge  crash_free_users_low      2026-10-31  crash_free_users 98.46% is below 99.00%
   [WARNING ] quartz_merge  d1_retention_drop         2026-10-30  d1_retention 17.03% is down 36.3% vs the trailing 14-day mean 26.76% (limit 20%) (z=-4.2, n=364)
@@ -52,6 +81,19 @@ One demo app ships a bad release in its last four days. The run ends with:
 
 and the app's version table shows the regression is GPU-bound on low-tier
 phones (GPU p95 close to the frame p95, CPU main thread well below it).
+
+## Operating it
+
+| Command | What it does |
+|---|---|
+| `pulse run` | one refresh: ingest, models, data-quality checks, alerts, dashboard. Holds a run lock (a second run exits 75, "locked") and writes a heartbeat |
+| `pulse schedule install --at 09:30` | registers the daily refresh: a LaunchAgent on macOS (a missed run starts on wake), a Task Scheduler task on Windows (starts on battery, runs when missed, no console window) |
+| `pulse schedule status` / `run-now --wait 600` / `remove` | registration, last result and last refresh; start it now; unregister |
+| `pulse check` | the 39 checks in [`checks.yaml`](checks.yaml): keys, nulls, accepted values, ranges, per-source freshness, volume drop vs the trailing median, referential, reconciliations (DAU <= WAU <= MAU, retention in [0, 1], crash counts within their denominators, GA4 vs AdMob ad revenue). Error-level failures fail the run, are stored in the warehouse, shown on the dashboard and notified |
+| `pulse serve` | local UI on 127.0.0.1: dashboard, refresh health (heartbeat, recent runs, check results, source freshness, schedule state), alerts, and a run-now button. It opens the warehouse read-only per request and serves the last good snapshot while a refresh is writing |
+| `pulse doctor [--json]` | Python, time zones, DuckDB, config, writable folders, Google credentials (present or not, never their contents), schedule state |
+
+Details, file locations and Windows notes: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 ## Architecture
 
@@ -67,8 +109,13 @@ flowchart LR
   Q --> RAW[(DuckDB raw_*)]
   F --> RAW
   RAW --> M[models/*.sql<br/>stg_* then fct_*]
+  M --> K[checks.yaml<br/>data quality]
   M --> A[alerts.yaml] --> N[Slack / e-mail]
+  K --> N
   M --> D[static dashboard]
+  K --> D
+  D --> U[pulse serve<br/>local UI]
+  S[launchd / Task Scheduler] -. daily pulse run .-> RAW
 ```
 
 Connectors write `raw_*` tables and replace only their own (app, source[,
@@ -147,11 +194,12 @@ pulse run                # refresh: ingest + models + alerts (notifications dry-
 pulse run --notify       # the same, and send alerts to Slack / e-mail
 ```
 
-`pulse run` is the refresh command. Every run re-reads the lookback window (60
-days by default), which also picks up events GA4 adds to a day late.
+`pulse run` is the refresh command; `pulse schedule install` runs it daily on
+your machine. Every run re-reads the lookback window (60 days by default),
+which also picks up events GA4 adds to a day late.
 [`.github/workflows/refresh.example.yml`](.github/workflows/refresh.example.yml)
-is a disabled template for running it daily from a private repository with a
-service account; this repository schedules nothing.
+is a disabled template for running it from a private repository with a service
+account instead; this repository schedules nothing.
 
 ## Unity package
 
@@ -187,18 +235,31 @@ Mono to produce the fixtures the Python tests parse.
 - The AdMob, GCS and BigQuery paths are tested with mocked clients. The Unity
   package is compile-checked and its core executed under Mono, but not
   profiled on devices in this repository.
+- `pulse schedule` covers macOS and Windows; on Linux use cron or a systemd
+  timer. The Windows task runs while you are logged in (a missed run starts at
+  the next logon or wake).
 
 ## Development
 
 ```bash
-pip install -e .[dev]
+pip install -e ".[dev]"
 ruff check . && ruff format --check .
-pytest                      # 93 tests, ~7 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 176 tests, ~20 s on an M4
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 
-Layout: `src/studio_pulse/` (config, warehouse, runner, connectors, alerts,
-benchmarks, dashboard, demo, CLI), `models/` (SQL), `tests/`, `unity/`, `docs/`.
+The encoding flags make an implicit locale encoding an error on every OS, which
+is how a Turkish-Windows (cp1254) bug shows up on a Mac. CI
+([`ci.yml`](.github/workflows/ci.yml)) runs the tests on Windows, macOS and
+Linux x Python 3.11-3.13, installs the built wheel with `install.sh` /
+`install.ps1` and runs doctor, demo, checks and the UI in a folder with Turkish
+characters, registers and fires a real launchd / Task Scheduler job, and
+compares the SHA-256 of every model table across all jobs. Tags `v*` build and
+publish the release ([`release.yml`](.github/workflows/release.yml)).
+
+Layout: `src/studio_pulse/` (config, warehouse, runner, connectors, checks,
+alerts, runstate, schedule, serve, doctor, dashboard, demo, CLI), `models/`
+(SQL), `tests/`, `unity/`, `docs/`.
 
 ## License
 

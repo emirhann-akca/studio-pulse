@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Refresh & data health{% endblock %}
+{% block body %}
+<h2>Refresh</h2>
+{% include "_status.html" %}
+<div class="ui-actions">
+  <button type="button" hx-post="/run" hx-target="#run-result" hx-swap="innerHTML">Run refresh now</button>
+</div>
+<div id="run-result"></div>
+
+<h2>Schedule</h2>
+<div class="card" style="padding:12px 14px"><dl class="kv">
+  <dt>Daily job</dt><dd>{{ schedule_name }} · {% if schedule.registered %}<span class="pill ok">registered</span>{% else %}<span class="pill none">not registered</span>{% endif %}</dd>
+  {% if schedule.id %}<dt>Scheduler entry</dt><dd><code>{{ schedule.id }}</code> ({{ schedule.backend }})</dd>{% endif %}
+  {% if schedule.state %}<dt>State</dt><dd>{{ schedule.state }}</dd>{% endif %}
+  {% if schedule.last_exit_code is defined %}<dt>Last exit code</dt><dd>{{ schedule.last_exit_code }}</dd>{% endif %}
+  {% if schedule.last_result is defined %}<dt>Last result</dt><dd>{{ schedule.last_result }}</dd>{% endif %}
+  {% if schedule.next_run %}<dt>Next run</dt><dd>{{ schedule.next_run }}</dd>{% endif %}
+  {% if schedule.note %}<dt>Note</dt><dd>{{ schedule.note }}</dd>{% endif %}
+  {% if not schedule.registered %}<dt>Set up</dt><dd><code>pulse schedule install --config "{{ config_path }}"</code></dd>{% endif %}
+</dl></div>
+
+<h2>Recent runs</h2>
+{% if history %}
+<div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Started (UTC)</th><th class="l">Command</th><th class="l">Status</th><th>Duration</th><th>Alerts</th><th>Check errors</th><th class="l">Error</th></tr></thead><tbody>
+{% for r in history %}<tr><td class="l">{{ r.start }}</td><td class="l">{{ r.command }}</td><td class="l"><span class="pill {{ r.status }}">{{ r.status }}</span></td><td>{{ r.duration_s }} s</td><td>{{ (r.summary or {}).alerts|default('–') }}</td><td>{{ (r.summary or {}).check_errors|default('–') }}</td><td class="l">{{ r.error or '' }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% else %}<p class="note">No runs recorded yet.</p>{% endif %}
+
+<h2 id="checks">Data quality</h2>
+{% if checks %}
+<div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Check</th><th class="l">Table</th><th class="l">Severity</th><th class="l">Status</th><th>Failing</th><th class="l">Result</th></tr></thead><tbody>
+{% for c in checks %}<tr><td class="l"><code>{{ c.name }}</code></td><td class="l">{{ c.table or '' }}</td><td class="l">{{ c.severity }}</td><td class="l"><span class="pill {{ c.status }}">{{ c.status }}</span></td><td>{{ c.failing_rows }}</td><td class="l">{{ c.message }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% else %}<p class="note">No check results yet.</p>{% endif %}
+
+<h2>Source freshness</h2>
+{% if freshness %}
+<div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">App</th><th class="l">Source</th><th class="l">Data through</th><th>Lag (days)</th><th class="l">Last load (UTC)</th><th>Rows</th></tr></thead><tbody>
+{% for r in freshness %}<tr><td class="l">{{ r.app_id }}</td><td class="l">{{ r.source }}</td><td class="l">{{ r.data_through or '–' }}</td><td>{{ r.lag if r.lag is not none else '–' }}</td><td class="l">{{ r.last_loaded_at }}</td><td>{{ r.rows_loaded }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+<p class="note">Lag is measured against {{ as_of }}.</p>
+{% else %}<p class="note">No loads recorded yet.</p>{% endif %}
+{% endblock %}

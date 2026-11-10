@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Alerts{% endblock %}
+{% block body %}
+<h2>Last refresh</h2>
+{% if alerts %}
+<ul class="alerts">{% for a in alerts %}<li class="{{ a.severity }}"><span class="sev">{{ a.severity|title }}</span><strong>{{ a.app_id }}</strong> · <code>{{ a.rule }}</code> · {{ a.date }}<br>{{ a.message }}</li>{% endfor %}</ul>
+{% else %}<ul class="alerts"><li class="ok"><span class="sev">OK</span>No alerts fired in the last refresh.</li></ul>{% endif %}
+<h2>History (90 days)</h2>
+{% if history %}
+<div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Fired (UTC)</th><th class="l">App</th><th class="l">Rule</th><th class="l">Severity</th><th class="l">Day</th><th class="l">Message</th></tr></thead><tbody>
+{% for a in history %}<tr><td class="l">{{ a.fired_at }}</td><td class="l">{{ a.app_id }}</td><td class="l"><code>{{ a.rule }}</code></td><td class="l">{{ a.severity }}</td><td class="l">{{ a.date }}</td><td class="l">{{ a.message }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% else %}<p class="note">No alerts recorded.</p>{% endif %}
+<p class="note">Rules live in <code>alerts.yaml</code>; failed data-quality checks are listed under <a href="/health#checks">Refresh &amp; data health</a>.</p>
+{% endblock %}

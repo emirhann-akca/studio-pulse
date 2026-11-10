@@ -356,7 +356,7 @@ class FakeHTTP:
 
 def test_admob_parse_recorded_report():
     rows, currency = admob.parse_report(
-        json.loads((FIXTURES / "admob_network_report.json").read_text())
+        json.loads((FIXTURES / "admob_network_report.json").read_text(encoding="utf-8"))
     )
     assert currency == "USD" and len(rows) == 3
     assert rows[0] == {
@@ -373,7 +373,7 @@ def test_admob_parse_recorded_report():
 
 
 def test_admob_fetch_builds_request():
-    body = json.loads((FIXTURES / "admob_network_report.json").read_text())
+    body = json.loads((FIXTURES / "admob_network_report.json").read_text(encoding="utf-8"))
     http = FakeHTTP(body=body)
     out = admob.fetch_report(
         "pub-0000000000000000",
@@ -406,7 +406,7 @@ def test_admob_http_error_and_bad_account():
 
 
 def test_admob_ingest_filters_app_and_window(con):
-    body = json.loads((FIXTURES / "admob_network_report.json").read_text())
+    body = json.loads((FIXTURES / "admob_network_report.json").read_text(encoding="utf-8"))
     n = admob.ingest(
         con,
         app_id="g",
@@ -604,7 +604,9 @@ def test_unity_jsonl_parse():
 
 def test_unity_jsonl_ingest_is_idempotent(con, tmp_path):
     f = tmp_path / "pulse-20261001.jsonl"
-    f.write_text("\n".join([_line(), _line(ft_p50_ms=19.0), _line("pulse_load")]) + "\n")
+    f.write_text(
+        "\n".join([_line(), _line(ft_p50_ms=19.0), _line("pulse_load")]) + "\n", encoding="utf-8"
+    )
     for _ in range(2):
         unity_jsonl.ingest(con, app_id="g", source="unity", path=tmp_path, log=lambda *_: None)
     assert con.execute("SELECT COUNT(*) FROM raw_perf_windows").fetchone()[0] == 2
@@ -615,7 +617,9 @@ def test_unity_jsonl_files_with_the_same_name_from_two_devices(con, tmp_path):
     """JsonLinesSink always writes pulse/events.jsonl, so collected files share a name."""
     for device, ft in (("device_a", 17.0), ("device_b", 25.0)):
         (tmp_path / device).mkdir()
-        (tmp_path / device / "events.jsonl").write_text(_line(ft_p50_ms=ft) + "\n")
+        (tmp_path / device / "events.jsonl").write_text(
+            _line(ft_p50_ms=ft) + "\n", encoding="utf-8"
+        )
     for _ in range(2):
         unity_jsonl.ingest(con, app_id="g", source="unity", path=tmp_path, log=lambda *_: None)
     assert sorted(

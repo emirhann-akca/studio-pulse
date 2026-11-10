@@ -23,7 +23,7 @@ RUNTIME = ROOT / "unity" / "com.studio.pulse" / "Runtime"
 
 
 def csharp_constants() -> dict[str, object]:
-    src = (RUNTIME / "PulseSchema.cs").read_text()
+    src = (RUNTIME / "PulseSchema.cs").read_text(encoding="utf-8")
     out: dict[str, object] = {}
     for typ, name, value in re.findall(r"public const (string|int|float) (\w+) = ([^;]+);", src):
         key = re.sub(r"(?<!^)(?=[A-Z])", "_", name).upper()
@@ -52,7 +52,7 @@ def test_param_names_respect_ga4_limits():
 
 
 def test_events_doc_lists_every_param():
-    doc = (ROOT / "docs" / "EVENTS.md").read_text()
+    doc = (ROOT / "docs" / "EVENTS.md").read_text(encoding="utf-8")
     for name in (
         set(E.PERF_PARAMS) | set(E.LOAD_PARAMS) | {E.PERF_EVENT, E.LOAD_EVENT, *E.LOAD_KINDS}
     ):
@@ -60,7 +60,7 @@ def test_events_doc_lists_every_param():
 
 
 def test_connector_parses_csharp_output():
-    lines = (FIXTURES / "unity" / "csharp_sample.jsonl").read_text().splitlines()
+    lines = (FIXTURES / "unity" / "csharp_sample.jsonl").read_text(encoding="utf-8").splitlines()
     perf, load, st = unity_jsonl.parse_lines(lines, app="com.example.game")
     assert (st.perf, st.load, st.malformed, st.unknown_event) == (1, 1, 0, 0)
     p = perf[0]
@@ -75,9 +75,12 @@ def test_connector_parses_csharp_output():
 
 
 def test_csharp_percentiles_match_duckdb_quantile_cont():
-    frames = [float(x) for x in (FIXTURES / "unity" / "csharp_frames.txt").read_text().split()]
+    frames = [
+        float(x)
+        for x in (FIXTURES / "unity" / "csharp_frames.txt").read_text(encoding="utf-8").split()
+    ]
     perf, _, _ = unity_jsonl.parse_lines(
-        (FIXTURES / "unity" / "csharp_sample.jsonl").read_text().splitlines()
+        (FIXTURES / "unity" / "csharp_sample.jsonl").read_text(encoding="utf-8").splitlines()
     )
     p = perf[0]
     con = duckdb.connect()
@@ -92,18 +95,18 @@ def test_csharp_percentiles_match_duckdb_quantile_cont():
 
 
 def test_firebase_sink_is_behind_define_and_asmdef_sets_it():
-    sink = (RUNTIME / "FirebaseAnalyticsSink.cs").read_text()
+    sink = (RUNTIME / "FirebaseAnalyticsSink.cs").read_text(encoding="utf-8")
     assert sink.lstrip().startswith("#if PULSE_FIREBASE") and sink.rstrip().endswith("#endif")
-    asmdef = (RUNTIME / "Studio.Pulse.asmdef").read_text()
+    asmdef = (RUNTIME / "Studio.Pulse.asmdef").read_text(encoding="utf-8")
     assert '"define": "PULSE_FIREBASE"' in asmdef and '"name": "Studio.Pulse"' in asmdef
 
 
 def test_no_per_frame_allocation_patterns_in_update_path():
     """Cheap static guard: the per-frame methods must not allocate."""
-    src = (RUNTIME / "FrameWindow.cs").read_text()
+    src = (RUNTIME / "FrameWindow.cs").read_text(encoding="utf-8")
     add = src[src.index("public void Add(") : src.index("public void Snapshot(")]
     assert "new " not in add and "ToString" not in add
-    sampler = (RUNTIME / "PerfSampler.cs").read_text()
+    sampler = (RUNTIME / "PerfSampler.cs").read_text(encoding="utf-8")
     tick = sampler[sampler.index("public PulseEvent Tick(") : sampler.index("void SampleMemory()")]
     assert "new " not in tick and "ToString" not in tick and "GetActiveScene" not in tick
     memory = sampler[
@@ -114,7 +117,7 @@ def test_no_per_frame_allocation_patterns_in_update_path():
 
 def test_sampler_uses_documented_counters_and_disposes_them():
     """Counter names from the Unity 6.3 manual; every recorder is released."""
-    src = (RUNTIME / "PerfSampler.cs").read_text()
+    src = (RUNTIME / "PerfSampler.cs").read_text(encoding="utf-8")
     started = re.findall(r'ProfilerRecorder\.StartNew\(ProfilerCategory\.(\w+), "([^"]+)"\)', src)
     assert sorted(started) == sorted(
         [
@@ -128,4 +131,4 @@ def test_sampler_uses_documented_counters_and_disposes_them():
     )
     fields = re.findall(r"^\s*ProfilerRecorder (_\w+);", src, flags=re.M)
     assert len(fields) == 6 and all(f"{f}.Dispose()" in src for f in fields)
-    assert "_sampler.Dispose()" in (RUNTIME / "Pulse.cs").read_text()
+    assert "_sampler.Dispose()" in (RUNTIME / "Pulse.cs").read_text(encoding="utf-8")

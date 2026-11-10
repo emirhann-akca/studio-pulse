@@ -1,0 +1,12 @@
+# Text is stored and checked out with LF on every OS (Windows included), so
+# installers, SQL models and generated outputs hash the same everywhere.
+* text=auto eol=lf
+
+*.png     binary
+*.parquet binary
+*.duckdb  binary
+*.whl     binary
+*.gz      binary
+
+# Test fixtures are byte-exact copies of real exports: never convert them.
+tests/fixtures/** -text

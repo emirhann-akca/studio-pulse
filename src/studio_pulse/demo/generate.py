@@ -34,6 +34,7 @@ import datetime as dt
 import io
 import json
 import math
+import os
 import random
 from collections import defaultdict
 from dataclasses import dataclass
@@ -1115,15 +1116,27 @@ def generate(
     days: int = DEMO_DAYS,
     apps: list[DemoApp] | None = None,
     log: Any = print,
+    site_dir: Path | None = None,
 ) -> Path:
-    """Write demo source files and a pulse.yaml into out_dir. Returns the config path."""
+    """Write demo source files and a pulse.yaml into out_dir. Returns the config path.
+
+    site_dir is where the dashboard goes (default <out_dir>/site); it is stored
+    relative to out_dir when possible, so `pulse run` / `pulse serve` on the
+    generated config use the same folder as `pulse demo --out`.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
+    site = "site"
+    if site_dir is not None:
+        try:
+            site = Path(os.path.relpath(Path(site_dir).resolve(), out_dir.resolve())).as_posix()
+        except ValueError:  # another drive on Windows
+            site = str(Path(site_dir).resolve())
     start = end - dt.timedelta(days=days - 1)
     cfg: dict[str, Any] = {
         "title": "Studio Pulse demo",
         "demo": True,
         "warehouse": "warehouse.duckdb",
-        "site_dir": "site",
+        "site_dir": site,
         "lookback_days": days,
         "end_date": end.isoformat(),
         "as_of": (end + dt.timedelta(days=1)).isoformat(),

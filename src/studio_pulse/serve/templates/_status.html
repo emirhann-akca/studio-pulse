@@ -1,0 +1,12 @@
+<div id="status" class="tiles" hx-get="/fragments/status" hx-trigger="every 5s" hx-swap="outerHTML">
+{% set h = hb or {} %}
+  <div class="tile"><div class="label">Last refresh</div>
+    <div class="value"><span class="pill {{ h.status|default('none') }}">{{ h.status|default('never run') }}</span></div>
+    <div class="delta">{% if h.last_start %}started {{ age(h.last_start) }}{% if h.duration_s is number and h.status != 'running' %}, took {{ h.duration_s }} s{% endif %}{% endif %}</div></div>
+  <div class="tile"><div class="label">Last success</div>
+    <div class="value" style="font-size:20px">{{ age(h.last_success) }}</div>
+    <div class="delta">{{ h.last_success|default('', true) }}</div></div>
+  <div class="tile"><div class="label">Last error</div>
+    <div class="value" style="font-size:14px;line-height:1.35">{{ h.error or 'none' }}</div>
+    <div class="delta">{% if h.last_failure %}last failure {{ age(h.last_failure) }}{% endif %}</div></div>
+</div>

@@ -95,3 +95,51 @@ class GA4Builder:
 
     def write(self, path: Path) -> Path:
         return write_ga4_parquet(flat_table(self.cols, self.PARAMS), path)
+
+
+class DemoBuild:
+    """A demo warehouse built once per test session (scale 0.1, ~3 s)."""
+
+    def __init__(self, root: Path):
+        from studio_pulse import cli
+
+        self.root = root
+        self.work = root / "work"
+        self.site = root / "site"
+        rc = cli.main(
+            ["demo", "--scale", "0.1", "--out", str(self.site), "--workdir", str(self.work)]
+        )
+        assert rc == 0
+        self.config_path = self.work / "pulse.yaml"
+
+    def copy(self, dest: Path):
+        """A private copy of the warehouse plus dest/pulse.yaml pointing at it.
+
+        The copy's config reads the session's generated source files, so
+        `pulse run` on it works, and writes its warehouse, state and site
+        under dest.
+        """
+        import shutil
+
+        import yaml
+
+        from studio_pulse.config import load_config
+
+        src_cfg = load_config(self.config_path)
+        dest.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src_cfg.warehouse, dest / "warehouse.duckdb")
+        data = yaml.safe_load(self.config_path.read_text(encoding="utf-8"))
+        data.update(warehouse="warehouse.duckdb", state_dir="pulse-state", site_dir="site")
+        for app in data["apps"]:
+            for src in app["sources"].values():
+                for key in ("path", "response_file"):
+                    if key in src:
+                        src[key] = str((self.work / src[key]).resolve())
+        path = dest / "pulse.yaml"
+        path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+        return load_config(path)
+
+
+@pytest.fixture(scope="session")
+def demo_build(tmp_path_factory) -> DemoBuild:
+    return DemoBuild(tmp_path_factory.mktemp("demo_build"))

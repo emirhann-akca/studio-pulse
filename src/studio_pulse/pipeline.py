@@ -11,7 +11,8 @@ from typing import Any
 import duckdb
 
 from . import alerts as alerts_mod
-from . import runner, warehouse
+from . import checks as checks_mod
+from . import runner, runstate, warehouse
 from .config import AppConfig, Config, ConfigError
 from .connectors import admob, crashlytics, ga4, revenuecat, stores, unity_jsonl
 from .connectors.dialect import BigQueryDialect, DuckDBDialect
@@ -246,26 +247,135 @@ def ingest(
     return report
 
 
+def default_file(
+    cfg: Config | None, explicit: str | Path | None, attr: str, name: str
+) -> Path | None:
+    """Rules/checks file: explicit path, the config's entry, ./<name>, then the packaged default."""
+    if explicit:
+        return Path(explicit)
+    configured = getattr(cfg, attr, None) if cfg else None
+    if configured:
+        return Path(configured)
+    here = Path(__file__).resolve()
+    for p in (Path(name), here.parents[2] / name, here.parent / "_defaults" / name):
+        if p.exists():
+            return p
+    return None
+
+
+def record_alerts(con: duckdb.DuckDBPyConnection, fired: list[Any], run_id: str) -> None:
+    now = warehouse.utcnow()
+    if fired:
+        con.executemany(
+            "INSERT INTO meta_alert_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                [
+                    run_id,
+                    now,
+                    a.rule,
+                    a.app_id,
+                    a.severity,
+                    a.metric,
+                    a.date,
+                    a.value,
+                    a.baseline,
+                    a.threshold,
+                    a.message,
+                ]
+                for a in fired
+            ],
+        )
+    con.execute("DELETE FROM meta_alert_events WHERE fired_at < ?", [now - dt.timedelta(days=90)])
+
+
 def run_all(
     cfg: Config,
     *,
     rules_path: Path | None = None,
+    checks_path: Path | None = None,
     dry_run_notify: bool = True,
+    send_notifications: bool = True,
     build_site: bool = True,
+    site_dir: Path | None = None,
+    command: str = "run",
     log: Any = print,
     bq_client: Any = None,
+    verbose_models: bool = False,
 ) -> dict[str, Any]:
+    """One refresh: ingest, models, data-quality checks, alerts, dashboard.
+
+    Holds the run lock (raises runstate.LockedError when another refresh holds
+    it), records a heartbeat, and snapshots the warehouse for the UI after a
+    successful run. A run fails (result["ok"] is False) on ingest errors or
+    on any failed check with severity error; the dashboard is still built so
+    the failure is visible.
+    """
     from .dashboard.site import build_site as _build
 
-    con = warehouse.connect(cfg.warehouse)
-    try:
-        report = ingest(con, cfg, log=log, bq_client=bq_client)
-        runner.run_models(con, verbose=False)
-        rules = alerts_mod.load_rules(rules_path) if rules_path and rules_path.exists() else []
-        fired = alerts_mod.evaluate(con, rules)
-        log(alerts_mod.format_console(fired))
-        alerts_mod.notify(fired, title=cfg.title, dry_run=dry_run_notify, log=log)
-        pages = _build(con, cfg, cfg.site_dir, alerts=fired, rules=rules) if build_site else []
-        return {"ingest": report, "alerts": fired, "pages": pages}
-    finally:
-        con.close()
+    with runstate.RunRecorder(cfg.state_dir, command) as rec:
+        con = warehouse.connect(cfg.warehouse)
+        try:
+            log("Ingesting through the connectors ...")
+            report = ingest(con, cfg, log=log, bq_client=bq_client)
+            log("Running SQL models ...")
+            runner.run_models(con, verbose=verbose_models)
+            as_of = cfg.as_of or dt.date.today()
+            check_results: list[checks_mod.CheckResult] = []
+            if checks_path and checks_path.exists():
+                check_results = checks_mod.run_checks(
+                    con, checks_mod.load_checks(checks_path), cfg, as_of
+                )
+                run_id = checks_mod.store_results(con, check_results)
+                log(checks_mod.format_console(check_results))
+            else:
+                run_id = runstate.now_iso()
+                log("(no checks.yaml found: data-quality checks skipped)")
+            rules = alerts_mod.load_rules(rules_path) if rules_path and rules_path.exists() else []
+            fired = alerts_mod.evaluate(con, rules)
+            record_alerts(con, fired, run_id)
+            log(alerts_mod.format_console(fired))
+            if send_notifications:
+                to_send = fired + checks_mod.as_alerts(check_results, as_of)
+                alerts_mod.notify(to_send, title=cfg.title, dry_run=dry_run_notify, log=log)
+            out = site_dir or cfg.site_dir
+            pages = (
+                _build(con, cfg, out, alerts=fired, rules=rules, checks=check_results)
+                if build_site
+                else []
+            )
+            con.execute("CHECKPOINT")
+        finally:
+            con.close()
+        summary = checks_mod.summarize(check_results)
+        rec.summary.update(
+            alerts=len(fired),
+            critical_alerts=sum(a.severity == "critical" for a in fired),
+            checks=summary["checks"],
+            check_errors=summary["errors"],
+            check_warnings=summary["warnings"],
+            ingest_errors=len(report.errors),
+            pages=len(pages),
+        )
+        problems = []
+        if report.errors:
+            problems.append(
+                f"{len(report.errors)} source(s) failed to load: "
+                + ", ".join(sorted(report.errors))
+            )
+        if summary["errors"]:
+            failed = [r.name for r in check_results if r.is_blocking]
+            problems.append(
+                f"{summary['errors']} data-quality check(s) failed: " + ", ".join(failed)
+            )
+        if problems:
+            rec.fail("; ".join(problems))
+        else:
+            runstate.make_snapshot(cfg.warehouse, cfg.state_dir)
+    return {
+        "ingest": report,
+        "alerts": fired,
+        "checks": check_results,
+        "pages": pages,
+        "ok": not problems,
+        "error": "; ".join(problems) or None,
+    }

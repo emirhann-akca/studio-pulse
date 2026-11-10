@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "studio-pulse"
-version = "0.1.0"
+version = "0.2.0"
 description = "One data and monitoring system for a small mobile studio: DuckDB warehouse, source connectors, SQL metric models, alerts and a static dashboard."
 readme = "README.md"
 license = { text = "MIT" }
@@ -12,15 +12,32 @@ requires-python = ">=3.11"
 authors = [{ name = "Emirhan Akça" }]
 keywords = ["analytics", "mobile", "games", "duckdb", "ga4", "unity", "monitoring"]
 classifiers = [
-  "Programming Language :: Python :: 3",
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
-  "Operating System :: OS Independent",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows :: Windows 10",
+  "Operating System :: Microsoft :: Windows :: Windows 11",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Database",
+  "Topic :: System :: Monitoring",
 ]
 dependencies = [
   "duckdb>=1.3",
   "pyarrow>=15",
   "pyyaml>=6",
   "requests>=2.31",
+  # Windows has no IANA time zone database; zoneinfo reads it from tzdata there.
+  "tzdata>=2024.1; sys_platform == 'win32'",
+  # pulse serve (local UI). htmx is vendored in serve/static, no Node build.
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "jinja2>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -31,7 +48,10 @@ gcp = [
 ]
 dev = [
   "pytest>=8",
+  "pytest-github-actions-annotate-failures>=0.2",
   "ruff>=0.5",
+  "httpx2>=2.9",  # starlette.testclient (httpx is deprecated there since starlette 1.x)
+  "tzdata>=2024.1",
   "google-cloud-bigquery>=3.20",
   "google-cloud-storage>=2.14",
   "google-auth>=2.28",
@@ -40,15 +60,32 @@ dev = [
 [project.scripts]
 pulse = "studio_pulse.cli:main"
 
+[project.gui-scripts]
+# Windowless launcher for scheduled runs: no console window flashes on Windows.
+pulse-bg = "studio_pulse.background:gui_main"
+
+[project.urls]
+Homepage = "https://github.com/emirhann-akca/studio-pulse"
+Demo = "https://emirhann-akca.github.io/studio-pulse/"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/studio_pulse"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "models" = "studio_pulse/_models"
+"alerts.yaml" = "studio_pulse/_defaults/alerts.yaml"
+"checks.yaml" = "studio_pulse/_defaults/checks.yaml"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src", "models", "tests", "docs/*.md", "alerts.yaml", "checks.yaml", "pulse.example.yaml",
+  "install.sh", "install.ps1", "README.md", "LICENSE",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = ["slow: builds a demo warehouse"]
 
 [tool.ruff]
 line-length = 100
