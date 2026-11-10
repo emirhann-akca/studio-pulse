@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Pulse demo</title>
+<meta name="description" content="Studio Pulse demo - app portfolio metrics">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6e69;
+  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10); --hover: rgba(42,120,214,0.08);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --good: #0ca30c; --good-ink: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  --banner-bg: #fff4d6; --banner-ink: #5a4100; --banner-border: #eda100;
+  --link: #1c5cab;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
+    --link: #86b6ef;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
+  --link: #86b6ef;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--link); }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 48px; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 16px 0 8px; }
+header.top h1 { font-size: 20px; margin: 0; font-weight: 650; }
+header.top .meta { color: var(--ink-2); font-size: 13px; }
+header.top .spacer { flex: 1; }
+nav.apps { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+nav.apps a { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--ring); text-decoration: none; color: var(--ink); background: var(--surface); font-size: 13px; }
+nav.apps a[aria-current="page"] { border-color: var(--s1); box-shadow: inset 0 0 0 1px var(--s1); }
+button.theme { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--ring); background: var(--surface); color: var(--ink); cursor: pointer; }
+.banner { margin: 8px 0 16px; padding: 10px 14px; border-radius: 8px; background: var(--banner-bg); color: var(--banner-ink); border: 1px solid var(--banner-border); font-weight: 600; }
+.banner span { font-weight: 400; }
+h2 { font-size: 16px; margin: 28px 0 10px; font-weight: 650; }
+.note { color: var(--ink-2); font-size: 13px; margin: -4px 0 12px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.tile .label { color: var(--ink-2); font-size: 12px; }
+.tile .value { font-size: 22px; font-weight: 650; margin-top: 2px; }
+.tile .delta { font-size: 12px; color: var(--ink-2); }
+.tile .delta.good { color: var(--good-ink); }
+.tile .delta.bad { color: var(--critical); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 12px; }
+figure.chart { margin: 0; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 12px 12px 8px; min-width: 0; }
+figure.chart figcaption h3 { font-size: 14px; margin: 0; font-weight: 600; }
+figure.chart figcaption p { margin: 2px 0 0; color: var(--ink-2); font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 4px; font-size: 12px; color: var(--ink-2); }
+.legend .key { display: inline-flex; align-items: center; gap: 6px; }
+.legend .sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.legend .sw.box { height: 10px; width: 10px; border-radius: 3px; }
+.legend .ramp { display: inline-block; width: 72px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, color-mix(in oklab, var(--s1) 8%, var(--surface)), var(--s1)); }
+.plot { display: grid; grid-template-columns: 52px minmax(0, 1fr) var(--endw, 0px); grid-template-rows: var(--h, 200px) 22px; margin-top: 6px; }
+.yaxis { position: relative; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.yaxis span { position: absolute; right: 6px; transform: translateY(50%); white-space: nowrap; }
+.area { position: relative; border-bottom: 1px solid var(--axis); }
+.area svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.xaxis { grid-column: 2; position: relative; font-size: 11px; color: var(--muted); }
+.xaxis span { position: absolute; top: 4px; transform: translateX(-50%); white-space: nowrap; }
+.xaxis span.first { transform: none; }
+.xaxis span.last { transform: translateX(-100%); }
+.endlabels { position: relative; min-width: 0; font-size: 11px; color: var(--ink-2); }
+.endlabels span { position: absolute; left: 6px; transform: translateY(-50%); white-space: nowrap; }
+.grid line { stroke: var(--grid); stroke-width: 1px; }
+.ln { fill: none; stroke-width: 2px; stroke-linejoin: round; stroke-linecap: round; }
+.ln.dashed { stroke-dasharray: 5 4; }
+.dot { stroke-width: 8px; stroke-linecap: round; }
+.dotring { stroke: var(--surface); stroke-width: 12px; stroke-linecap: round; }
+.hits rect { fill: transparent; }
+.hits rect:hover, .hits rect:focus { fill: var(--hover); outline: none; }
+.c1 { stroke: var(--s1); } .c2 { stroke: var(--s2); } .c3 { stroke: var(--s3); } .c4 { stroke: var(--s4); }
+.c5 { stroke: var(--s5); } .c6 { stroke: var(--s6); } .c7 { stroke: var(--s7); } .c8 { stroke: var(--s8); }
+.b1 { background: var(--s1); } .b2 { background: var(--s2); } .b3 { background: var(--s3); } .b4 { background: var(--s4); }
+.b5 { background: var(--s5); } .b6 { background: var(--s6); } .b7 { background: var(--s7); } .b8 { background: var(--s8); }
+.bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; padding: 0 2px; }
+.bars .cat { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+.bars .cat:hover, .bars .cat:focus { background: var(--hover); outline: none; }
+.bars .bar { width: min(24px, 100%); border-radius: 4px 4px 0 0; min-height: 1px; flex: 0 1 24px; }
+.xaxis.cats span { transform: translateX(-50%); }
+details.data { margin-top: 6px; }
+details.data summary { cursor: pointer; color: var(--ink-2); font-size: 12px; }
+.tbl-wrap { overflow-x: auto; max-height: 320px; overflow-y: auto; margin-top: 6px; }
+table { border-collapse: collapse; font-size: 12px; width: 100%; }
+th, td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; font-variant-numeric: tabular-nums; }
+th.l, td.l { text-align: left; }
+th { color: var(--ink-2); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+.heat td { text-align: center; min-width: 44px; padding: 4px 6px; }
+.heat td.na { color: var(--muted); }
+.alerts { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.alerts li { background: var(--surface); border: 1px solid var(--ring); border-left: 4px solid var(--warning); border-radius: 8px; padding: 8px 12px; }
+.alerts li.critical { border-left-color: var(--critical); }
+.alerts .sev { font-weight: 650; margin-right: 6px; }
+.alerts .ok { border-left-color: var(--good); }
+.status { display: inline-flex; align-items: center; gap: 4px; }
+.status i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.status.fresh i { background: var(--good); } .status.stale i { background: var(--warning); } .status.old i { background: var(--critical); }
+#tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 12px; padding: 6px 8px; border-radius: 6px; max-width: 280px; white-space: pre-line; display: none; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
+@media (max-width: 520px) {
+  .plot { grid-template-columns: 44px minmax(0, 1fr) 0px; }
+  .tile .value { font-size: 19px; }
+  .endlabels { display: none; }
+}
+@media print { button.theme, #tip { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <h1>Studio Pulse demo</h1>
+  <span class="meta">Data as of 2026-11-01 · studio-pulse 0.1.0</span>
+  <span class="spacer"></span>
+  <button class="theme" type="button">Dark mode</button>
+</header>
+<div class="banner" role="note">Synthetic demo data. <span>Every number on this site was generated by <code>pulse demo</code> for three fictional apps. It does not describe any real product, studio or player.</span></div>
+<nav class="apps" aria-label="Apps"><a href="index.html" aria-current="page">Portfolio</a><a href="apps/mossy_match.html">Mossy Match</a><a href="apps/pacer_pal.html">Pacer Pal</a><a href="apps/quartz_merge.html">Quartz Merge</a></nav>
+<main>
+<div class="tiles"><div class="tile"><div class="label">Apps</div><div class="value">3</div></div><div class="tile"><div class="label">Portfolio DAU (7-day avg)</div><div class="value">2,624</div><div class="delta good">+3.7% vs prior 7 days</div></div><div class="tile"><div class="label">New users (7 days)</div><div class="value">3,150</div></div><div class="tile" title="IAP proceeds + ad earnings, USD"><div class="label">Net revenue (7 days)</div><div class="value">$1,303</div><div class="delta good">+49.7% vs prior 7 days</div></div><div class="tile"><div class="label">Active alerts</div><div class="value">3</div><div class="delta bad">1 critical</div></div></div><h2>Apps</h2><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">App</th><th class="l">Genre</th><th class="">DAU 7d</th><th class="">Δ DAU</th><th class="">MAU</th><th class="">DAU/MAU</th><th class="">D1</th><th class="">D7</th><th class="">D30</th><th class="">Revenue 7d</th><th class="">ARPDAU</th><th class="">Crash-free users</th><th class="">Low-tier p50</th><th class="">Rating</th></tr></thead><tbody><tr><td class="l"><a href="apps/mossy_match.html">Mossy Match</a></td><td class="l">puzzle</td><td>1,132</td><td>3.7%</td><td>11,415</td><td>10.0%</td><td>44.5%</td><td>15.1%</td><td>6.2%</td><td>$401</td><td>$0.051</td><td>99.80%</td><td>17.6 ms</td><td>4.38</td></tr><tr><td class="l"><a href="apps/pacer_pal.html">Pacer Pal</a></td><td class="l">fitness</td><td>596</td><td>3.6%</td><td>5,519</td><td>11.3%</td><td>33.0%</td><td>13.7%</td><td>7.4%</td><td>$640</td><td>$0.153</td><td>99.86%</td><td>–</td><td>4.36</td></tr><tr><td class="l"><a href="apps/quartz_merge.html">Quartz Merge</a></td><td class="l">casual</td><td>896</td><td>3.8%</td><td>10,873</td><td>8.4%</td><td>35.1%</td><td>10.6%</td><td>4.2%</td><td>$262</td><td>$0.042</td><td>99.25%</td><td>18.5 ms</td><td>4.38</td></tr></tbody></table></div></div><h2>Trends</h2><div class="grid2"><figure class="chart" id="c-dailyactiveusersbyapp"><figcaption><h3>Daily active users by app</h3><p>Distinct users with at least one non-passive event per day</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Mossy Match</span><span class="key"><i class="sw b2"></i>Pacer Pal</span><span class="key"><i class="sw b3"></i>Quartz Merge</span></div><div role="img" aria-label="Daily active users by app: line chart, 3 series, 75 points"><div class="plot" style="--h:200px;--endw:119px"><div class="yaxis"><span style="bottom:0.00%">0</span><span style="bottom:33.33%">500</span><span style="bottom:66.67%">1,000</span><span style="bottom:100.00%">1,500</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,91.600 L13.51,85.800 L27.03,83.333 L40.54,81.800 L54.05,77.067 L67.57,75.867 L81.08,73.867 L94.59,74.333 L108.11,73.000 L121.62,70.800 L135.14,71.067 L148.65,66.800 L162.16,66.067 L175.68,64.133 L189.19,66.067 L202.70,64.800 L216.22,61.733 L229.73,61.867 L243.24,59.733 L256.76,58.133 L270.27,58.267 L283.78,56.800 L297.30,58.600 L310.81,57.733 L324.32,55.667 L337.84,53.867 L351.35,52.467 L364.86,52.800 L378.38,44.067 L391.89,40.333 L405.41,34.533 L418.92,32.800 L432.43,30.333 L445.95,27.933 L459.46,31.133 L472.97,32.200 L486.49,34.400 L500.00,36.933 L513.51,38.400 L527.03,33.733 L540.54,36.067 L554.05,37.267 L567.57,36.067 L581.08,36.467 L594.59,36.200 L608.11,37.200 L621.62,36.400 L635.14,33.667 L648.65,33.467 L662.16,32.267 L675.68,34.533 L689.19,34.200 L702.70,34.133 L716.22,28.133 L729.73,31.467 L743.24,36.333 L756.76,29.867 L770.27,32.800 L783.78,32.267 L797.30,26.667 L810.81,29.067 L824.32,28.267 L837.84,25.733 L851.35,26.267 L864.86,27.200 L878.38,28.667 L891.89,27.267 L905.41,27.133 L918.92,24.467 L932.43,26.933 L945.95,25.400 L959.46,26.667 L972.97,21.667 L986.49,22.867 L1000.00,23.600" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,95.133 L13.51,93.933 L27.03,92.333 L40.54,92.267 L54.05,90.400 L67.57,88.000 L81.08,89.000 L94.59,88.067 L108.11,88.533 L121.62,86.467 L135.14,84.867 L148.65,84.933 L162.16,85.800 L175.68,84.800 L189.19,84.667 L202.70,82.667 L216.22,82.933 L229.73,81.867 L243.24,80.800 L256.76,82.133 L270.27,81.867 L283.78,79.800 L297.30,78.867 L310.81,79.400 L324.32,79.000 L337.84,74.000 L351.35,77.000 L364.86,77.333 L378.38,77.600 L391.89,78.067 L405.41,76.000 L418.92,75.333 L432.43,75.133 L445.95,75.667 L459.46,73.467 L472.97,74.200 L486.49,72.400 L500.00,73.933 L513.51,74.000 L527.03,73.067 L540.54,72.000 L554.05,72.067 L567.57,72.200 L581.08,73.067 L594.59,70.267 L608.11,69.467 L621.62,68.467 L635.14,68.000 L648.65,69.467 L662.16,67.267 L675.68,67.133 L689.19,66.133 L702.70,66.800 L716.22,66.067 L729.73,64.800 L743.24,66.333 L756.76,68.000 L770.27,64.600 L783.78,65.200 L797.30,64.000 L810.81,62.667 L824.32,63.867 L837.84,62.667 L851.35,63.533 L864.86,60.800 L878.38,62.533 L891.89,58.600 L905.41,59.600 L918.92,57.600 L932.43,61.533 L945.95,63.467 L959.46,60.267 L972.97,61.200 L986.49,59.533 L1000.00,58.467" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M0.00,91.000 L13.51,86.133 L27.03,83.267 L40.54,82.600 L54.05,76.667 L67.57,74.933 L81.08,73.600 L94.59,75.467 L108.11,74.333 L121.62,73.867 L135.14,73.200 L148.65,69.533 L162.16,68.133 L175.68,67.867 L189.19,69.667 L202.70,69.200 L216.22,68.467 L229.73,65.467 L243.24,66.000 L256.76,61.467 L270.27,61.267 L283.78,61.333 L297.30,64.200 L310.81,62.667 L324.32,61.667 L337.84,59.600 L351.35,58.333 L364.86,57.933 L378.38,58.400 L391.89,59.000 L405.41,58.933 L418.92,59.000 L432.43,57.867 L445.95,53.000 L459.46,51.400 L472.97,56.533 L486.49,52.267 L500.00,53.800 L513.51,54.400 L527.03,53.533 L540.54,48.933 L554.05,52.467 L567.57,52.267 L581.08,52.733 L594.59,49.933 L608.11,52.800 L621.62,48.200 L635.14,45.000 L648.65,48.533 L662.16,49.067 L675.68,47.067 L689.19,46.600 L702.70,46.200 L716.22,44.933 L729.73,43.733 L743.24,43.933 L756.76,43.800 L770.27,45.800 L783.78,43.333 L797.30,43.067 L810.81,40.867 L824.32,40.400 L837.84,42.333 L851.35,45.000 L864.86,41.533 L878.38,44.200 L891.89,42.000 L905.41,41.667 L918.92,37.667 L932.43,42.267 L945.95,42.267 L959.46,38.200 L972.97,39.800 L986.49,42.067 L1000.00,39.467" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="23.600" y2="23.600" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="23.600" y2="23.600" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="58.467" y2="58.467" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="58.467" y2="58.467" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="39.467" y2="39.467" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="1000.00" x2="1000.00" y1="39.467" y2="39.467" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+Mossy Match: 126
+Pacer Pal: 73
+Quartz Merge: 135"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+Mossy Match: 213
+Pacer Pal: 91
+Quartz Merge: 208"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+Mossy Match: 250
+Pacer Pal: 115
+Quartz Merge: 251"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+Mossy Match: 273
+Pacer Pal: 116
+Quartz Merge: 261"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+Mossy Match: 344
+Pacer Pal: 144
+Quartz Merge: 350"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+Mossy Match: 362
+Pacer Pal: 180
+Quartz Merge: 376"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+Mossy Match: 392
+Pacer Pal: 165
+Quartz Merge: 396"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+Mossy Match: 385
+Pacer Pal: 179
+Quartz Merge: 368"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+Mossy Match: 405
+Pacer Pal: 172
+Quartz Merge: 385"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+Mossy Match: 438
+Pacer Pal: 203
+Quartz Merge: 392"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+Mossy Match: 434
+Pacer Pal: 227
+Quartz Merge: 402"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+Mossy Match: 498
+Pacer Pal: 226
+Quartz Merge: 457"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+Mossy Match: 509
+Pacer Pal: 213
+Quartz Merge: 478"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+Mossy Match: 538
+Pacer Pal: 228
+Quartz Merge: 482"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+Mossy Match: 509
+Pacer Pal: 230
+Quartz Merge: 455"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+Mossy Match: 528
+Pacer Pal: 260
+Quartz Merge: 462"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+Mossy Match: 574
+Pacer Pal: 256
+Quartz Merge: 473"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+Mossy Match: 572
+Pacer Pal: 272
+Quartz Merge: 518"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+Mossy Match: 604
+Pacer Pal: 288
+Quartz Merge: 510"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+Mossy Match: 628
+Pacer Pal: 268
+Quartz Merge: 578"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+Mossy Match: 626
+Pacer Pal: 272
+Quartz Merge: 581"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+Mossy Match: 648
+Pacer Pal: 303
+Quartz Merge: 580"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+Mossy Match: 621
+Pacer Pal: 317
+Quartz Merge: 537"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+Mossy Match: 634
+Pacer Pal: 309
+Quartz Merge: 560"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+Mossy Match: 665
+Pacer Pal: 315
+Quartz Merge: 575"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+Mossy Match: 692
+Pacer Pal: 390
+Quartz Merge: 606"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+Mossy Match: 713
+Pacer Pal: 345
+Quartz Merge: 625"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+Mossy Match: 708
+Pacer Pal: 340
+Quartz Merge: 631"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+Mossy Match: 839
+Pacer Pal: 336
+Quartz Merge: 624"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+Mossy Match: 895
+Pacer Pal: 329
+Quartz Merge: 615"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+Mossy Match: 982
+Pacer Pal: 360
+Quartz Merge: 616"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+Mossy Match: 1,008
+Pacer Pal: 370
+Quartz Merge: 615"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+Mossy Match: 1,045
+Pacer Pal: 373
+Quartz Merge: 632"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+Mossy Match: 1,081
+Pacer Pal: 365
+Quartz Merge: 705"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+Mossy Match: 1,033
+Pacer Pal: 398
+Quartz Merge: 729"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+Mossy Match: 1,017
+Pacer Pal: 387
+Quartz Merge: 652"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+Mossy Match: 984
+Pacer Pal: 414
+Quartz Merge: 716"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+Mossy Match: 946
+Pacer Pal: 391
+Quartz Merge: 693"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+Mossy Match: 924
+Pacer Pal: 390
+Quartz Merge: 684"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+Mossy Match: 994
+Pacer Pal: 404
+Quartz Merge: 697"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+Mossy Match: 959
+Pacer Pal: 420
+Quartz Merge: 766"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+Mossy Match: 941
+Pacer Pal: 419
+Quartz Merge: 713"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+Mossy Match: 959
+Pacer Pal: 417
+Quartz Merge: 716"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+Mossy Match: 953
+Pacer Pal: 404
+Quartz Merge: 709"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+Mossy Match: 957
+Pacer Pal: 446
+Quartz Merge: 751"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+Mossy Match: 942
+Pacer Pal: 458
+Quartz Merge: 708"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+Mossy Match: 954
+Pacer Pal: 473
+Quartz Merge: 777"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+Mossy Match: 995
+Pacer Pal: 480
+Quartz Merge: 825"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+Mossy Match: 998
+Pacer Pal: 458
+Quartz Merge: 772"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+Mossy Match: 1,016
+Pacer Pal: 491
+Quartz Merge: 764"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+Mossy Match: 982
+Pacer Pal: 493
+Quartz Merge: 794"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+Mossy Match: 987
+Pacer Pal: 508
+Quartz Merge: 801"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+Mossy Match: 988
+Pacer Pal: 498
+Quartz Merge: 807"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+Mossy Match: 1,078
+Pacer Pal: 509
+Quartz Merge: 826"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+Mossy Match: 1,028
+Pacer Pal: 528
+Quartz Merge: 844"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+Mossy Match: 955
+Pacer Pal: 505
+Quartz Merge: 841"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+Mossy Match: 1,052
+Pacer Pal: 480
+Quartz Merge: 843"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+Mossy Match: 1,008
+Pacer Pal: 531
+Quartz Merge: 813"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+Mossy Match: 1,016
+Pacer Pal: 522
+Quartz Merge: 850"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+Mossy Match: 1,100
+Pacer Pal: 540
+Quartz Merge: 854"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+Mossy Match: 1,064
+Pacer Pal: 560
+Quartz Merge: 887"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+Mossy Match: 1,076
+Pacer Pal: 542
+Quartz Merge: 894"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+Mossy Match: 1,114
+Pacer Pal: 560
+Quartz Merge: 865"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+Mossy Match: 1,106
+Pacer Pal: 547
+Quartz Merge: 825"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+Mossy Match: 1,092
+Pacer Pal: 588
+Quartz Merge: 877"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+Mossy Match: 1,070
+Pacer Pal: 562
+Quartz Merge: 837"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+Mossy Match: 1,091
+Pacer Pal: 621
+Quartz Merge: 870"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+Mossy Match: 1,093
+Pacer Pal: 606
+Quartz Merge: 875"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+Mossy Match: 1,133
+Pacer Pal: 636
+Quartz Merge: 935"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+Mossy Match: 1,096
+Pacer Pal: 577
+Quartz Merge: 866"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+Mossy Match: 1,119
+Pacer Pal: 548
+Quartz Merge: 866"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+Mossy Match: 1,100
+Pacer Pal: 596
+Quartz Merge: 927"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+Mossy Match: 1,175
+Pacer Pal: 582
+Quartz Merge: 903"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+Mossy Match: 1,157
+Pacer Pal: 607
+Quartz Merge: 869"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+Mossy Match: 1,146
+Pacer Pal: 623
+Quartz Merge: 908"/></g></svg></div><div class="endlabels"><span style="top:23.60%">Mossy Match 1,146</span><span style="top:58.47%">Pacer Pal 623</span><span style="top:39.47%">Quartz Merge 908</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Mossy Match</th><th>Pacer Pal</th><th>Quartz Merge</th></tr></thead><tbody><tr><td>Aug 18</td><td>126</td><td>73</td><td>135</td></tr><tr><td>Aug 19</td><td>213</td><td>91</td><td>208</td></tr><tr><td>Aug 20</td><td>250</td><td>115</td><td>251</td></tr><tr><td>Aug 21</td><td>273</td><td>116</td><td>261</td></tr><tr><td>Aug 22</td><td>344</td><td>144</td><td>350</td></tr><tr><td>Aug 23</td><td>362</td><td>180</td><td>376</td></tr><tr><td>Aug 24</td><td>392</td><td>165</td><td>396</td></tr><tr><td>Aug 25</td><td>385</td><td>179</td><td>368</td></tr><tr><td>Aug 26</td><td>405</td><td>172</td><td>385</td></tr><tr><td>Aug 27</td><td>438</td><td>203</td><td>392</td></tr><tr><td>Aug 28</td><td>434</td><td>227</td><td>402</td></tr><tr><td>Aug 29</td><td>498</td><td>226</td><td>457</td></tr><tr><td>Aug 30</td><td>509</td><td>213</td><td>478</td></tr><tr><td>Aug 31</td><td>538</td><td>228</td><td>482</td></tr><tr><td>Sep 1</td><td>509</td><td>230</td><td>455</td></tr><tr><td>Sep 2</td><td>528</td><td>260</td><td>462</td></tr><tr><td>Sep 3</td><td>574</td><td>256</td><td>473</td></tr><tr><td>Sep 4</td><td>572</td><td>272</td><td>518</td></tr><tr><td>Sep 5</td><td>604</td><td>288</td><td>510</td></tr><tr><td>Sep 6</td><td>628</td><td>268</td><td>578</td></tr><tr><td>Sep 7</td><td>626</td><td>272</td><td>581</td></tr><tr><td>Sep 8</td><td>648</td><td>303</td><td>580</td></tr><tr><td>Sep 9</td><td>621</td><td>317</td><td>537</td></tr><tr><td>Sep 10</td><td>634</td><td>309</td><td>560</td></tr><tr><td>Sep 11</td><td>665</td><td>315</td><td>575</td></tr><tr><td>Sep 12</td><td>692</td><td>390</td><td>606</td></tr><tr><td>Sep 13</td><td>713</td><td>345</td><td>625</td></tr><tr><td>Sep 14</td><td>708</td><td>340</td><td>631</td></tr><tr><td>Sep 15</td><td>839</td><td>336</td><td>624</td></tr><tr><td>Sep 16</td><td>895</td><td>329</td><td>615</td></tr><tr><td>Sep 17</td><td>982</td><td>360</td><td>616</td></tr><tr><td>Sep 18</td><td>1,008</td><td>370</td><td>615</td></tr><tr><td>Sep 19</td><td>1,045</td><td>373</td><td>632</td></tr><tr><td>Sep 20</td><td>1,081</td><td>365</td><td>705</td></tr><tr><td>Sep 21</td><td>1,033</td><td>398</td><td>729</td></tr><tr><td>Sep 22</td><td>1,017</td><td>387</td><td>652</td></tr><tr><td>Sep 23</td><td>984</td><td>414</td><td>716</td></tr><tr><td>Sep 24</td><td>946</td><td>391</td><td>693</td></tr><tr><td>Sep 25</td><td>924</td><td>390</td><td>684</td></tr><tr><td>Sep 26</td><td>994</td><td>404</td><td>697</td></tr><tr><td>Sep 27</td><td>959</td><td>420</td><td>766</td></tr><tr><td>Sep 28</td><td>941</td><td>419</td><td>713</td></tr><tr><td>Sep 29</td><td>959</td><td>417</td><td>716</td></tr><tr><td>Sep 30</td><td>953</td><td>404</td><td>709</td></tr><tr><td>Oct 1</td><td>957</td><td>446</td><td>751</td></tr><tr><td>Oct 2</td><td>942</td><td>458</td><td>708</td></tr><tr><td>Oct 3</td><td>954</td><td>473</td><td>777</td></tr><tr><td>Oct 4</td><td>995</td><td>480</td><td>825</td></tr><tr><td>Oct 5</td><td>998</td><td>458</td><td>772</td></tr><tr><td>Oct 6</td><td>1,016</td><td>491</td><td>764</td></tr><tr><td>Oct 7</td><td>982</td><td>493</td><td>794</td></tr><tr><td>Oct 8</td><td>987</td><td>508</td><td>801</td></tr><tr><td>Oct 9</td><td>988</td><td>498</td><td>807</td></tr><tr><td>Oct 10</td><td>1,078</td><td>509</td><td>826</td></tr><tr><td>Oct 11</td><td>1,028</td><td>528</td><td>844</td></tr><tr><td>Oct 12</td><td>955</td><td>505</td><td>841</td></tr><tr><td>Oct 13</td><td>1,052</td><td>480</td><td>843</td></tr><tr><td>Oct 14</td><td>1,008</td><td>531</td><td>813</td></tr><tr><td>Oct 15</td><td>1,016</td><td>522</td><td>850</td></tr><tr><td>Oct 16</td><td>1,100</td><td>540</td><td>854</td></tr><tr><td>Oct 17</td><td>1,064</td><td>560</td><td>887</td></tr><tr><td>Oct 18</td><td>1,076</td><td>542</td><td>894</td></tr><tr><td>Oct 19</td><td>1,114</td><td>560</td><td>865</td></tr><tr><td>Oct 20</td><td>1,106</td><td>547</td><td>825</td></tr><tr><td>Oct 21</td><td>1,092</td><td>588</td><td>877</td></tr><tr><td>Oct 22</td><td>1,070</td><td>562</td><td>837</td></tr><tr><td>Oct 23</td><td>1,091</td><td>621</td><td>870</td></tr><tr><td>Oct 24</td><td>1,093</td><td>606</td><td>875</td></tr><tr><td>Oct 25</td><td>1,133</td><td>636</td><td>935</td></tr><tr><td>Oct 26</td><td>1,096</td><td>577</td><td>866</td></tr><tr><td>Oct 27</td><td>1,119</td><td>548</td><td>866</td></tr><tr><td>Oct 28</td><td>1,100</td><td>596</td><td>927</td></tr><tr><td>Oct 29</td><td>1,175</td><td>582</td><td>903</td></tr><tr><td>Oct 30</td><td>1,157</td><td>607</td><td>869</td></tr><tr><td>Oct 31</td><td>1,146</td><td>623</td><td>908</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-netrevenuebyapp7dayaverage"><figcaption><h3>Net revenue by app (7-day average)</h3><p>IAP proceeds + ad earnings per day, USD, trailing 7-day mean</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Mossy Match</span><span class="key"><i class="sw b2"></i>Pacer Pal</span><span class="key"><i class="sw b3"></i>Quartz Merge</span></div><div role="img" aria-label="Net revenue by app (7-day average): line chart, 3 series, 75 points"><div class="plot" style="--h:200px;--endw:132px"><div class="yaxis"><span style="bottom:0.00%">$0</span><span style="bottom:25.00%">$25.00</span><span style="bottom:50.00%">$50.00</span><span style="bottom:75.00%">$75.00</span><span style="bottom:100.00%">$100</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,97.154 L13.51,94.092 L27.03,92.779 L40.54,92.424 L54.05,91.096 L67.57,90.154 L81.08,87.977 L94.59,86.515 L108.11,85.918 L121.62,84.657 L135.14,83.968 L148.65,82.989 L162.16,83.403 L175.68,84.884 L189.19,82.699 L202.70,82.687 L216.22,81.382 L229.73,76.388 L243.24,75.512 L256.76,70.909 L270.27,69.734 L283.78,71.295 L297.30,68.737 L310.81,69.609 L324.32,73.012 L337.84,68.610 L351.35,68.625 L364.86,69.387 L378.38,67.942 L391.89,62.438 L405.41,55.732 L418.92,51.301 L432.43,50.944 L445.95,50.721 L459.46,47.861 L472.97,48.455 L486.49,52.972 L500.00,56.100 L513.51,59.621 L527.03,60.211 L540.54,61.250 L554.05,59.573 L567.57,59.194 L581.08,57.132 L594.59,58.601 L608.11,58.368 L621.62,55.126 L635.14,55.377 L648.65,56.920 L662.16,53.537 L675.68,52.133 L689.19,49.136 L702.70,41.613 L716.22,45.008 L729.73,42.491 L743.24,41.976 L756.76,41.766 L770.27,43.252 L783.78,43.824 L797.30,49.224 L810.81,45.419 L824.32,49.457 L837.84,48.245 L851.35,48.067 L864.86,49.713 L878.38,52.322 L891.89,53.875 L905.41,61.909 L918.92,56.518 L932.43,56.089 L945.95,57.438 L959.46,52.818 L972.97,50.005 L986.49,45.301 L1000.00,42.681" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,100.000 L13.51,100.000 L27.03,100.000 L40.54,100.000 L54.05,100.000 L67.57,100.000 L81.08,100.000 L94.59,96.700 L108.11,88.332 L121.62,78.850 L135.14,71.566 L148.65,60.028 L162.16,45.913 L175.68,31.257 L189.19,27.480 L202.70,27.589 L216.22,21.289 L229.73,28.573 L243.24,30.400 L256.76,35.172 L270.27,49.828 L283.78,49.620 L297.30,48.469 L310.81,64.251 L324.32,48.492 L337.84,41.877 L351.35,41.504 L364.86,41.504 L378.38,32.914 L391.89,24.173 L405.41,8.978 L418.92,24.737 L432.43,26.890 L445.95,23.409 L459.46,22.435 L472.97,29.811 L486.49,38.113 L500.00,50.009 L513.51,46.881 L527.03,50.045 L540.54,54.009 L554.05,50.512 L567.57,54.593 L581.08,53.465 L594.59,47.892 L608.11,24.812 L621.62,33.633 L635.14,39.663 L648.65,37.648 L662.16,30.493 L675.68,39.315 L689.19,47.103 L702.70,62.585 L716.22,62.347 L729.73,54.288 L743.24,56.290 L756.76,57.862 L770.27,58.999 L783.78,36.441 L797.30,40.748 L810.81,39.047 L824.32,30.563 L837.84,31.843 L851.35,40.859 L864.86,29.430 L878.38,50.875 L891.89,54.110 L905.41,53.963 L918.92,61.269 L932.43,54.363 L945.95,36.535 L959.46,41.327 L972.97,39.039 L986.49,36.666 L1000.00,8.598" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M0.00,86.400 L13.51,72.902 L27.03,79.071 L40.54,78.364 L54.05,75.334 L67.57,76.225 L81.08,77.834 L94.59,77.400 L108.11,81.611 L121.62,77.718 L135.14,78.941 L148.65,81.536 L162.16,81.666 L175.68,81.241 L189.19,81.873 L202.70,80.687 L216.22,81.976 L229.73,80.671 L243.24,78.295 L256.76,75.304 L270.27,72.259 L283.78,68.070 L297.30,68.856 L310.81,69.870 L324.32,68.298 L337.84,69.778 L351.35,72.644 L364.86,73.143 L378.38,75.314 L391.89,74.262 L405.41,73.607 L418.92,74.859 L432.43,75.686 L445.95,72.672 L459.46,72.453 L472.97,71.583 L486.49,70.023 L500.00,68.586 L513.51,69.483 L527.03,69.398 L540.54,71.126 L554.05,69.618 L567.57,69.858 L581.08,71.221 L594.59,72.749 L608.11,72.623 L621.62,71.432 L635.14,70.007 L648.65,71.627 L662.16,70.024 L675.68,68.786 L689.19,64.952 L702.70,55.954 L716.22,53.867 L729.73,52.251 L743.24,52.364 L756.76,54.768 L770.27,54.827 L783.78,57.219 L797.30,65.375 L810.81,67.369 L824.32,68.731 L837.84,68.042 L851.35,66.910 L864.86,65.262 L878.38,65.001 L891.89,61.063 L905.41,59.734 L918.92,58.022 L932.43,59.518 L945.95,57.681 L959.46,58.540 L972.97,60.063 L986.49,64.551 L1000.00,62.540" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="42.681" y2="42.681" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="42.681" y2="42.681" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="8.598" y2="8.598" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="8.598" y2="8.598" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="62.540" y2="62.540" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="1000.00" x2="1000.00" y1="62.540" y2="62.540" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+Mossy Match: $2.85
+Pacer Pal: $0
+Quartz Merge: $13.60"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+Mossy Match: $5.91
+Pacer Pal: $0
+Quartz Merge: $27.10"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+Mossy Match: $7.22
+Pacer Pal: $0
+Quartz Merge: $20.93"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+Mossy Match: $7.58
+Pacer Pal: $0
+Quartz Merge: $21.64"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+Mossy Match: $8.90
+Pacer Pal: $0
+Quartz Merge: $24.67"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+Mossy Match: $9.85
+Pacer Pal: $0
+Quartz Merge: $23.78"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+Mossy Match: $12.02
+Pacer Pal: $0
+Quartz Merge: $22.17"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+Mossy Match: $13.49
+Pacer Pal: $3.30
+Quartz Merge: $22.60"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+Mossy Match: $14.08
+Pacer Pal: $11.67
+Quartz Merge: $18.39"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+Mossy Match: $15.34
+Pacer Pal: $21.15
+Quartz Merge: $22.28"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+Mossy Match: $16.03
+Pacer Pal: $28.43
+Quartz Merge: $21.06"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+Mossy Match: $17.01
+Pacer Pal: $39.97
+Quartz Merge: $18.46"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+Mossy Match: $16.60
+Pacer Pal: $54.09
+Quartz Merge: $18.33"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+Mossy Match: $15.12
+Pacer Pal: $68.74
+Quartz Merge: $18.76"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+Mossy Match: $17.30
+Pacer Pal: $72.52
+Quartz Merge: $18.13"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+Mossy Match: $17.31
+Pacer Pal: $72.41
+Quartz Merge: $19.31"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+Mossy Match: $18.62
+Pacer Pal: $78.71
+Quartz Merge: $18.02"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+Mossy Match: $23.61
+Pacer Pal: $71.43
+Quartz Merge: $19.33"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+Mossy Match: $24.49
+Pacer Pal: $69.60
+Quartz Merge: $21.71"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+Mossy Match: $29.09
+Pacer Pal: $64.83
+Quartz Merge: $24.70"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+Mossy Match: $30.27
+Pacer Pal: $50.17
+Quartz Merge: $27.74"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+Mossy Match: $28.71
+Pacer Pal: $50.38
+Quartz Merge: $31.93"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+Mossy Match: $31.26
+Pacer Pal: $51.53
+Quartz Merge: $31.14"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+Mossy Match: $30.39
+Pacer Pal: $35.75
+Quartz Merge: $30.13"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+Mossy Match: $26.99
+Pacer Pal: $51.51
+Quartz Merge: $31.70"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+Mossy Match: $31.39
+Pacer Pal: $58.12
+Quartz Merge: $30.22"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+Mossy Match: $31.37
+Pacer Pal: $58.50
+Quartz Merge: $27.36"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+Mossy Match: $30.61
+Pacer Pal: $58.50
+Quartz Merge: $26.86"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+Mossy Match: $32.06
+Pacer Pal: $67.09
+Quartz Merge: $24.69"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+Mossy Match: $37.56
+Pacer Pal: $75.83
+Quartz Merge: $25.74"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+Mossy Match: $44.27
+Pacer Pal: $91.02
+Quartz Merge: $26.39"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+Mossy Match: $48.70
+Pacer Pal: $75.26
+Quartz Merge: $25.14"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+Mossy Match: $49.06
+Pacer Pal: $73.11
+Quartz Merge: $24.31"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+Mossy Match: $49.28
+Pacer Pal: $76.59
+Quartz Merge: $27.33"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+Mossy Match: $52.14
+Pacer Pal: $77.57
+Quartz Merge: $27.55"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+Mossy Match: $51.54
+Pacer Pal: $70.19
+Quartz Merge: $28.42"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+Mossy Match: $47.03
+Pacer Pal: $61.89
+Quartz Merge: $29.98"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+Mossy Match: $43.90
+Pacer Pal: $49.99
+Quartz Merge: $31.41"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+Mossy Match: $40.38
+Pacer Pal: $53.12
+Quartz Merge: $30.52"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+Mossy Match: $39.79
+Pacer Pal: $49.96
+Quartz Merge: $30.60"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+Mossy Match: $38.75
+Pacer Pal: $45.99
+Quartz Merge: $28.87"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+Mossy Match: $40.43
+Pacer Pal: $49.49
+Quartz Merge: $30.38"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+Mossy Match: $40.81
+Pacer Pal: $45.41
+Quartz Merge: $30.14"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+Mossy Match: $42.87
+Pacer Pal: $46.53
+Quartz Merge: $28.78"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+Mossy Match: $41.40
+Pacer Pal: $52.11
+Quartz Merge: $27.25"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+Mossy Match: $41.63
+Pacer Pal: $75.19
+Quartz Merge: $27.38"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+Mossy Match: $44.87
+Pacer Pal: $66.37
+Quartz Merge: $28.57"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+Mossy Match: $44.62
+Pacer Pal: $60.34
+Quartz Merge: $29.99"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+Mossy Match: $43.08
+Pacer Pal: $62.35
+Quartz Merge: $28.37"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+Mossy Match: $46.46
+Pacer Pal: $69.51
+Quartz Merge: $29.98"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+Mossy Match: $47.87
+Pacer Pal: $60.69
+Quartz Merge: $31.21"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+Mossy Match: $50.86
+Pacer Pal: $52.90
+Quartz Merge: $35.05"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+Mossy Match: $58.39
+Pacer Pal: $37.41
+Quartz Merge: $44.05"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+Mossy Match: $54.99
+Pacer Pal: $37.65
+Quartz Merge: $46.13"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+Mossy Match: $57.51
+Pacer Pal: $45.71
+Quartz Merge: $47.75"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+Mossy Match: $58.02
+Pacer Pal: $43.71
+Quartz Merge: $47.64"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+Mossy Match: $58.23
+Pacer Pal: $42.14
+Quartz Merge: $45.23"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+Mossy Match: $56.75
+Pacer Pal: $41.00
+Quartz Merge: $45.17"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+Mossy Match: $56.18
+Pacer Pal: $63.56
+Quartz Merge: $42.78"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+Mossy Match: $50.78
+Pacer Pal: $59.25
+Quartz Merge: $34.63"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+Mossy Match: $54.58
+Pacer Pal: $60.95
+Quartz Merge: $32.63"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+Mossy Match: $50.54
+Pacer Pal: $69.44
+Quartz Merge: $31.27"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+Mossy Match: $51.75
+Pacer Pal: $68.16
+Quartz Merge: $31.96"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+Mossy Match: $51.93
+Pacer Pal: $59.14
+Quartz Merge: $33.09"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+Mossy Match: $50.29
+Pacer Pal: $70.57
+Quartz Merge: $34.74"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+Mossy Match: $47.68
+Pacer Pal: $49.12
+Quartz Merge: $35.00"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+Mossy Match: $46.12
+Pacer Pal: $45.89
+Quartz Merge: $38.94"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+Mossy Match: $38.09
+Pacer Pal: $46.04
+Quartz Merge: $40.27"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+Mossy Match: $43.48
+Pacer Pal: $38.73
+Quartz Merge: $41.98"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+Mossy Match: $43.91
+Pacer Pal: $45.64
+Quartz Merge: $40.48"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+Mossy Match: $42.56
+Pacer Pal: $63.46
+Quartz Merge: $42.32"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+Mossy Match: $47.18
+Pacer Pal: $58.67
+Quartz Merge: $41.46"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+Mossy Match: $50.00
+Pacer Pal: $60.96
+Quartz Merge: $39.94"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+Mossy Match: $54.70
+Pacer Pal: $63.33
+Quartz Merge: $35.45"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+Mossy Match: $57.32
+Pacer Pal: $91.40
+Quartz Merge: $37.46"/></g></svg></div><div class="endlabels"><span style="top:42.68%">Mossy Match $57.32</span><span style="top:8.60%">Pacer Pal $91.40</span><span style="top:62.54%">Quartz Merge $37.46</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Mossy Match</th><th>Pacer Pal</th><th>Quartz Merge</th></tr></thead><tbody><tr><td>Aug 18</td><td>$2.85</td><td>$0</td><td>$13.60</td></tr><tr><td>Aug 19</td><td>$5.91</td><td>$0</td><td>$27.10</td></tr><tr><td>Aug 20</td><td>$7.22</td><td>$0</td><td>$20.93</td></tr><tr><td>Aug 21</td><td>$7.58</td><td>$0</td><td>$21.64</td></tr><tr><td>Aug 22</td><td>$8.90</td><td>$0</td><td>$24.67</td></tr><tr><td>Aug 23</td><td>$9.85</td><td>$0</td><td>$23.78</td></tr><tr><td>Aug 24</td><td>$12.02</td><td>$0</td><td>$22.17</td></tr><tr><td>Aug 25</td><td>$13.49</td><td>$3.30</td><td>$22.60</td></tr><tr><td>Aug 26</td><td>$14.08</td><td>$11.67</td><td>$18.39</td></tr><tr><td>Aug 27</td><td>$15.34</td><td>$21.15</td><td>$22.28</td></tr><tr><td>Aug 28</td><td>$16.03</td><td>$28.43</td><td>$21.06</td></tr><tr><td>Aug 29</td><td>$17.01</td><td>$39.97</td><td>$18.46</td></tr><tr><td>Aug 30</td><td>$16.60</td><td>$54.09</td><td>$18.33</td></tr><tr><td>Aug 31</td><td>$15.12</td><td>$68.74</td><td>$18.76</td></tr><tr><td>Sep 1</td><td>$17.30</td><td>$72.52</td><td>$18.13</td></tr><tr><td>Sep 2</td><td>$17.31</td><td>$72.41</td><td>$19.31</td></tr><tr><td>Sep 3</td><td>$18.62</td><td>$78.71</td><td>$18.02</td></tr><tr><td>Sep 4</td><td>$23.61</td><td>$71.43</td><td>$19.33</td></tr><tr><td>Sep 5</td><td>$24.49</td><td>$69.60</td><td>$21.71</td></tr><tr><td>Sep 6</td><td>$29.09</td><td>$64.83</td><td>$24.70</td></tr><tr><td>Sep 7</td><td>$30.27</td><td>$50.17</td><td>$27.74</td></tr><tr><td>Sep 8</td><td>$28.71</td><td>$50.38</td><td>$31.93</td></tr><tr><td>Sep 9</td><td>$31.26</td><td>$51.53</td><td>$31.14</td></tr><tr><td>Sep 10</td><td>$30.39</td><td>$35.75</td><td>$30.13</td></tr><tr><td>Sep 11</td><td>$26.99</td><td>$51.51</td><td>$31.70</td></tr><tr><td>Sep 12</td><td>$31.39</td><td>$58.12</td><td>$30.22</td></tr><tr><td>Sep 13</td><td>$31.37</td><td>$58.50</td><td>$27.36</td></tr><tr><td>Sep 14</td><td>$30.61</td><td>$58.50</td><td>$26.86</td></tr><tr><td>Sep 15</td><td>$32.06</td><td>$67.09</td><td>$24.69</td></tr><tr><td>Sep 16</td><td>$37.56</td><td>$75.83</td><td>$25.74</td></tr><tr><td>Sep 17</td><td>$44.27</td><td>$91.02</td><td>$26.39</td></tr><tr><td>Sep 18</td><td>$48.70</td><td>$75.26</td><td>$25.14</td></tr><tr><td>Sep 19</td><td>$49.06</td><td>$73.11</td><td>$24.31</td></tr><tr><td>Sep 20</td><td>$49.28</td><td>$76.59</td><td>$27.33</td></tr><tr><td>Sep 21</td><td>$52.14</td><td>$77.57</td><td>$27.55</td></tr><tr><td>Sep 22</td><td>$51.54</td><td>$70.19</td><td>$28.42</td></tr><tr><td>Sep 23</td><td>$47.03</td><td>$61.89</td><td>$29.98</td></tr><tr><td>Sep 24</td><td>$43.90</td><td>$49.99</td><td>$31.41</td></tr><tr><td>Sep 25</td><td>$40.38</td><td>$53.12</td><td>$30.52</td></tr><tr><td>Sep 26</td><td>$39.79</td><td>$49.96</td><td>$30.60</td></tr><tr><td>Sep 27</td><td>$38.75</td><td>$45.99</td><td>$28.87</td></tr><tr><td>Sep 28</td><td>$40.43</td><td>$49.49</td><td>$30.38</td></tr><tr><td>Sep 29</td><td>$40.81</td><td>$45.41</td><td>$30.14</td></tr><tr><td>Sep 30</td><td>$42.87</td><td>$46.53</td><td>$28.78</td></tr><tr><td>Oct 1</td><td>$41.40</td><td>$52.11</td><td>$27.25</td></tr><tr><td>Oct 2</td><td>$41.63</td><td>$75.19</td><td>$27.38</td></tr><tr><td>Oct 3</td><td>$44.87</td><td>$66.37</td><td>$28.57</td></tr><tr><td>Oct 4</td><td>$44.62</td><td>$60.34</td><td>$29.99</td></tr><tr><td>Oct 5</td><td>$43.08</td><td>$62.35</td><td>$28.37</td></tr><tr><td>Oct 6</td><td>$46.46</td><td>$69.51</td><td>$29.98</td></tr><tr><td>Oct 7</td><td>$47.87</td><td>$60.69</td><td>$31.21</td></tr><tr><td>Oct 8</td><td>$50.86</td><td>$52.90</td><td>$35.05</td></tr><tr><td>Oct 9</td><td>$58.39</td><td>$37.41</td><td>$44.05</td></tr><tr><td>Oct 10</td><td>$54.99</td><td>$37.65</td><td>$46.13</td></tr><tr><td>Oct 11</td><td>$57.51</td><td>$45.71</td><td>$47.75</td></tr><tr><td>Oct 12</td><td>$58.02</td><td>$43.71</td><td>$47.64</td></tr><tr><td>Oct 13</td><td>$58.23</td><td>$42.14</td><td>$45.23</td></tr><tr><td>Oct 14</td><td>$56.75</td><td>$41.00</td><td>$45.17</td></tr><tr><td>Oct 15</td><td>$56.18</td><td>$63.56</td><td>$42.78</td></tr><tr><td>Oct 16</td><td>$50.78</td><td>$59.25</td><td>$34.63</td></tr><tr><td>Oct 17</td><td>$54.58</td><td>$60.95</td><td>$32.63</td></tr><tr><td>Oct 18</td><td>$50.54</td><td>$69.44</td><td>$31.27</td></tr><tr><td>Oct 19</td><td>$51.75</td><td>$68.16</td><td>$31.96</td></tr><tr><td>Oct 20</td><td>$51.93</td><td>$59.14</td><td>$33.09</td></tr><tr><td>Oct 21</td><td>$50.29</td><td>$70.57</td><td>$34.74</td></tr><tr><td>Oct 22</td><td>$47.68</td><td>$49.12</td><td>$35.00</td></tr><tr><td>Oct 23</td><td>$46.12</td><td>$45.89</td><td>$38.94</td></tr><tr><td>Oct 24</td><td>$38.09</td><td>$46.04</td><td>$40.27</td></tr><tr><td>Oct 25</td><td>$43.48</td><td>$38.73</td><td>$41.98</td></tr><tr><td>Oct 26</td><td>$43.91</td><td>$45.64</td><td>$40.48</td></tr><tr><td>Oct 27</td><td>$42.56</td><td>$63.46</td><td>$42.32</td></tr><tr><td>Oct 28</td><td>$47.18</td><td>$58.67</td><td>$41.46</td></tr><tr><td>Oct 29</td><td>$50.00</td><td>$60.96</td><td>$39.94</td></tr><tr><td>Oct 30</td><td>$54.70</td><td>$63.33</td><td>$35.45</td></tr><tr><td>Oct 31</td><td>$57.32</td><td>$91.40</td><td>$37.46</td></tr></tbody></table></div></details></figure></div><h2>Alerts</h2><ul class="alerts"><li class="critical"><span class="sev">✖ Critical</span><strong>Quartz Merge</strong> · <code>crash_free_users_low</code> · 2026-10-31<br>crash_free_users 98.79% is below 99.00%</li><li class="warning"><span class="sev">▲ Warning</span><strong>Quartz Merge</strong> · <code>d1_retention_drop</code> · 2026-10-30<br>d1_retention 24.00% is down 31.7% vs the trailing 14-day mean 35.14% (limit 20%)</li><li class="warning"><span class="sev">▲ Warning</span><strong>Quartz Merge</strong> · <code>low_tier_frame_time_high</code> · 2026-10-31<br>frame_time_p50_ms 24.7 ms is above 20.0 ms [device_tier=low]</li></ul><h2>Data freshness</h2><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">App</th><th class="l">Source</th><th class="">Data through</th><th class="">Freshness</th><th class="">Last load</th><th class="">Rows (last load)</th></tr></thead><tbody><tr><td class="l">Mossy Match</td><td class="l">AdMob Reporting API</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>75</td></tr><tr><td class="l">Mossy Match</td><td class="l">App Store Connect sales</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>187</td></tr><tr><td class="l">Mossy Match</td><td class="l">Crashlytics export (files)</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>142</td></tr><tr><td class="l">Mossy Match</td><td class="l">GA4 export (files)</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>263,169</td></tr><tr><td class="l">Mossy Match</td><td class="l">Google Play Console reports</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>75</td></tr><tr><td class="l">Mossy Match</td><td class="l">RevenueCat export</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>526</td></tr><tr><td class="l">Pacer Pal</td><td class="l">App Store Connect sales</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>136</td></tr><tr><td class="l">Pacer Pal</td><td class="l">Crashlytics export (files)</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>94</td></tr><tr><td class="l">Pacer Pal</td><td class="l">GA4 export (files)</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>5,802</td></tr><tr><td class="l">Pacer Pal</td><td class="l">Google Play Console reports</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>75</td></tr><tr><td class="l">Pacer Pal</td><td class="l">RevenueCat export</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>746</td></tr><tr><td class="l">Quartz Merge</td><td class="l">AdMob Reporting API</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>75</td></tr><tr><td class="l">Quartz Merge</td><td class="l">Crashlytics export (files)</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>75</td></tr><tr><td class="l">Quartz Merge</td><td class="l">GA4 export (files)</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>12,391</td></tr><tr><td class="l">Quartz Merge</td><td class="l">Google Play Console reports</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>75</td></tr><tr><td class="l">Quartz Merge</td><td class="l">Unity telemetry (JSON lines)</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>130,870</td></tr></tbody></table></div></div>
+</main>
+<footer>Generated by studio-pulse. Metric definitions: docs/METRICS.md. Hover a chart for values, or open its data table.</footer>
+</div>
+<div id="tip" role="tooltip"></div>
+<script>
+(function () {
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem('pulse-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  var btn = document.querySelector('button.theme');
+  function label() {
+    var dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    if (btn) btn.textContent = dark ? 'Light mode' : 'Dark mode';
+    return dark;
+  }
+  if (btn) {
+    label();
+    btn.addEventListener('click', function () {
+      var next = label() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('pulse-theme', next); } catch (e) {}
+      label();
+    });
+  }
+  var tip = document.getElementById('tip');
+  function show(el, x, y) {
+    tip.textContent = el.getAttribute('data-tip');
+    tip.style.display = 'block';
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var left = Math.min(Math.max(8, x + 12), window.innerWidth - w - 8);
+    var top = y - h - 12; if (top < 8) top = y + 16;
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  document.addEventListener('pointermove', function (ev) {
+    var el = ev.target.closest && ev.target.closest('[data-tip]');
+    if (el) show(el, ev.clientX, ev.clientY); else tip.style.display = 'none';
+  });
+  document.addEventListener('focusin', function (ev) {
+    var el = ev.target.closest && ev.target.closest('[data-tip]');
+    if (el) { var r = el.getBoundingClientRect(); show(el, r.left + r.width / 2, r.top); }
+  });
+  document.addEventListener('focusout', function () { tip.style.display = 'none'; });
+})();
+</script>
+</body>
+</html>

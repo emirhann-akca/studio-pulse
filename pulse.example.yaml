@@ -1,0 +1,63 @@
+# Copy to pulse.local.yaml (gitignored) and fill in. No secrets go in this file:
+#  - BigQuery / Cloud Storage use Application Default Credentials
+#    (`gcloud auth application-default login` or GOOGLE_APPLICATION_CREDENTIALS);
+#  - AdMob uses ADC with the admob.readonly scope, or $PULSE_ADMOB_ACCESS_TOKEN;
+#  - Slack / SMTP settings come from environment variables (see README).
+# Any value can reference an environment variable: ${NAME} or ${NAME:-default}.
+
+title: Studio Pulse
+warehouse: local/pulse.duckdb      # DuckDB file (gitignored)
+site_dir: local/site               # dashboard output
+lookback_days: 60                  # every run refreshes this window
+max_bytes_billed: 2000000000       # hard cap per BigQuery query (2 GB)
+alerts: alerts.yaml
+fx_rates:                          # fallback only, USD per unit
+  EUR: 1.08
+  TRY: 0.029
+
+apps:
+  - id: puzzle_game                # [a-z0-9_]+, used in URLs and tables
+    name: Puzzle Game
+    genre: puzzle
+    platforms: [ANDROID, IOS]
+    sources:
+      ga4_bigquery:
+        project: ${PULSE_GCP_PROJECT}
+        dataset: analytics_000000000
+        app_info_ids: [com.example.puzzle]   # keep only this app's streams
+        iap_events: [in_app_purchase]
+        ad_events: [ad_impression]
+        churn_window_days: 7
+      crashlytics_bigquery:
+        project: ${PULSE_GCP_PROJECT}
+        dataset: firebase_crashlytics
+        tables: [com_example_puzzle_ANDROID, com_example_puzzle_IOS]
+      revenuecat:
+        path: gs://example-revenuecat-exports/transactions   # or a local folder
+      admob:
+        publisher_id: pub-0000000000000000
+        app_ids: [ca-app-pub-0000000000000000~0000000000]
+      play_console:
+        path: local/reports/play            # copied from the Play Console bucket (stats/)
+        package: com.example.puzzle
+      app_store:
+        path: local/reports/appstore        # daily Summary Sales reports
+        apple_id: "0000000000"
+        sku: com.example.puzzle
+      unity_jsonl:
+        path: local/telemetry/puzzle        # files written by JsonLinesSink
+        app: com.example.puzzle
+
+  - id: fitness_app
+    name: Fitness App
+    genre: fitness
+    platforms: [ANDROID, IOS]
+    sources:
+      ga4_bigquery:
+        project: ${PULSE_GCP_PROJECT}
+        dataset: analytics_000000001
+        # A custom event that carries an FPS value can feed the perf model:
+        fps_events:
+          - {event: camera_session_completed, fps_param: median_fps, scene: camera}
+      revenuecat:
+        path: local/revenuecat/fitness

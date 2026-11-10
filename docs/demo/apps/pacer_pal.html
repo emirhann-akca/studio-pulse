@@ -1,0 +1,1709 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pacer Pal · Studio Pulse demo</title>
+<meta name="description" content="Studio Pulse demo - app portfolio metrics">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6e69;
+  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10); --hover: rgba(42,120,214,0.08);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --good: #0ca30c; --good-ink: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  --banner-bg: #fff4d6; --banner-ink: #5a4100; --banner-border: #eda100;
+  --link: #1c5cab;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
+    --link: #86b6ef;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
+  --link: #86b6ef;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--link); }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 48px; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 16px 0 8px; }
+header.top h1 { font-size: 20px; margin: 0; font-weight: 650; }
+header.top .meta { color: var(--ink-2); font-size: 13px; }
+header.top .spacer { flex: 1; }
+nav.apps { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+nav.apps a { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--ring); text-decoration: none; color: var(--ink); background: var(--surface); font-size: 13px; }
+nav.apps a[aria-current="page"] { border-color: var(--s1); box-shadow: inset 0 0 0 1px var(--s1); }
+button.theme { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--ring); background: var(--surface); color: var(--ink); cursor: pointer; }
+.banner { margin: 8px 0 16px; padding: 10px 14px; border-radius: 8px; background: var(--banner-bg); color: var(--banner-ink); border: 1px solid var(--banner-border); font-weight: 600; }
+.banner span { font-weight: 400; }
+h2 { font-size: 16px; margin: 28px 0 10px; font-weight: 650; }
+.note { color: var(--ink-2); font-size: 13px; margin: -4px 0 12px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.tile .label { color: var(--ink-2); font-size: 12px; }
+.tile .value { font-size: 22px; font-weight: 650; margin-top: 2px; }
+.tile .delta { font-size: 12px; color: var(--ink-2); }
+.tile .delta.good { color: var(--good-ink); }
+.tile .delta.bad { color: var(--critical); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 12px; }
+figure.chart { margin: 0; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 12px 12px 8px; min-width: 0; }
+figure.chart figcaption h3 { font-size: 14px; margin: 0; font-weight: 600; }
+figure.chart figcaption p { margin: 2px 0 0; color: var(--ink-2); font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 4px; font-size: 12px; color: var(--ink-2); }
+.legend .key { display: inline-flex; align-items: center; gap: 6px; }
+.legend .sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.legend .sw.box { height: 10px; width: 10px; border-radius: 3px; }
+.legend .ramp { display: inline-block; width: 72px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, color-mix(in oklab, var(--s1) 8%, var(--surface)), var(--s1)); }
+.plot { display: grid; grid-template-columns: 52px minmax(0, 1fr) var(--endw, 0px); grid-template-rows: var(--h, 200px) 22px; margin-top: 6px; }
+.yaxis { position: relative; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.yaxis span { position: absolute; right: 6px; transform: translateY(50%); white-space: nowrap; }
+.area { position: relative; border-bottom: 1px solid var(--axis); }
+.area svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.xaxis { grid-column: 2; position: relative; font-size: 11px; color: var(--muted); }
+.xaxis span { position: absolute; top: 4px; transform: translateX(-50%); white-space: nowrap; }
+.xaxis span.first { transform: none; }
+.xaxis span.last { transform: translateX(-100%); }
+.endlabels { position: relative; min-width: 0; font-size: 11px; color: var(--ink-2); }
+.endlabels span { position: absolute; left: 6px; transform: translateY(-50%); white-space: nowrap; }
+.grid line { stroke: var(--grid); stroke-width: 1px; }
+.ln { fill: none; stroke-width: 2px; stroke-linejoin: round; stroke-linecap: round; }
+.ln.dashed { stroke-dasharray: 5 4; }
+.dot { stroke-width: 8px; stroke-linecap: round; }
+.dotring { stroke: var(--surface); stroke-width: 12px; stroke-linecap: round; }
+.hits rect { fill: transparent; }
+.hits rect:hover, .hits rect:focus { fill: var(--hover); outline: none; }
+.c1 { stroke: var(--s1); } .c2 { stroke: var(--s2); } .c3 { stroke: var(--s3); } .c4 { stroke: var(--s4); }
+.c5 { stroke: var(--s5); } .c6 { stroke: var(--s6); } .c7 { stroke: var(--s7); } .c8 { stroke: var(--s8); }
+.b1 { background: var(--s1); } .b2 { background: var(--s2); } .b3 { background: var(--s3); } .b4 { background: var(--s4); }
+.b5 { background: var(--s5); } .b6 { background: var(--s6); } .b7 { background: var(--s7); } .b8 { background: var(--s8); }
+.bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; padding: 0 2px; }
+.bars .cat { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+.bars .cat:hover, .bars .cat:focus { background: var(--hover); outline: none; }
+.bars .bar { width: min(24px, 100%); border-radius: 4px 4px 0 0; min-height: 1px; flex: 0 1 24px; }
+.xaxis.cats span { transform: translateX(-50%); }
+details.data { margin-top: 6px; }
+details.data summary { cursor: pointer; color: var(--ink-2); font-size: 12px; }
+.tbl-wrap { overflow-x: auto; max-height: 320px; overflow-y: auto; margin-top: 6px; }
+table { border-collapse: collapse; font-size: 12px; width: 100%; }
+th, td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; font-variant-numeric: tabular-nums; }
+th.l, td.l { text-align: left; }
+th { color: var(--ink-2); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+.heat td { text-align: center; min-width: 44px; padding: 4px 6px; }
+.heat td.na { color: var(--muted); }
+.alerts { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.alerts li { background: var(--surface); border: 1px solid var(--ring); border-left: 4px solid var(--warning); border-radius: 8px; padding: 8px 12px; }
+.alerts li.critical { border-left-color: var(--critical); }
+.alerts .sev { font-weight: 650; margin-right: 6px; }
+.alerts .ok { border-left-color: var(--good); }
+.status { display: inline-flex; align-items: center; gap: 4px; }
+.status i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.status.fresh i { background: var(--good); } .status.stale i { background: var(--warning); } .status.old i { background: var(--critical); }
+#tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 12px; padding: 6px 8px; border-radius: 6px; max-width: 280px; white-space: pre-line; display: none; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
+@media (max-width: 520px) {
+  .plot { grid-template-columns: 44px minmax(0, 1fr) 0px; }
+  .tile .value { font-size: 19px; }
+  .endlabels { display: none; }
+}
+@media print { button.theme, #tip { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <h1>Pacer Pal · Studio Pulse demo</h1>
+  <span class="meta">Data as of 2026-11-01 · studio-pulse 0.1.0</span>
+  <span class="spacer"></span>
+  <button class="theme" type="button">Dark mode</button>
+</header>
+<div class="banner" role="note">Synthetic demo data. <span>Every number on this site was generated by <code>pulse demo</code> for three fictional apps. It does not describe any real product, studio or player.</span></div>
+<nav class="apps" aria-label="Apps"><a href="../index.html">Portfolio</a><a href="../apps/mossy_match.html">Mossy Match</a><a href="../apps/pacer_pal.html" aria-current="page">Pacer Pal</a><a href="../apps/quartz_merge.html">Quartz Merge</a></nav>
+<main>
+<div class="tiles"><div class="tile"><div class="label">DAU (7-day avg)</div><div class="value">596</div><div class="delta good">+3.6% vs prior 7 days</div></div><div class="tile"><div class="label">MAU</div><div class="value">5,519</div></div><div class="tile"><div class="label">DAU/MAU</div><div class="value">11.3%</div></div><div class="tile"><div class="label">D1 / D7 / D30</div><div class="value">33% / 14% / 7%</div></div><div class="tile"><div class="label">Net revenue (7 days)</div><div class="value">$640</div><div class="delta good">+98.5% vs prior 7 days</div></div><div class="tile"><div class="label">ARPDAU (7 days)</div><div class="value">$0.153</div></div><div class="tile" title="LTV curve value at the latest complete day &lt;= 30"><div class="label">Cumulative ARPU D30</div><div class="value">$0.729</div></div><div class="tile"><div class="label">Crash-free users (7 days)</div><div class="value">99.86%</div></div></div>
+<h2>Engagement</h2><div class="grid2"><figure class="chart" id="c-activeusers"><figcaption><h3>Active users</h3><p>WAU/MAU are shown once 7/30 days of history are available</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>DAU</span><span class="key"><i class="sw b2"></i>WAU</span><span class="key"><i class="sw b3"></i>MAU</span></div><div role="img" aria-label="Active users: line chart, 3 series, 75 points"><div class="plot" style="--h:200px;--endw:68px"><div class="yaxis"><span style="bottom:0.00%">0</span><span style="bottom:33.33%">2,000</span><span style="bottom:66.67%">4,000</span><span style="bottom:100.00%">6,000</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,98.783 L13.51,98.483 L27.03,98.083 L40.54,98.067 L54.05,97.600 L67.57,97.000 L81.08,97.250 L94.59,97.017 L108.11,97.133 L121.62,96.617 L135.14,96.217 L148.65,96.233 L162.16,96.450 L175.68,96.200 L189.19,96.167 L202.70,95.667 L216.22,95.733 L229.73,95.467 L243.24,95.200 L256.76,95.533 L270.27,95.467 L283.78,94.950 L297.30,94.717 L310.81,94.850 L324.32,94.750 L337.84,93.500 L351.35,94.250 L364.86,94.333 L378.38,94.400 L391.89,94.517 L405.41,94.000 L418.92,93.833 L432.43,93.783 L445.95,93.917 L459.46,93.367 L472.97,93.550 L486.49,93.100 L500.00,93.483 L513.51,93.500 L527.03,93.267 L540.54,93.000 L554.05,93.017 L567.57,93.050 L581.08,93.267 L594.59,92.567 L608.11,92.367 L621.62,92.117 L635.14,92.000 L648.65,92.367 L662.16,91.817 L675.68,91.783 L689.19,91.533 L702.70,91.700 L716.22,91.517 L729.73,91.200 L743.24,91.583 L756.76,92.000 L770.27,91.150 L783.78,91.300 L797.30,91.000 L810.81,90.667 L824.32,90.967 L837.84,90.667 L851.35,90.883 L864.86,90.200 L878.38,90.633 L891.89,89.650 L905.41,89.900 L918.92,89.400 L932.43,90.383 L945.95,90.867 L959.46,90.067 L972.97,90.300 L986.49,89.883 L1000.00,89.617" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M81.08,91.083 L94.59,90.300 L108.11,89.533 L121.62,88.583 L135.14,87.817 L148.65,87.033 L162.16,86.333 L175.68,85.800 L189.19,85.217 L202.70,84.483 L216.22,84.000 L229.73,83.550 L243.24,82.650 L256.76,81.850 L270.27,81.350 L283.78,80.650 L297.30,80.100 L310.81,79.583 L324.32,79.017 L337.84,77.683 L351.35,76.550 L364.86,75.767 L378.38,74.917 L391.89,74.767 L405.41,74.367 L418.92,73.950 L432.43,73.617 L445.95,73.167 L459.46,72.467 L472.97,72.300 L486.49,71.383 L500.00,70.867 L513.51,70.700 L527.03,70.417 L540.54,69.833 L554.05,69.483 L567.57,68.983 L581.08,68.917 L594.59,68.333 L608.11,67.267 L621.62,66.400 L635.14,65.650 L648.65,65.533 L662.16,64.867 L675.68,63.667 L689.19,62.817 L702.70,61.983 L716.22,61.417 L729.73,60.400 L743.24,59.783 L756.76,59.833 L770.27,59.667 L783.78,59.350 L797.30,59.083 L810.81,58.400 L824.32,58.100 L837.84,57.550 L851.35,56.800 L864.86,56.067 L878.38,55.533 L891.89,54.550 L905.41,54.267 L918.92,53.767 L932.43,53.500 L945.95,52.950 L959.46,52.783 L972.97,52.267 L986.49,52.433 L1000.00,52.217" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M391.89,61.883 L405.41,60.817 L418.92,59.650 L432.43,58.183 L445.95,56.950 L459.46,55.717 L472.97,54.533 L486.49,53.150 L500.00,52.050 L513.51,50.883 L527.03,49.583 L540.54,48.350 L554.05,47.350 L567.57,46.367 L581.08,45.217 L594.59,44.117 L608.11,42.950 L621.62,41.583 L635.14,40.067 L648.65,39.050 L662.16,37.867 L675.68,36.517 L689.19,35.300 L702.70,34.250 L716.22,32.850 L729.73,31.467 L743.24,30.350 L756.76,29.433 L770.27,28.217 L783.78,27.200 L797.30,26.167 L810.81,24.633 L824.32,23.550 L837.84,22.533 L851.35,21.217 L864.86,19.867 L878.38,18.817 L891.89,17.750 L905.41,16.283 L918.92,15.000 L932.43,13.817 L945.95,12.583 L959.46,11.500 L972.97,10.467 L986.49,9.167 L1000.00,8.017" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="89.617" y2="89.617" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="89.617" y2="89.617" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="52.217" y2="52.217" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="52.217" y2="52.217" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="8.017" y2="8.017" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="1000.00" x2="1000.00" y1="8.017" y2="8.017" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+DAU: 73
+WAU: –
+MAU: –"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+DAU: 91
+WAU: –
+MAU: –"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+DAU: 115
+WAU: –
+MAU: –"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+DAU: 116
+WAU: –
+MAU: –"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+DAU: 144
+WAU: –
+MAU: –"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+DAU: 180
+WAU: –
+MAU: –"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+DAU: 165
+WAU: 535
+MAU: –"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+DAU: 179
+WAU: 582
+MAU: –"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+DAU: 172
+WAU: 628
+MAU: –"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+DAU: 203
+WAU: 685
+MAU: –"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+DAU: 227
+WAU: 731
+MAU: –"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+DAU: 226
+WAU: 778
+MAU: –"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+DAU: 213
+WAU: 820
+MAU: –"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+DAU: 228
+WAU: 852
+MAU: –"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+DAU: 230
+WAU: 887
+MAU: –"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+DAU: 260
+WAU: 931
+MAU: –"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+DAU: 256
+WAU: 960
+MAU: –"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+DAU: 272
+WAU: 987
+MAU: –"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+DAU: 288
+WAU: 1,041
+MAU: –"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+DAU: 268
+WAU: 1,089
+MAU: –"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+DAU: 272
+WAU: 1,119
+MAU: –"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+DAU: 303
+WAU: 1,161
+MAU: –"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+DAU: 317
+WAU: 1,194
+MAU: –"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+DAU: 309
+WAU: 1,225
+MAU: –"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+DAU: 315
+WAU: 1,259
+MAU: –"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+DAU: 390
+WAU: 1,339
+MAU: –"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+DAU: 345
+WAU: 1,407
+MAU: –"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+DAU: 340
+WAU: 1,454
+MAU: –"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+DAU: 336
+WAU: 1,505
+MAU: –"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+DAU: 329
+WAU: 1,514
+MAU: 2,287"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+DAU: 360
+WAU: 1,538
+MAU: 2,351"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+DAU: 370
+WAU: 1,563
+MAU: 2,421"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+DAU: 373
+WAU: 1,583
+MAU: 2,509"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+DAU: 365
+WAU: 1,610
+MAU: 2,583"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+DAU: 398
+WAU: 1,652
+MAU: 2,657"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+DAU: 387
+WAU: 1,662
+MAU: 2,728"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+DAU: 414
+WAU: 1,717
+MAU: 2,811"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+DAU: 391
+WAU: 1,748
+MAU: 2,877"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+DAU: 390
+WAU: 1,758
+MAU: 2,947"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+DAU: 404
+WAU: 1,775
+MAU: 3,025"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+DAU: 420
+WAU: 1,810
+MAU: 3,099"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+DAU: 419
+WAU: 1,831
+MAU: 3,159"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+DAU: 417
+WAU: 1,861
+MAU: 3,218"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+DAU: 404
+WAU: 1,865
+MAU: 3,287"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+DAU: 446
+WAU: 1,900
+MAU: 3,353"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+DAU: 458
+WAU: 1,964
+MAU: 3,423"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+DAU: 473
+WAU: 2,016
+MAU: 3,505"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+DAU: 480
+WAU: 2,061
+MAU: 3,596"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+DAU: 458
+WAU: 2,068
+MAU: 3,657"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+DAU: 491
+WAU: 2,108
+MAU: 3,728"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+DAU: 493
+WAU: 2,180
+MAU: 3,809"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+DAU: 508
+WAU: 2,231
+MAU: 3,882"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+DAU: 498
+WAU: 2,281
+MAU: 3,945"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+DAU: 509
+WAU: 2,315
+MAU: 4,029"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+DAU: 528
+WAU: 2,376
+MAU: 4,112"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+DAU: 505
+WAU: 2,413
+MAU: 4,179"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+DAU: 480
+WAU: 2,410
+MAU: 4,234"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+DAU: 531
+WAU: 2,420
+MAU: 4,307"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+DAU: 522
+WAU: 2,439
+MAU: 4,368"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+DAU: 540
+WAU: 2,455
+MAU: 4,430"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+DAU: 560
+WAU: 2,496
+MAU: 4,522"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+DAU: 542
+WAU: 2,514
+MAU: 4,587"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+DAU: 560
+WAU: 2,547
+MAU: 4,648"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+DAU: 547
+WAU: 2,592
+MAU: 4,727"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+DAU: 588
+WAU: 2,636
+MAU: 4,808"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+DAU: 562
+WAU: 2,668
+MAU: 4,871"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+DAU: 621
+WAU: 2,727
+MAU: 4,935"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+DAU: 606
+WAU: 2,744
+MAU: 5,023"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+DAU: 636
+WAU: 2,774
+MAU: 5,100"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+DAU: 577
+WAU: 2,790
+MAU: 5,171"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+DAU: 548
+WAU: 2,823
+MAU: 5,245"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+DAU: 596
+WAU: 2,833
+MAU: 5,310"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+DAU: 582
+WAU: 2,864
+MAU: 5,372"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+DAU: 607
+WAU: 2,854
+MAU: 5,450"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+DAU: 623
+WAU: 2,867
+MAU: 5,519"/></g></svg></div><div class="endlabels"><span style="top:89.62%">DAU 623</span><span style="top:52.22%">WAU 2,867</span><span style="top:8.02%">MAU 5,519</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>DAU</th><th>WAU</th><th>MAU</th></tr></thead><tbody><tr><td>Aug 18</td><td>73</td><td>–</td><td>–</td></tr><tr><td>Aug 19</td><td>91</td><td>–</td><td>–</td></tr><tr><td>Aug 20</td><td>115</td><td>–</td><td>–</td></tr><tr><td>Aug 21</td><td>116</td><td>–</td><td>–</td></tr><tr><td>Aug 22</td><td>144</td><td>–</td><td>–</td></tr><tr><td>Aug 23</td><td>180</td><td>–</td><td>–</td></tr><tr><td>Aug 24</td><td>165</td><td>535</td><td>–</td></tr><tr><td>Aug 25</td><td>179</td><td>582</td><td>–</td></tr><tr><td>Aug 26</td><td>172</td><td>628</td><td>–</td></tr><tr><td>Aug 27</td><td>203</td><td>685</td><td>–</td></tr><tr><td>Aug 28</td><td>227</td><td>731</td><td>–</td></tr><tr><td>Aug 29</td><td>226</td><td>778</td><td>–</td></tr><tr><td>Aug 30</td><td>213</td><td>820</td><td>–</td></tr><tr><td>Aug 31</td><td>228</td><td>852</td><td>–</td></tr><tr><td>Sep 1</td><td>230</td><td>887</td><td>–</td></tr><tr><td>Sep 2</td><td>260</td><td>931</td><td>–</td></tr><tr><td>Sep 3</td><td>256</td><td>960</td><td>–</td></tr><tr><td>Sep 4</td><td>272</td><td>987</td><td>–</td></tr><tr><td>Sep 5</td><td>288</td><td>1,041</td><td>–</td></tr><tr><td>Sep 6</td><td>268</td><td>1,089</td><td>–</td></tr><tr><td>Sep 7</td><td>272</td><td>1,119</td><td>–</td></tr><tr><td>Sep 8</td><td>303</td><td>1,161</td><td>–</td></tr><tr><td>Sep 9</td><td>317</td><td>1,194</td><td>–</td></tr><tr><td>Sep 10</td><td>309</td><td>1,225</td><td>–</td></tr><tr><td>Sep 11</td><td>315</td><td>1,259</td><td>–</td></tr><tr><td>Sep 12</td><td>390</td><td>1,339</td><td>–</td></tr><tr><td>Sep 13</td><td>345</td><td>1,407</td><td>–</td></tr><tr><td>Sep 14</td><td>340</td><td>1,454</td><td>–</td></tr><tr><td>Sep 15</td><td>336</td><td>1,505</td><td>–</td></tr><tr><td>Sep 16</td><td>329</td><td>1,514</td><td>2,287</td></tr><tr><td>Sep 17</td><td>360</td><td>1,538</td><td>2,351</td></tr><tr><td>Sep 18</td><td>370</td><td>1,563</td><td>2,421</td></tr><tr><td>Sep 19</td><td>373</td><td>1,583</td><td>2,509</td></tr><tr><td>Sep 20</td><td>365</td><td>1,610</td><td>2,583</td></tr><tr><td>Sep 21</td><td>398</td><td>1,652</td><td>2,657</td></tr><tr><td>Sep 22</td><td>387</td><td>1,662</td><td>2,728</td></tr><tr><td>Sep 23</td><td>414</td><td>1,717</td><td>2,811</td></tr><tr><td>Sep 24</td><td>391</td><td>1,748</td><td>2,877</td></tr><tr><td>Sep 25</td><td>390</td><td>1,758</td><td>2,947</td></tr><tr><td>Sep 26</td><td>404</td><td>1,775</td><td>3,025</td></tr><tr><td>Sep 27</td><td>420</td><td>1,810</td><td>3,099</td></tr><tr><td>Sep 28</td><td>419</td><td>1,831</td><td>3,159</td></tr><tr><td>Sep 29</td><td>417</td><td>1,861</td><td>3,218</td></tr><tr><td>Sep 30</td><td>404</td><td>1,865</td><td>3,287</td></tr><tr><td>Oct 1</td><td>446</td><td>1,900</td><td>3,353</td></tr><tr><td>Oct 2</td><td>458</td><td>1,964</td><td>3,423</td></tr><tr><td>Oct 3</td><td>473</td><td>2,016</td><td>3,505</td></tr><tr><td>Oct 4</td><td>480</td><td>2,061</td><td>3,596</td></tr><tr><td>Oct 5</td><td>458</td><td>2,068</td><td>3,657</td></tr><tr><td>Oct 6</td><td>491</td><td>2,108</td><td>3,728</td></tr><tr><td>Oct 7</td><td>493</td><td>2,180</td><td>3,809</td></tr><tr><td>Oct 8</td><td>508</td><td>2,231</td><td>3,882</td></tr><tr><td>Oct 9</td><td>498</td><td>2,281</td><td>3,945</td></tr><tr><td>Oct 10</td><td>509</td><td>2,315</td><td>4,029</td></tr><tr><td>Oct 11</td><td>528</td><td>2,376</td><td>4,112</td></tr><tr><td>Oct 12</td><td>505</td><td>2,413</td><td>4,179</td></tr><tr><td>Oct 13</td><td>480</td><td>2,410</td><td>4,234</td></tr><tr><td>Oct 14</td><td>531</td><td>2,420</td><td>4,307</td></tr><tr><td>Oct 15</td><td>522</td><td>2,439</td><td>4,368</td></tr><tr><td>Oct 16</td><td>540</td><td>2,455</td><td>4,430</td></tr><tr><td>Oct 17</td><td>560</td><td>2,496</td><td>4,522</td></tr><tr><td>Oct 18</td><td>542</td><td>2,514</td><td>4,587</td></tr><tr><td>Oct 19</td><td>560</td><td>2,547</td><td>4,648</td></tr><tr><td>Oct 20</td><td>547</td><td>2,592</td><td>4,727</td></tr><tr><td>Oct 21</td><td>588</td><td>2,636</td><td>4,808</td></tr><tr><td>Oct 22</td><td>562</td><td>2,668</td><td>4,871</td></tr><tr><td>Oct 23</td><td>621</td><td>2,727</td><td>4,935</td></tr><tr><td>Oct 24</td><td>606</td><td>2,744</td><td>5,023</td></tr><tr><td>Oct 25</td><td>636</td><td>2,774</td><td>5,100</td></tr><tr><td>Oct 26</td><td>577</td><td>2,790</td><td>5,171</td></tr><tr><td>Oct 27</td><td>548</td><td>2,823</td><td>5,245</td></tr><tr><td>Oct 28</td><td>596</td><td>2,833</td><td>5,310</td></tr><tr><td>Oct 29</td><td>582</td><td>2,864</td><td>5,372</td></tr><tr><td>Oct 30</td><td>607</td><td>2,854</td><td>5,450</td></tr><tr><td>Oct 31</td><td>623</td><td>2,867</td><td>5,519</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-newusersvsstoreinstalls"><figcaption><h3>New users vs store installs</h3><p>Store numbers come from Play Console / App Store Connect reports</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>New users (GA4 first_open)</span><span class="key"><i class="sw b2"></i>Store installs</span></div><div role="img" aria-label="New users vs store installs: line chart, 2 series, 75 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">0</span><span style="bottom:33.33%">50</span><span style="bottom:66.67%">100</span><span style="bottom:100.00%">150</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,51.333 L13.51,54.000 L27.03,50.000 L40.54,57.333 L54.05,41.333 L67.57,38.667 L81.08,50.667 L94.59,52.667 L108.11,56.000 L121.62,51.333 L135.14,49.333 L148.65,41.333 L162.16,50.000 L175.68,54.667 L189.19,51.333 L202.70,54.667 L216.22,50.667 L229.73,52.000 L243.24,38.667 L256.76,52.000 L270.27,46.667 L283.78,52.000 L297.30,45.333 L310.81,54.000 L324.32,56.667 L337.84,39.333 L351.35,39.333 L364.86,50.000 L378.38,47.333 L391.89,46.667 L405.41,54.667 L418.92,48.667 L432.43,36.667 L445.95,46.000 L459.46,48.667 L472.97,48.667 L486.49,42.667 L500.00,50.000 L513.51,47.333 L527.03,40.667 L540.54,40.000 L554.05,52.000 L567.57,56.667 L581.08,49.333 L594.59,46.000 L608.11,48.000 L621.62,40.000 L635.14,37.333 L648.65,51.333 L662.16,45.333 L675.68,38.667 L689.19,42.667 L702.70,49.333 L716.22,34.000 L729.73,32.000 L743.24,47.333 L756.76,52.667 L770.27,46.667 L783.78,47.333 L797.30,50.000 L810.81,32.000 L824.32,42.667 L837.84,44.667 L851.35,38.000 L864.86,40.667 L878.38,46.000 L891.89,42.000 L905.41,34.000 L918.92,38.667 L932.43,46.000 L945.95,50.667 L959.46,46.667 L972.97,38.667 L986.49,38.667 L1000.00,37.333" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,49.333 L13.51,51.333 L27.03,48.000 L40.54,56.000 L54.05,38.667 L67.57,36.000 L81.08,48.667 L94.59,50.667 L108.11,54.667 L121.62,49.333 L135.14,48.000 L148.65,38.667 L162.16,49.333 L175.68,52.000 L189.19,49.333 L202.70,53.333 L216.22,50.000 L229.73,50.000 L243.24,36.000 L256.76,50.000 L270.27,45.333 L283.78,50.667 L297.30,43.333 L310.81,52.667 L324.32,55.333 L337.84,37.333 L351.35,38.000 L364.86,47.333 L378.38,46.000 L391.89,44.667 L405.41,54.000 L418.92,46.000 L432.43,34.000 L445.95,44.000 L459.46,46.000 L472.97,46.667 L486.49,40.667 L500.00,48.667 L513.51,45.333 L527.03,38.667 L540.54,39.333 L554.05,50.667 L567.57,54.667 L581.08,47.333 L594.59,44.667 L608.11,46.000 L621.62,36.667 L635.14,34.000 L648.65,50.000 L662.16,43.333 L675.68,36.667 L689.19,40.000 L702.70,47.333 L716.22,30.667 L729.73,29.333 L743.24,44.667 L756.76,50.000 L770.27,44.667 L783.78,46.000 L797.30,49.333 L810.81,28.000 L824.32,39.333 L837.84,42.667 L851.35,36.000 L864.86,38.000 L878.38,44.667 L891.89,40.667 L905.41,30.667 L918.92,37.333 L932.43,45.333 L945.95,47.333 L959.46,45.333 L972.97,36.000 L986.49,36.667 L1000.00,34.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="37.333" y2="37.333" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="37.333" y2="37.333" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="34.000" y2="34.000" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="34.000" y2="34.000" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+New users (GA4 first_open): 73
+Store installs: 76"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+New users (GA4 first_open): 69
+Store installs: 73"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+New users (GA4 first_open): 75
+Store installs: 78"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+New users (GA4 first_open): 64
+Store installs: 66"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+New users (GA4 first_open): 88
+Store installs: 92"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+New users (GA4 first_open): 92
+Store installs: 96"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+New users (GA4 first_open): 74
+Store installs: 77"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+New users (GA4 first_open): 71
+Store installs: 74"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+New users (GA4 first_open): 66
+Store installs: 68"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+New users (GA4 first_open): 73
+Store installs: 76"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+New users (GA4 first_open): 76
+Store installs: 78"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+New users (GA4 first_open): 88
+Store installs: 92"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+New users (GA4 first_open): 75
+Store installs: 76"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+New users (GA4 first_open): 68
+Store installs: 72"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+New users (GA4 first_open): 73
+Store installs: 76"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+New users (GA4 first_open): 68
+Store installs: 70"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+New users (GA4 first_open): 74
+Store installs: 75"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+New users (GA4 first_open): 72
+Store installs: 75"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+New users (GA4 first_open): 92
+Store installs: 96"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+New users (GA4 first_open): 72
+Store installs: 75"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+New users (GA4 first_open): 80
+Store installs: 82"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+New users (GA4 first_open): 72
+Store installs: 74"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+New users (GA4 first_open): 82
+Store installs: 85"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+New users (GA4 first_open): 69
+Store installs: 71"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+New users (GA4 first_open): 65
+Store installs: 67"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+New users (GA4 first_open): 91
+Store installs: 94"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+New users (GA4 first_open): 91
+Store installs: 93"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+New users (GA4 first_open): 75
+Store installs: 79"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+New users (GA4 first_open): 79
+Store installs: 81"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+New users (GA4 first_open): 80
+Store installs: 83"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+New users (GA4 first_open): 68
+Store installs: 69"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+New users (GA4 first_open): 77
+Store installs: 81"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+New users (GA4 first_open): 95
+Store installs: 99"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+New users (GA4 first_open): 81
+Store installs: 84"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+New users (GA4 first_open): 77
+Store installs: 81"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+New users (GA4 first_open): 77
+Store installs: 80"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+New users (GA4 first_open): 86
+Store installs: 89"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+New users (GA4 first_open): 75
+Store installs: 77"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+New users (GA4 first_open): 79
+Store installs: 82"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+New users (GA4 first_open): 89
+Store installs: 92"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+New users (GA4 first_open): 90
+Store installs: 91"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+New users (GA4 first_open): 72
+Store installs: 74"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+New users (GA4 first_open): 65
+Store installs: 68"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+New users (GA4 first_open): 76
+Store installs: 79"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+New users (GA4 first_open): 81
+Store installs: 83"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+New users (GA4 first_open): 78
+Store installs: 81"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+New users (GA4 first_open): 90
+Store installs: 95"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+New users (GA4 first_open): 94
+Store installs: 99"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+New users (GA4 first_open): 73
+Store installs: 75"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+New users (GA4 first_open): 82
+Store installs: 85"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+New users (GA4 first_open): 92
+Store installs: 95"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+New users (GA4 first_open): 86
+Store installs: 90"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+New users (GA4 first_open): 76
+Store installs: 79"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+New users (GA4 first_open): 99
+Store installs: 104"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+New users (GA4 first_open): 102
+Store installs: 106"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+New users (GA4 first_open): 79
+Store installs: 83"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+New users (GA4 first_open): 71
+Store installs: 75"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+New users (GA4 first_open): 80
+Store installs: 83"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+New users (GA4 first_open): 79
+Store installs: 81"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+New users (GA4 first_open): 75
+Store installs: 76"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+New users (GA4 first_open): 102
+Store installs: 108"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+New users (GA4 first_open): 86
+Store installs: 91"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+New users (GA4 first_open): 83
+Store installs: 86"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+New users (GA4 first_open): 93
+Store installs: 96"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+New users (GA4 first_open): 89
+Store installs: 93"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+New users (GA4 first_open): 81
+Store installs: 83"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+New users (GA4 first_open): 87
+Store installs: 89"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+New users (GA4 first_open): 99
+Store installs: 104"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+New users (GA4 first_open): 92
+Store installs: 94"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+New users (GA4 first_open): 81
+Store installs: 82"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+New users (GA4 first_open): 74
+Store installs: 79"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+New users (GA4 first_open): 80
+Store installs: 82"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+New users (GA4 first_open): 92
+Store installs: 96"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+New users (GA4 first_open): 92
+Store installs: 95"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+New users (GA4 first_open): 94
+Store installs: 99"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>New users (GA4 first_open)</th><th>Store installs</th></tr></thead><tbody><tr><td>Aug 18</td><td>73</td><td>76</td></tr><tr><td>Aug 19</td><td>69</td><td>73</td></tr><tr><td>Aug 20</td><td>75</td><td>78</td></tr><tr><td>Aug 21</td><td>64</td><td>66</td></tr><tr><td>Aug 22</td><td>88</td><td>92</td></tr><tr><td>Aug 23</td><td>92</td><td>96</td></tr><tr><td>Aug 24</td><td>74</td><td>77</td></tr><tr><td>Aug 25</td><td>71</td><td>74</td></tr><tr><td>Aug 26</td><td>66</td><td>68</td></tr><tr><td>Aug 27</td><td>73</td><td>76</td></tr><tr><td>Aug 28</td><td>76</td><td>78</td></tr><tr><td>Aug 29</td><td>88</td><td>92</td></tr><tr><td>Aug 30</td><td>75</td><td>76</td></tr><tr><td>Aug 31</td><td>68</td><td>72</td></tr><tr><td>Sep 1</td><td>73</td><td>76</td></tr><tr><td>Sep 2</td><td>68</td><td>70</td></tr><tr><td>Sep 3</td><td>74</td><td>75</td></tr><tr><td>Sep 4</td><td>72</td><td>75</td></tr><tr><td>Sep 5</td><td>92</td><td>96</td></tr><tr><td>Sep 6</td><td>72</td><td>75</td></tr><tr><td>Sep 7</td><td>80</td><td>82</td></tr><tr><td>Sep 8</td><td>72</td><td>74</td></tr><tr><td>Sep 9</td><td>82</td><td>85</td></tr><tr><td>Sep 10</td><td>69</td><td>71</td></tr><tr><td>Sep 11</td><td>65</td><td>67</td></tr><tr><td>Sep 12</td><td>91</td><td>94</td></tr><tr><td>Sep 13</td><td>91</td><td>93</td></tr><tr><td>Sep 14</td><td>75</td><td>79</td></tr><tr><td>Sep 15</td><td>79</td><td>81</td></tr><tr><td>Sep 16</td><td>80</td><td>83</td></tr><tr><td>Sep 17</td><td>68</td><td>69</td></tr><tr><td>Sep 18</td><td>77</td><td>81</td></tr><tr><td>Sep 19</td><td>95</td><td>99</td></tr><tr><td>Sep 20</td><td>81</td><td>84</td></tr><tr><td>Sep 21</td><td>77</td><td>81</td></tr><tr><td>Sep 22</td><td>77</td><td>80</td></tr><tr><td>Sep 23</td><td>86</td><td>89</td></tr><tr><td>Sep 24</td><td>75</td><td>77</td></tr><tr><td>Sep 25</td><td>79</td><td>82</td></tr><tr><td>Sep 26</td><td>89</td><td>92</td></tr><tr><td>Sep 27</td><td>90</td><td>91</td></tr><tr><td>Sep 28</td><td>72</td><td>74</td></tr><tr><td>Sep 29</td><td>65</td><td>68</td></tr><tr><td>Sep 30</td><td>76</td><td>79</td></tr><tr><td>Oct 1</td><td>81</td><td>83</td></tr><tr><td>Oct 2</td><td>78</td><td>81</td></tr><tr><td>Oct 3</td><td>90</td><td>95</td></tr><tr><td>Oct 4</td><td>94</td><td>99</td></tr><tr><td>Oct 5</td><td>73</td><td>75</td></tr><tr><td>Oct 6</td><td>82</td><td>85</td></tr><tr><td>Oct 7</td><td>92</td><td>95</td></tr><tr><td>Oct 8</td><td>86</td><td>90</td></tr><tr><td>Oct 9</td><td>76</td><td>79</td></tr><tr><td>Oct 10</td><td>99</td><td>104</td></tr><tr><td>Oct 11</td><td>102</td><td>106</td></tr><tr><td>Oct 12</td><td>79</td><td>83</td></tr><tr><td>Oct 13</td><td>71</td><td>75</td></tr><tr><td>Oct 14</td><td>80</td><td>83</td></tr><tr><td>Oct 15</td><td>79</td><td>81</td></tr><tr><td>Oct 16</td><td>75</td><td>76</td></tr><tr><td>Oct 17</td><td>102</td><td>108</td></tr><tr><td>Oct 18</td><td>86</td><td>91</td></tr><tr><td>Oct 19</td><td>83</td><td>86</td></tr><tr><td>Oct 20</td><td>93</td><td>96</td></tr><tr><td>Oct 21</td><td>89</td><td>93</td></tr><tr><td>Oct 22</td><td>81</td><td>83</td></tr><tr><td>Oct 23</td><td>87</td><td>89</td></tr><tr><td>Oct 24</td><td>99</td><td>104</td></tr><tr><td>Oct 25</td><td>92</td><td>94</td></tr><tr><td>Oct 26</td><td>81</td><td>82</td></tr><tr><td>Oct 27</td><td>74</td><td>79</td></tr><tr><td>Oct 28</td><td>80</td><td>82</td></tr><tr><td>Oct 29</td><td>92</td><td>96</td></tr><tr><td>Oct 30</td><td>92</td><td>95</td></tr><tr><td>Oct 31</td><td>94</td><td>99</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-stickinessdaumau"><figcaption><h3>Stickiness (DAU/MAU)</h3></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>DAU/MAU</span></div><div role="img" aria-label="Stickiness (DAU/MAU): line chart, 1 series, 75 points"><div class="plot" style="--h:200px;--endw:42px"><div class="yaxis"><span style="bottom:0.00%">10.0%</span><span style="bottom:33.33%">12.0%</span><span style="bottom:66.67%">14.0%</span><span style="bottom:100.00%">16.0%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M391.89,26.906 L405.41,11.456 L418.92,11.951 L432.43,18.892 L445.95,31.152 L459.46,17.012 L472.97,30.230 L486.49,21.202 L500.00,40.158 L513.51,46.103 L527.03,44.077 L540.54,40.787 L554.05,45.605 L567.57,50.694 L581.08,61.819 L594.59,44.975 L608.11,43.665 L621.62,41.750 L635.14,44.197 L648.65,57.935 L662.16,47.157 L675.68,50.950 L689.19,48.566 L702.70,56.274 L716.22,56.110 L729.73,52.659 L743.24,65.263 L756.76,77.720 L770.27,61.187 L783.78,67.491 L797.30,63.506 L810.81,60.268 L824.32,69.733 L837.84,65.863 L851.35,73.803 L864.86,62.840 L878.38,74.372 L891.89,56.940 L905.41,65.592 L918.92,58.824 L932.43,80.694 L945.95,92.533 L959.46,79.598 L972.97,86.101 L986.49,81.040 L1000.00,78.529" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="78.529" y2="78.529" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="78.529" y2="78.529" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+DAU/MAU: –"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+DAU/MAU: –"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+DAU/MAU: –"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+DAU/MAU: –"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+DAU/MAU: –"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+DAU/MAU: –"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+DAU/MAU: –"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+DAU/MAU: –"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+DAU/MAU: –"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+DAU/MAU: –"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+DAU/MAU: –"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+DAU/MAU: –"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+DAU/MAU: –"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+DAU/MAU: –"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+DAU/MAU: –"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+DAU/MAU: –"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+DAU/MAU: –"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+DAU/MAU: –"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+DAU/MAU: –"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+DAU/MAU: –"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+DAU/MAU: –"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+DAU/MAU: –"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+DAU/MAU: –"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+DAU/MAU: –"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+DAU/MAU: –"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+DAU/MAU: –"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+DAU/MAU: –"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+DAU/MAU: –"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+DAU/MAU: –"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+DAU/MAU: 14.4%"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+DAU/MAU: 15.3%"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+DAU/MAU: 15.3%"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+DAU/MAU: 14.9%"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+DAU/MAU: 14.1%"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+DAU/MAU: 15.0%"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+DAU/MAU: 14.2%"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+DAU/MAU: 14.7%"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+DAU/MAU: 13.6%"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+DAU/MAU: 13.2%"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+DAU/MAU: 13.4%"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+DAU/MAU: 13.6%"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+DAU/MAU: 13.3%"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+DAU/MAU: 13.0%"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+DAU/MAU: 12.3%"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+DAU/MAU: 13.3%"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+DAU/MAU: 13.4%"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+DAU/MAU: 13.5%"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+DAU/MAU: 13.3%"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+DAU/MAU: 12.5%"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+DAU/MAU: 13.2%"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+DAU/MAU: 12.9%"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+DAU/MAU: 13.1%"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+DAU/MAU: 12.6%"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+DAU/MAU: 12.6%"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+DAU/MAU: 12.8%"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+DAU/MAU: 12.1%"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+DAU/MAU: 11.3%"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+DAU/MAU: 12.3%"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+DAU/MAU: 12.0%"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+DAU/MAU: 12.2%"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+DAU/MAU: 12.4%"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+DAU/MAU: 11.8%"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+DAU/MAU: 12.0%"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+DAU/MAU: 11.6%"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+DAU/MAU: 12.2%"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+DAU/MAU: 11.5%"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+DAU/MAU: 12.6%"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+DAU/MAU: 12.1%"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+DAU/MAU: 12.5%"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+DAU/MAU: 11.2%"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+DAU/MAU: 10.4%"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+DAU/MAU: 11.2%"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+DAU/MAU: 10.8%"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+DAU/MAU: 11.1%"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+DAU/MAU: 11.3%"/></g></svg></div><div class="endlabels"><span style="top:78.53%">11.3%</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>DAU/MAU</th></tr></thead><tbody><tr><td>Aug 18</td><td>–</td></tr><tr><td>Aug 19</td><td>–</td></tr><tr><td>Aug 20</td><td>–</td></tr><tr><td>Aug 21</td><td>–</td></tr><tr><td>Aug 22</td><td>–</td></tr><tr><td>Aug 23</td><td>–</td></tr><tr><td>Aug 24</td><td>–</td></tr><tr><td>Aug 25</td><td>–</td></tr><tr><td>Aug 26</td><td>–</td></tr><tr><td>Aug 27</td><td>–</td></tr><tr><td>Aug 28</td><td>–</td></tr><tr><td>Aug 29</td><td>–</td></tr><tr><td>Aug 30</td><td>–</td></tr><tr><td>Aug 31</td><td>–</td></tr><tr><td>Sep 1</td><td>–</td></tr><tr><td>Sep 2</td><td>–</td></tr><tr><td>Sep 3</td><td>–</td></tr><tr><td>Sep 4</td><td>–</td></tr><tr><td>Sep 5</td><td>–</td></tr><tr><td>Sep 6</td><td>–</td></tr><tr><td>Sep 7</td><td>–</td></tr><tr><td>Sep 8</td><td>–</td></tr><tr><td>Sep 9</td><td>–</td></tr><tr><td>Sep 10</td><td>–</td></tr><tr><td>Sep 11</td><td>–</td></tr><tr><td>Sep 12</td><td>–</td></tr><tr><td>Sep 13</td><td>–</td></tr><tr><td>Sep 14</td><td>–</td></tr><tr><td>Sep 15</td><td>–</td></tr><tr><td>Sep 16</td><td>14.4%</td></tr><tr><td>Sep 17</td><td>15.3%</td></tr><tr><td>Sep 18</td><td>15.3%</td></tr><tr><td>Sep 19</td><td>14.9%</td></tr><tr><td>Sep 20</td><td>14.1%</td></tr><tr><td>Sep 21</td><td>15.0%</td></tr><tr><td>Sep 22</td><td>14.2%</td></tr><tr><td>Sep 23</td><td>14.7%</td></tr><tr><td>Sep 24</td><td>13.6%</td></tr><tr><td>Sep 25</td><td>13.2%</td></tr><tr><td>Sep 26</td><td>13.4%</td></tr><tr><td>Sep 27</td><td>13.6%</td></tr><tr><td>Sep 28</td><td>13.3%</td></tr><tr><td>Sep 29</td><td>13.0%</td></tr><tr><td>Sep 30</td><td>12.3%</td></tr><tr><td>Oct 1</td><td>13.3%</td></tr><tr><td>Oct 2</td><td>13.4%</td></tr><tr><td>Oct 3</td><td>13.5%</td></tr><tr><td>Oct 4</td><td>13.3%</td></tr><tr><td>Oct 5</td><td>12.5%</td></tr><tr><td>Oct 6</td><td>13.2%</td></tr><tr><td>Oct 7</td><td>12.9%</td></tr><tr><td>Oct 8</td><td>13.1%</td></tr><tr><td>Oct 9</td><td>12.6%</td></tr><tr><td>Oct 10</td><td>12.6%</td></tr><tr><td>Oct 11</td><td>12.8%</td></tr><tr><td>Oct 12</td><td>12.1%</td></tr><tr><td>Oct 13</td><td>11.3%</td></tr><tr><td>Oct 14</td><td>12.3%</td></tr><tr><td>Oct 15</td><td>12.0%</td></tr><tr><td>Oct 16</td><td>12.2%</td></tr><tr><td>Oct 17</td><td>12.4%</td></tr><tr><td>Oct 18</td><td>11.8%</td></tr><tr><td>Oct 19</td><td>12.0%</td></tr><tr><td>Oct 20</td><td>11.6%</td></tr><tr><td>Oct 21</td><td>12.2%</td></tr><tr><td>Oct 22</td><td>11.5%</td></tr><tr><td>Oct 23</td><td>12.6%</td></tr><tr><td>Oct 24</td><td>12.1%</td></tr><tr><td>Oct 25</td><td>12.5%</td></tr><tr><td>Oct 26</td><td>11.2%</td></tr><tr><td>Oct 27</td><td>10.4%</td></tr><tr><td>Oct 28</td><td>11.2%</td></tr><tr><td>Oct 29</td><td>10.8%</td></tr><tr><td>Oct 30</td><td>11.1%</td></tr><tr><td>Oct 31</td><td>11.3%</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-sessionsperdau"><figcaption><h3>Sessions per DAU</h3></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Sessions per DAU</span></div><div role="img" aria-label="Sessions per DAU: line chart, 1 series, 75 points"><div class="plot" style="--h:200px;--endw:36px"><div class="yaxis"><span style="bottom:0.00%">1.20</span><span style="bottom:33.33%">1.25</span><span style="bottom:66.67%">1.30</span><span style="bottom:100.00%">1.35</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,14.155 L13.51,79.487 L27.03,59.420 L40.54,66.667 L54.05,34.259 L67.57,70.370 L81.08,7.071 L94.59,73.184 L108.11,66.667 L121.62,75.698 L135.14,39.501 L148.65,76.991 L162.16,51.800 L175.68,43.275 L189.19,62.319 L202.70,64.103 L216.22,53.646 L229.73,54.412 L243.24,59.722 L256.76,89.055 L270.27,76.471 L283.78,61.716 L297.30,20.925 L310.81,58.576 L324.32,78.836 L337.84,58.974 L351.35,55.556 L364.86,80.392 L378.38,88.492 L391.89,63.121 L405.41,55.556 L418.92,63.964 L432.43,65.326 L445.95,50.685 L459.46,55.779 L472.97,74.849 L486.49,61.031 L500.00,45.780 L513.51,60.684 L527.03,53.465 L540.54,58.730 L554.05,53.540 L567.57,59.073 L581.08,25.413 L594.59,58.445 L608.11,57.205 L621.62,44.468 L635.14,31.944 L648.65,52.838 L662.16,59.538 L675.68,69.709 L689.19,61.417 L702.70,56.627 L716.22,43.418 L729.73,35.101 L743.24,73.597 L756.76,43.056 L770.27,71.375 L783.78,63.474 L797.30,44.444 L810.81,42.857 L824.32,73.432 L837.84,58.333 L851.35,49.299 L864.86,49.660 L878.38,36.418 L891.89,44.391 L905.41,33.113 L918.92,39.413 L932.43,55.402 L945.95,81.265 L959.46,55.481 L972.97,62.658 L986.49,45.524 L1000.00,67.469" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="67.469" y2="67.469" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="67.469" y2="67.469" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+Sessions per DAU: 1.33"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+Sessions per DAU: 1.23"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+Sessions per DAU: 1.26"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+Sessions per DAU: 1.25"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+Sessions per DAU: 1.30"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+Sessions per DAU: 1.24"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+Sessions per DAU: 1.34"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+Sessions per DAU: 1.24"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+Sessions per DAU: 1.25"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+Sessions per DAU: 1.24"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+Sessions per DAU: 1.29"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+Sessions per DAU: 1.23"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+Sessions per DAU: 1.27"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+Sessions per DAU: 1.29"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+Sessions per DAU: 1.26"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+Sessions per DAU: 1.25"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+Sessions per DAU: 1.27"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+Sessions per DAU: 1.27"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+Sessions per DAU: 1.26"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+Sessions per DAU: 1.22"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+Sessions per DAU: 1.24"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+Sessions per DAU: 1.26"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+Sessions per DAU: 1.32"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+Sessions per DAU: 1.26"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+Sessions per DAU: 1.23"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+Sessions per DAU: 1.26"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+Sessions per DAU: 1.27"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+Sessions per DAU: 1.23"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+Sessions per DAU: 1.22"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+Sessions per DAU: 1.26"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+Sessions per DAU: 1.27"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+Sessions per DAU: 1.25"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+Sessions per DAU: 1.25"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+Sessions per DAU: 1.27"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+Sessions per DAU: 1.27"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+Sessions per DAU: 1.24"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+Sessions per DAU: 1.26"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+Sessions per DAU: 1.28"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+Sessions per DAU: 1.26"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+Sessions per DAU: 1.27"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+Sessions per DAU: 1.26"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+Sessions per DAU: 1.27"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+Sessions per DAU: 1.26"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+Sessions per DAU: 1.31"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+Sessions per DAU: 1.26"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+Sessions per DAU: 1.26"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+Sessions per DAU: 1.28"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+Sessions per DAU: 1.30"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+Sessions per DAU: 1.27"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+Sessions per DAU: 1.26"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+Sessions per DAU: 1.25"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+Sessions per DAU: 1.26"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+Sessions per DAU: 1.27"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+Sessions per DAU: 1.28"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+Sessions per DAU: 1.30"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+Sessions per DAU: 1.24"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+Sessions per DAU: 1.29"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+Sessions per DAU: 1.24"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+Sessions per DAU: 1.25"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+Sessions per DAU: 1.28"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+Sessions per DAU: 1.29"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+Sessions per DAU: 1.24"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+Sessions per DAU: 1.26"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+Sessions per DAU: 1.28"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+Sessions per DAU: 1.28"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+Sessions per DAU: 1.30"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+Sessions per DAU: 1.28"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+Sessions per DAU: 1.30"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+Sessions per DAU: 1.29"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+Sessions per DAU: 1.27"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+Sessions per DAU: 1.23"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+Sessions per DAU: 1.27"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+Sessions per DAU: 1.26"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+Sessions per DAU: 1.28"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+Sessions per DAU: 1.25"/></g></svg></div><div class="endlabels"><span style="top:67.47%">1.25</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Sessions per DAU</th></tr></thead><tbody><tr><td>Aug 18</td><td>1.33</td></tr><tr><td>Aug 19</td><td>1.23</td></tr><tr><td>Aug 20</td><td>1.26</td></tr><tr><td>Aug 21</td><td>1.25</td></tr><tr><td>Aug 22</td><td>1.30</td></tr><tr><td>Aug 23</td><td>1.24</td></tr><tr><td>Aug 24</td><td>1.34</td></tr><tr><td>Aug 25</td><td>1.24</td></tr><tr><td>Aug 26</td><td>1.25</td></tr><tr><td>Aug 27</td><td>1.24</td></tr><tr><td>Aug 28</td><td>1.29</td></tr><tr><td>Aug 29</td><td>1.23</td></tr><tr><td>Aug 30</td><td>1.27</td></tr><tr><td>Aug 31</td><td>1.29</td></tr><tr><td>Sep 1</td><td>1.26</td></tr><tr><td>Sep 2</td><td>1.25</td></tr><tr><td>Sep 3</td><td>1.27</td></tr><tr><td>Sep 4</td><td>1.27</td></tr><tr><td>Sep 5</td><td>1.26</td></tr><tr><td>Sep 6</td><td>1.22</td></tr><tr><td>Sep 7</td><td>1.24</td></tr><tr><td>Sep 8</td><td>1.26</td></tr><tr><td>Sep 9</td><td>1.32</td></tr><tr><td>Sep 10</td><td>1.26</td></tr><tr><td>Sep 11</td><td>1.23</td></tr><tr><td>Sep 12</td><td>1.26</td></tr><tr><td>Sep 13</td><td>1.27</td></tr><tr><td>Sep 14</td><td>1.23</td></tr><tr><td>Sep 15</td><td>1.22</td></tr><tr><td>Sep 16</td><td>1.26</td></tr><tr><td>Sep 17</td><td>1.27</td></tr><tr><td>Sep 18</td><td>1.25</td></tr><tr><td>Sep 19</td><td>1.25</td></tr><tr><td>Sep 20</td><td>1.27</td></tr><tr><td>Sep 21</td><td>1.27</td></tr><tr><td>Sep 22</td><td>1.24</td></tr><tr><td>Sep 23</td><td>1.26</td></tr><tr><td>Sep 24</td><td>1.28</td></tr><tr><td>Sep 25</td><td>1.26</td></tr><tr><td>Sep 26</td><td>1.27</td></tr><tr><td>Sep 27</td><td>1.26</td></tr><tr><td>Sep 28</td><td>1.27</td></tr><tr><td>Sep 29</td><td>1.26</td></tr><tr><td>Sep 30</td><td>1.31</td></tr><tr><td>Oct 1</td><td>1.26</td></tr><tr><td>Oct 2</td><td>1.26</td></tr><tr><td>Oct 3</td><td>1.28</td></tr><tr><td>Oct 4</td><td>1.30</td></tr><tr><td>Oct 5</td><td>1.27</td></tr><tr><td>Oct 6</td><td>1.26</td></tr><tr><td>Oct 7</td><td>1.25</td></tr><tr><td>Oct 8</td><td>1.26</td></tr><tr><td>Oct 9</td><td>1.27</td></tr><tr><td>Oct 10</td><td>1.28</td></tr><tr><td>Oct 11</td><td>1.30</td></tr><tr><td>Oct 12</td><td>1.24</td></tr><tr><td>Oct 13</td><td>1.29</td></tr><tr><td>Oct 14</td><td>1.24</td></tr><tr><td>Oct 15</td><td>1.25</td></tr><tr><td>Oct 16</td><td>1.28</td></tr><tr><td>Oct 17</td><td>1.29</td></tr><tr><td>Oct 18</td><td>1.24</td></tr><tr><td>Oct 19</td><td>1.26</td></tr><tr><td>Oct 20</td><td>1.28</td></tr><tr><td>Oct 21</td><td>1.28</td></tr><tr><td>Oct 22</td><td>1.30</td></tr><tr><td>Oct 23</td><td>1.28</td></tr><tr><td>Oct 24</td><td>1.30</td></tr><tr><td>Oct 25</td><td>1.29</td></tr><tr><td>Oct 26</td><td>1.27</td></tr><tr><td>Oct 27</td><td>1.23</td></tr><tr><td>Oct 28</td><td>1.27</td></tr><tr><td>Oct 29</td><td>1.26</td></tr><tr><td>Oct 30</td><td>1.28</td></tr><tr><td>Oct 31</td><td>1.25</td></tr></tbody></table></div></details></figure></div>
+<h2>Retention</h2><p class="note">Headline (last 28 complete cohorts, size-weighted): D1 33.0% (28 cohorts, 2,409 users), D7 13.7% (28 cohorts, 2,360 users), D30 7.4% (28 cohorts, 2,208 users)</p><div class="grid2"><figure class="chart" id="c-retentionbyinstallcohort"><figcaption><h3>Retention by install cohort</h3><p>Share of each day&#x27;s new users active again on day N</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>D1</span><span class="key"><i class="sw b2"></i>D7</span><span class="key"><i class="sw b3"></i>D30</span></div><div role="img" aria-label="Retention by install cohort: line chart, 3 series, 75 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">0.0%</span><span style="bottom:33.33%">20.0%</span><span style="bottom:66.67%">40.0%</span><span style="bottom:100.00%">60.0%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,49.772 L13.51,32.367 L27.03,51.111 L40.54,76.562 L54.05,48.864 L67.57,45.652 L81.08,43.694 L94.59,50.704 L108.11,34.343 L121.62,42.922 L135.14,42.982 L148.65,50.758 L162.16,37.778 L175.68,43.627 L189.19,42.922 L202.70,36.275 L216.22,48.198 L229.73,39.815 L243.24,38.406 L256.76,58.333 L270.27,62.500 L283.78,51.389 L297.30,39.024 L310.81,46.860 L324.32,41.026 L337.84,52.381 L351.35,48.718 L364.86,53.333 L378.38,32.489 L391.89,41.667 L405.41,55.882 L418.92,45.887 L432.43,61.404 L445.95,48.560 L459.46,39.394 L472.97,41.558 L486.49,49.612 L500.00,46.667 L513.51,36.709 L527.03,38.202 L540.54,44.444 L554.05,46.759 L567.57,48.718 L581.08,58.333 L594.59,52.675 L608.11,46.581 L621.62,46.296 L635.14,37.943 L648.65,49.772 L662.16,39.024 L675.68,40.217 L689.19,47.674 L702.70,42.982 L716.22,41.077 L729.73,42.810 L743.24,49.367 L756.76,43.662 L770.27,47.917 L783.78,53.586 L797.30,46.667 L810.81,54.248 L824.32,51.550 L837.84,59.839 L851.35,46.237 L864.86,45.693 L878.38,40.329 L891.89,54.023 L905.41,29.293 L918.92,52.899 L932.43,42.387 L945.95,43.694 L959.46,47.917 L972.97,34.783 L986.49,32.971" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,81.735 L13.51,71.014 L27.03,71.111 L40.54,86.979 L54.05,82.955 L67.57,80.072 L81.08,72.973 L94.59,83.568 L108.11,67.172 L121.62,74.886 L135.14,69.298 L148.65,84.848 L162.16,77.778 L175.68,75.490 L189.19,79.452 L202.70,80.392 L216.22,68.468 L229.73,72.222 L243.24,69.203 L256.76,72.222 L270.27,66.667 L283.78,83.796 L297.30,75.610 L310.81,80.676 L324.32,69.231 L337.84,83.516 L351.35,78.022 L364.86,73.333 L378.38,76.793 L391.89,87.500 L405.41,75.490 L418.92,76.190 L432.43,87.719 L445.95,77.366 L459.46,76.190 L472.97,80.519 L486.49,78.682 L500.00,77.778 L513.51,87.342 L527.03,56.929 L540.54,77.778 L554.05,83.796 L567.57,89.744 L581.08,75.877 L594.59,79.424 L608.11,82.906 L621.62,72.222 L635.14,62.766 L648.65,68.037 L662.16,77.642 L675.68,80.072 L689.19,86.434 L702.70,86.842 L716.22,79.798 L729.73,70.588 L743.24,74.684 L756.76,74.178 L770.27,79.167 L783.78,74.684 L797.30,82.222 L810.81,78.758 L824.32,78.682 L837.84,83.936 L851.35,80.287 L864.86,66.292 L878.38,75.309 L891.89,63.602 L905.41,81.481" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M0.00,84.018 L13.51,83.092 L27.03,93.333 L40.54,92.188 L54.05,81.061 L67.57,85.507 L81.08,90.991 L94.59,88.263 L108.11,92.424 L121.62,84.018 L135.14,93.421 L148.65,88.636 L162.16,84.444 L175.68,90.196 L189.19,86.301 L202.70,85.294 L216.22,84.234 L229.73,90.741 L243.24,87.319 L256.76,81.481 L270.27,87.500 L283.78,88.426 L297.30,93.902 L310.81,87.923 L324.32,89.744 L337.84,85.348 L351.35,94.505 L364.86,86.667 L378.38,91.561 L391.89,85.417 L405.41,92.647 L418.92,87.013 L432.43,94.737 L445.95,81.481 L459.46,87.013 L472.97,84.848 L486.49,86.434 L500.00,84.444 L513.51,91.561 L527.03,81.273 L540.54,87.037 L554.05,83.796 L567.57,94.872 L581.08,89.035 L594.59,79.424" vector-effect="non-scaling-stroke"/><line class="dotring" x1="986.49" x2="986.49" y1="32.971" y2="32.971" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="986.49" x2="986.49" y1="32.971" y2="32.971" vector-effect="non-scaling-stroke"/><line class="dotring" x1="905.41" x2="905.41" y1="81.481" y2="81.481" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="905.41" x2="905.41" y1="81.481" y2="81.481" vector-effect="non-scaling-stroke"/><line class="dotring" x1="594.59" x2="594.59" y1="79.424" y2="79.424" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="594.59" x2="594.59" y1="79.424" y2="79.424" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+D1: 30.1%
+D7: 11.0%
+D30: 9.6%"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+D1: 40.6%
+D7: 17.4%
+D30: 10.1%"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+D1: 29.3%
+D7: 17.3%
+D30: 4.0%"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+D1: 14.1%
+D7: 7.8%
+D30: 4.7%"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+D1: 30.7%
+D7: 10.2%
+D30: 11.4%"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+D1: 32.6%
+D7: 12.0%
+D30: 8.7%"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+D1: 33.8%
+D7: 16.2%
+D30: 5.4%"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+D1: 29.6%
+D7: 9.9%
+D30: 7.0%"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+D1: 39.4%
+D7: 19.7%
+D30: 4.5%"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+D1: 34.2%
+D7: 15.1%
+D30: 9.6%"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+D1: 34.2%
+D7: 18.4%
+D30: 3.9%"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+D1: 29.5%
+D7: 9.1%
+D30: 6.8%"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+D1: 37.3%
+D7: 13.3%
+D30: 9.3%"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+D1: 33.8%
+D7: 14.7%
+D30: 5.9%"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+D1: 34.2%
+D7: 12.3%
+D30: 8.2%"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+D1: 38.2%
+D7: 11.8%
+D30: 8.8%"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+D1: 31.1%
+D7: 18.9%
+D30: 9.5%"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+D1: 36.1%
+D7: 16.7%
+D30: 5.6%"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+D1: 37.0%
+D7: 18.5%
+D30: 7.6%"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+D1: 25.0%
+D7: 16.7%
+D30: 11.1%"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+D1: 22.5%
+D7: 20.0%
+D30: 7.5%"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+D1: 29.2%
+D7: 9.7%
+D30: 6.9%"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+D1: 36.6%
+D7: 14.6%
+D30: 3.7%"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+D1: 31.9%
+D7: 11.6%
+D30: 7.2%"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+D1: 35.4%
+D7: 18.5%
+D30: 6.2%"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+D1: 28.6%
+D7: 9.9%
+D30: 8.8%"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+D1: 30.8%
+D7: 13.2%
+D30: 3.3%"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+D1: 28.0%
+D7: 16.0%
+D30: 8.0%"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+D1: 40.5%
+D7: 13.9%
+D30: 5.1%"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+D1: 35.0%
+D7: 7.5%
+D30: 8.8%"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+D1: 26.5%
+D7: 14.7%
+D30: 4.4%"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+D1: 32.5%
+D7: 14.3%
+D30: 7.8%"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+D1: 23.2%
+D7: 7.4%
+D30: 3.2%"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+D1: 30.9%
+D7: 13.6%
+D30: 11.1%"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+D1: 36.4%
+D7: 14.3%
+D30: 7.8%"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+D1: 35.1%
+D7: 11.7%
+D30: 9.1%"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+D1: 30.2%
+D7: 12.8%
+D30: 8.1%"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+D1: 32.0%
+D7: 13.3%
+D30: 9.3%"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+D1: 38.0%
+D7: 7.6%
+D30: 5.1%"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+D1: 37.1%
+D7: 25.8%
+D30: 11.2%"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+D1: 33.3%
+D7: 13.3%
+D30: 7.8%"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+D1: 31.9%
+D7: 9.7%
+D30: 9.7%"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+D1: 30.8%
+D7: 6.2%
+D30: 3.1%"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+D1: 25.0%
+D7: 14.5%
+D30: 6.6%"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+D1: 28.4%
+D7: 12.3%
+D30: 12.3%"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+D1: 32.1%
+D7: 10.3%
+D30: –"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+D1: 32.2%
+D7: 16.7%
+D30: –"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+D1: 37.2%
+D7: 22.3%
+D30: –"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+D1: 30.1%
+D7: 19.2%
+D30: –"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+D1: 36.6%
+D7: 13.4%
+D30: –"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+D1: 35.9%
+D7: 12.0%
+D30: –"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+D1: 31.4%
+D7: 8.1%
+D30: –"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+D1: 34.2%
+D7: 7.9%
+D30: –"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+D1: 35.4%
+D7: 12.1%
+D30: –"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+D1: 34.3%
+D7: 17.6%
+D30: –"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+D1: 30.4%
+D7: 15.2%
+D30: –"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+D1: 33.8%
+D7: 15.5%
+D30: –"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+D1: 31.2%
+D7: 12.5%
+D30: –"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+D1: 27.8%
+D7: 15.2%
+D30: –"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+D1: 32.0%
+D7: 10.7%
+D30: –"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+D1: 27.5%
+D7: 12.7%
+D30: –"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+D1: 29.1%
+D7: 12.8%
+D30: –"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+D1: 24.1%
+D7: 9.6%
+D30: –"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+D1: 32.3%
+D7: 11.8%
+D30: –"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+D1: 32.6%
+D7: 20.2%
+D30: –"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+D1: 35.8%
+D7: 14.8%
+D30: –"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+D1: 27.6%
+D7: 21.8%
+D30: –"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+D1: 42.4%
+D7: 11.1%
+D30: –"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+D1: 28.3%
+D7: –
+D30: –"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+D1: 34.6%
+D7: –
+D30: –"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+D1: 33.8%
+D7: –
+D30: –"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+D1: 31.2%
+D7: –
+D30: –"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+D1: 39.1%
+D7: –
+D30: –"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+D1: 40.2%
+D7: –
+D30: –"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+D1: –
+D7: –
+D30: –"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Cohort</th><th>D1</th><th>D7</th><th>D30</th></tr></thead><tbody><tr><td>Aug 18</td><td>30.1%</td><td>11.0%</td><td>9.6%</td></tr><tr><td>Aug 19</td><td>40.6%</td><td>17.4%</td><td>10.1%</td></tr><tr><td>Aug 20</td><td>29.3%</td><td>17.3%</td><td>4.0%</td></tr><tr><td>Aug 21</td><td>14.1%</td><td>7.8%</td><td>4.7%</td></tr><tr><td>Aug 22</td><td>30.7%</td><td>10.2%</td><td>11.4%</td></tr><tr><td>Aug 23</td><td>32.6%</td><td>12.0%</td><td>8.7%</td></tr><tr><td>Aug 24</td><td>33.8%</td><td>16.2%</td><td>5.4%</td></tr><tr><td>Aug 25</td><td>29.6%</td><td>9.9%</td><td>7.0%</td></tr><tr><td>Aug 26</td><td>39.4%</td><td>19.7%</td><td>4.5%</td></tr><tr><td>Aug 27</td><td>34.2%</td><td>15.1%</td><td>9.6%</td></tr><tr><td>Aug 28</td><td>34.2%</td><td>18.4%</td><td>3.9%</td></tr><tr><td>Aug 29</td><td>29.5%</td><td>9.1%</td><td>6.8%</td></tr><tr><td>Aug 30</td><td>37.3%</td><td>13.3%</td><td>9.3%</td></tr><tr><td>Aug 31</td><td>33.8%</td><td>14.7%</td><td>5.9%</td></tr><tr><td>Sep 1</td><td>34.2%</td><td>12.3%</td><td>8.2%</td></tr><tr><td>Sep 2</td><td>38.2%</td><td>11.8%</td><td>8.8%</td></tr><tr><td>Sep 3</td><td>31.1%</td><td>18.9%</td><td>9.5%</td></tr><tr><td>Sep 4</td><td>36.1%</td><td>16.7%</td><td>5.6%</td></tr><tr><td>Sep 5</td><td>37.0%</td><td>18.5%</td><td>7.6%</td></tr><tr><td>Sep 6</td><td>25.0%</td><td>16.7%</td><td>11.1%</td></tr><tr><td>Sep 7</td><td>22.5%</td><td>20.0%</td><td>7.5%</td></tr><tr><td>Sep 8</td><td>29.2%</td><td>9.7%</td><td>6.9%</td></tr><tr><td>Sep 9</td><td>36.6%</td><td>14.6%</td><td>3.7%</td></tr><tr><td>Sep 10</td><td>31.9%</td><td>11.6%</td><td>7.2%</td></tr><tr><td>Sep 11</td><td>35.4%</td><td>18.5%</td><td>6.2%</td></tr><tr><td>Sep 12</td><td>28.6%</td><td>9.9%</td><td>8.8%</td></tr><tr><td>Sep 13</td><td>30.8%</td><td>13.2%</td><td>3.3%</td></tr><tr><td>Sep 14</td><td>28.0%</td><td>16.0%</td><td>8.0%</td></tr><tr><td>Sep 15</td><td>40.5%</td><td>13.9%</td><td>5.1%</td></tr><tr><td>Sep 16</td><td>35.0%</td><td>7.5%</td><td>8.8%</td></tr><tr><td>Sep 17</td><td>26.5%</td><td>14.7%</td><td>4.4%</td></tr><tr><td>Sep 18</td><td>32.5%</td><td>14.3%</td><td>7.8%</td></tr><tr><td>Sep 19</td><td>23.2%</td><td>7.4%</td><td>3.2%</td></tr><tr><td>Sep 20</td><td>30.9%</td><td>13.6%</td><td>11.1%</td></tr><tr><td>Sep 21</td><td>36.4%</td><td>14.3%</td><td>7.8%</td></tr><tr><td>Sep 22</td><td>35.1%</td><td>11.7%</td><td>9.1%</td></tr><tr><td>Sep 23</td><td>30.2%</td><td>12.8%</td><td>8.1%</td></tr><tr><td>Sep 24</td><td>32.0%</td><td>13.3%</td><td>9.3%</td></tr><tr><td>Sep 25</td><td>38.0%</td><td>7.6%</td><td>5.1%</td></tr><tr><td>Sep 26</td><td>37.1%</td><td>25.8%</td><td>11.2%</td></tr><tr><td>Sep 27</td><td>33.3%</td><td>13.3%</td><td>7.8%</td></tr><tr><td>Sep 28</td><td>31.9%</td><td>9.7%</td><td>9.7%</td></tr><tr><td>Sep 29</td><td>30.8%</td><td>6.2%</td><td>3.1%</td></tr><tr><td>Sep 30</td><td>25.0%</td><td>14.5%</td><td>6.6%</td></tr><tr><td>Oct 1</td><td>28.4%</td><td>12.3%</td><td>12.3%</td></tr><tr><td>Oct 2</td><td>32.1%</td><td>10.3%</td><td>–</td></tr><tr><td>Oct 3</td><td>32.2%</td><td>16.7%</td><td>–</td></tr><tr><td>Oct 4</td><td>37.2%</td><td>22.3%</td><td>–</td></tr><tr><td>Oct 5</td><td>30.1%</td><td>19.2%</td><td>–</td></tr><tr><td>Oct 6</td><td>36.6%</td><td>13.4%</td><td>–</td></tr><tr><td>Oct 7</td><td>35.9%</td><td>12.0%</td><td>–</td></tr><tr><td>Oct 8</td><td>31.4%</td><td>8.1%</td><td>–</td></tr><tr><td>Oct 9</td><td>34.2%</td><td>7.9%</td><td>–</td></tr><tr><td>Oct 10</td><td>35.4%</td><td>12.1%</td><td>–</td></tr><tr><td>Oct 11</td><td>34.3%</td><td>17.6%</td><td>–</td></tr><tr><td>Oct 12</td><td>30.4%</td><td>15.2%</td><td>–</td></tr><tr><td>Oct 13</td><td>33.8%</td><td>15.5%</td><td>–</td></tr><tr><td>Oct 14</td><td>31.2%</td><td>12.5%</td><td>–</td></tr><tr><td>Oct 15</td><td>27.8%</td><td>15.2%</td><td>–</td></tr><tr><td>Oct 16</td><td>32.0%</td><td>10.7%</td><td>–</td></tr><tr><td>Oct 17</td><td>27.5%</td><td>12.7%</td><td>–</td></tr><tr><td>Oct 18</td><td>29.1%</td><td>12.8%</td><td>–</td></tr><tr><td>Oct 19</td><td>24.1%</td><td>9.6%</td><td>–</td></tr><tr><td>Oct 20</td><td>32.3%</td><td>11.8%</td><td>–</td></tr><tr><td>Oct 21</td><td>32.6%</td><td>20.2%</td><td>–</td></tr><tr><td>Oct 22</td><td>35.8%</td><td>14.8%</td><td>–</td></tr><tr><td>Oct 23</td><td>27.6%</td><td>21.8%</td><td>–</td></tr><tr><td>Oct 24</td><td>42.4%</td><td>11.1%</td><td>–</td></tr><tr><td>Oct 25</td><td>28.3%</td><td>–</td><td>–</td></tr><tr><td>Oct 26</td><td>34.6%</td><td>–</td><td>–</td></tr><tr><td>Oct 27</td><td>33.8%</td><td>–</td><td>–</td></tr><tr><td>Oct 28</td><td>31.2%</td><td>–</td><td>–</td></tr><tr><td>Oct 29</td><td>39.1%</td><td>–</td><td>–</td></tr><tr><td>Oct 30</td><td>40.2%</td><td>–</td><td>–</td></tr><tr><td>Oct 31</td><td>–</td><td>–</td><td>–</td></tr></tbody></table></div></details></figure><figure class="chart" id="h-cohortmatrixlatest14cohorts"><figcaption><h3>Cohort matrix (latest 14 cohorts)</h3><p>Rows: install date · cohort size. Dots mark days not observed yet.</p></figcaption><div class="legend" aria-hidden="true"><span class="key">0.0% <i class="ramp"></i> 42.4%</span><span class="key"><i class="sw box" style="background:var(--grid)"></i>· not observed yet</span></div><div class="tbl-wrap" style="max-height:none"><table class="heat" aria-label="Cohort matrix (latest 14 cohorts)"><thead><tr><th class="l">Cohort · users</th><th>D1</th><th>D2</th><th>D3</th><th>D7</th><th>D14</th><th>D21</th><th>D30</th></tr></thead><tbody><tr><td class="l">Oct 31 · 94</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 30 · 92</td><td style="background:color-mix(in oklab, var(--s1) 86%, var(--surface));color:#ffffff">40.2%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 29 · 92</td><td style="background:color-mix(in oklab, var(--s1) 84%, var(--surface));color:#ffffff">39.1%</td><td style="background:color-mix(in oklab, var(--s1) 46%, var(--surface));color:var(--ink)">19.6%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 28 · 80</td><td style="background:color-mix(in oklab, var(--s1) 68%, var(--surface));color:#ffffff">31.2%</td><td style="background:color-mix(in oklab, var(--s1) 44%, var(--surface));color:var(--ink)">18.8%</td><td style="background:color-mix(in oklab, var(--s1) 54%, var(--surface));color:#ffffff">23.8%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 27 · 74</td><td style="background:color-mix(in oklab, var(--s1) 73%, var(--surface));color:#ffffff">33.8%</td><td style="background:color-mix(in oklab, var(--s1) 58%, var(--surface));color:#ffffff">25.7%</td><td style="background:color-mix(in oklab, var(--s1) 55%, var(--surface));color:#ffffff">24.3%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 26 · 81</td><td style="background:color-mix(in oklab, var(--s1) 75%, var(--surface));color:#ffffff">34.6%</td><td style="background:color-mix(in oklab, var(--s1) 58%, var(--surface));color:#ffffff">25.9%</td><td style="background:color-mix(in oklab, var(--s1) 37%, var(--surface));color:var(--ink)">14.8%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 25 · 92</td><td style="background:color-mix(in oklab, var(--s1) 63%, var(--surface));color:#ffffff">28.3%</td><td style="background:color-mix(in oklab, var(--s1) 48%, var(--surface));color:var(--ink)">20.7%</td><td style="background:color-mix(in oklab, var(--s1) 42%, var(--surface));color:var(--ink)">17.4%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 24 · 99</td><td style="background:color-mix(in oklab, var(--s1) 90%, var(--surface));color:#ffffff">42.4%</td><td style="background:color-mix(in oklab, var(--s1) 59%, var(--surface));color:#ffffff">26.3%</td><td style="background:color-mix(in oklab, var(--s1) 49%, var(--surface));color:var(--ink)">21.2%</td><td style="background:color-mix(in oklab, var(--s1) 29%, var(--surface));color:var(--ink)">11.1%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 23 · 87</td><td style="background:color-mix(in oklab, var(--s1) 61%, var(--surface));color:#ffffff">27.6%</td><td style="background:color-mix(in oklab, var(--s1) 61%, var(--surface));color:#ffffff">27.6%</td><td style="background:color-mix(in oklab, var(--s1) 41%, var(--surface));color:var(--ink)">17.2%</td><td style="background:color-mix(in oklab, var(--s1) 50%, var(--surface));color:var(--ink)">21.8%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 22 · 81</td><td style="background:color-mix(in oklab, var(--s1) 77%, var(--surface));color:#ffffff">35.8%</td><td style="background:color-mix(in oklab, var(--s1) 77%, var(--surface));color:#ffffff">35.8%</td><td style="background:color-mix(in oklab, var(--s1) 58%, var(--surface));color:#ffffff">25.9%</td><td style="background:color-mix(in oklab, var(--s1) 37%, var(--surface));color:var(--ink)">14.8%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 21 · 89</td><td style="background:color-mix(in oklab, var(--s1) 71%, var(--surface));color:#ffffff">32.6%</td><td style="background:color-mix(in oklab, var(--s1) 62%, var(--surface));color:#ffffff">28.1%</td><td style="background:color-mix(in oklab, var(--s1) 47%, var(--surface));color:var(--ink)">20.2%</td><td style="background:color-mix(in oklab, var(--s1) 47%, var(--surface));color:var(--ink)">20.2%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 20 · 93</td><td style="background:color-mix(in oklab, var(--s1) 70%, var(--surface));color:#ffffff">32.3%</td><td style="background:color-mix(in oklab, var(--s1) 54%, var(--surface));color:#ffffff">23.7%</td><td style="background:color-mix(in oklab, var(--s1) 47%, var(--surface));color:var(--ink)">20.4%</td><td style="background:color-mix(in oklab, var(--s1) 31%, var(--surface));color:var(--ink)">11.8%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 19 · 83</td><td style="background:color-mix(in oklab, var(--s1) 55%, var(--surface));color:#ffffff">24.1%</td><td style="background:color-mix(in oklab, var(--s1) 64%, var(--surface));color:#ffffff">28.9%</td><td style="background:color-mix(in oklab, var(--s1) 38%, var(--surface));color:var(--ink)">15.7%</td><td style="background:color-mix(in oklab, var(--s1) 27%, var(--surface));color:var(--ink)">9.6%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 18 · 86</td><td style="background:color-mix(in oklab, var(--s1) 64%, var(--surface));color:#ffffff">29.1%</td><td style="background:color-mix(in oklab, var(--s1) 64%, var(--surface));color:#ffffff">29.1%</td><td style="background:color-mix(in oklab, var(--s1) 51%, var(--surface));color:var(--ink)">22.1%</td><td style="background:color-mix(in oklab, var(--s1) 33%, var(--surface));color:var(--ink)">12.8%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr></tbody></table></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Cohort · users</th><th>D1</th><th>D2</th><th>D3</th><th>D7</th><th>D14</th><th>D21</th><th>D30</th></tr></thead><tbody><tr><td>Oct 31 · 94</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 30 · 92</td><td>40.2%</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 29 · 92</td><td>39.1%</td><td>19.6%</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 28 · 80</td><td>31.2%</td><td>18.8%</td><td>23.8%</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 27 · 74</td><td>33.8%</td><td>25.7%</td><td>24.3%</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 26 · 81</td><td>34.6%</td><td>25.9%</td><td>14.8%</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 25 · 92</td><td>28.3%</td><td>20.7%</td><td>17.4%</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 24 · 99</td><td>42.4%</td><td>26.3%</td><td>21.2%</td><td>11.1%</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 23 · 87</td><td>27.6%</td><td>27.6%</td><td>17.2%</td><td>21.8%</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 22 · 81</td><td>35.8%</td><td>35.8%</td><td>25.9%</td><td>14.8%</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 21 · 89</td><td>32.6%</td><td>28.1%</td><td>20.2%</td><td>20.2%</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 20 · 93</td><td>32.3%</td><td>23.7%</td><td>20.4%</td><td>11.8%</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 19 · 83</td><td>24.1%</td><td>28.9%</td><td>15.7%</td><td>9.6%</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 18 · 86</td><td>29.1%</td><td>29.1%</td><td>22.1%</td><td>12.8%</td><td>–</td><td>–</td><td>–</td></tr></tbody></table></div></details></figure></div>
+<h2>Monetization</h2><div class="grid2"><figure class="chart" id="c-netrevenueperday"><figcaption><h3>Net revenue per day</h3><p>IAP: revenuecat_proceeds · Ads: ga4_ad_impression</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>IAP</span><span class="key"><i class="sw b2"></i>Ads</span></div><div role="img" aria-label="Net revenue per day: line chart, 2 series, 75 points"><div class="plot" style="--h:200px;--endw:61px"><div class="yaxis"><span style="bottom:0.00%">$0</span><span style="bottom:33.33%">$100</span><span style="bottom:66.67%">$200</span><span style="bottom:100.00%">$300</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,100.000 L13.51,100.000 L27.03,100.000 L40.54,100.000 L54.05,100.000 L67.57,100.000 L81.08,100.000 L94.59,92.301 L108.11,80.475 L121.62,77.875 L135.14,83.003 L148.65,73.079 L162.16,67.063 L175.68,65.804 L189.19,83.488 L202.70,80.728 L216.22,63.175 L229.73,100.000 L243.24,77.342 L256.76,78.198 L270.27,100.000 L283.78,83.003 L297.30,78.044 L310.81,100.000 L324.32,63.229 L337.84,61.906 L351.35,77.327 L364.86,100.000 L378.38,62.961 L391.89,57.649 L405.41,64.543 L418.92,100.000 L432.43,66.931 L445.95,69.205 L459.46,97.726 L472.97,80.172 L486.49,77.020 L500.00,92.301 L513.51,92.701 L527.03,74.313 L540.54,78.454 L554.05,89.567 L567.57,89.694 L581.08,74.390 L594.59,79.296 L608.11,38.849 L621.62,94.895 L635.14,92.523 L648.65,84.865 L662.16,72.998 L675.68,94.975 L689.19,97.469 L702.70,74.973 L716.22,94.339 L729.73,73.718 L743.24,89.537 L756.76,76.665 L770.27,97.629 L783.78,44.833 L797.30,85.025 L810.81,90.370 L824.32,53.921 L837.84,92.524 L851.35,97.702 L864.86,70.962 L878.38,94.872 L891.89,92.574 L905.41,90.027 L918.92,70.968 L932.43,76.409 L945.95,56.106 L959.46,82.141 L972.97,89.534 L986.49,87.036 L1000.00,24.535" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,100.000 L13.51,100.000 L27.03,100.000 L40.54,100.000 L54.05,100.000 L67.57,100.000 L81.08,100.000 L94.59,100.000 L108.11,100.000 L121.62,100.000 L135.14,100.000 L148.65,100.000 L162.16,100.000 L175.68,100.000 L189.19,100.000 L202.70,100.000 L216.22,100.000 L229.73,100.000 L243.24,100.000 L256.76,100.000 L270.27,100.000 L283.78,100.000 L297.30,100.000 L310.81,100.000 L324.32,100.000 L337.84,100.000 L351.35,100.000 L364.86,100.000 L378.38,100.000 L391.89,100.000 L405.41,100.000 L418.92,100.000 L432.43,100.000 L445.95,100.000 L459.46,100.000 L472.97,100.000 L486.49,100.000 L500.00,100.000 L513.51,100.000 L527.03,100.000 L540.54,100.000 L554.05,100.000 L567.57,100.000 L581.08,100.000 L594.59,100.000 L608.11,100.000 L621.62,100.000 L635.14,100.000 L648.65,100.000 L662.16,100.000 L675.68,100.000 L689.19,100.000 L702.70,100.000 L716.22,100.000 L729.73,100.000 L743.24,100.000 L756.76,100.000 L770.27,100.000 L783.78,100.000 L797.30,100.000 L810.81,100.000 L824.32,100.000 L837.84,100.000 L851.35,100.000 L864.86,100.000 L878.38,100.000 L891.89,100.000 L905.41,100.000 L918.92,100.000 L932.43,100.000 L945.95,100.000 L959.46,100.000 L972.97,100.000 L986.49,100.000 L1000.00,100.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="24.535" y2="24.535" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="24.535" y2="24.535" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="100.000" y2="100.000" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="100.000" y2="100.000" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+IAP: $0
+Ads: $0"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+IAP: $0
+Ads: $0"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+IAP: $0
+Ads: $0"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+IAP: $0
+Ads: $0"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+IAP: $0
+Ads: $0"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+IAP: $0
+Ads: $0"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+IAP: $0
+Ads: $0"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+IAP: $23.10
+Ads: $0"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+IAP: $58.58
+Ads: $0"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+IAP: $66.38
+Ads: $0"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+IAP: $50.99
+Ads: $0"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+IAP: $80.76
+Ads: $0"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+IAP: $98.81
+Ads: $0"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+IAP: $103
+Ads: $0"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+IAP: $49.54
+Ads: $0"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+IAP: $57.81
+Ads: $0"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+IAP: $110
+Ads: $0"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+IAP: $0
+Ads: $0"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+IAP: $67.97
+Ads: $0"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+IAP: $65.41
+Ads: $0"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+IAP: $0
+Ads: $0"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+IAP: $50.99
+Ads: $0"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+IAP: $65.87
+Ads: $0"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+IAP: $0
+Ads: $0"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+IAP: $110
+Ads: $0"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+IAP: $114
+Ads: $0"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+IAP: $68.02
+Ads: $0"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+IAP: $0
+Ads: $0"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+IAP: $111
+Ads: $0"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+IAP: $127
+Ads: $0"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+IAP: $106
+Ads: $0"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+IAP: $0
+Ads: $0"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+IAP: $99.21
+Ads: $0"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+IAP: $92.38
+Ads: $0"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+IAP: $6.82
+Ads: $0"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+IAP: $59.48
+Ads: $0"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+IAP: $68.94
+Ads: $0"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+IAP: $23.10
+Ads: $0"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+IAP: $21.90
+Ads: $0"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+IAP: $77.06
+Ads: $0"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+IAP: $64.64
+Ads: $0"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+IAP: $31.30
+Ads: $0"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+IAP: $30.92
+Ads: $0"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+IAP: $76.83
+Ads: $0"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+IAP: $62.11
+Ads: $0"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+IAP: $183
+Ads: $0"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+IAP: $15.31
+Ads: $0"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+IAP: $22.43
+Ads: $0"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+IAP: $45.40
+Ads: $0"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+IAP: $81.00
+Ads: $0"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+IAP: $15.07
+Ads: $0"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+IAP: $7.59
+Ads: $0"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+IAP: $75.08
+Ads: $0"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+IAP: $16.98
+Ads: $0"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+IAP: $78.85
+Ads: $0"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+IAP: $31.39
+Ads: $0"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+IAP: $70.00
+Ads: $0"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+IAP: $7.11
+Ads: $0"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+IAP: $166
+Ads: $0"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+IAP: $44.93
+Ads: $0"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+IAP: $28.89
+Ads: $0"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+IAP: $138
+Ads: $0"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+IAP: $22.43
+Ads: $0"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+IAP: $6.89
+Ads: $0"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+IAP: $87.12
+Ads: $0"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+IAP: $15.38
+Ads: $0"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+IAP: $22.28
+Ads: $0"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+IAP: $29.92
+Ads: $0"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+IAP: $87.10
+Ads: $0"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+IAP: $70.77
+Ads: $0"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+IAP: $132
+Ads: $0"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+IAP: $53.58
+Ads: $0"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+IAP: $31.40
+Ads: $0"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+IAP: $38.89
+Ads: $0"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+IAP: $226
+Ads: $0"/></g></svg></div><div class="endlabels"><span style="top:24.53%">IAP $226</span><span style="top:100.00%">Ads $0</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>IAP</th><th>Ads</th></tr></thead><tbody><tr><td>Aug 18</td><td>$0</td><td>$0</td></tr><tr><td>Aug 19</td><td>$0</td><td>$0</td></tr><tr><td>Aug 20</td><td>$0</td><td>$0</td></tr><tr><td>Aug 21</td><td>$0</td><td>$0</td></tr><tr><td>Aug 22</td><td>$0</td><td>$0</td></tr><tr><td>Aug 23</td><td>$0</td><td>$0</td></tr><tr><td>Aug 24</td><td>$0</td><td>$0</td></tr><tr><td>Aug 25</td><td>$23.10</td><td>$0</td></tr><tr><td>Aug 26</td><td>$58.58</td><td>$0</td></tr><tr><td>Aug 27</td><td>$66.38</td><td>$0</td></tr><tr><td>Aug 28</td><td>$50.99</td><td>$0</td></tr><tr><td>Aug 29</td><td>$80.76</td><td>$0</td></tr><tr><td>Aug 30</td><td>$98.81</td><td>$0</td></tr><tr><td>Aug 31</td><td>$103</td><td>$0</td></tr><tr><td>Sep 1</td><td>$49.54</td><td>$0</td></tr><tr><td>Sep 2</td><td>$57.81</td><td>$0</td></tr><tr><td>Sep 3</td><td>$110</td><td>$0</td></tr><tr><td>Sep 4</td><td>$0</td><td>$0</td></tr><tr><td>Sep 5</td><td>$67.97</td><td>$0</td></tr><tr><td>Sep 6</td><td>$65.41</td><td>$0</td></tr><tr><td>Sep 7</td><td>$0</td><td>$0</td></tr><tr><td>Sep 8</td><td>$50.99</td><td>$0</td></tr><tr><td>Sep 9</td><td>$65.87</td><td>$0</td></tr><tr><td>Sep 10</td><td>$0</td><td>$0</td></tr><tr><td>Sep 11</td><td>$110</td><td>$0</td></tr><tr><td>Sep 12</td><td>$114</td><td>$0</td></tr><tr><td>Sep 13</td><td>$68.02</td><td>$0</td></tr><tr><td>Sep 14</td><td>$0</td><td>$0</td></tr><tr><td>Sep 15</td><td>$111</td><td>$0</td></tr><tr><td>Sep 16</td><td>$127</td><td>$0</td></tr><tr><td>Sep 17</td><td>$106</td><td>$0</td></tr><tr><td>Sep 18</td><td>$0</td><td>$0</td></tr><tr><td>Sep 19</td><td>$99.21</td><td>$0</td></tr><tr><td>Sep 20</td><td>$92.38</td><td>$0</td></tr><tr><td>Sep 21</td><td>$6.82</td><td>$0</td></tr><tr><td>Sep 22</td><td>$59.48</td><td>$0</td></tr><tr><td>Sep 23</td><td>$68.94</td><td>$0</td></tr><tr><td>Sep 24</td><td>$23.10</td><td>$0</td></tr><tr><td>Sep 25</td><td>$21.90</td><td>$0</td></tr><tr><td>Sep 26</td><td>$77.06</td><td>$0</td></tr><tr><td>Sep 27</td><td>$64.64</td><td>$0</td></tr><tr><td>Sep 28</td><td>$31.30</td><td>$0</td></tr><tr><td>Sep 29</td><td>$30.92</td><td>$0</td></tr><tr><td>Sep 30</td><td>$76.83</td><td>$0</td></tr><tr><td>Oct 1</td><td>$62.11</td><td>$0</td></tr><tr><td>Oct 2</td><td>$183</td><td>$0</td></tr><tr><td>Oct 3</td><td>$15.31</td><td>$0</td></tr><tr><td>Oct 4</td><td>$22.43</td><td>$0</td></tr><tr><td>Oct 5</td><td>$45.40</td><td>$0</td></tr><tr><td>Oct 6</td><td>$81.00</td><td>$0</td></tr><tr><td>Oct 7</td><td>$15.07</td><td>$0</td></tr><tr><td>Oct 8</td><td>$7.59</td><td>$0</td></tr><tr><td>Oct 9</td><td>$75.08</td><td>$0</td></tr><tr><td>Oct 10</td><td>$16.98</td><td>$0</td></tr><tr><td>Oct 11</td><td>$78.85</td><td>$0</td></tr><tr><td>Oct 12</td><td>$31.39</td><td>$0</td></tr><tr><td>Oct 13</td><td>$70.00</td><td>$0</td></tr><tr><td>Oct 14</td><td>$7.11</td><td>$0</td></tr><tr><td>Oct 15</td><td>$166</td><td>$0</td></tr><tr><td>Oct 16</td><td>$44.93</td><td>$0</td></tr><tr><td>Oct 17</td><td>$28.89</td><td>$0</td></tr><tr><td>Oct 18</td><td>$138</td><td>$0</td></tr><tr><td>Oct 19</td><td>$22.43</td><td>$0</td></tr><tr><td>Oct 20</td><td>$6.89</td><td>$0</td></tr><tr><td>Oct 21</td><td>$87.12</td><td>$0</td></tr><tr><td>Oct 22</td><td>$15.38</td><td>$0</td></tr><tr><td>Oct 23</td><td>$22.28</td><td>$0</td></tr><tr><td>Oct 24</td><td>$29.92</td><td>$0</td></tr><tr><td>Oct 25</td><td>$87.10</td><td>$0</td></tr><tr><td>Oct 26</td><td>$70.77</td><td>$0</td></tr><tr><td>Oct 27</td><td>$132</td><td>$0</td></tr><tr><td>Oct 28</td><td>$53.58</td><td>$0</td></tr><tr><td>Oct 29</td><td>$31.40</td><td>$0</td></tr><tr><td>Oct 30</td><td>$38.89</td><td>$0</td></tr><tr><td>Oct 31</td><td>$226</td><td>$0</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-arpdau"><figcaption><h3>ARPDAU</h3><p>Net revenue / DAU</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>ARPDAU</span></div><div role="img" aria-label="ARPDAU: line chart, 1 series, 75 points"><div class="plot" style="--h:200px;--endw:48px"><div class="yaxis"><span style="bottom:0.00%">$0</span><span style="bottom:33.33%">$0.200</span><span style="bottom:66.67%">$0.400</span><span style="bottom:100.00%">$0.600</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,100.000 L13.51,100.000 L27.03,100.000 L40.54,100.000 L54.05,100.000 L67.57,100.000 L81.08,100.000 L94.59,78.495 L108.11,43.241 L121.62,45.504 L135.14,62.561 L148.65,40.441 L162.16,22.683 L175.68,25.008 L189.19,64.104 L202.70,62.939 L216.22,28.076 L229.73,100.000 L243.24,60.663 L256.76,59.324 L270.27,100.000 L283.78,71.952 L297.30,65.369 L310.81,100.000 L324.32,41.634 L337.84,51.161 L351.35,67.140 L364.86,100.000 L378.38,44.882 L391.89,35.637 L405.41,50.755 L418.92,100.000 L432.43,55.671 L445.95,57.815 L459.46,97.143 L472.97,74.383 L486.49,72.247 L500.00,90.155 L513.51,90.642 L527.03,68.209 L540.54,74.350 L554.05,87.550 L567.57,87.642 L581.08,68.304 L594.59,76.789 L608.11,33.241 L621.62,94.604 L635.14,92.211 L648.65,83.477 L662.16,72.504 L675.68,94.904 L689.19,97.509 L702.70,74.873 L716.22,94.439 L729.73,75.112 L743.24,89.641 L756.76,75.693 L770.27,97.767 L783.78,47.158 L797.30,86.134 L810.81,91.401 L824.32,57.492 L837.84,93.325 L851.35,97.900 L864.86,75.307 L878.38,95.438 L891.89,94.021 L905.41,91.771 L918.92,77.176 L932.43,79.557 L945.95,59.950 L959.46,85.018 L972.97,91.008 L986.49,89.322 L1000.00,39.434" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="39.434" y2="39.434" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="39.434" y2="39.434" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+ARPDAU: $0"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+ARPDAU: $0"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+ARPDAU: $0"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+ARPDAU: $0"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+ARPDAU: $0"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+ARPDAU: $0"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+ARPDAU: $0"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+ARPDAU: $0.129"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+ARPDAU: $0.341"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+ARPDAU: $0.327"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+ARPDAU: $0.225"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+ARPDAU: $0.357"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+ARPDAU: $0.464"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+ARPDAU: $0.450"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+ARPDAU: $0.215"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+ARPDAU: $0.222"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+ARPDAU: $0.432"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+ARPDAU: $0"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+ARPDAU: $0.236"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+ARPDAU: $0.244"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+ARPDAU: $0"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+ARPDAU: $0.168"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+ARPDAU: $0.208"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+ARPDAU: $0"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+ARPDAU: $0.350"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+ARPDAU: $0.293"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+ARPDAU: $0.197"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+ARPDAU: $0"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+ARPDAU: $0.331"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+ARPDAU: $0.386"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+ARPDAU: $0.295"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+ARPDAU: $0"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+ARPDAU: $0.266"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+ARPDAU: $0.253"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+ARPDAU: $0.017"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+ARPDAU: $0.154"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+ARPDAU: $0.167"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+ARPDAU: $0.059"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+ARPDAU: $0.056"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+ARPDAU: $0.191"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+ARPDAU: $0.154"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+ARPDAU: $0.075"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+ARPDAU: $0.074"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+ARPDAU: $0.190"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+ARPDAU: $0.139"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+ARPDAU: $0.401"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+ARPDAU: $0.032"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+ARPDAU: $0.047"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+ARPDAU: $0.099"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+ARPDAU: $0.165"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+ARPDAU: $0.031"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+ARPDAU: $0.015"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+ARPDAU: $0.151"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+ARPDAU: $0.033"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+ARPDAU: $0.149"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+ARPDAU: $0.062"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+ARPDAU: $0.146"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+ARPDAU: $0.013"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+ARPDAU: $0.317"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+ARPDAU: $0.083"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+ARPDAU: $0.052"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+ARPDAU: $0.255"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+ARPDAU: $0.040"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+ARPDAU: $0.013"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+ARPDAU: $0.148"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+ARPDAU: $0.027"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+ARPDAU: $0.036"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+ARPDAU: $0.049"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+ARPDAU: $0.137"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+ARPDAU: $0.123"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+ARPDAU: $0.240"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+ARPDAU: $0.090"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+ARPDAU: $0.054"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+ARPDAU: $0.064"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+ARPDAU: $0.363"/></g></svg></div><div class="endlabels"><span style="top:39.43%">$0.363</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>ARPDAU</th></tr></thead><tbody><tr><td>Aug 18</td><td>$0</td></tr><tr><td>Aug 19</td><td>$0</td></tr><tr><td>Aug 20</td><td>$0</td></tr><tr><td>Aug 21</td><td>$0</td></tr><tr><td>Aug 22</td><td>$0</td></tr><tr><td>Aug 23</td><td>$0</td></tr><tr><td>Aug 24</td><td>$0</td></tr><tr><td>Aug 25</td><td>$0.129</td></tr><tr><td>Aug 26</td><td>$0.341</td></tr><tr><td>Aug 27</td><td>$0.327</td></tr><tr><td>Aug 28</td><td>$0.225</td></tr><tr><td>Aug 29</td><td>$0.357</td></tr><tr><td>Aug 30</td><td>$0.464</td></tr><tr><td>Aug 31</td><td>$0.450</td></tr><tr><td>Sep 1</td><td>$0.215</td></tr><tr><td>Sep 2</td><td>$0.222</td></tr><tr><td>Sep 3</td><td>$0.432</td></tr><tr><td>Sep 4</td><td>$0</td></tr><tr><td>Sep 5</td><td>$0.236</td></tr><tr><td>Sep 6</td><td>$0.244</td></tr><tr><td>Sep 7</td><td>$0</td></tr><tr><td>Sep 8</td><td>$0.168</td></tr><tr><td>Sep 9</td><td>$0.208</td></tr><tr><td>Sep 10</td><td>$0</td></tr><tr><td>Sep 11</td><td>$0.350</td></tr><tr><td>Sep 12</td><td>$0.293</td></tr><tr><td>Sep 13</td><td>$0.197</td></tr><tr><td>Sep 14</td><td>$0</td></tr><tr><td>Sep 15</td><td>$0.331</td></tr><tr><td>Sep 16</td><td>$0.386</td></tr><tr><td>Sep 17</td><td>$0.295</td></tr><tr><td>Sep 18</td><td>$0</td></tr><tr><td>Sep 19</td><td>$0.266</td></tr><tr><td>Sep 20</td><td>$0.253</td></tr><tr><td>Sep 21</td><td>$0.017</td></tr><tr><td>Sep 22</td><td>$0.154</td></tr><tr><td>Sep 23</td><td>$0.167</td></tr><tr><td>Sep 24</td><td>$0.059</td></tr><tr><td>Sep 25</td><td>$0.056</td></tr><tr><td>Sep 26</td><td>$0.191</td></tr><tr><td>Sep 27</td><td>$0.154</td></tr><tr><td>Sep 28</td><td>$0.075</td></tr><tr><td>Sep 29</td><td>$0.074</td></tr><tr><td>Sep 30</td><td>$0.190</td></tr><tr><td>Oct 1</td><td>$0.139</td></tr><tr><td>Oct 2</td><td>$0.401</td></tr><tr><td>Oct 3</td><td>$0.032</td></tr><tr><td>Oct 4</td><td>$0.047</td></tr><tr><td>Oct 5</td><td>$0.099</td></tr><tr><td>Oct 6</td><td>$0.165</td></tr><tr><td>Oct 7</td><td>$0.031</td></tr><tr><td>Oct 8</td><td>$0.015</td></tr><tr><td>Oct 9</td><td>$0.151</td></tr><tr><td>Oct 10</td><td>$0.033</td></tr><tr><td>Oct 11</td><td>$0.149</td></tr><tr><td>Oct 12</td><td>$0.062</td></tr><tr><td>Oct 13</td><td>$0.146</td></tr><tr><td>Oct 14</td><td>$0.013</td></tr><tr><td>Oct 15</td><td>$0.317</td></tr><tr><td>Oct 16</td><td>$0.083</td></tr><tr><td>Oct 17</td><td>$0.052</td></tr><tr><td>Oct 18</td><td>$0.255</td></tr><tr><td>Oct 19</td><td>$0.040</td></tr><tr><td>Oct 20</td><td>$0.013</td></tr><tr><td>Oct 21</td><td>$0.148</td></tr><tr><td>Oct 22</td><td>$0.027</td></tr><tr><td>Oct 23</td><td>$0.036</td></tr><tr><td>Oct 24</td><td>$0.049</td></tr><tr><td>Oct 25</td><td>$0.137</td></tr><tr><td>Oct 26</td><td>$0.123</td></tr><tr><td>Oct 27</td><td>$0.240</td></tr><tr><td>Oct 28</td><td>$0.090</td></tr><tr><td>Oct 29</td><td>$0.054</td></tr><tr><td>Oct 30</td><td>$0.064</td></tr><tr><td>Oct 31</td><td>$0.363</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-ltvcurvecumulativearpu"><figcaption><h3>LTV curve (cumulative ARPU)</h3><p>Cumulative net revenue per installed user by days since install (complete cohorts only)</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Total</span><span class="key"><i class="sw b2"></i>IAP</span><span class="key"><i class="sw b3"></i>Ads</span></div><div role="img" aria-label="LTV curve (cumulative ARPU): line chart, 3 series, 61 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">$0</span><span style="bottom:33.33%">$0.500</span><span style="bottom:66.67%">$1.00</span><span style="bottom:100.00%">$1.50</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,100.000 L16.67,100.000 L33.33,100.000 L50.00,100.000 L66.67,100.000 L83.33,100.000 L100.00,100.000 L116.67,58.013 L133.33,56.578 L150.00,55.956 L166.67,55.377 L183.33,54.920 L200.00,55.836 L216.67,55.854 L233.33,55.851 L250.00,55.019 L266.67,54.489 L283.33,53.804 L300.00,53.417 L316.67,53.542 L333.33,52.827 L350.00,54.084 L366.67,53.220 L383.33,52.584 L400.00,52.960 L416.67,52.886 L433.33,52.978 L450.00,52.362 L466.67,52.296 L483.33,51.406 L500.00,51.430 L516.67,50.420 L533.33,49.587 L550.00,50.084 L566.67,49.550 L583.33,48.565 L600.00,47.192 L616.67,42.030 L633.33,41.244 L650.00,41.614 L666.67,40.361 L683.33,39.167 L700.00,39.102 L716.67,37.372 L733.33,37.425 L750.00,35.565 L766.67,35.779 L783.33,35.524 L800.00,33.612 L816.67,33.672 L833.33,33.980 L850.00,31.604 L866.67,32.941 L883.33,35.890 L900.00,39.562 L916.67,36.346 L933.33,36.630 L950.00,37.928 L966.67,41.808 L983.33,38.199 L1000.00,36.920" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,100.000 L16.67,100.000 L33.33,100.000 L50.00,100.000 L66.67,100.000 L83.33,100.000 L100.00,100.000 L116.67,58.013 L133.33,56.578 L150.00,55.956 L166.67,55.377 L183.33,54.920 L200.00,55.836 L216.67,55.854 L233.33,55.851 L250.00,55.019 L266.67,54.489 L283.33,53.804 L300.00,53.417 L316.67,53.542 L333.33,52.827 L350.00,54.084 L366.67,53.220 L383.33,52.584 L400.00,52.960 L416.67,52.886 L433.33,52.978 L450.00,52.362 L466.67,52.296 L483.33,51.406 L500.00,51.430 L516.67,50.420 L533.33,49.587 L550.00,50.084 L566.67,49.550 L583.33,48.565 L600.00,47.192 L616.67,42.030 L633.33,41.244 L650.00,41.614 L666.67,40.361 L683.33,39.167 L700.00,39.102 L716.67,37.372 L733.33,37.425 L750.00,35.565 L766.67,35.779 L783.33,35.524 L800.00,33.612 L816.67,33.672 L833.33,33.980 L850.00,31.604 L866.67,32.941 L883.33,35.890 L900.00,39.562 L916.67,36.346 L933.33,36.630 L950.00,37.928 L966.67,41.808 L983.33,38.199 L1000.00,36.920" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M0.00,100.000 L16.67,100.000 L33.33,100.000 L50.00,100.000 L66.67,100.000 L83.33,100.000 L100.00,100.000 L116.67,100.000 L133.33,100.000 L150.00,100.000 L166.67,100.000 L183.33,100.000 L200.00,100.000 L216.67,100.000 L233.33,100.000 L250.00,100.000 L266.67,100.000 L283.33,100.000 L300.00,100.000 L316.67,100.000 L333.33,100.000 L350.00,100.000 L366.67,100.000 L383.33,100.000 L400.00,100.000 L416.67,100.000 L433.33,100.000 L450.00,100.000 L466.67,100.000 L483.33,100.000 L500.00,100.000 L516.67,100.000 L533.33,100.000 L550.00,100.000 L566.67,100.000 L583.33,100.000 L600.00,100.000 L616.67,100.000 L633.33,100.000 L650.00,100.000 L666.67,100.000 L683.33,100.000 L700.00,100.000 L716.67,100.000 L733.33,100.000 L750.00,100.000 L766.67,100.000 L783.33,100.000 L800.00,100.000 L816.67,100.000 L833.33,100.000 L850.00,100.000 L866.67,100.000 L883.33,100.000 L900.00,100.000 L916.67,100.000 L933.33,100.000 L950.00,100.000 L966.67,100.000 L983.33,100.000 L1000.00,100.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="36.920" y2="36.920" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="36.920" y2="36.920" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="36.920" y2="36.920" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="36.920" y2="36.920" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="100.000" y2="100.000" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="1000.00" x2="1000.00" y1="100.000" y2="100.000" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="16.39" height="100" data-tip="D0
+Total: $0
+IAP: $0
+Ads: $0"/><rect x="8.47" y="0" width="16.39" height="100" data-tip="D1
+Total: $0
+IAP: $0
+Ads: $0"/><rect x="25.14" y="0" width="16.39" height="100" data-tip="D2
+Total: $0
+IAP: $0
+Ads: $0"/><rect x="41.80" y="0" width="16.39" height="100" data-tip="D3
+Total: $0
+IAP: $0
+Ads: $0"/><rect x="58.47" y="0" width="16.39" height="100" data-tip="D4
+Total: $0
+IAP: $0
+Ads: $0"/><rect x="75.14" y="0" width="16.39" height="100" data-tip="D5
+Total: $0
+IAP: $0
+Ads: $0"/><rect x="91.80" y="0" width="16.39" height="100" data-tip="D6
+Total: $0
+IAP: $0
+Ads: $0"/><rect x="108.47" y="0" width="16.39" height="100" data-tip="D7
+Total: $0.630
+IAP: $0.630
+Ads: $0"/><rect x="125.14" y="0" width="16.39" height="100" data-tip="D8
+Total: $0.651
+IAP: $0.651
+Ads: $0"/><rect x="141.80" y="0" width="16.39" height="100" data-tip="D9
+Total: $0.661
+IAP: $0.661
+Ads: $0"/><rect x="158.47" y="0" width="16.39" height="100" data-tip="D10
+Total: $0.669
+IAP: $0.669
+Ads: $0"/><rect x="175.14" y="0" width="16.39" height="100" data-tip="D11
+Total: $0.676
+IAP: $0.676
+Ads: $0"/><rect x="191.80" y="0" width="16.39" height="100" data-tip="D12
+Total: $0.662
+IAP: $0.662
+Ads: $0"/><rect x="208.47" y="0" width="16.39" height="100" data-tip="D13
+Total: $0.662
+IAP: $0.662
+Ads: $0"/><rect x="225.14" y="0" width="16.39" height="100" data-tip="D14
+Total: $0.662
+IAP: $0.662
+Ads: $0"/><rect x="241.80" y="0" width="16.39" height="100" data-tip="D15
+Total: $0.675
+IAP: $0.675
+Ads: $0"/><rect x="258.47" y="0" width="16.39" height="100" data-tip="D16
+Total: $0.683
+IAP: $0.683
+Ads: $0"/><rect x="275.14" y="0" width="16.39" height="100" data-tip="D17
+Total: $0.693
+IAP: $0.693
+Ads: $0"/><rect x="291.80" y="0" width="16.39" height="100" data-tip="D18
+Total: $0.699
+IAP: $0.699
+Ads: $0"/><rect x="308.47" y="0" width="16.39" height="100" data-tip="D19
+Total: $0.697
+IAP: $0.697
+Ads: $0"/><rect x="325.14" y="0" width="16.39" height="100" data-tip="D20
+Total: $0.708
+IAP: $0.708
+Ads: $0"/><rect x="341.80" y="0" width="16.39" height="100" data-tip="D21
+Total: $0.689
+IAP: $0.689
+Ads: $0"/><rect x="358.47" y="0" width="16.39" height="100" data-tip="D22
+Total: $0.702
+IAP: $0.702
+Ads: $0"/><rect x="375.14" y="0" width="16.39" height="100" data-tip="D23
+Total: $0.711
+IAP: $0.711
+Ads: $0"/><rect x="391.80" y="0" width="16.39" height="100" data-tip="D24
+Total: $0.706
+IAP: $0.706
+Ads: $0"/><rect x="408.47" y="0" width="16.39" height="100" data-tip="D25
+Total: $0.707
+IAP: $0.707
+Ads: $0"/><rect x="425.14" y="0" width="16.39" height="100" data-tip="D26
+Total: $0.705
+IAP: $0.705
+Ads: $0"/><rect x="441.80" y="0" width="16.39" height="100" data-tip="D27
+Total: $0.715
+IAP: $0.715
+Ads: $0"/><rect x="458.47" y="0" width="16.39" height="100" data-tip="D28
+Total: $0.716
+IAP: $0.716
+Ads: $0"/><rect x="475.14" y="0" width="16.39" height="100" data-tip="D29
+Total: $0.729
+IAP: $0.729
+Ads: $0"/><rect x="491.80" y="0" width="16.39" height="100" data-tip="D30
+Total: $0.729
+IAP: $0.729
+Ads: $0"/><rect x="508.47" y="0" width="16.39" height="100" data-tip="D31
+Total: $0.744
+IAP: $0.744
+Ads: $0"/><rect x="525.14" y="0" width="16.39" height="100" data-tip="D32
+Total: $0.756
+IAP: $0.756
+Ads: $0"/><rect x="541.80" y="0" width="16.39" height="100" data-tip="D33
+Total: $0.749
+IAP: $0.749
+Ads: $0"/><rect x="558.47" y="0" width="16.39" height="100" data-tip="D34
+Total: $0.757
+IAP: $0.757
+Ads: $0"/><rect x="575.14" y="0" width="16.39" height="100" data-tip="D35
+Total: $0.772
+IAP: $0.772
+Ads: $0"/><rect x="591.80" y="0" width="16.39" height="100" data-tip="D36
+Total: $0.792
+IAP: $0.792
+Ads: $0"/><rect x="608.47" y="0" width="16.39" height="100" data-tip="D37
+Total: $0.870
+IAP: $0.870
+Ads: $0"/><rect x="625.14" y="0" width="16.39" height="100" data-tip="D38
+Total: $0.881
+IAP: $0.881
+Ads: $0"/><rect x="641.80" y="0" width="16.39" height="100" data-tip="D39
+Total: $0.876
+IAP: $0.876
+Ads: $0"/><rect x="658.47" y="0" width="16.39" height="100" data-tip="D40
+Total: $0.895
+IAP: $0.895
+Ads: $0"/><rect x="675.14" y="0" width="16.39" height="100" data-tip="D41
+Total: $0.913
+IAP: $0.913
+Ads: $0"/><rect x="691.80" y="0" width="16.39" height="100" data-tip="D42
+Total: $0.913
+IAP: $0.913
+Ads: $0"/><rect x="708.47" y="0" width="16.39" height="100" data-tip="D43
+Total: $0.939
+IAP: $0.939
+Ads: $0"/><rect x="725.14" y="0" width="16.39" height="100" data-tip="D44
+Total: $0.939
+IAP: $0.939
+Ads: $0"/><rect x="741.80" y="0" width="16.39" height="100" data-tip="D45
+Total: $0.967
+IAP: $0.967
+Ads: $0"/><rect x="758.47" y="0" width="16.39" height="100" data-tip="D46
+Total: $0.963
+IAP: $0.963
+Ads: $0"/><rect x="775.14" y="0" width="16.39" height="100" data-tip="D47
+Total: $0.967
+IAP: $0.967
+Ads: $0"/><rect x="791.80" y="0" width="16.39" height="100" data-tip="D48
+Total: $0.996
+IAP: $0.996
+Ads: $0"/><rect x="808.47" y="0" width="16.39" height="100" data-tip="D49
+Total: $0.995
+IAP: $0.995
+Ads: $0"/><rect x="825.14" y="0" width="16.39" height="100" data-tip="D50
+Total: $0.990
+IAP: $0.990
+Ads: $0"/><rect x="841.80" y="0" width="16.39" height="100" data-tip="D51
+Total: $1.03
+IAP: $1.03
+Ads: $0"/><rect x="858.47" y="0" width="16.39" height="100" data-tip="D52
+Total: $1.01
+IAP: $1.01
+Ads: $0"/><rect x="875.14" y="0" width="16.39" height="100" data-tip="D53
+Total: $0.962
+IAP: $0.962
+Ads: $0"/><rect x="891.80" y="0" width="16.39" height="100" data-tip="D54
+Total: $0.907
+IAP: $0.907
+Ads: $0"/><rect x="908.47" y="0" width="16.39" height="100" data-tip="D55
+Total: $0.955
+IAP: $0.955
+Ads: $0"/><rect x="925.14" y="0" width="16.39" height="100" data-tip="D56
+Total: $0.951
+IAP: $0.951
+Ads: $0"/><rect x="941.80" y="0" width="16.39" height="100" data-tip="D57
+Total: $0.931
+IAP: $0.931
+Ads: $0"/><rect x="958.47" y="0" width="16.39" height="100" data-tip="D58
+Total: $0.873
+IAP: $0.873
+Ads: $0"/><rect x="975.14" y="0" width="16.39" height="100" data-tip="D59
+Total: $0.927
+IAP: $0.927
+Ads: $0"/><rect x="991.80" y="0" width="16.39" height="100" data-tip="D60
+Total: $0.946
+IAP: $0.946
+Ads: $0"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">D0</span><span class="" style="left:25.00%">D15</span><span class="" style="left:50.00%">D30</span><span class="" style="left:75.00%">D45</span><span class="last" style="left:100.00%">D60</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Day</th><th>Total</th><th>IAP</th><th>Ads</th></tr></thead><tbody><tr><td>D0</td><td>$0</td><td>$0</td><td>$0</td></tr><tr><td>D1</td><td>$0</td><td>$0</td><td>$0</td></tr><tr><td>D2</td><td>$0</td><td>$0</td><td>$0</td></tr><tr><td>D3</td><td>$0</td><td>$0</td><td>$0</td></tr><tr><td>D4</td><td>$0</td><td>$0</td><td>$0</td></tr><tr><td>D5</td><td>$0</td><td>$0</td><td>$0</td></tr><tr><td>D6</td><td>$0</td><td>$0</td><td>$0</td></tr><tr><td>D7</td><td>$0.630</td><td>$0.630</td><td>$0</td></tr><tr><td>D8</td><td>$0.651</td><td>$0.651</td><td>$0</td></tr><tr><td>D9</td><td>$0.661</td><td>$0.661</td><td>$0</td></tr><tr><td>D10</td><td>$0.669</td><td>$0.669</td><td>$0</td></tr><tr><td>D11</td><td>$0.676</td><td>$0.676</td><td>$0</td></tr><tr><td>D12</td><td>$0.662</td><td>$0.662</td><td>$0</td></tr><tr><td>D13</td><td>$0.662</td><td>$0.662</td><td>$0</td></tr><tr><td>D14</td><td>$0.662</td><td>$0.662</td><td>$0</td></tr><tr><td>D15</td><td>$0.675</td><td>$0.675</td><td>$0</td></tr><tr><td>D16</td><td>$0.683</td><td>$0.683</td><td>$0</td></tr><tr><td>D17</td><td>$0.693</td><td>$0.693</td><td>$0</td></tr><tr><td>D18</td><td>$0.699</td><td>$0.699</td><td>$0</td></tr><tr><td>D19</td><td>$0.697</td><td>$0.697</td><td>$0</td></tr><tr><td>D20</td><td>$0.708</td><td>$0.708</td><td>$0</td></tr><tr><td>D21</td><td>$0.689</td><td>$0.689</td><td>$0</td></tr><tr><td>D22</td><td>$0.702</td><td>$0.702</td><td>$0</td></tr><tr><td>D23</td><td>$0.711</td><td>$0.711</td><td>$0</td></tr><tr><td>D24</td><td>$0.706</td><td>$0.706</td><td>$0</td></tr><tr><td>D25</td><td>$0.707</td><td>$0.707</td><td>$0</td></tr><tr><td>D26</td><td>$0.705</td><td>$0.705</td><td>$0</td></tr><tr><td>D27</td><td>$0.715</td><td>$0.715</td><td>$0</td></tr><tr><td>D28</td><td>$0.716</td><td>$0.716</td><td>$0</td></tr><tr><td>D29</td><td>$0.729</td><td>$0.729</td><td>$0</td></tr><tr><td>D30</td><td>$0.729</td><td>$0.729</td><td>$0</td></tr><tr><td>D31</td><td>$0.744</td><td>$0.744</td><td>$0</td></tr><tr><td>D32</td><td>$0.756</td><td>$0.756</td><td>$0</td></tr><tr><td>D33</td><td>$0.749</td><td>$0.749</td><td>$0</td></tr><tr><td>D34</td><td>$0.757</td><td>$0.757</td><td>$0</td></tr><tr><td>D35</td><td>$0.772</td><td>$0.772</td><td>$0</td></tr><tr><td>D36</td><td>$0.792</td><td>$0.792</td><td>$0</td></tr><tr><td>D37</td><td>$0.870</td><td>$0.870</td><td>$0</td></tr><tr><td>D38</td><td>$0.881</td><td>$0.881</td><td>$0</td></tr><tr><td>D39</td><td>$0.876</td><td>$0.876</td><td>$0</td></tr><tr><td>D40</td><td>$0.895</td><td>$0.895</td><td>$0</td></tr><tr><td>D41</td><td>$0.913</td><td>$0.913</td><td>$0</td></tr><tr><td>D42</td><td>$0.913</td><td>$0.913</td><td>$0</td></tr><tr><td>D43</td><td>$0.939</td><td>$0.939</td><td>$0</td></tr><tr><td>D44</td><td>$0.939</td><td>$0.939</td><td>$0</td></tr><tr><td>D45</td><td>$0.967</td><td>$0.967</td><td>$0</td></tr><tr><td>D46</td><td>$0.963</td><td>$0.963</td><td>$0</td></tr><tr><td>D47</td><td>$0.967</td><td>$0.967</td><td>$0</td></tr><tr><td>D48</td><td>$0.996</td><td>$0.996</td><td>$0</td></tr><tr><td>D49</td><td>$0.995</td><td>$0.995</td><td>$0</td></tr><tr><td>D50</td><td>$0.990</td><td>$0.990</td><td>$0</td></tr><tr><td>D51</td><td>$1.03</td><td>$1.03</td><td>$0</td></tr><tr><td>D52</td><td>$1.01</td><td>$1.01</td><td>$0</td></tr><tr><td>D53</td><td>$0.962</td><td>$0.962</td><td>$0</td></tr><tr><td>D54</td><td>$0.907</td><td>$0.907</td><td>$0</td></tr><tr><td>D55</td><td>$0.955</td><td>$0.955</td><td>$0</td></tr><tr><td>D56</td><td>$0.951</td><td>$0.951</td><td>$0</td></tr><tr><td>D57</td><td>$0.931</td><td>$0.931</td><td>$0</td></tr><tr><td>D58</td><td>$0.873</td><td>$0.873</td><td>$0</td></tr><tr><td>D59</td><td>$0.927</td><td>$0.927</td><td>$0</td></tr><tr><td>D60</td><td>$0.946</td><td>$0.946</td><td>$0</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-payerconversion"><figcaption><h3>Payer conversion</h3><p>Share of daily active users who paid that day</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Payers / DAU</span></div><div role="img" aria-label="Payer conversion: line chart, 1 series, 75 points"><div class="plot" style="--h:200px;--endw:42px"><div class="yaxis"><span style="bottom:0.00%">0.00%</span><span style="bottom:33.33%">1.00%</span><span style="bottom:66.67%">2.00%</span><span style="bottom:100.00%">3.00%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,100.000 L13.51,100.000 L27.03,100.000 L40.54,100.000 L54.05,100.000 L67.57,100.000 L81.08,100.000 L94.59,44.134 L108.11,61.240 L121.62,50.739 L135.14,85.316 L148.65,26.254 L162.16,37.402 L175.68,41.520 L189.19,71.014 L202.70,74.359 L216.22,60.938 L229.73,100.000 L243.24,65.278 L256.76,62.687 L270.27,100.000 L283.78,88.999 L297.30,57.939 L310.81,100.000 L324.32,47.090 L337.84,57.265 L351.35,61.353 L364.86,100.000 L378.38,40.476 L391.89,39.210 L405.41,62.963 L418.92,100.000 L432.43,73.190 L445.95,81.735 L459.46,91.625 L472.97,82.773 L486.49,67.794 L500.00,74.425 L513.51,74.359 L527.03,58.746 L540.54,76.190 L554.05,68.178 L567.57,68.026 L581.08,58.746 L594.59,70.105 L608.11,49.054 L621.62,85.906 L635.14,79.167 L648.65,56.332 L662.16,59.267 L675.68,86.477 L689.19,93.438 L702.70,66.533 L716.22,86.902 L729.73,62.121 L743.24,73.597 L756.76,65.278 L770.27,93.723 L783.78,48.914 L797.30,62.963 L810.81,76.190 L824.32,69.250 L837.84,82.143 L851.35,93.906 L864.86,65.986 L878.38,88.138 L891.89,83.897 L905.41,77.998 L918.92,63.312 L932.43,71.115 L945.95,63.504 L959.46,60.850 L972.97,77.090 L986.49,72.543 L1000.00,46.495" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="46.495" y2="46.495" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="46.495" y2="46.495" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+Payers / DAU: 0.00%"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+Payers / DAU: 0.00%"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+Payers / DAU: 0.00%"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+Payers / DAU: 0.00%"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+Payers / DAU: 0.00%"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+Payers / DAU: 0.00%"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+Payers / DAU: 0.00%"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+Payers / DAU: 1.68%"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+Payers / DAU: 1.16%"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+Payers / DAU: 1.48%"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+Payers / DAU: 0.44%"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+Payers / DAU: 2.21%"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+Payers / DAU: 1.88%"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+Payers / DAU: 1.75%"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+Payers / DAU: 0.87%"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+Payers / DAU: 0.77%"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+Payers / DAU: 1.17%"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+Payers / DAU: 0.00%"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+Payers / DAU: 1.04%"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+Payers / DAU: 1.12%"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+Payers / DAU: 0.00%"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+Payers / DAU: 0.33%"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+Payers / DAU: 1.26%"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+Payers / DAU: 0.00%"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+Payers / DAU: 1.59%"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+Payers / DAU: 1.28%"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+Payers / DAU: 1.16%"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+Payers / DAU: 0.00%"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+Payers / DAU: 1.79%"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+Payers / DAU: 1.82%"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+Payers / DAU: 1.11%"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+Payers / DAU: 0.00%"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+Payers / DAU: 0.80%"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+Payers / DAU: 0.55%"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+Payers / DAU: 0.25%"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+Payers / DAU: 0.52%"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+Payers / DAU: 0.97%"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+Payers / DAU: 0.77%"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+Payers / DAU: 0.77%"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+Payers / DAU: 1.24%"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+Payers / DAU: 0.71%"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+Payers / DAU: 0.95%"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+Payers / DAU: 0.96%"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+Payers / DAU: 1.24%"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+Payers / DAU: 0.90%"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+Payers / DAU: 1.53%"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+Payers / DAU: 0.42%"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+Payers / DAU: 0.62%"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+Payers / DAU: 1.31%"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+Payers / DAU: 1.22%"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+Payers / DAU: 0.41%"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+Payers / DAU: 0.20%"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+Payers / DAU: 1.00%"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+Payers / DAU: 0.39%"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+Payers / DAU: 1.14%"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+Payers / DAU: 0.79%"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+Payers / DAU: 1.04%"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+Payers / DAU: 0.19%"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+Payers / DAU: 1.53%"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+Payers / DAU: 1.11%"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+Payers / DAU: 0.71%"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+Payers / DAU: 0.92%"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+Payers / DAU: 0.54%"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+Payers / DAU: 0.18%"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+Payers / DAU: 1.02%"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+Payers / DAU: 0.36%"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+Payers / DAU: 0.48%"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+Payers / DAU: 0.66%"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+Payers / DAU: 1.10%"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+Payers / DAU: 0.87%"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+Payers / DAU: 1.09%"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+Payers / DAU: 1.17%"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+Payers / DAU: 0.69%"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+Payers / DAU: 0.82%"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+Payers / DAU: 1.61%"/></g></svg></div><div class="endlabels"><span style="top:46.50%">1.61%</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Payers / DAU</th></tr></thead><tbody><tr><td>Aug 18</td><td>0.00%</td></tr><tr><td>Aug 19</td><td>0.00%</td></tr><tr><td>Aug 20</td><td>0.00%</td></tr><tr><td>Aug 21</td><td>0.00%</td></tr><tr><td>Aug 22</td><td>0.00%</td></tr><tr><td>Aug 23</td><td>0.00%</td></tr><tr><td>Aug 24</td><td>0.00%</td></tr><tr><td>Aug 25</td><td>1.68%</td></tr><tr><td>Aug 26</td><td>1.16%</td></tr><tr><td>Aug 27</td><td>1.48%</td></tr><tr><td>Aug 28</td><td>0.44%</td></tr><tr><td>Aug 29</td><td>2.21%</td></tr><tr><td>Aug 30</td><td>1.88%</td></tr><tr><td>Aug 31</td><td>1.75%</td></tr><tr><td>Sep 1</td><td>0.87%</td></tr><tr><td>Sep 2</td><td>0.77%</td></tr><tr><td>Sep 3</td><td>1.17%</td></tr><tr><td>Sep 4</td><td>0.00%</td></tr><tr><td>Sep 5</td><td>1.04%</td></tr><tr><td>Sep 6</td><td>1.12%</td></tr><tr><td>Sep 7</td><td>0.00%</td></tr><tr><td>Sep 8</td><td>0.33%</td></tr><tr><td>Sep 9</td><td>1.26%</td></tr><tr><td>Sep 10</td><td>0.00%</td></tr><tr><td>Sep 11</td><td>1.59%</td></tr><tr><td>Sep 12</td><td>1.28%</td></tr><tr><td>Sep 13</td><td>1.16%</td></tr><tr><td>Sep 14</td><td>0.00%</td></tr><tr><td>Sep 15</td><td>1.79%</td></tr><tr><td>Sep 16</td><td>1.82%</td></tr><tr><td>Sep 17</td><td>1.11%</td></tr><tr><td>Sep 18</td><td>0.00%</td></tr><tr><td>Sep 19</td><td>0.80%</td></tr><tr><td>Sep 20</td><td>0.55%</td></tr><tr><td>Sep 21</td><td>0.25%</td></tr><tr><td>Sep 22</td><td>0.52%</td></tr><tr><td>Sep 23</td><td>0.97%</td></tr><tr><td>Sep 24</td><td>0.77%</td></tr><tr><td>Sep 25</td><td>0.77%</td></tr><tr><td>Sep 26</td><td>1.24%</td></tr><tr><td>Sep 27</td><td>0.71%</td></tr><tr><td>Sep 28</td><td>0.95%</td></tr><tr><td>Sep 29</td><td>0.96%</td></tr><tr><td>Sep 30</td><td>1.24%</td></tr><tr><td>Oct 1</td><td>0.90%</td></tr><tr><td>Oct 2</td><td>1.53%</td></tr><tr><td>Oct 3</td><td>0.42%</td></tr><tr><td>Oct 4</td><td>0.62%</td></tr><tr><td>Oct 5</td><td>1.31%</td></tr><tr><td>Oct 6</td><td>1.22%</td></tr><tr><td>Oct 7</td><td>0.41%</td></tr><tr><td>Oct 8</td><td>0.20%</td></tr><tr><td>Oct 9</td><td>1.00%</td></tr><tr><td>Oct 10</td><td>0.39%</td></tr><tr><td>Oct 11</td><td>1.14%</td></tr><tr><td>Oct 12</td><td>0.79%</td></tr><tr><td>Oct 13</td><td>1.04%</td></tr><tr><td>Oct 14</td><td>0.19%</td></tr><tr><td>Oct 15</td><td>1.53%</td></tr><tr><td>Oct 16</td><td>1.11%</td></tr><tr><td>Oct 17</td><td>0.71%</td></tr><tr><td>Oct 18</td><td>0.92%</td></tr><tr><td>Oct 19</td><td>0.54%</td></tr><tr><td>Oct 20</td><td>0.18%</td></tr><tr><td>Oct 21</td><td>1.02%</td></tr><tr><td>Oct 22</td><td>0.36%</td></tr><tr><td>Oct 23</td><td>0.48%</td></tr><tr><td>Oct 24</td><td>0.66%</td></tr><tr><td>Oct 25</td><td>1.10%</td></tr><tr><td>Oct 26</td><td>0.87%</td></tr><tr><td>Oct 27</td><td>1.09%</td></tr><tr><td>Oct 28</td><td>1.17%</td></tr><tr><td>Oct 29</td><td>0.69%</td></tr><tr><td>Oct 30</td><td>0.82%</td></tr><tr><td>Oct 31</td><td>1.61%</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-cumulativepayerratebycohortday"><figcaption><h3>Cumulative payer rate by cohort day</h3></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Paid at least once</span></div><div role="img" aria-label="Cumulative payer rate by cohort day: line chart, 1 series, 61 points"><div class="plot" style="--h:200px;--endw:42px"><div class="yaxis"><span style="bottom:0.00%">0.00%</span><span style="bottom:25.00%">1.00%</span><span style="bottom:50.00%">2.00%</span><span style="bottom:75.00%">3.00%</span><span style="bottom:100.00%">4.00%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,100.000 L16.67,100.000 L33.33,100.000 L50.00,100.000 L66.67,100.000 L83.33,100.000 L100.00,100.000 L116.67,20.198 L133.33,15.452 L150.00,14.530 L166.67,13.677 L183.33,13.641 L200.00,15.034 L216.67,15.125 L233.33,15.167 L250.00,13.866 L266.67,13.552 L283.33,12.607 L300.00,13.276 L316.67,13.014 L333.33,12.008 L350.00,14.016 L366.67,13.169 L383.33,12.776 L400.00,12.149 L416.67,11.999 L433.33,12.730 L450.00,12.363 L466.67,12.847 L483.33,12.046 L500.00,12.230 L516.67,10.872 L533.33,10.338 L550.00,12.389 L566.67,13.549 L583.33,13.458 L600.00,11.726 L616.67,14.471 L633.33,14.853 L650.00,15.822 L666.67,14.339 L683.33,13.727 L700.00,13.930 L716.67,12.623 L733.33,12.951 L750.00,10.363 L766.67,11.645 L783.33,10.714 L800.00,8.670 L816.67,6.983 L833.33,6.467 L850.00,3.101 L866.67,3.569 L883.33,7.855 L900.00,14.719 L916.67,10.180 L933.33,12.648 L950.00,14.115 L966.67,21.073 L983.33,16.178 L1000.00,17.778" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="17.778" y2="17.778" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="17.778" y2="17.778" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="16.39" height="100" data-tip="D0
+Paid at least once: 0.00%"/><rect x="8.47" y="0" width="16.39" height="100" data-tip="D1
+Paid at least once: 0.00%"/><rect x="25.14" y="0" width="16.39" height="100" data-tip="D2
+Paid at least once: 0.00%"/><rect x="41.80" y="0" width="16.39" height="100" data-tip="D3
+Paid at least once: 0.00%"/><rect x="58.47" y="0" width="16.39" height="100" data-tip="D4
+Paid at least once: 0.00%"/><rect x="75.14" y="0" width="16.39" height="100" data-tip="D5
+Paid at least once: 0.00%"/><rect x="91.80" y="0" width="16.39" height="100" data-tip="D6
+Paid at least once: 0.00%"/><rect x="108.47" y="0" width="16.39" height="100" data-tip="D7
+Paid at least once: 3.19%"/><rect x="125.14" y="0" width="16.39" height="100" data-tip="D8
+Paid at least once: 3.38%"/><rect x="141.80" y="0" width="16.39" height="100" data-tip="D9
+Paid at least once: 3.42%"/><rect x="158.47" y="0" width="16.39" height="100" data-tip="D10
+Paid at least once: 3.45%"/><rect x="175.14" y="0" width="16.39" height="100" data-tip="D11
+Paid at least once: 3.45%"/><rect x="191.80" y="0" width="16.39" height="100" data-tip="D12
+Paid at least once: 3.40%"/><rect x="208.47" y="0" width="16.39" height="100" data-tip="D13
+Paid at least once: 3.39%"/><rect x="225.14" y="0" width="16.39" height="100" data-tip="D14
+Paid at least once: 3.39%"/><rect x="241.80" y="0" width="16.39" height="100" data-tip="D15
+Paid at least once: 3.45%"/><rect x="258.47" y="0" width="16.39" height="100" data-tip="D16
+Paid at least once: 3.46%"/><rect x="275.14" y="0" width="16.39" height="100" data-tip="D17
+Paid at least once: 3.50%"/><rect x="291.80" y="0" width="16.39" height="100" data-tip="D18
+Paid at least once: 3.47%"/><rect x="308.47" y="0" width="16.39" height="100" data-tip="D19
+Paid at least once: 3.48%"/><rect x="325.14" y="0" width="16.39" height="100" data-tip="D20
+Paid at least once: 3.52%"/><rect x="341.80" y="0" width="16.39" height="100" data-tip="D21
+Paid at least once: 3.44%"/><rect x="358.47" y="0" width="16.39" height="100" data-tip="D22
+Paid at least once: 3.47%"/><rect x="375.14" y="0" width="16.39" height="100" data-tip="D23
+Paid at least once: 3.49%"/><rect x="391.80" y="0" width="16.39" height="100" data-tip="D24
+Paid at least once: 3.51%"/><rect x="408.47" y="0" width="16.39" height="100" data-tip="D25
+Paid at least once: 3.52%"/><rect x="425.14" y="0" width="16.39" height="100" data-tip="D26
+Paid at least once: 3.49%"/><rect x="441.80" y="0" width="16.39" height="100" data-tip="D27
+Paid at least once: 3.51%"/><rect x="458.47" y="0" width="16.39" height="100" data-tip="D28
+Paid at least once: 3.49%"/><rect x="475.14" y="0" width="16.39" height="100" data-tip="D29
+Paid at least once: 3.52%"/><rect x="491.80" y="0" width="16.39" height="100" data-tip="D30
+Paid at least once: 3.51%"/><rect x="508.47" y="0" width="16.39" height="100" data-tip="D31
+Paid at least once: 3.57%"/><rect x="525.14" y="0" width="16.39" height="100" data-tip="D32
+Paid at least once: 3.59%"/><rect x="541.80" y="0" width="16.39" height="100" data-tip="D33
+Paid at least once: 3.50%"/><rect x="558.47" y="0" width="16.39" height="100" data-tip="D34
+Paid at least once: 3.46%"/><rect x="575.14" y="0" width="16.39" height="100" data-tip="D35
+Paid at least once: 3.46%"/><rect x="591.80" y="0" width="16.39" height="100" data-tip="D36
+Paid at least once: 3.53%"/><rect x="608.47" y="0" width="16.39" height="100" data-tip="D37
+Paid at least once: 3.42%"/><rect x="625.14" y="0" width="16.39" height="100" data-tip="D38
+Paid at least once: 3.41%"/><rect x="641.80" y="0" width="16.39" height="100" data-tip="D39
+Paid at least once: 3.37%"/><rect x="658.47" y="0" width="16.39" height="100" data-tip="D40
+Paid at least once: 3.43%"/><rect x="675.14" y="0" width="16.39" height="100" data-tip="D41
+Paid at least once: 3.45%"/><rect x="691.80" y="0" width="16.39" height="100" data-tip="D42
+Paid at least once: 3.44%"/><rect x="708.47" y="0" width="16.39" height="100" data-tip="D43
+Paid at least once: 3.50%"/><rect x="725.14" y="0" width="16.39" height="100" data-tip="D44
+Paid at least once: 3.48%"/><rect x="741.80" y="0" width="16.39" height="100" data-tip="D45
+Paid at least once: 3.59%"/><rect x="758.47" y="0" width="16.39" height="100" data-tip="D46
+Paid at least once: 3.53%"/><rect x="775.14" y="0" width="16.39" height="100" data-tip="D47
+Paid at least once: 3.57%"/><rect x="791.80" y="0" width="16.39" height="100" data-tip="D48
+Paid at least once: 3.65%"/><rect x="808.47" y="0" width="16.39" height="100" data-tip="D49
+Paid at least once: 3.72%"/><rect x="825.14" y="0" width="16.39" height="100" data-tip="D50
+Paid at least once: 3.74%"/><rect x="841.80" y="0" width="16.39" height="100" data-tip="D51
+Paid at least once: 3.88%"/><rect x="858.47" y="0" width="16.39" height="100" data-tip="D52
+Paid at least once: 3.86%"/><rect x="875.14" y="0" width="16.39" height="100" data-tip="D53
+Paid at least once: 3.69%"/><rect x="891.80" y="0" width="16.39" height="100" data-tip="D54
+Paid at least once: 3.41%"/><rect x="908.47" y="0" width="16.39" height="100" data-tip="D55
+Paid at least once: 3.59%"/><rect x="925.14" y="0" width="16.39" height="100" data-tip="D56
+Paid at least once: 3.49%"/><rect x="941.80" y="0" width="16.39" height="100" data-tip="D57
+Paid at least once: 3.44%"/><rect x="958.47" y="0" width="16.39" height="100" data-tip="D58
+Paid at least once: 3.16%"/><rect x="975.14" y="0" width="16.39" height="100" data-tip="D59
+Paid at least once: 3.35%"/><rect x="991.80" y="0" width="16.39" height="100" data-tip="D60
+Paid at least once: 3.29%"/></g></svg></div><div class="endlabels"><span style="top:17.78%">3.29%</span></div><div class="xaxis"><span class="first" style="left:0.00%">D0</span><span class="" style="left:25.00%">D15</span><span class="" style="left:50.00%">D30</span><span class="" style="left:75.00%">D45</span><span class="last" style="left:100.00%">D60</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Day</th><th>Paid at least once</th></tr></thead><tbody><tr><td>D0</td><td>0.00%</td></tr><tr><td>D1</td><td>0.00%</td></tr><tr><td>D2</td><td>0.00%</td></tr><tr><td>D3</td><td>0.00%</td></tr><tr><td>D4</td><td>0.00%</td></tr><tr><td>D5</td><td>0.00%</td></tr><tr><td>D6</td><td>0.00%</td></tr><tr><td>D7</td><td>3.19%</td></tr><tr><td>D8</td><td>3.38%</td></tr><tr><td>D9</td><td>3.42%</td></tr><tr><td>D10</td><td>3.45%</td></tr><tr><td>D11</td><td>3.45%</td></tr><tr><td>D12</td><td>3.40%</td></tr><tr><td>D13</td><td>3.39%</td></tr><tr><td>D14</td><td>3.39%</td></tr><tr><td>D15</td><td>3.45%</td></tr><tr><td>D16</td><td>3.46%</td></tr><tr><td>D17</td><td>3.50%</td></tr><tr><td>D18</td><td>3.47%</td></tr><tr><td>D19</td><td>3.48%</td></tr><tr><td>D20</td><td>3.52%</td></tr><tr><td>D21</td><td>3.44%</td></tr><tr><td>D22</td><td>3.47%</td></tr><tr><td>D23</td><td>3.49%</td></tr><tr><td>D24</td><td>3.51%</td></tr><tr><td>D25</td><td>3.52%</td></tr><tr><td>D26</td><td>3.49%</td></tr><tr><td>D27</td><td>3.51%</td></tr><tr><td>D28</td><td>3.49%</td></tr><tr><td>D29</td><td>3.52%</td></tr><tr><td>D30</td><td>3.51%</td></tr><tr><td>D31</td><td>3.57%</td></tr><tr><td>D32</td><td>3.59%</td></tr><tr><td>D33</td><td>3.50%</td></tr><tr><td>D34</td><td>3.46%</td></tr><tr><td>D35</td><td>3.46%</td></tr><tr><td>D36</td><td>3.53%</td></tr><tr><td>D37</td><td>3.42%</td></tr><tr><td>D38</td><td>3.41%</td></tr><tr><td>D39</td><td>3.37%</td></tr><tr><td>D40</td><td>3.43%</td></tr><tr><td>D41</td><td>3.45%</td></tr><tr><td>D42</td><td>3.44%</td></tr><tr><td>D43</td><td>3.50%</td></tr><tr><td>D44</td><td>3.48%</td></tr><tr><td>D45</td><td>3.59%</td></tr><tr><td>D46</td><td>3.53%</td></tr><tr><td>D47</td><td>3.57%</td></tr><tr><td>D48</td><td>3.65%</td></tr><tr><td>D49</td><td>3.72%</td></tr><tr><td>D50</td><td>3.74%</td></tr><tr><td>D51</td><td>3.88%</td></tr><tr><td>D52</td><td>3.86%</td></tr><tr><td>D53</td><td>3.69%</td></tr><tr><td>D54</td><td>3.41%</td></tr><tr><td>D55</td><td>3.59%</td></tr><tr><td>D56</td><td>3.49%</td></tr><tr><td>D57</td><td>3.44%</td></tr><tr><td>D58</td><td>3.16%</td></tr><tr><td>D59</td><td>3.35%</td></tr><tr><td>D60</td><td>3.29%</td></tr></tbody></table></div></details></figure></div>
+<h2>Stability</h2><div class="grid2"><figure class="chart" id="c-crashfreeusersandsessions"><figcaption><h3>Crash-free users and sessions</h3><p>Source: crashlytics</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Crash-free users</span><span class="key"><i class="sw b2"></i>Crash-free sessions</span></div><div role="img" aria-label="Crash-free users and sessions: line chart, 2 series, 75 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">98.50%</span><span style="bottom:25.00%">99.00%</span><span style="bottom:50.00%">99.50%</span><span style="bottom:75.00%">100.00%</span><span style="bottom:100.00%">100.50%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,25.000 L13.51,79.945 L27.03,25.000 L40.54,25.000 L54.05,59.722 L67.57,25.000 L81.08,25.000 L94.59,25.000 L108.11,54.070 L121.62,49.631 L135.14,25.000 L148.65,25.000 L162.16,25.000 L175.68,25.000 L189.19,25.000 L202.70,44.231 L216.22,25.000 L229.73,25.000 L243.24,25.000 L256.76,43.657 L270.27,25.000 L283.78,41.502 L297.30,25.000 L310.81,25.000 L324.32,25.000 L337.84,50.641 L351.35,53.986 L364.86,25.000 L378.38,25.000 L391.89,40.198 L405.41,25.000 L418.92,38.514 L432.43,25.000 L445.95,25.000 L459.46,37.563 L472.97,25.000 L486.49,25.000 L500.00,50.575 L513.51,37.821 L527.03,37.376 L540.54,25.000 L554.05,36.933 L567.57,25.000 L581.08,49.752 L594.59,47.422 L608.11,25.000 L621.62,25.000 L635.14,45.833 L648.65,35.917 L662.16,35.183 L675.68,45.284 L689.19,25.000 L702.70,35.040 L716.22,25.000 L729.73,34.470 L743.24,34.901 L756.76,45.833 L770.27,25.000 L783.78,25.000 L797.30,25.000 L810.81,25.000 L824.32,34.225 L837.84,25.000 L851.35,25.000 L864.86,25.000 L878.38,25.000 L891.89,33.052 L905.41,33.251 L918.92,40.723 L932.43,33.666 L945.95,25.000 L959.46,25.000 L972.97,25.000 L986.49,41.474 L1000.00,33.026" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,25.000 L13.51,69.643 L27.03,25.000 L40.54,25.000 L54.05,51.738 L67.57,25.000 L81.08,25.000 L94.59,25.000 L108.11,48.256 L121.62,44.920 L135.14,25.000 L148.65,25.000 L162.16,25.000 L175.68,25.000 L189.19,25.000 L202.70,40.337 L216.22,25.000 L229.73,25.000 L243.24,25.000 L256.76,40.337 L270.27,25.000 L283.78,38.123 L297.30,25.000 L310.81,25.000 L324.32,25.000 L337.84,45.325 L351.35,47.883 L364.86,25.000 L378.38,25.000 L391.89,37.107 L405.41,25.000 L418.92,35.776 L432.43,25.000 L445.95,25.000 L459.46,34.921 L472.97,25.000 L486.49,25.000 L500.00,44.960 L513.51,35.183 L527.03,34.747 L540.54,25.000 L554.05,34.398 L567.57,25.000 L581.08,43.868 L594.59,42.762 L608.11,25.000 L621.62,25.000 L635.14,41.000 L648.65,33.591 L662.16,33.078 L675.68,41.287 L689.19,25.000 L702.70,32.937 L716.22,25.000 L729.73,32.299 L743.24,32.987 L756.76,41.207 L770.27,25.000 L783.78,25.000 L797.30,25.000 L810.81,25.000 L824.32,32.440 L837.84,25.000 L851.35,25.000 L864.86,25.000 L878.38,25.000 L891.89,31.274 L905.41,31.345 L918.92,37.180 L932.43,31.840 L945.95,25.000 L959.46,25.000 L972.97,25.000 L986.49,37.853 L1000.00,31.427" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="33.026" y2="33.026" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="33.026" y2="33.026" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="31.427" y2="31.427" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="31.427" y2="31.427" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+Crash-free users: 98.90%
+Crash-free sessions: 99.11%"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+Crash-free users: 99.31%
+Crash-free sessions: 99.47%"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+Crash-free users: 99.42%
+Crash-free sessions: 99.53%"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+Crash-free users: 99.51%
+Crash-free sessions: 99.60%"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+Crash-free users: 99.62%
+Crash-free sessions: 99.69%"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+Crash-free users: 99.63%
+Crash-free sessions: 99.69%"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+Crash-free users: 99.67%
+Crash-free sessions: 99.74%"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+Crash-free users: 99.49%
+Crash-free sessions: 99.59%"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+Crash-free users: 99.42%
+Crash-free sessions: 99.54%"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+Crash-free users: 99.70%
+Crash-free sessions: 99.76%"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+Crash-free users: 99.73%
+Crash-free sessions: 99.78%"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+Crash-free users: 99.75%
+Crash-free sessions: 99.80%"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+Crash-free users: 99.49%
+Crash-free sessions: 99.60%"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+Crash-free users: 99.74%
+Crash-free sessions: 99.80%"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+Crash-free users: 99.75%
+Crash-free sessions: 99.81%"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+Crash-free users: 99.76%
+Crash-free sessions: 99.81%"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+Crash-free users: 99.50%
+Crash-free sessions: 99.62%"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+Crash-free users: 99.55%
+Crash-free sessions: 99.64%"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+Crash-free users: 99.58%
+Crash-free sessions: 99.68%"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+Crash-free users: 99.78%
+Crash-free sessions: 99.83%"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+Crash-free users: 99.80%
+Crash-free sessions: 99.84%"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+Crash-free users: 99.59%
+Crash-free sessions: 99.67%"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+Crash-free users: 99.80%
+Crash-free sessions: 99.84%"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+Crash-free users: 99.81%
+Crash-free sessions: 99.85%"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+Crash-free users: 99.80%
+Crash-free sessions: 99.84%"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+Crash-free users: 99.58%
+Crash-free sessions: 99.68%"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+Crash-free users: 99.82%
+Crash-free sessions: 99.85%"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+Crash-free users: 99.84%
+Crash-free sessions: 99.87%"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+Crash-free users: 99.83%
+Crash-free sessions: 99.87%"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+Crash-free users: 99.69%
+Crash-free sessions: 99.76%"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+Crash-free users: 99.83%
+Crash-free sessions: 99.86%"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+Crash-free users: 99.67%
+Crash-free sessions: 99.74%"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+Crash-free users: 99.84%
+Crash-free sessions: 99.87%"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Crash-free users</th><th>Crash-free sessions</th></tr></thead><tbody><tr><td>Aug 18</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Aug 19</td><td>98.90%</td><td>99.11%</td></tr><tr><td>Aug 20</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Aug 21</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Aug 22</td><td>99.31%</td><td>99.47%</td></tr><tr><td>Aug 23</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Aug 24</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Aug 25</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Aug 26</td><td>99.42%</td><td>99.53%</td></tr><tr><td>Aug 27</td><td>99.51%</td><td>99.60%</td></tr><tr><td>Aug 28</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Aug 29</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Aug 30</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Aug 31</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 1</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 2</td><td>99.62%</td><td>99.69%</td></tr><tr><td>Sep 3</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 4</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 5</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 6</td><td>99.63%</td><td>99.69%</td></tr><tr><td>Sep 7</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 8</td><td>99.67%</td><td>99.74%</td></tr><tr><td>Sep 9</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 10</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 11</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 12</td><td>99.49%</td><td>99.59%</td></tr><tr><td>Sep 13</td><td>99.42%</td><td>99.54%</td></tr><tr><td>Sep 14</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 15</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 16</td><td>99.70%</td><td>99.76%</td></tr><tr><td>Sep 17</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 18</td><td>99.73%</td><td>99.78%</td></tr><tr><td>Sep 19</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 20</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 21</td><td>99.75%</td><td>99.80%</td></tr><tr><td>Sep 22</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 23</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 24</td><td>99.49%</td><td>99.60%</td></tr><tr><td>Sep 25</td><td>99.74%</td><td>99.80%</td></tr><tr><td>Sep 26</td><td>99.75%</td><td>99.81%</td></tr><tr><td>Sep 27</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 28</td><td>99.76%</td><td>99.81%</td></tr><tr><td>Sep 29</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Sep 30</td><td>99.50%</td><td>99.62%</td></tr><tr><td>Oct 1</td><td>99.55%</td><td>99.64%</td></tr><tr><td>Oct 2</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 3</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 4</td><td>99.58%</td><td>99.68%</td></tr><tr><td>Oct 5</td><td>99.78%</td><td>99.83%</td></tr><tr><td>Oct 6</td><td>99.80%</td><td>99.84%</td></tr><tr><td>Oct 7</td><td>99.59%</td><td>99.67%</td></tr><tr><td>Oct 8</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 9</td><td>99.80%</td><td>99.84%</td></tr><tr><td>Oct 10</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 11</td><td>99.81%</td><td>99.85%</td></tr><tr><td>Oct 12</td><td>99.80%</td><td>99.84%</td></tr><tr><td>Oct 13</td><td>99.58%</td><td>99.68%</td></tr><tr><td>Oct 14</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 15</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 16</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 17</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 18</td><td>99.82%</td><td>99.85%</td></tr><tr><td>Oct 19</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 20</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 21</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 22</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 23</td><td>99.84%</td><td>99.87%</td></tr><tr><td>Oct 24</td><td>99.83%</td><td>99.87%</td></tr><tr><td>Oct 25</td><td>99.69%</td><td>99.76%</td></tr><tr><td>Oct 26</td><td>99.83%</td><td>99.86%</td></tr><tr><td>Oct 27</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 28</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 29</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 30</td><td>99.67%</td><td>99.74%</td></tr><tr><td>Oct 31</td><td>99.84%</td><td>99.87%</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-storeratingcumulativeaverage"><figcaption><h3>Store rating (cumulative average)</h3></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Rating</span></div><div role="img" aria-label="Store rating (cumulative average): line chart, 1 series, 75 points"><div class="plot" style="--h:200px;--endw:36px"><div class="yaxis"><span style="bottom:0.00%">4.30</span><span style="bottom:25.00%">4.32</span><span style="bottom:50.00%">4.34</span><span style="bottom:75.00%">4.36</span><span style="bottom:100.00%">4.38</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,87.500 L13.51,87.500 L27.03,87.500 L40.54,75.000 L54.05,75.000 L67.57,62.500 L81.08,62.500 L94.59,62.500 L108.11,62.500 L121.62,62.500 L135.14,62.500 L148.65,62.500 L162.16,62.500 L175.68,62.500 L189.19,62.500 L202.70,62.500 L216.22,62.500 L229.73,50.000 L243.24,50.000 L256.76,62.500 L270.27,62.500 L283.78,50.000 L297.30,50.000 L310.81,50.000 L324.32,50.000 L337.84,50.000 L351.35,62.500 L364.86,62.500 L378.38,50.000 L391.89,50.000 L405.41,62.500 L418.92,50.000 L432.43,62.500 L445.95,50.000 L459.46,50.000 L472.97,50.000 L486.49,50.000 L500.00,50.000 L513.51,50.000 L527.03,50.000 L540.54,50.000 L554.05,62.500 L567.57,62.500 L581.08,50.000 L594.59,50.000 L608.11,37.500 L621.62,50.000 L635.14,50.000 L648.65,50.000 L662.16,37.500 L675.68,37.500 L689.19,37.500 L702.70,37.500 L716.22,25.000 L729.73,37.500 L743.24,25.000 L756.76,25.000 L770.27,37.500 L783.78,37.500 L797.30,25.000 L810.81,37.500 L824.32,25.000 L837.84,25.000 L851.35,37.500 L864.86,25.000 L878.38,25.000 L891.89,25.000 L905.41,37.500 L918.92,37.500 L932.43,37.500 L945.95,37.500 L959.46,25.000 L972.97,25.000 L986.49,25.000 L1000.00,25.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="13.33" height="100" data-tip="Aug 18
+Rating: 4.31"/><rect x="6.85" y="0" width="13.33" height="100" data-tip="Aug 19
+Rating: 4.31"/><rect x="20.36" y="0" width="13.33" height="100" data-tip="Aug 20
+Rating: 4.31"/><rect x="33.87" y="0" width="13.33" height="100" data-tip="Aug 21
+Rating: 4.32"/><rect x="47.39" y="0" width="13.33" height="100" data-tip="Aug 22
+Rating: 4.32"/><rect x="60.90" y="0" width="13.33" height="100" data-tip="Aug 23
+Rating: 4.33"/><rect x="74.41" y="0" width="13.33" height="100" data-tip="Aug 24
+Rating: 4.33"/><rect x="87.93" y="0" width="13.33" height="100" data-tip="Aug 25
+Rating: 4.33"/><rect x="101.44" y="0" width="13.33" height="100" data-tip="Aug 26
+Rating: 4.33"/><rect x="114.95" y="0" width="13.33" height="100" data-tip="Aug 27
+Rating: 4.33"/><rect x="128.47" y="0" width="13.33" height="100" data-tip="Aug 28
+Rating: 4.33"/><rect x="141.98" y="0" width="13.33" height="100" data-tip="Aug 29
+Rating: 4.33"/><rect x="155.50" y="0" width="13.33" height="100" data-tip="Aug 30
+Rating: 4.33"/><rect x="169.01" y="0" width="13.33" height="100" data-tip="Aug 31
+Rating: 4.33"/><rect x="182.52" y="0" width="13.33" height="100" data-tip="Sep 1
+Rating: 4.33"/><rect x="196.04" y="0" width="13.33" height="100" data-tip="Sep 2
+Rating: 4.33"/><rect x="209.55" y="0" width="13.33" height="100" data-tip="Sep 3
+Rating: 4.33"/><rect x="223.06" y="0" width="13.33" height="100" data-tip="Sep 4
+Rating: 4.34"/><rect x="236.58" y="0" width="13.33" height="100" data-tip="Sep 5
+Rating: 4.34"/><rect x="250.09" y="0" width="13.33" height="100" data-tip="Sep 6
+Rating: 4.33"/><rect x="263.60" y="0" width="13.33" height="100" data-tip="Sep 7
+Rating: 4.33"/><rect x="277.12" y="0" width="13.33" height="100" data-tip="Sep 8
+Rating: 4.34"/><rect x="290.63" y="0" width="13.33" height="100" data-tip="Sep 9
+Rating: 4.34"/><rect x="304.14" y="0" width="13.33" height="100" data-tip="Sep 10
+Rating: 4.34"/><rect x="317.66" y="0" width="13.33" height="100" data-tip="Sep 11
+Rating: 4.34"/><rect x="331.17" y="0" width="13.33" height="100" data-tip="Sep 12
+Rating: 4.34"/><rect x="344.68" y="0" width="13.33" height="100" data-tip="Sep 13
+Rating: 4.33"/><rect x="358.20" y="0" width="13.33" height="100" data-tip="Sep 14
+Rating: 4.33"/><rect x="371.71" y="0" width="13.33" height="100" data-tip="Sep 15
+Rating: 4.34"/><rect x="385.23" y="0" width="13.33" height="100" data-tip="Sep 16
+Rating: 4.34"/><rect x="398.74" y="0" width="13.33" height="100" data-tip="Sep 17
+Rating: 4.33"/><rect x="412.25" y="0" width="13.33" height="100" data-tip="Sep 18
+Rating: 4.34"/><rect x="425.77" y="0" width="13.33" height="100" data-tip="Sep 19
+Rating: 4.33"/><rect x="439.28" y="0" width="13.33" height="100" data-tip="Sep 20
+Rating: 4.34"/><rect x="452.79" y="0" width="13.33" height="100" data-tip="Sep 21
+Rating: 4.34"/><rect x="466.31" y="0" width="13.33" height="100" data-tip="Sep 22
+Rating: 4.34"/><rect x="479.82" y="0" width="13.33" height="100" data-tip="Sep 23
+Rating: 4.34"/><rect x="493.33" y="0" width="13.33" height="100" data-tip="Sep 24
+Rating: 4.34"/><rect x="506.85" y="0" width="13.33" height="100" data-tip="Sep 25
+Rating: 4.34"/><rect x="520.36" y="0" width="13.33" height="100" data-tip="Sep 26
+Rating: 4.34"/><rect x="533.87" y="0" width="13.33" height="100" data-tip="Sep 27
+Rating: 4.34"/><rect x="547.39" y="0" width="13.33" height="100" data-tip="Sep 28
+Rating: 4.33"/><rect x="560.90" y="0" width="13.33" height="100" data-tip="Sep 29
+Rating: 4.33"/><rect x="574.41" y="0" width="13.33" height="100" data-tip="Sep 30
+Rating: 4.34"/><rect x="587.93" y="0" width="13.33" height="100" data-tip="Oct 1
+Rating: 4.34"/><rect x="601.44" y="0" width="13.33" height="100" data-tip="Oct 2
+Rating: 4.35"/><rect x="614.95" y="0" width="13.33" height="100" data-tip="Oct 3
+Rating: 4.34"/><rect x="628.47" y="0" width="13.33" height="100" data-tip="Oct 4
+Rating: 4.34"/><rect x="641.98" y="0" width="13.33" height="100" data-tip="Oct 5
+Rating: 4.34"/><rect x="655.50" y="0" width="13.33" height="100" data-tip="Oct 6
+Rating: 4.35"/><rect x="669.01" y="0" width="13.33" height="100" data-tip="Oct 7
+Rating: 4.35"/><rect x="682.52" y="0" width="13.33" height="100" data-tip="Oct 8
+Rating: 4.35"/><rect x="696.04" y="0" width="13.33" height="100" data-tip="Oct 9
+Rating: 4.35"/><rect x="709.55" y="0" width="13.33" height="100" data-tip="Oct 10
+Rating: 4.36"/><rect x="723.06" y="0" width="13.33" height="100" data-tip="Oct 11
+Rating: 4.35"/><rect x="736.58" y="0" width="13.33" height="100" data-tip="Oct 12
+Rating: 4.36"/><rect x="750.09" y="0" width="13.33" height="100" data-tip="Oct 13
+Rating: 4.36"/><rect x="763.60" y="0" width="13.33" height="100" data-tip="Oct 14
+Rating: 4.35"/><rect x="777.12" y="0" width="13.33" height="100" data-tip="Oct 15
+Rating: 4.35"/><rect x="790.63" y="0" width="13.33" height="100" data-tip="Oct 16
+Rating: 4.36"/><rect x="804.14" y="0" width="13.33" height="100" data-tip="Oct 17
+Rating: 4.35"/><rect x="817.66" y="0" width="13.33" height="100" data-tip="Oct 18
+Rating: 4.36"/><rect x="831.17" y="0" width="13.33" height="100" data-tip="Oct 19
+Rating: 4.36"/><rect x="844.68" y="0" width="13.33" height="100" data-tip="Oct 20
+Rating: 4.35"/><rect x="858.20" y="0" width="13.33" height="100" data-tip="Oct 21
+Rating: 4.36"/><rect x="871.71" y="0" width="13.33" height="100" data-tip="Oct 22
+Rating: 4.36"/><rect x="885.23" y="0" width="13.33" height="100" data-tip="Oct 23
+Rating: 4.36"/><rect x="898.74" y="0" width="13.33" height="100" data-tip="Oct 24
+Rating: 4.35"/><rect x="912.25" y="0" width="13.33" height="100" data-tip="Oct 25
+Rating: 4.35"/><rect x="925.77" y="0" width="13.33" height="100" data-tip="Oct 26
+Rating: 4.35"/><rect x="939.28" y="0" width="13.33" height="100" data-tip="Oct 27
+Rating: 4.35"/><rect x="952.79" y="0" width="13.33" height="100" data-tip="Oct 28
+Rating: 4.36"/><rect x="966.31" y="0" width="13.33" height="100" data-tip="Oct 29
+Rating: 4.36"/><rect x="979.82" y="0" width="13.33" height="100" data-tip="Oct 30
+Rating: 4.36"/><rect x="993.33" y="0" width="13.33" height="100" data-tip="Oct 31
+Rating: 4.36"/></g></svg></div><div class="endlabels"><span style="top:25.00%">4.36</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 18</span><span class="" style="left:24.32%">Sep 5</span><span class="" style="left:50.00%">Sep 24</span><span class="" style="left:75.68%">Oct 13</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Rating</th></tr></thead><tbody><tr><td>Aug 18</td><td>4.31</td></tr><tr><td>Aug 19</td><td>4.31</td></tr><tr><td>Aug 20</td><td>4.31</td></tr><tr><td>Aug 21</td><td>4.32</td></tr><tr><td>Aug 22</td><td>4.32</td></tr><tr><td>Aug 23</td><td>4.33</td></tr><tr><td>Aug 24</td><td>4.33</td></tr><tr><td>Aug 25</td><td>4.33</td></tr><tr><td>Aug 26</td><td>4.33</td></tr><tr><td>Aug 27</td><td>4.33</td></tr><tr><td>Aug 28</td><td>4.33</td></tr><tr><td>Aug 29</td><td>4.33</td></tr><tr><td>Aug 30</td><td>4.33</td></tr><tr><td>Aug 31</td><td>4.33</td></tr><tr><td>Sep 1</td><td>4.33</td></tr><tr><td>Sep 2</td><td>4.33</td></tr><tr><td>Sep 3</td><td>4.33</td></tr><tr><td>Sep 4</td><td>4.34</td></tr><tr><td>Sep 5</td><td>4.34</td></tr><tr><td>Sep 6</td><td>4.33</td></tr><tr><td>Sep 7</td><td>4.33</td></tr><tr><td>Sep 8</td><td>4.34</td></tr><tr><td>Sep 9</td><td>4.34</td></tr><tr><td>Sep 10</td><td>4.34</td></tr><tr><td>Sep 11</td><td>4.34</td></tr><tr><td>Sep 12</td><td>4.34</td></tr><tr><td>Sep 13</td><td>4.33</td></tr><tr><td>Sep 14</td><td>4.33</td></tr><tr><td>Sep 15</td><td>4.34</td></tr><tr><td>Sep 16</td><td>4.34</td></tr><tr><td>Sep 17</td><td>4.33</td></tr><tr><td>Sep 18</td><td>4.34</td></tr><tr><td>Sep 19</td><td>4.33</td></tr><tr><td>Sep 20</td><td>4.34</td></tr><tr><td>Sep 21</td><td>4.34</td></tr><tr><td>Sep 22</td><td>4.34</td></tr><tr><td>Sep 23</td><td>4.34</td></tr><tr><td>Sep 24</td><td>4.34</td></tr><tr><td>Sep 25</td><td>4.34</td></tr><tr><td>Sep 26</td><td>4.34</td></tr><tr><td>Sep 27</td><td>4.34</td></tr><tr><td>Sep 28</td><td>4.33</td></tr><tr><td>Sep 29</td><td>4.33</td></tr><tr><td>Sep 30</td><td>4.34</td></tr><tr><td>Oct 1</td><td>4.34</td></tr><tr><td>Oct 2</td><td>4.35</td></tr><tr><td>Oct 3</td><td>4.34</td></tr><tr><td>Oct 4</td><td>4.34</td></tr><tr><td>Oct 5</td><td>4.34</td></tr><tr><td>Oct 6</td><td>4.35</td></tr><tr><td>Oct 7</td><td>4.35</td></tr><tr><td>Oct 8</td><td>4.35</td></tr><tr><td>Oct 9</td><td>4.35</td></tr><tr><td>Oct 10</td><td>4.36</td></tr><tr><td>Oct 11</td><td>4.35</td></tr><tr><td>Oct 12</td><td>4.36</td></tr><tr><td>Oct 13</td><td>4.36</td></tr><tr><td>Oct 14</td><td>4.35</td></tr><tr><td>Oct 15</td><td>4.35</td></tr><tr><td>Oct 16</td><td>4.36</td></tr><tr><td>Oct 17</td><td>4.35</td></tr><tr><td>Oct 18</td><td>4.36</td></tr><tr><td>Oct 19</td><td>4.36</td></tr><tr><td>Oct 20</td><td>4.35</td></tr><tr><td>Oct 21</td><td>4.36</td></tr><tr><td>Oct 22</td><td>4.36</td></tr><tr><td>Oct 23</td><td>4.36</td></tr><tr><td>Oct 24</td><td>4.35</td></tr><tr><td>Oct 25</td><td>4.35</td></tr><tr><td>Oct 26</td><td>4.35</td></tr><tr><td>Oct 27</td><td>4.35</td></tr><tr><td>Oct 28</td><td>4.36</td></tr><tr><td>Oct 29</td><td>4.36</td></tr><tr><td>Oct 30</td><td>4.36</td></tr><tr><td>Oct 31</td><td>4.36</td></tr></tbody></table></div></details></figure></div>
+<h2>Alerts</h2><ul class="alerts"><li class="ok"><span class="sev">OK</span>No active alerts (7 rule(s) checked).</li></ul>
+<h2>Data sources</h2><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Source</th><th class="">Data through</th><th class="">Freshness</th><th class="">Last load</th><th class="">Rows (last load)</th></tr></thead><tbody><tr><td class="l">App Store Connect sales</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>136</td></tr><tr><td class="l">Crashlytics export (files)</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>94</td></tr><tr><td class="l">GA4 export (files)</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>5,802</td></tr><tr><td class="l">Google Play Console reports</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>75</td></tr><tr><td class="l">RevenueCat export</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-10 20:12 UTC</td><td>746</td></tr></tbody></table></div></div>
+</main>
+<footer>Generated by studio-pulse. Metric definitions: docs/METRICS.md. Hover a chart for values, or open its data table.</footer>
+</div>
+<div id="tip" role="tooltip"></div>
+<script>
+(function () {
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem('pulse-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  var btn = document.querySelector('button.theme');
+  function label() {
+    var dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    if (btn) btn.textContent = dark ? 'Light mode' : 'Dark mode';
+    return dark;
+  }
+  if (btn) {
+    label();
+    btn.addEventListener('click', function () {
+      var next = label() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('pulse-theme', next); } catch (e) {}
+      label();
+    });
+  }
+  var tip = document.getElementById('tip');
+  function show(el, x, y) {
+    tip.textContent = el.getAttribute('data-tip');
+    tip.style.display = 'block';
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var left = Math.min(Math.max(8, x + 12), window.innerWidth - w - 8);
+    var top = y - h - 12; if (top < 8) top = y + 16;
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  document.addEventListener('pointermove', function (ev) {
+    var el = ev.target.closest && ev.target.closest('[data-tip]');
+    if (el) show(el, ev.clientX, ev.clientY); else tip.style.display = 'none';
+  });
+  document.addEventListener('focusin', function (ev) {
+    var el = ev.target.closest && ev.target.closest('[data-tip]');
+    if (el) { var r = el.getBoundingClientRect(); show(el, r.left + r.width / 2, r.top); }
+  });
+  document.addEventListener('focusout', function () { tip.style.display = 'none'; });
+})();
+</script>
+</body>
+</html>
