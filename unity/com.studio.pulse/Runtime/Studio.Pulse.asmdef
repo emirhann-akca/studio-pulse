@@ -1,0 +1,20 @@
+{
+    "name": "Studio.Pulse",
+    "rootNamespace": "Studio.Pulse",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.google.firebase.analytics",
+            "expression": "",
+            "define": "PULSE_FIREBASE"
+        }
+    ],
+    "noEngineReferences": false
+}
