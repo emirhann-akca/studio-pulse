@@ -242,6 +242,38 @@ def test_crash_loop_cannot_push_crash_free_below_zero(con):
     assert con.execute("SELECT crash_free_sessions_7d FROM fct_app_summary").fetchone()[0] == 0.0
 
 
+def test_platform_without_crashlytics_export_falls_back_to_ga4(con):
+    """Android exports Crashlytics, iOS does not: iOS crashes must still count."""
+    con.execute(
+        "INSERT INTO raw_crashlytics_daily VALUES ('g', ?, 'ANDROID', 1, 0, 1, 1, 'crash', now())",
+        [D0],
+    )
+    con.execute(
+        "INSERT INTO raw_ga4_active_users (app_id, platform, date, dau, sessions, crashed_users, crashed_sessions, history_days, _source) "
+        "VALUES ('g', 'ANDROID', ?, 10, 12, 0, 0, 1, 'ga4'), ('g', 'IOS', ?, 10, 10, 2, 2, 1, 'ga4')",
+        [D0, D0],
+    )
+    run_models(con)
+    r = con.execute(
+        "SELECT crashed_users, crash_free_users, crash_basis FROM fct_app_daily"
+    ).fetchone()
+    assert r == (3, pytest.approx(1 - 3 / 20), "crashlytics+ga4_app_exception")
+
+
+def test_missing_crash_counts_stay_unknown(con):
+    """DuckDB's LEAST skips NULLs; an unknown crash count must not read as 'everyone crashed'."""
+    con.execute(
+        "INSERT INTO raw_ga4_active_users (app_id, platform, date, dau, sessions, history_days, _source) VALUES ('g', 'IOS', ?, 5, 5, 1, 'ga4')",
+        [D0],
+    )
+    con.execute("INSERT INTO meta_apps (app_id, name) VALUES ('g', 'G')")
+    run_models(con)
+    assert con.execute(
+        "SELECT crash_free_users, crash_free_sessions FROM fct_app_daily"
+    ).fetchone() == (None, None)
+    assert con.execute("SELECT crash_free_users_7d FROM fct_app_summary").fetchone()[0] is None
+
+
 def test_crashlytics_days_follow_the_app_timezone(con, tmp_path):
     """22:30 UTC on Oct 1 is already Oct 2 in Istanbul, where GA4's event_date lives."""
     late = dt.datetime(2026, 10, 1, 22, 30)

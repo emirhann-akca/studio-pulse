@@ -4,7 +4,6 @@ WITH au AS (
     SELECT app_id, date,
            SUM(dau) AS dau, SUM(wau) AS wau, SUM(mau) AS mau, MIN(history_days) AS history_days,
            SUM(new_users) AS new_users, SUM(sessions) AS sessions, SUM(engagement_sec) AS engagement_sec,
-           SUM(crashed_users) AS ga4_crashed_users, SUM(crashed_sessions) AS ga4_crashed_sessions,
            SUM(iap_revenue_usd) AS ga4_iap_usd, SUM(ad_revenue_usd) AS ga4_ad_usd,
            SUM(payers) AS ga4_payers
     FROM stg_active_users
@@ -22,11 +21,29 @@ rc AS (
 ),
 rc_apps AS (SELECT DISTINCT app_id FROM stg_rc_transactions),
 admob_apps AS (SELECT DISTINCT app_id FROM stg_admob_daily),
-cr AS (
-    SELECT app_id, date, SUM(fatal_events) AS fatal_events, SUM(crashed_installs) AS crashed_installs
-    FROM stg_crashes_daily GROUP BY 1, 2
+-- Crashes per platform: Crashlytics where that platform's export is connected,
+-- GA4 app_exception (fatal = 1) otherwise. An app often exports Crashlytics for
+-- Android only; deciding per app counted every iOS crash as zero.
+cr_p AS (
+    SELECT app_id, platform, date, SUM(fatal_events) AS fatal_events, SUM(crashed_installs) AS crashed_installs
+    FROM stg_crashes_daily GROUP BY 1, 2, 3
 ),
-cr_apps AS (SELECT DISTINCT app_id FROM stg_crashes_daily),
+cr_platforms AS (SELECT DISTINCT app_id, platform FROM stg_crashes_daily),
+cr AS (
+    SELECT
+        COALESCE(a.app_id, c.app_id) AS app_id,
+        COALESCE(a.date, c.date) AS date,
+        SUM(CASE WHEN cp.platform IS NOT NULL THEN COALESCE(c.crashed_installs, 0) ELSE a.crashed_users END) AS crashed_users,
+        SUM(CASE WHEN cp.platform IS NOT NULL THEN COALESCE(c.fatal_events, 0) ELSE a.crashed_sessions END) AS crashed_sessions,
+        string_agg(DISTINCT CASE WHEN cp.platform IS NOT NULL THEN 'crashlytics'
+                                 WHEN a.crashed_users IS NOT NULL THEN 'ga4_app_exception' END, '+'
+                   ORDER BY CASE WHEN cp.platform IS NOT NULL THEN 'crashlytics'
+                                 WHEN a.crashed_users IS NOT NULL THEN 'ga4_app_exception' END) AS crash_basis
+    FROM stg_active_users a
+    FULL OUTER JOIN cr_p c ON c.app_id = a.app_id AND c.platform = a.platform AND c.date = a.date
+    LEFT JOIN cr_platforms cp ON cp.app_id = COALESCE(a.app_id, c.app_id) AND cp.platform = COALESCE(a.platform, c.platform)
+    GROUP BY 1, 2
+),
 st AS (
     SELECT app_id, date,
            SUM(installs) AS store_installs, SUM(uninstalls) AS store_uninstalls,
@@ -61,9 +78,9 @@ joined AS (
         ad.impressions AS ad_impressions,
         ad.earnings_usd AS admob_earnings_usd,
         CASE WHEN ra.app_id IS NOT NULL THEN COALESCE(rc.rc_payers, 0) ELSE au.ga4_payers END AS payers,
-        CASE WHEN ca.app_id IS NOT NULL THEN COALESCE(cr.crashed_installs, 0) ELSE au.ga4_crashed_users END AS crashed_users,
-        CASE WHEN ca.app_id IS NOT NULL THEN COALESCE(cr.fatal_events, 0) ELSE au.ga4_crashed_sessions END AS crashed_sessions,
-        CASE WHEN ca.app_id IS NOT NULL THEN 'crashlytics' WHEN au.ga4_crashed_users IS NOT NULL THEN 'ga4_app_exception' END AS crash_basis,
+        cr.crashed_users,
+        cr.crashed_sessions,
+        cr.crash_basis,
         st.store_installs,
         st.store_uninstalls,
         st.rating
@@ -75,7 +92,6 @@ joined AS (
     LEFT JOIN st ON st.app_id = d.app_id AND st.date = d.date
     LEFT JOIN rc_apps ra ON ra.app_id = d.app_id
     LEFT JOIN admob_apps aa ON aa.app_id = d.app_id
-    LEFT JOIN cr_apps ca ON ca.app_id = d.app_id
 )
 SELECT
     *,
@@ -88,8 +104,11 @@ SELECT
     admob_earnings_usd * 1000.0 / NULLIF(ad_impressions, 0) AS ecpm_usd,
     -- Crash counts come from Crashlytics while DAU/sessions come from GA4. A
     -- crash loop on one device can produce more fatal events than GA4 saw
-    -- sessions, so numerators are capped at their denominators.
-    1 - CAST(LEAST(crashed_users, dau) AS DOUBLE) / NULLIF(dau, 0) AS crash_free_users,
-    1 - CAST(LEAST(crashed_sessions, sessions) AS DOUBLE) / NULLIF(sessions, 0) AS crash_free_sessions
+    -- sessions, so numerators are capped at their denominators. (LEAST skips
+    -- NULLs in DuckDB, hence the explicit NULL guard.)
+    CASE WHEN crashed_users IS NOT NULL
+         THEN 1 - CAST(LEAST(crashed_users, dau) AS DOUBLE) / NULLIF(dau, 0) END AS crash_free_users,
+    CASE WHEN crashed_sessions IS NOT NULL
+         THEN 1 - CAST(LEAST(crashed_sessions, sessions) AS DOUBLE) / NULLIF(sessions, 0) END AS crash_free_sessions
 FROM joined
 ORDER BY app_id, date

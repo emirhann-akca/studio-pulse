@@ -16,8 +16,10 @@ cur AS (
            SUM(ad_revenue_usd) AS ad_revenue_7d_usd,
            SUM(revenue_usd) / NULLIF(SUM(dau), 0) AS arpdau_7d,
            CAST(SUM(payers) AS DOUBLE) / NULLIF(SUM(dau), 0) AS payer_conversion_7d,
-           1 - CAST(SUM(LEAST(crashed_users, dau)) AS DOUBLE) / NULLIF(SUM(dau), 0) AS crash_free_users_7d,
-           1 - CAST(SUM(LEAST(crashed_sessions, sessions)) AS DOUBLE) / NULLIF(SUM(sessions), 0) AS crash_free_sessions_7d,
+           1 - CAST(SUM(LEAST(crashed_users, dau)) FILTER (WHERE crashed_users IS NOT NULL) AS DOUBLE)
+             / NULLIF(SUM(dau) FILTER (WHERE crashed_users IS NOT NULL), 0) AS crash_free_users_7d,
+           1 - CAST(SUM(LEAST(crashed_sessions, sessions)) FILTER (WHERE crashed_sessions IS NOT NULL) AS DOUBLE)
+             / NULLIF(SUM(sessions) FILTER (WHERE crashed_sessions IS NOT NULL), 0) AS crash_free_sessions_7d,
            CAST(SUM(sessions) AS DOUBLE) / NULLIF(SUM(dau), 0) AS sessions_per_dau_7d
     FROM w WHERE date > last_date - 7 AND date <= last_date GROUP BY 1
 ),

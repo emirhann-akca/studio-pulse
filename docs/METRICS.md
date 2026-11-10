@@ -151,8 +151,8 @@ mean of daily rates, not the console's distinct-user count over 7 days.
 
 | Metric | Formula | Model / column |
 |---|---|---|
-| Crashed users | Crashlytics export: distinct `installation_uuid` with an `is_fatal` event that day (`event_timestamp` converted to the app's time zone); without the export: GA4 users with `app_exception` and `fatal = 1` | `fct_app_daily.crashed_users` |
-| Crash-free users | 1 - min(crashed users, DAU) / DAU | `fct_app_daily.crash_free_users` |
+| Crashed users | Per platform, then summed. Where the platform's Crashlytics export is connected: distinct `installation_uuid` with an `is_fatal` event that day (`event_timestamp` converted to the app's time zone); otherwise GA4 users with `app_exception` and `fatal = 1`. `crash_basis` says which (`crashlytics`, `ga4_app_exception` or both) | `fct_app_daily.crashed_users` |
+| Crash-free users | 1 - min(crashed users, DAU) / DAU; unknown (not 100%) when no crash source covers the day | `fct_app_daily.crash_free_users` |
 | Crash-free sessions | 1 - min(fatal crash events, sessions) / sessions (Crashlytics); 1 - sessions with a fatal `app_exception` / sessions (GA4) | `fct_app_daily.crash_free_sessions` |
 | 7-day crash-free users | 1 - sum(min(crashed users, DAU)) / sum(DAU) over 7 days | `fct_app_summary.crash_free_users_7d` |
 

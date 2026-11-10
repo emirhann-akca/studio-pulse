@@ -31,7 +31,7 @@ for three fictional apps, built by `pulse demo`.
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.
-- 91 tests, ruff, CI on Python 3.11 and 3.13.
+- 93 tests, ruff, CI on Python 3.11 and 3.13.
 
 ## Quickstart
 
@@ -193,7 +193,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e .[dev]
 ruff check . && ruff format --check .
-pytest                      # 91 tests, ~7 s
+pytest                      # 93 tests, ~7 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 
