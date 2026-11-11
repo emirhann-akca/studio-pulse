@@ -7,8 +7,10 @@ changed table instead of going unnoticed.
 To be comparable the export is canonical:
 - columns in table order, minus load timestamps (`loaded_at` columns record
   when the pipeline ran, not what it computed);
-- floats written with 12 significant digits, so a last-bit difference from a
-  parallel sum does not count, while any real difference does;
+- floats written with 12 significant digits (after snapping to 15, so that
+  last-bit noise cannot flip a value that sits exactly on a rounding tie),
+  so a last-bit difference from a parallel sum does not count, while any
+  real difference does;
 - rows formatted first and then sorted as text, so ties and float noise cannot
   reorder them; LF line endings, UTF-8.
 """
@@ -38,7 +40,10 @@ def _cell(v: Any) -> str:
             return "nan"
         if math.isinf(v):
             return "inf" if v > 0 else "-inf"
-        s = f"{v:.12g}"
+        # Snap to 15 significant digits first: a parallel sum can differ in the last
+        # bit, and for a value that sits exactly on a 12-digit rounding tie (an exact
+        # binary fraction such as 1.499797421875) that bit decided the direction.
+        s = f"{float(f'{v:.15g}'):.12g}"
         return "0" if s == "-0" else s
     if isinstance(v, decimal.Decimal):
         return _cell(float(v))

@@ -14,11 +14,11 @@ checks:
     type: freshness
     description: Every configured source has data no older than 3 days before the as-of date.
     max_lag_days: 3
-    overrides: {play_console: 4}   # Play statistics CSVs land ~2 days late
     # Rows exist only when something happens (a crash, a purchase, a sale), so a
     # quiet week is not a stale source: these are judged by the last successful
     # load instead of the newest data date.
-    sparse: [crashlytics_bigquery, crashlytics_files, revenuecat, app_store]
+    overrides: {play_console: 4, android_vitals: 4}   # Play statistics and vitals land ~2 days late
+    sparse: [crashlytics_bigquery, crashlytics_files, revenuecat, app_store, play_reviews, app_store_reviews, ua_csv]
 
   # -- keys: a loader must never duplicate rows; models must have one row per key
   - {name: raw_active_users_unique, type: unique, table: raw_ga4_active_users, columns: [app_id, _source, platform, date]}
@@ -38,6 +38,15 @@ checks:
   - {name: retention_unique, type: unique, table: fct_retention, columns: [app_id, cohort_date, day_n]}
   - {name: perf_daily_unique, type: unique, table: fct_perf_daily, columns: [app_id, date, device_tier]}
   - {name: store_daily_unique, type: unique, table: stg_store_daily, columns: [app_id, store, date]}
+  - name: ua_spend_unique
+    type: unique
+    table: raw_ua_spend
+    columns: [app_id, network, date, campaign_id, campaign_name, ad_id, ad_name, country, platform]
+    description: One row per network, day, campaign, ad, country and platform, across sources (two overlapping CSV exports would double the spend).
+  - {name: ua_cohort_roas_unique, type: unique, table: fct_ua_cohort_roas, columns: [app_id, network, campaign_key, cohort_date]}
+  - {name: store_reviews_unique, type: unique, table: stg_store_reviews, columns: [app_id, store, review_id]}
+  - {name: android_vitals_unique, type: unique, table: fct_android_vitals_daily, columns: [app_id, date]}
+  - {name: experiment_arms_unique, type: unique, table: raw_experiment_arms, columns: [app_id, experiment_id, variant]}
 
   # -- not null
   - {name: app_daily_keys_not_null, type: not_null, table: fct_app_daily, columns: [app_id, date]}
@@ -51,6 +60,8 @@ checks:
   - {name: load_kind_values, type: accepted_values, table: raw_load_times, column: kind, values: [cold_start, scene_load]}
   - {name: level_action_values, type: accepted_values, table: raw_level_daily, column: action, values: [start, complete, fail]}
   - {name: store_values, type: accepted_values, table: raw_store_installs, column: store, values: [google_play, app_store]}
+  - {name: review_store_values, type: accepted_values, table: raw_store_reviews, column: store, values: [google_play, app_store]}
+  - {name: ua_platform_values, type: accepted_values, table: raw_ua_spend, column: platform, values: [ANDROID, IOS]}
 
   # -- referential: every row belongs to an app in the config
   - {name: app_daily_app_known, type: relationship, table: fct_app_daily, column: app_id, to: meta_apps.app_id, severity: warn}
@@ -63,6 +74,24 @@ checks:
   - {name: crash_free_sessions_between_0_and_1, type: range, table: fct_app_daily, column: crash_free_sessions, min: 0, max: 1}
   - {name: payer_conversion_between_0_and_1, type: range, table: fct_app_daily, column: payer_conversion, min: 0, max: 1}
   - {name: revenue_not_negative, type: range, table: fct_app_daily, column: revenue_usd, min: 0, severity: warn}
+  - {name: review_rating_1_to_5, type: range, table: raw_store_reviews, column: rating, min: 1, max: 5}
+  - {name: ua_spend_not_negative, type: range, table: raw_ua_spend, column: spend, min: 0}
+  - name: ua_spend_converted
+    type: expression
+    table: stg_ua_spend
+    description: Every spend in a foreign currency has an FX rate (fx_rates in the config); otherwise USD totals would silently drop it.
+    condition: "spend IS NULL OR spend = 0 OR spend_usd IS NOT NULL"
+  - name: ua_installs_within_impressions
+    type: expression
+    table: raw_ua_spend
+    severity: warn
+    description: A network cannot report more installs than impressions for an ad and day.
+    condition: "network_installs IS NULL OR impressions IS NULL OR impressions = 0 OR network_installs <= impressions"
+  - name: experiment_sample_ratio
+    type: sql
+    severity: warn
+    description: Experiments whose user split differs from the configured split (chi-square p < 0.001); their results are not trustworthy.
+    sql: SELECT DISTINCT app_id, experiment_id, srm_chi2, srm_p FROM fct_experiment_arms WHERE srm_flagged
   - name: dau_le_wau_le_mau
     type: expression
     table: fct_app_daily

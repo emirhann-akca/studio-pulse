@@ -1,0 +1,14 @@
+{
+ "requests": [
+  {
+   "method": "POST",
+   "path": "/v1beta1/apps/com.example.game/anrRateMetricSet:query",
+   "file": "anr.json"
+  },
+  {
+   "method": "POST",
+   "path": "/v1beta1/apps/com.example.game/crashRateMetricSet:query",
+   "file": "crash.json"
+  }
+ ]
+}

@@ -7,6 +7,12 @@ its parameters:
   drop_vs_baseline       latest value at least threshold_pct % below the mean of
                          the previous baseline_days points
   rise_vs_baseline       latest value at least threshold_pct % above that mean
+  forecast_band          latest value outside the `level` % prediction interval of a
+                         forecast with weekly seasonality, fitted on the previous
+                         history_days (default 56) points; direction drop | rise |
+                         both; engine auto | seasonal | statsforecast (see
+                         stats/forecast.py); never fires on, nor learns from,
+                         the listed holidays
 
 Optional per rule: where (dimension filter, e.g. {device_tier: low}),
 min_sample (skip points backed by fewer users/windows/samples), apps (limit to
@@ -120,9 +126,45 @@ METRICS: dict[str, MetricSpec] = {
         "SELECT app_id, date, p50_ms AS value, samples AS sample FROM fct_load_daily WHERE kind = 'scene_load'",
         "ms",
     ),
+    "ua_spend_usd": MetricSpec(
+        "SELECT app_id, date, SUM(spend_usd) AS value, SUM(network_installs) AS sample "
+        "FROM fct_ua_daily GROUP BY 1, 2",
+        "usd",
+        description="Ad-network spend per day, all networks",
+    ),
+    "ua_cpi_usd": MetricSpec(
+        "SELECT app_id, date, SUM(spend_usd) / NULLIF(SUM(network_installs), 0) AS value, "
+        "SUM(network_installs) AS sample FROM fct_ua_daily GROUP BY 1, 2",
+        "usd",
+        description="Spend / network-reported installs per day, all networks",
+    ),
+    "review_rating": MetricSpec(
+        "SELECT app_id, date, avg_rating AS value, reviews AS sample FROM fct_review_daily "
+        "WHERE store = 'all'",
+        "ratio",
+        description="Mean star rating of the reviews written that day (both stores)",
+    ),
+    "low_star_share": MetricSpec(
+        "SELECT app_id, date, low_star_share AS value, reviews AS sample FROM fct_review_daily "
+        "WHERE store = 'all'",
+        "pct",
+        description="Share of that day's reviews with 1 or 2 stars",
+    ),
+    "anr_rate": MetricSpec(
+        "SELECT app_id, date, user_perceived_anr_rate AS value, distinct_users AS sample "
+        "FROM fct_android_vitals_daily",
+        "pct",
+        description="Play vitals: user-perceived ANR rate (daily)",
+    ),
+    "vitals_crash_rate": MetricSpec(
+        "SELECT app_id, date, user_perceived_crash_rate AS value, distinct_users AS sample "
+        "FROM fct_android_vitals_daily",
+        "pct",
+        description="Play vitals: user-perceived crash rate (daily)",
+    ),
 }
 
-CONDITIONS = ("above", "below", "drop_vs_baseline", "rise_vs_baseline")
+CONDITIONS = ("above", "below", "drop_vs_baseline", "rise_vs_baseline", "forecast_band")
 
 
 class RuleError(ValueError):
@@ -145,6 +187,13 @@ class Rule:
     apps: list[str] = field(default_factory=list)
     severity: str = "warning"
     description: str = ""
+    # forecast_band (level None: the engine's default, stats/forecast.py DEFAULT_LEVEL)
+    level: float | None = None
+    history_days: int = 56
+    min_history: int = 28
+    direction: str = "both"
+    engine: str = "auto"
+    holidays: list[Any] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, d: dict[str, Any], defaults: dict[str, Any]) -> Rule:
@@ -164,6 +213,25 @@ class Rule:
             raise RuleError(f"rule {r.name!r}: needs threshold")
         if r.condition.endswith("_vs_baseline") and r.threshold_pct is None:
             raise RuleError(f"rule {r.name!r}: needs threshold_pct")
+        if r.condition == "forecast_band":
+            from .stats.forecast import ENGINES
+
+            if r.evaluate_days != 1:
+                raise RuleError(
+                    f"rule {r.name!r}: forecast_band evaluates one day (evaluate_days: 1)"
+                )
+            if r.direction not in ("both", "drop", "rise"):
+                raise RuleError(f"rule {r.name!r}: direction must be both, drop or rise")
+            if r.engine not in ENGINES:
+                raise RuleError(f"rule {r.name!r}: engine must be one of {', '.join(ENGINES)}")
+            if r.level is not None and not 50 <= float(r.level) < 100:
+                raise RuleError(f"rule {r.name!r}: level is a percentage in [50, 100)")
+        try:
+            r.holidays = sorted(
+                h if isinstance(h, dt.date) else dt.date.fromisoformat(str(h)) for h in r.holidays
+            )
+        except ValueError as exc:
+            raise RuleError(f"rule {r.name!r}: holidays must be dates (YYYY-MM-DD)") from exc
         if r.severity not in ("warning", "critical"):
             raise RuleError(f"rule {r.name!r}: severity must be warning or critical")
         if r.min_z is not None and METRICS[r.metric].unit != "pct":
@@ -263,7 +331,34 @@ def evaluate(con: duckdb.DuckDBPyConnection, rules: list[Rule]) -> list[Alert]:
             day = latest[-1][0]
             first_eval_day = latest[0][0]
             baseline = None
-            if rule.condition in ("above", "below"):
+            if rule.condition == "forecast_band":
+                from .stats import forecast
+
+                holidays = set(rule.holidays)
+                if day in holidays:
+                    continue
+                lo_day = day - dt.timedelta(days=rule.history_days)
+                hist = [(p[0], p[1]) for p in pts[:-1] if lo_day <= p[0] < day]
+                b = forecast.band(
+                    hist,
+                    day,
+                    level=rule.level,
+                    engine=rule.engine,
+                    holidays=holidays,
+                    min_points=rule.min_history,
+                )
+                if b is None:
+                    continue
+                hit = forecast.outside(value, b, rule.direction)
+                baseline = b.center
+                thr = b.low if value < b.center else b.high
+                lvl = rule.level or forecast.DEFAULT_LEVEL[b.engine]
+                msg = (
+                    f"{rule.metric} {_fmt(value, unit)} is outside the {float(lvl):g}% "
+                    f"forecast band [{_fmt(b.low, unit)}, {_fmt(b.high, unit)}] (expected "
+                    f"{_fmt(b.center, unit)}, weekly seasonality, {b.engine})"
+                )
+            elif rule.condition in ("above", "below"):
                 hit = (
                     value > rule.threshold if rule.condition == "above" else value < rule.threshold
                 )

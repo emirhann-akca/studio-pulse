@@ -48,6 +48,7 @@ import yaml
 
 from .. import events as E
 from .export_files import flat_table, write_crashlytics_parquet, write_ga4_parquet
+from .reviews import generate as generate_reviews
 from .ua import UASim
 
 DEMO_END = dt.date(2026, 10, 31)
@@ -919,6 +920,7 @@ class Generator:
                 )
             sources["unity_jsonl"] = {"path": f"unity/{a.id}", "app": a.package}
         sources.update(self.ua.write(out))
+        sources.update(generate_reviews(self, out))
         return sources
 
     def _write_revenuecat(self, root: Path) -> None:

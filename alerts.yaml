@@ -1,6 +1,7 @@
 # Alert rules evaluated by `pulse alerts` (and shown on the dashboard).
 # Metrics are listed in src/studio_pulse/alerts.py (METRICS); formulas are in
-# docs/METRICS.md. Conditions: above | below | drop_vs_baseline | rise_vs_baseline.
+# docs/METRICS.md. Conditions: above | below | drop_vs_baseline | rise_vs_baseline |
+# forecast_band (weekly seasonality, see src/studio_pulse/stats/forecast.py).
 
 defaults:
   severity: warning
@@ -62,3 +63,36 @@ rules:
     condition: above
     threshold: 5000
     min_sample: 20
+
+  - name: new_users_forecast
+    description: New users below the expected band for that weekday (trend + weekly seasonality); holidays never alert.
+    metric: new_users
+    condition: forecast_band
+    direction: drop
+    history_days: 56
+    min_sample: 50
+    holidays: [2026-12-25, 2027-01-01]
+
+  - name: ua_cpi_rise
+    description: Blended network CPI (3-day average) 40% above its trailing 14-day mean.
+    metric: ua_cpi_usd
+    condition: rise_vs_baseline
+    evaluate_days: 3
+    baseline_days: 14
+    threshold_pct: 40
+    min_sample: 30          # network-reported installs that day
+
+  - name: low_star_reviews_high
+    description: More than 40% of the week's new reviews have 1 or 2 stars.
+    metric: low_star_share
+    condition: above
+    threshold: 0.4
+    evaluate_days: 7
+    min_sample: 1
+
+  - name: play_crash_rate_bad
+    description: Android vitals user-perceived crash rate above Play's bad-behaviour threshold (1.09%).
+    metric: vitals_crash_rate
+    condition: above
+    threshold: 0.0109
+    min_sample: 100         # distinct users that day

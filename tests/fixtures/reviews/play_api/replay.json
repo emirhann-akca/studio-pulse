@@ -1,0 +1,17 @@
+{
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/androidpublisher/v3/applications/com.example.game/reviews",
+   "file": "page1.json"
+  },
+  {
+   "method": "GET",
+   "path": "/androidpublisher/v3/applications/com.example.game/reviews",
+   "query": {
+    "token": "t2"
+   },
+   "file": "page2.json"
+  }
+ ]
+}

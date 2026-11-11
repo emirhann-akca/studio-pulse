@@ -1,0 +1,54 @@
+{
+ "reviews": [
+  {
+   "reviewId": "gp:AAA2",
+   "authorName": "Private Person",
+   "comments": [
+    {
+     "userComment": {
+      "text": "\tStill crashing but better",
+      "lastModified": {
+       "seconds": "1791104400",
+       "nanos": 0
+      },
+      "starRating": 2,
+      "reviewerLanguage": "en",
+      "device": "Redmi 12C",
+      "appVersionName": "1.3.0"
+     }
+    },
+    {
+     "developerComment": {
+      "text": "Thanks",
+      "lastModified": {
+       "seconds": "1791105400",
+       "nanos": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "reviewId": "gp:AAA4",
+   "authorName": "Another Person",
+   "comments": [
+    {
+     "userComment": {
+      "text": "Great\tGreat game, fun levels",
+      "lastModified": {
+       "seconds": "1791108000",
+       "nanos": 0
+      },
+      "starRating": 5,
+      "reviewerLanguage": "en",
+      "device": "Pixel 8",
+      "appVersionName": "1.3.0"
+     }
+    }
+   ]
+  }
+ ],
+ "tokenPagination": {
+  "nextPageToken": "t2"
+ }
+}

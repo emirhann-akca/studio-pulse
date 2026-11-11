@@ -386,9 +386,24 @@ def _dump(path: Path, obj: Any) -> None:
     path.write_text(json.dumps(obj, separators=(",", ":")), encoding="utf-8")
 
 
+def _merge_platforms(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Meta and TikTok country reports have no platform split: sum platforms per row key."""
+    acc: dict[tuple, dict[str, Any]] = {}
+    for x in rows:
+        k = (x["date"], x["campaign_id"], x["ad_id"], x["country"])
+        if k not in acc:
+            acc[k] = {**x, "spend": 0.0, "impressions": 0, "clicks": 0, "installs": 0.0}
+        a = acc[k]
+        a["spend"] = round(a["spend"] + x["spend"], 2)
+        a["impressions"] += x["impressions"]
+        a["clicks"] += x["clicks"]
+        a["installs"] += x["installs"]
+    return [acc[k] for k in sorted(acc)]
+
+
 def _write_meta(d: Path, account: str, rows: list[dict[str, Any]], eur: bool) -> None:
     data = []
-    for x in rows:
+    for x in _merge_platforms(rows):
         spend = round(x["spend"] * EUR_PER_USD, 2) if eur else x["spend"]
         data.append(
             {
@@ -498,7 +513,7 @@ def _write_tiktok(d: Path, advertiser: str, rows: list[dict[str, Any]]) -> None:
                 "app_install": str(int(x["installs"])),
             },
         }
-        for x in rows
+        for x in _merge_platforms(rows)
     ]
     pages = _pages(items, 1000)
     entries = []

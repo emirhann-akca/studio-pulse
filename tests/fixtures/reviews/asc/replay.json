@@ -1,0 +1,17 @@
+{
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/v1/apps/1234567890/customerReviews",
+   "file": "page1.json"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/apps/1234567890/customerReviews",
+   "query": {
+    "cursor": "c2"
+   },
+   "file": "page2.json"
+  }
+ ]
+}

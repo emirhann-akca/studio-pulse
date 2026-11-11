@@ -30,6 +30,9 @@ SOURCE_TYPES = (
     "app_store",
     "unity_jsonl",
     *ua_pkg.SOURCE_TYPES,
+    "play_reviews",
+    "app_store_reviews",
+    "android_vitals",
 )
 
 
@@ -201,6 +204,8 @@ def _ingest_source(
         return "skipped (dry run)"
     if kind in ua_pkg.SOURCE_TYPES:
         return _ingest_ua(con, cfg, app, kind, name, src, start, end, log)
+    if kind in ("play_reviews", "app_store_reviews", "android_vitals"):
+        return _ingest_reviews(con, cfg, app, kind, name, src, start, end, log)
     if kind == "revenuecat":
         path = src["path"]
         if not str(path).startswith("gs://"):
@@ -258,6 +263,60 @@ def _ingest_source(
             log=log,
         )
     raise ConfigError(f"unknown source type {kind!r} (known: {', '.join(SOURCE_TYPES)})")
+
+
+def _ingest_reviews(
+    con: duckdb.DuckDBPyConnection,
+    cfg: Config,
+    app: AppConfig,
+    kind: str,
+    name: str,
+    src: dict[str, Any],
+    start: dt.date,
+    end: dt.date,
+    log: Any,
+) -> Any:
+    from .connectors import reviews
+
+    src = dict(src)
+    if src.get("replay"):
+        src["replay"] = str(cfg.resolve(src["replay"]))
+    if kind == "play_reviews":
+        path = None
+        if src.get("path"):
+            p = str(src["path"])
+            if p.startswith("gs://"):
+                cache = cfg.resolve(src.get("cache_dir", f".pulse-cache/play_reviews/{app.id}"))
+                path = revenuecat.sync_gcs(
+                    p, cache, log=log, suffixes=(".csv",), label="play_reviews"
+                )
+            else:
+                path = cfg.resolve(p)
+        return reviews.ingest_play(
+            con,
+            app_id=app.id,
+            source=name,
+            src=src,
+            path=path,
+            start=start,
+            end=end,
+            timezone=app.timezone,
+            log=log,
+        )
+    if kind == "app_store_reviews":
+        return reviews.ingest_asc(
+            con,
+            app_id=app.id,
+            source=name,
+            src=src,
+            start=start,
+            end=end,
+            timezone=app.timezone,
+            log=log,
+        )
+    return reviews.ingest_vitals(
+        con, app_id=app.id, source=name, src=src, start=start, end=end, log=log
+    )
 
 
 def _ingest_ua(

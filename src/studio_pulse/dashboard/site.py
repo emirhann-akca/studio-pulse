@@ -611,7 +611,29 @@ def app_page(con, cfg, apps, app, alerts, rules, demo, as_of) -> str:
                 zero=False,
             )
         )
+    vit = q(con, "SELECT * FROM fct_android_vitals_daily WHERE app_id = ? ORDER BY date", [aid])
+    if vit:
+        stab.append(
+            line_chart(
+                "Android vitals (Play)",
+                [r["date"] for r in vit],
+                [
+                    Series(
+                        "User-perceived crash rate", [r["user_perceived_crash_rate"] for r in vit]
+                    ),
+                    Series(
+                        "User-perceived ANR rate",
+                        [r["user_perceived_anr_rate"] for r in vit],
+                        slot=2,
+                    ),
+                ],
+                fmt_pct2,
+                "Play Developer Reporting API, daily. Play's bad-behaviour thresholds: crash 1.09%, ANR 0.47%",
+            )
+        )
     parts.append('<h2>Stability</h2><div class="grid2">' + "".join(stab) + "</div>")
+    parts.append(_reviews_html(con, aid))
+    parts.append(_pltv_html(con, aid))
 
     # Performance
     tiers = q(con, "SELECT * FROM fct_perf_by_tier WHERE app_id = ?", [aid])
@@ -822,6 +844,176 @@ def app_page(con, cfg, apps, app, alerts, rules, demo, as_of) -> str:
     parts.append("<h2>Data sources</h2>" + _freshness(con, as_of, aid, names))
     title = f"{app['name']} · {cfg.title}"
     return _page(cfg, title, "\n".join(parts), apps, aid, demo, as_of, "../")
+
+
+def _reviews_html(con: duckdb.DuckDBPyConnection, aid: str) -> str:
+    daily = q(
+        con,
+        "SELECT store, date, reviews, avg_rating FROM fct_review_daily WHERE app_id = ? ORDER BY date",
+        [aid],
+    )
+    if not daily:
+        return ""
+    dates = sorted({r["date"] for r in daily})
+    idx = {d: i for i, d in enumerate(dates)}
+    series = []
+    labels = {"all": "All stores", "google_play": "Google Play", "app_store": "App Store"}
+    for slot, store in enumerate(("all", "google_play", "app_store"), start=1):
+        n = [0.0] * len(dates)
+        tot = [0.0] * len(dates)
+        for r in daily:
+            if r["store"] == store:
+                n[idx[r["date"]]] = r["reviews"]
+                tot[idx[r["date"]]] = r["reviews"] * r["avg_rating"]
+        vals: list[float | None] = []
+        for i in range(len(dates)):  # 7-day review-weighted mean
+            sn, st = sum(n[max(0, i - 6) : i + 1]), sum(tot[max(0, i - 6) : i + 1])
+            vals.append(st / sn if sn else None)
+        if any(v is not None for v in vals):
+            series.append(Series(labels[store], vals, slot=slot, dashed=store != "all"))
+    charts = [
+        line_chart(
+            "Rating of new reviews (7-day mean)",
+            dates,
+            series,
+            fmt_num,
+            "Mean stars of the reviews written in the trailing 7 days (Play CSV + API, App Store Connect)",
+            zero=False,
+        )
+    ]
+    topics = q(
+        con,
+        "SELECT * FROM fct_review_topics WHERE app_id = ? ORDER BY reviews_30d DESC NULLS LAST",
+        [aid],
+    )
+    if topics:
+        charts.append(
+            bar_chart(
+                "What reviews mention (last 30 days vs the 30 before)",
+                [t["label"] for t in topics],
+                [
+                    Series("Last 30 days", [t["share_30d"] for t in topics]),
+                    Series("Prior 30 days", [t["share_prior_30d"] for t in topics], slot=2),
+                ],
+                fmt_pct,
+                "Share of reviews matching each keyword topic (English and Turkish keywords)",
+                x_name="Topic",
+            )
+        )
+    out = '<h2>Store reviews</h2><div class="grid2">' + "".join(charts) + "</div>"
+    ver = q(con, "SELECT * FROM fct_rating_by_version WHERE app_id = ? ORDER BY first_date", [aid])
+    if ver:
+        out += "<h3>Rating by app version</h3>" + data_table(
+            ["Store", "Version", "First review", "Reviews", "Mean rating", "1-2 stars"],
+            [
+                [
+                    r["store"],
+                    str(r["app_version"]),
+                    str(r["first_date"]),
+                    fmt_int(r["reviews"]),
+                    fmt_num(r["avg_rating"]),
+                    fmt_pct(r["low_star_share"]),
+                ]
+                for r in ver
+            ],
+            left_cols=(0, 1, 2),
+        )
+    low = q(
+        con,
+        "SELECT store, date, rating, app_version, title, body FROM stg_store_reviews "
+        "WHERE app_id = ? AND rating <= 2 ORDER BY date DESC, review_id LIMIT 6",
+        [aid],
+    )
+    if low:
+        out += "<h3>Latest 1-2 star reviews</h3>" + data_table(
+            ["Date", "Store", "Stars", "Version", "Review"],
+            [
+                [
+                    str(r["date"]),
+                    r["store"],
+                    str(r["rating"]),
+                    r["app_version"] or "–",
+                    ((r["title"] + ": ") if r["title"] and r["title"] != r["body"] else "")
+                    + (r["body"] or "")[:200],
+                ]
+                for r in low
+            ],
+            left_cols=(0, 1, 3, 4),
+        )
+    return out
+
+
+def _pltv_html(con: duckdb.DuckDBPyConnection, aid: str) -> str:
+    summ = q(con, "SELECT * FROM fct_pltv_summary WHERE app_id = ? ORDER BY horizon_day", [aid])
+    if not summ:
+        return ""
+    s0 = summ[0]
+    mape = s0["mape_log"] if s0["model"] == "log" else s0["mape_power"]
+    tiles = [
+        tile(
+            f"Predicted D{r['horizon_day']} ARPU",
+            fmt_usd(r["predicted_arpu_usd"]),
+            f"{fmt_usd(r['low_usd'])} – {fmt_usd(r['high_usd'])}",
+            None,
+            "Model prediction with its interval (not observed data)",
+        )
+        for r in summ
+        if r["horizon_day"] in (30, 90, 180)
+    ]
+    tiles.append(
+        tile(
+            "Backtest error (D30 from D7)",
+            fmt_pct(mape, 1),
+            f"{s0['backtest_groups']} weekly cohort groups",
+            None,
+            "Mean absolute percentage error of past predictions",
+        )
+    )
+    curve = q(con, "SELECT * FROM fct_pltv_curve WHERE app_id = ? ORDER BY day_n", [aid])
+    chart = line_chart(
+        "Predicted LTV curve (model)",
+        [f"D{r['day_n']}" for r in curve],
+        [
+            Series("Observed (recent cohorts)", [r["observed_arpu_usd"] for r in curve]),
+            Series(
+                "Predicted",
+                [r["predicted_arpu_usd"] if r["day_n"] > 7 else None for r in curve],
+                slot=2,
+            ),
+            Series(
+                "Low",
+                [r["low_usd"] if r["day_n"] > 7 else None for r in curve],
+                slot=2,
+                dashed=True,
+            ),
+            Series(
+                "High",
+                [r["high_usd"] if r["day_n"] > 7 else None for r in curve],
+                slot=2,
+                dashed=True,
+            ),
+        ],
+        fmt_usd,
+        f"{s0['model']} curve fitted on days 0-7 of the latest {s0['recent_cohorts']} cohorts, "
+        "calibrated on older cohorts; dashed: interval from the backtest",
+        x_fmt=str,
+        x_name="Day",
+    )
+    reliable = (
+        ""
+        if (mape or 0) <= 0.25
+        else (
+            f" Its backtest error is {fmt_pct(mape, 0)}: treat these numbers as rough for this app."
+        )
+    )
+    return (
+        "<h2>Predicted LTV (model)</h2>"
+        '<p class="note">A model, not data: cumulative ARPU fitted on the first 7 days and '
+        "extrapolated, scored by predicting older cohorts' D30 (docs/METRICS.md)."
+        + escape(reliable)
+        + "</p>"
+        + f'<div class="tiles">{"".join(tiles)}</div><div class="grid2">{chart}</div>'
+    )
 
 
 def _write(path: Path, text: str) -> None:

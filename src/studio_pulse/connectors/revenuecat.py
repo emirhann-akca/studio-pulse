@@ -98,8 +98,16 @@ def discover_files(root: Path) -> list[Path]:
     )
 
 
-def sync_gcs(uri: str, cache_dir: Path, client: Any = None, log: Any = print) -> Path:
+def sync_gcs(
+    uri: str,
+    cache_dir: Path,
+    client: Any = None,
+    log: Any = print,
+    suffixes: tuple[str, ...] | None = None,
+    label: str = "revenuecat",
+) -> Path:
     """Download new export files from gs://bucket/prefix into cache_dir (read-only on GCS)."""
+    suffixes = suffixes or _SUFFIXES
     m = re.match(r"^gs://([^/]+)/?(.*)$", uri)
     if not m:
         raise ValueError(f"not a gs:// uri: {uri}")
@@ -112,20 +120,20 @@ def sync_gcs(uri: str, cache_dir: Path, client: Any = None, log: Any = print) ->
     root = cache_dir.resolve()
     fetched = 0
     for blob in client.list_blobs(bucket, prefix=prefix or None):
-        if not blob.name.endswith(_SUFFIXES):
+        if not blob.name.endswith(suffixes):
             continue
         rel = blob.name[len(prefix) :].lstrip("/") if prefix else blob.name
         target = (root / rel).resolve()
         # Object names are arbitrary strings: "../" must not write outside the cache.
         if not target.is_relative_to(root):
-            log(f"    revenuecat: skipped object outside the export prefix: {blob.name!r}")
+            log(f"    {label}: skipped object outside the export prefix: {blob.name!r}")
             continue
         if target.exists() and blob.size is not None and target.stat().st_size == blob.size:
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
         blob.download_to_filename(str(target))
         fetched += 1
-    log(f"    revenuecat: {fetched} new file(s) downloaded")
+    log(f"    {label}: {fetched} new file(s) downloaded")
     return cache_dir
 
 

@@ -1,0 +1,32 @@
+{
+ "data": [
+  {
+   "type": "customerReviews",
+   "id": "rev-1",
+   "attributes": {
+    "rating": 5,
+    "title": "Great",
+    "body": "Best puzzle game",
+    "reviewerNickname": "nick1",
+    "createdDate": "2026-10-09T23:30:00-07:00",
+    "territory": "USA"
+   }
+  },
+  {
+   "type": "customerReviews",
+   "id": "rev-2",
+   "attributes": {
+    "rating": 2,
+    "title": "Laggy",
+    "body": "Slow loading and lag",
+    "reviewerNickname": "nick2",
+    "createdDate": "2026-10-05T10:00:00-07:00",
+    "territory": "DEU"
+   }
+  }
+ ],
+ "links": {
+  "self": "x",
+  "next": "https://api.appstoreconnect.apple.com/v1/apps/1234567890/customerReviews?cursor=c2"
+ }
+}

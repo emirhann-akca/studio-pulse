@@ -155,6 +155,12 @@ def test_fingerprint_formatting_is_canonical():
     assert c(float("nan")) == "nan" and c(float("-inf")) == "-inf"
     assert c(dt.date(2026, 10, 1)) == "2026-10-01"
     assert c('a,"b"') == '"a,""b"""'
+    # A value exactly on a 12-digit rounding tie: the last-bit noise of a parallel sum
+    # (seen as 1.49979742188 on macOS vs ...87 on Windows) must not change the text.
+    import math
+
+    tie = 1.499797421875
+    assert {c(tie), c(math.nextafter(tie, 2)), c(math.nextafter(tie, 0))} == {"1.49979742188"}
 
 
 def test_fingerprint_ignores_load_times_but_sees_values(demo_build, tmp_path):

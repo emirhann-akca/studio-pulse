@@ -98,7 +98,10 @@ include = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
-markers = ["slow: builds a demo warehouse"]
+markers = [
+  "slow: builds a demo warehouse",
+  "forecast: needs the optional statsforecast extra (skipped without it)",
+]
 
 [tool.ruff]
 line-length = 100

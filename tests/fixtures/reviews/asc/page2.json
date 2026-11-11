@@ -1,0 +1,32 @@
+{
+ "data": [
+  {
+   "type": "customerReviews",
+   "id": "rev-3",
+   "attributes": {
+    "rating": 4,
+    "title": "Nice",
+    "body": "Fun",
+    "reviewerNickname": "nick3",
+    "createdDate": "2026-10-01T08:00:00-07:00",
+    "territory": "TUR"
+   }
+  },
+  {
+   "type": "customerReviews",
+   "id": "rev-4",
+   "attributes": {
+    "rating": 1,
+    "title": "Old",
+    "body": "Before the window",
+    "reviewerNickname": "nick4",
+    "createdDate": "2026-09-20T08:00:00-07:00",
+    "territory": "USA"
+   }
+  }
+ ],
+ "links": {
+  "self": "x",
+  "next": "https://api.appstoreconnect.apple.com/v1/apps/1234567890/customerReviews?cursor=c3"
+ }
+}
