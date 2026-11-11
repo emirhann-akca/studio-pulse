@@ -204,6 +204,8 @@ def check_config(path: str | None) -> list[Result]:
         status, detail = adc_status()
         out.append(Result("google credentials", "info", f"not needed by this config ({detail})"))
 
+    out += check_api_sources(cfg)
+
     from .runstate import read_heartbeat
 
     hb = read_heartbeat(cfg.state_dir)
@@ -216,6 +218,55 @@ def check_config(path: str | None) -> list[Result]:
         out.append(Result("last refresh", "warn" if bad else "ok", detail))
     else:
         out.append(Result("last refresh", "info", "no refresh recorded yet"))
+    return out
+
+
+# Environment variables each API source needs (any one of a tuple suffices); only
+# whether they are set is reported, never their values.
+API_CREDENTIALS = {
+    "meta_ads": (("PULSE_META_ACCESS_TOKEN",), "ua", "dlt"),
+    "tiktok_ads": (("PULSE_TIKTOK_ACCESS_TOKEN",), "ua", "dlt"),
+    "google_ads": (("PULSE_GOOGLE_ADS_ACCESS_TOKEN", "@adc"), "ua", "dlt"),
+    "play_reviews": (("PULSE_PLAY_ACCESS_TOKEN", "@adc"), None, None),
+    "android_vitals": (("PULSE_PLAY_ACCESS_TOKEN", "@adc"), None, None),
+    "app_store_reviews": (("PULSE_ASC_TOKEN", "PULSE_ASC_KEY_ID"), "stores", "jwt"),
+}
+
+
+def check_api_sources(cfg) -> list[Result]:
+    import importlib.util
+
+    out = []
+    for app in cfg.apps:
+        for key, src in app.sources.items():
+            src = src or {}
+            kind = key.split("@", 1)[0]
+            if kind not in API_CREDENTIALS or src.get("enabled", True) is False:
+                continue
+            name = f"{app.id}.{key}"
+            if src.get("replay"):
+                out.append(Result(name, "info", "replays recorded responses (no credential used)"))
+                continue
+            envs, extra, module = API_CREDENTIALS[kind]
+            if src.get("token_env"):
+                envs = (str(src["token_env"]),)
+            if module and importlib.util.find_spec(module) is None:
+                needs_module = not (
+                    kind == "app_store_reviews" and os.environ.get("PULSE_ASC_TOKEN")
+                )
+                if needs_module:
+                    out.append(
+                        Result(name, "fail", f"install studio-pulse[{extra}] ({module} is missing)")
+                    )
+                    continue
+            found = [e for e in envs if e != "@adc" and os.environ.get(e)]
+            if not found and "@adc" in envs and adc_status()[0] == "present":
+                found = ["Application Default Credentials"]
+            if found:
+                out.append(Result(name, "ok", f"credential present: {found[0]}"))
+            else:
+                want = " or ".join(e if e != "@adc" else "ADC" for e in envs)
+                out.append(Result(name, "fail", f"no credential: set {want}"))
     return out
 
 

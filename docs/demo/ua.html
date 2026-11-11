@@ -1,0 +1,1463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UA · Studio Pulse demo</title>
+<meta name="description" content="Studio Pulse demo - app portfolio metrics">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6e69;
+  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10); --hover: rgba(42,120,214,0.08);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --good: #0ca30c; --good-ink: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  --banner-bg: #fff4d6; --banner-ink: #5a4100; --banner-border: #eda100;
+  --link: #1c5cab;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
+    --link: #86b6ef;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
+  --link: #86b6ef;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--link); }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 48px; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 16px 0 8px; }
+header.top h1 { font-size: 20px; margin: 0; font-weight: 650; }
+header.top .meta { color: var(--ink-2); font-size: 13px; }
+header.top .spacer { flex: 1; }
+nav.apps { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+nav.apps a { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--ring); text-decoration: none; color: var(--ink); background: var(--surface); font-size: 13px; }
+nav.apps a[aria-current="page"] { border-color: var(--s1); box-shadow: inset 0 0 0 1px var(--s1); }
+button.theme { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--ring); background: var(--surface); color: var(--ink); cursor: pointer; }
+.banner { margin: 8px 0 16px; padding: 10px 14px; border-radius: 8px; background: var(--banner-bg); color: var(--banner-ink); border: 1px solid var(--banner-border); font-weight: 600; }
+.banner span { font-weight: 400; }
+h2 { font-size: 16px; margin: 28px 0 10px; font-weight: 650; }
+.note { color: var(--ink-2); font-size: 13px; margin: -4px 0 12px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.tile .label { color: var(--ink-2); font-size: 12px; }
+.tile .value { font-size: 22px; font-weight: 650; margin-top: 2px; }
+.tile .delta { font-size: 12px; color: var(--ink-2); }
+.tile .delta.good { color: var(--good-ink); }
+.tile .delta.bad { color: var(--critical); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 12px; }
+figure.chart { margin: 0; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 12px 12px 8px; min-width: 0; }
+figure.chart figcaption h3 { font-size: 14px; margin: 0; font-weight: 600; }
+figure.chart figcaption p { margin: 2px 0 0; color: var(--ink-2); font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 4px; font-size: 12px; color: var(--ink-2); }
+.legend .key { display: inline-flex; align-items: center; gap: 6px; }
+.legend .sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.legend .sw.box { height: 10px; width: 10px; border-radius: 3px; }
+.legend .ramp { display: inline-block; width: 72px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, color-mix(in oklab, var(--s1) 8%, var(--surface)), var(--s1)); }
+.plot { display: grid; grid-template-columns: 52px minmax(0, 1fr) var(--endw, 0px); grid-template-rows: var(--h, 200px) 22px; margin-top: 6px; }
+.yaxis { position: relative; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.yaxis span { position: absolute; right: 6px; transform: translateY(50%); white-space: nowrap; }
+.area { position: relative; border-bottom: 1px solid var(--axis); }
+.area svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.xaxis { grid-column: 2; position: relative; font-size: 11px; color: var(--muted); }
+.xaxis span { position: absolute; top: 4px; transform: translateX(-50%); white-space: nowrap; }
+.xaxis span.first { transform: none; }
+.xaxis span.last { transform: translateX(-100%); }
+.endlabels { position: relative; min-width: 0; font-size: 11px; color: var(--ink-2); }
+.endlabels span { position: absolute; left: 6px; transform: translateY(-50%); white-space: nowrap; }
+.grid line { stroke: var(--grid); stroke-width: 1px; }
+.ln { fill: none; stroke-width: 2px; stroke-linejoin: round; stroke-linecap: round; }
+.ln.dashed { stroke-dasharray: 5 4; }
+.dot { stroke-width: 8px; stroke-linecap: round; }
+.dotring { stroke: var(--surface); stroke-width: 12px; stroke-linecap: round; }
+.hits rect { fill: transparent; }
+.hits rect:hover, .hits rect:focus { fill: var(--hover); outline: none; }
+.c1 { stroke: var(--s1); } .c2 { stroke: var(--s2); } .c3 { stroke: var(--s3); } .c4 { stroke: var(--s4); }
+.c5 { stroke: var(--s5); } .c6 { stroke: var(--s6); } .c7 { stroke: var(--s7); } .c8 { stroke: var(--s8); }
+.b1 { background: var(--s1); } .b2 { background: var(--s2); } .b3 { background: var(--s3); } .b4 { background: var(--s4); }
+.b5 { background: var(--s5); } .b6 { background: var(--s6); } .b7 { background: var(--s7); } .b8 { background: var(--s8); }
+.bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; padding: 0 2px; }
+.bars .cat { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+.bars .cat:hover, .bars .cat:focus { background: var(--hover); outline: none; }
+.bars .bar { width: min(24px, 100%); border-radius: 4px 4px 0 0; min-height: 1px; flex: 0 1 24px; }
+.xaxis.cats span { transform: translateX(-50%); }
+.bench { display: grid; grid-template-columns: 34px minmax(0, 1fr) 104px; align-items: center; gap: 10px; margin: 16px 0 24px; }
+.bench .bl { font-weight: 600; font-size: 13px; }
+.bench .track { position: relative; height: 14px; border-radius: 4px; }
+.bench .zone { position: absolute; top: 0; bottom: 0; background: color-mix(in oklab, var(--s1) 6%, var(--surface)); }
+.bench .zone.z1 { background: color-mix(in oklab, var(--s1) 16%, var(--surface)); }
+.bench .zone.z2 { background: color-mix(in oklab, var(--s1) 28%, var(--surface)); }
+.bench .zone.z3 { background: color-mix(in oklab, var(--s1) 42%, var(--surface)); }
+.bench .zone:first-child { border-radius: 4px 0 0 4px; }
+.bench .zone:last-of-type { border-radius: 0 4px 4px 0; }
+.bench .cut { position: absolute; top: -3px; bottom: -3px; }
+.bench .cut i { position: absolute; left: -1px; top: 0; bottom: 0; width: 2px; background: var(--axis); }
+.bench .cut b { position: absolute; top: 21px; transform: translateX(-50%); font-size: 10px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+.bench .mark { position: absolute; top: -5px; width: 4px; height: 24px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
+.bench .bv { font-variant-numeric: tabular-nums; font-weight: 600; }
+.bench .bv em { display: block; font-style: normal; font-weight: 400; font-size: 12px; color: var(--ink-2); }
+details.data { margin-top: 6px; }
+details.data summary { cursor: pointer; color: var(--ink-2); font-size: 12px; }
+.tbl-wrap { overflow-x: auto; max-height: 320px; overflow-y: auto; margin-top: 6px; }
+table { border-collapse: collapse; font-size: 12px; width: 100%; }
+th, td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; font-variant-numeric: tabular-nums; }
+th.l, td.l { text-align: left; }
+th { color: var(--ink-2); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+.heat td { text-align: center; min-width: 44px; padding: 4px 6px; }
+.heat td.na { color: var(--muted); }
+.alerts { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.alerts li { background: var(--surface); border: 1px solid var(--ring); border-left: 4px solid var(--warning); border-radius: 8px; padding: 8px 12px; }
+.alerts li.critical { border-left-color: var(--critical); }
+.alerts .sev { font-weight: 650; margin-right: 6px; }
+.alerts .ok { border-left-color: var(--good); }
+.status { display: inline-flex; align-items: center; gap: 4px; }
+.status i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.status.fresh i { background: var(--good); } .status.stale i { background: var(--warning); } .status.old i { background: var(--critical); }
+#tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 12px; padding: 6px 8px; border-radius: 6px; max-width: 280px; white-space: pre-line; display: none; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
+@media (max-width: 520px) {
+  .plot { grid-template-columns: 44px minmax(0, 1fr) 0px; }
+  .tile .value { font-size: 19px; }
+  .endlabels { display: none; }
+}
+@media print { button.theme, #tip { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <h1>UA · Studio Pulse demo</h1>
+  <span class="meta">Data as of 2026-11-01 · studio-pulse 0.2.0</span>
+  <span class="spacer"></span>
+  <button class="theme" type="button">Dark mode</button>
+</header>
+<div class="banner" role="note">Synthetic demo data. <span>Every number on this site was generated by <code>pulse demo</code> for three fictional apps. It does not describe any real product, studio or player.</span></div>
+<nav class="apps" aria-label="Apps"><a href="index.html">Portfolio</a><a href="ua.html" aria-current="page">UA</a><a href="experiments.html">Experiments</a><a href="apps/mossy_match.html">Mossy Match</a><a href="apps/pacer_pal.html">Pacer Pal</a><a href="apps/quartz_merge.html">Quartz Merge</a></nav>
+<main>
+<p class="note">Spend, installs and impressions are what each network reports. ROAS uses one of two bases, set per network in the config: <strong>GA4 first touch</strong> (users whose GA4 first-touch campaign is the network's campaign, and their GA4 purchase and ad revenue) or <strong>network installs x cohort ARPU</strong>, a model that assumes bought users monetise like the average new user of the same day (no MMP, so iOS and most non-Google networks cannot be attributed per user). Payback is the first day the pooled ROAS curve reaches 100%; formulas in docs/METRICS.md.</p><h2>Mossy Match</h2><div class="tiles"><div class="tile"><div class="label">Spend (30 days)</div><div class="value">$1,446</div></div><div class="tile" title="On each network&#x27;s attribution basis"><div class="label">Installs (30 days)</div><div class="value">2,731</div></div><div class="tile"><div class="label">CPI (30 days)</div><div class="value">$0.529</div></div><div class="tile" title="mixed bases"><div class="label">D7 ROAS</div><div class="value">28%</div></div><div class="tile"><div class="label">D30 ROAS</div><div class="value">33%</div></div><div class="tile"><div class="label">Payback (observed)</div><div class="value">not within 60 days</div></div><div class="tile" title="First day the pLTV model&#x27;s predicted cumulative ARPU reaches the CPI"><div class="label">Payback (predicted)</div><div class="value">beyond day 180 (model)</div></div></div><div class="grid2"><figure class="chart" id="c-spendperdaybynetwork"><figcaption><h3>Spend per day by network</h3><p>USD, converted with the configured FX rates</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>AppLovin</span><span class="key"><i class="sw b2"></i>Google Ads</span><span class="key"><i class="sw b3"></i>Meta</span></div><div role="img" aria-label="Spend per day by network: line chart, 3 series, 67 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">$0</span><span style="bottom:33.33%">$20.00</span><span style="bottom:66.67%">$40.00</span><span style="bottom:100.00%">$60.00</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,88.400 L15.15,73.017 L30.30,80.467 L45.45,86.217 L60.61,77.200 L75.76,82.583 L90.91,77.067 L106.06,81.583 L121.21,84.467 L136.36,81.133 L151.52,78.117 L166.67,85.000 L181.82,82.867 L196.97,80.750 L212.12,80.483 L227.27,86.517 L242.42,87.900 L257.58,74.533 L272.73,83.183 L287.88,86.317 L303.03,65.283 L318.18,71.950 L333.33,67.117 L348.48,73.217 L363.64,66.350 L378.79,67.683 L393.94,80.983 L409.09,71.333 L424.24,84.583 L439.39,79.817 L454.55,81.333 L469.70,78.650 L484.85,81.067 L500.00,88.333 L515.15,72.283 L530.30,78.500 L545.45,81.267 L560.61,85.217 L575.76,87.267 L590.91,87.583 L606.06,76.233 L621.21,84.083 L636.36,87.283 L651.52,87.150 L666.67,84.750 L681.82,75.317 L696.97,84.067 L712.12,85.250 L727.27,83.933 L742.42,80.300 L757.58,82.967 L772.73,75.017 L787.88,92.133 L803.03,77.183 L818.18,78.517 L833.33,81.883 L848.48,90.717 L863.64,86.500 L878.79,74.817 L893.94,80.567 L909.09,89.983 L924.24,77.383 L939.39,80.050 L954.55,89.550 L969.70,79.083 L984.85,84.767 L1000.00,82.267" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,78.450 L15.15,85.050 L30.30,76.983 L45.45,78.683 L60.61,76.050 L75.76,81.517 L90.91,89.917 L106.06,82.183 L121.21,73.100 L136.36,77.150 L151.52,77.933 L166.67,84.500 L181.82,79.367 L196.97,76.183 L212.12,83.150 L227.27,71.683 L242.42,69.483 L257.58,62.933 L272.73,73.850 L287.88,77.800 L303.03,69.883 L318.18,56.333 L333.33,52.683 L348.48,65.150 L363.64,61.083 L378.79,63.200 L393.94,60.317 L409.09,63.267 L424.24,82.767 L439.39,77.650 L454.55,75.400 L469.70,80.017 L484.85,76.100 L500.00,69.300 L515.15,73.583 L530.30,76.883 L545.45,63.450 L560.61,72.733 L575.76,72.083 L590.91,73.633 L606.06,79.250 L621.21,73.283 L636.36,84.317 L651.52,67.133 L666.67,78.600 L681.82,77.083 L696.97,79.200 L712.12,80.350 L727.27,85.833 L742.42,73.433 L757.58,80.550 L772.73,84.133 L787.88,76.850 L803.03,80.817 L818.18,72.583 L833.33,74.100 L848.48,78.067 L863.64,67.650 L878.79,71.400 L893.94,68.917 L909.09,69.133 L924.24,79.533 L939.39,76.617 L954.55,80.683 L969.70,84.767 L984.85,81.450 L1000.00,67.600" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M0.00,65.656 L15.15,69.670 L30.30,59.752 L45.45,65.386 L60.61,60.760 L75.76,72.262 L90.91,62.038 L106.06,69.400 L121.21,57.790 L136.36,45.280 L151.52,64.738 L166.67,57.232 L181.82,66.286 L196.97,49.006 L212.12,78.976 L227.27,65.350 L242.42,58.330 L257.58,55.090 L272.73,56.044 L287.88,56.998 L303.03,21.286 L318.18,35.812 L333.33,46.990 L348.48,40.078 L363.64,11.656 L378.79,45.082 L393.94,26.794 L409.09,34.786 L424.24,58.366 L439.39,57.772 L454.55,57.862 L469.70,38.746 L484.85,61.030 L500.00,55.054 L515.15,66.754 L530.30,49.078 L545.45,58.834 L560.61,70.678 L575.76,54.370 L590.91,60.058 L606.06,60.922 L621.21,64.144 L636.36,68.806 L651.52,40.240 L666.67,55.810 L681.82,48.808 L696.97,60.238 L712.12,69.490 L727.27,46.540 L742.42,60.202 L757.58,57.898 L772.73,62.938 L787.88,59.572 L803.03,57.358 L818.18,51.598 L833.33,55.468 L848.48,70.876 L863.64,56.638 L878.79,65.602 L893.94,62.398 L909.09,52.444 L924.24,70.228 L939.39,68.698 L954.55,70.192 L969.70,56.242 L984.85,65.638 L1000.00,62.938" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="82.267" y2="82.267" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="82.267" y2="82.267" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="67.600" y2="67.600" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="67.600" y2="67.600" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="62.938" y2="62.938" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="1000.00" x2="1000.00" y1="62.938" y2="62.938" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="14.93" height="100" data-tip="Aug 26
+AppLovin: $6.96
+Google Ads: $12.93
+Meta: $20.61"/><rect x="7.69" y="0" width="14.93" height="100" data-tip="Aug 27
+AppLovin: $16.19
+Google Ads: $8.97
+Meta: $18.20"/><rect x="22.84" y="0" width="14.93" height="100" data-tip="Aug 28
+AppLovin: $11.72
+Google Ads: $13.81
+Meta: $24.15"/><rect x="37.99" y="0" width="14.93" height="100" data-tip="Aug 29
+AppLovin: $8.27
+Google Ads: $12.79
+Meta: $20.77"/><rect x="53.14" y="0" width="14.93" height="100" data-tip="Aug 30
+AppLovin: $13.68
+Google Ads: $14.37
+Meta: $23.54"/><rect x="68.29" y="0" width="14.93" height="100" data-tip="Aug 31
+AppLovin: $10.45
+Google Ads: $11.09
+Meta: $16.64"/><rect x="83.45" y="0" width="14.93" height="100" data-tip="Sep 1
+AppLovin: $13.76
+Google Ads: $6.05
+Meta: $22.78"/><rect x="98.60" y="0" width="14.93" height="100" data-tip="Sep 2
+AppLovin: $11.05
+Google Ads: $10.69
+Meta: $18.36"/><rect x="113.75" y="0" width="14.93" height="100" data-tip="Sep 3
+AppLovin: $9.32
+Google Ads: $16.14
+Meta: $25.33"/><rect x="128.90" y="0" width="14.93" height="100" data-tip="Sep 4
+AppLovin: $11.32
+Google Ads: $13.71
+Meta: $32.83"/><rect x="144.05" y="0" width="14.93" height="100" data-tip="Sep 5
+AppLovin: $13.13
+Google Ads: $13.24
+Meta: $21.16"/><rect x="159.20" y="0" width="14.93" height="100" data-tip="Sep 6
+AppLovin: $9.00
+Google Ads: $9.30
+Meta: $25.66"/><rect x="174.36" y="0" width="14.93" height="100" data-tip="Sep 7
+AppLovin: $10.28
+Google Ads: $12.38
+Meta: $20.23"/><rect x="189.51" y="0" width="14.93" height="100" data-tip="Sep 8
+AppLovin: $11.55
+Google Ads: $14.29
+Meta: $30.60"/><rect x="204.66" y="0" width="14.93" height="100" data-tip="Sep 9
+AppLovin: $11.71
+Google Ads: $10.11
+Meta: $12.61"/><rect x="219.81" y="0" width="14.93" height="100" data-tip="Sep 10
+AppLovin: $8.09
+Google Ads: $16.99
+Meta: $20.79"/><rect x="234.96" y="0" width="14.93" height="100" data-tip="Sep 11
+AppLovin: $7.26
+Google Ads: $18.31
+Meta: $25.00"/><rect x="250.11" y="0" width="14.93" height="100" data-tip="Sep 12
+AppLovin: $15.28
+Google Ads: $22.24
+Meta: $26.95"/><rect x="265.26" y="0" width="14.93" height="100" data-tip="Sep 13
+AppLovin: $10.09
+Google Ads: $15.69
+Meta: $26.37"/><rect x="280.42" y="0" width="14.93" height="100" data-tip="Sep 14
+AppLovin: $8.21
+Google Ads: $13.32
+Meta: $25.80"/><rect x="295.57" y="0" width="14.93" height="100" data-tip="Sep 15
+AppLovin: $20.83
+Google Ads: $18.07
+Meta: $47.23"/><rect x="310.72" y="0" width="14.93" height="100" data-tip="Sep 16
+AppLovin: $16.83
+Google Ads: $26.20
+Meta: $38.51"/><rect x="325.87" y="0" width="14.93" height="100" data-tip="Sep 17
+AppLovin: $19.73
+Google Ads: $28.39
+Meta: $31.81"/><rect x="341.02" y="0" width="14.93" height="100" data-tip="Sep 18
+AppLovin: $16.07
+Google Ads: $20.91
+Meta: $35.95"/><rect x="356.17" y="0" width="14.93" height="100" data-tip="Sep 19
+AppLovin: $20.19
+Google Ads: $23.35
+Meta: $53.01"/><rect x="371.33" y="0" width="14.93" height="100" data-tip="Sep 20
+AppLovin: $19.39
+Google Ads: $22.08
+Meta: $32.95"/><rect x="386.48" y="0" width="14.93" height="100" data-tip="Sep 21
+AppLovin: $11.41
+Google Ads: $23.81
+Meta: $43.92"/><rect x="401.63" y="0" width="14.93" height="100" data-tip="Sep 22
+AppLovin: $17.20
+Google Ads: $22.04
+Meta: $39.13"/><rect x="416.78" y="0" width="14.93" height="100" data-tip="Sep 23
+AppLovin: $9.25
+Google Ads: $10.34
+Meta: $24.98"/><rect x="431.93" y="0" width="14.93" height="100" data-tip="Sep 24
+AppLovin: $12.11
+Google Ads: $13.41
+Meta: $25.34"/><rect x="447.08" y="0" width="14.93" height="100" data-tip="Sep 25
+AppLovin: $11.20
+Google Ads: $14.76
+Meta: $25.28"/><rect x="462.23" y="0" width="14.93" height="100" data-tip="Sep 26
+AppLovin: $12.81
+Google Ads: $11.99
+Meta: $36.75"/><rect x="477.39" y="0" width="14.93" height="100" data-tip="Sep 27
+AppLovin: $11.36
+Google Ads: $14.34
+Meta: $23.38"/><rect x="492.54" y="0" width="14.93" height="100" data-tip="Sep 28
+AppLovin: $7.00
+Google Ads: $18.42
+Meta: $26.97"/><rect x="507.69" y="0" width="14.93" height="100" data-tip="Sep 29
+AppLovin: $16.63
+Google Ads: $15.85
+Meta: $19.95"/><rect x="522.84" y="0" width="14.93" height="100" data-tip="Sep 30
+AppLovin: $12.90
+Google Ads: $13.87
+Meta: $30.55"/><rect x="537.99" y="0" width="14.93" height="100" data-tip="Oct 1
+AppLovin: $11.24
+Google Ads: $21.93
+Meta: $24.70"/><rect x="553.14" y="0" width="14.93" height="100" data-tip="Oct 2
+AppLovin: $8.87
+Google Ads: $16.36
+Meta: $17.59"/><rect x="568.29" y="0" width="14.93" height="100" data-tip="Oct 3
+AppLovin: $7.64
+Google Ads: $16.75
+Meta: $27.38"/><rect x="583.45" y="0" width="14.93" height="100" data-tip="Oct 4
+AppLovin: $7.45
+Google Ads: $15.82
+Meta: $23.97"/><rect x="598.60" y="0" width="14.93" height="100" data-tip="Oct 5
+AppLovin: $14.26
+Google Ads: $12.45
+Meta: $23.45"/><rect x="613.75" y="0" width="14.93" height="100" data-tip="Oct 6
+AppLovin: $9.55
+Google Ads: $16.03
+Meta: $21.51"/><rect x="628.90" y="0" width="14.93" height="100" data-tip="Oct 7
+AppLovin: $7.63
+Google Ads: $9.41
+Meta: $18.72"/><rect x="644.05" y="0" width="14.93" height="100" data-tip="Oct 8
+AppLovin: $7.71
+Google Ads: $19.72
+Meta: $35.86"/><rect x="659.20" y="0" width="14.93" height="100" data-tip="Oct 9
+AppLovin: $9.15
+Google Ads: $12.84
+Meta: $26.51"/><rect x="674.36" y="0" width="14.93" height="100" data-tip="Oct 10
+AppLovin: $14.81
+Google Ads: $13.75
+Meta: $30.72"/><rect x="689.51" y="0" width="14.93" height="100" data-tip="Oct 11
+AppLovin: $9.56
+Google Ads: $12.48
+Meta: $23.86"/><rect x="704.66" y="0" width="14.93" height="100" data-tip="Oct 12
+AppLovin: $8.85
+Google Ads: $11.79
+Meta: $18.31"/><rect x="719.81" y="0" width="14.93" height="100" data-tip="Oct 13
+AppLovin: $9.64
+Google Ads: $8.50
+Meta: $32.08"/><rect x="734.96" y="0" width="14.93" height="100" data-tip="Oct 14
+AppLovin: $11.82
+Google Ads: $15.94
+Meta: $23.88"/><rect x="750.11" y="0" width="14.93" height="100" data-tip="Oct 15
+AppLovin: $10.22
+Google Ads: $11.67
+Meta: $25.26"/><rect x="765.26" y="0" width="14.93" height="100" data-tip="Oct 16
+AppLovin: $14.99
+Google Ads: $9.52
+Meta: $22.24"/><rect x="780.42" y="0" width="14.93" height="100" data-tip="Oct 17
+AppLovin: $4.72
+Google Ads: $13.89
+Meta: $24.26"/><rect x="795.57" y="0" width="14.93" height="100" data-tip="Oct 18
+AppLovin: $13.69
+Google Ads: $11.51
+Meta: $25.59"/><rect x="810.72" y="0" width="14.93" height="100" data-tip="Oct 19
+AppLovin: $12.89
+Google Ads: $16.45
+Meta: $29.04"/><rect x="825.87" y="0" width="14.93" height="100" data-tip="Oct 20
+AppLovin: $10.87
+Google Ads: $15.54
+Meta: $26.72"/><rect x="841.02" y="0" width="14.93" height="100" data-tip="Oct 21
+AppLovin: $5.57
+Google Ads: $13.16
+Meta: $17.47"/><rect x="856.17" y="0" width="14.93" height="100" data-tip="Oct 22
+AppLovin: $8.10
+Google Ads: $19.41
+Meta: $26.02"/><rect x="871.33" y="0" width="14.93" height="100" data-tip="Oct 23
+AppLovin: $15.11
+Google Ads: $17.16
+Meta: $20.64"/><rect x="886.48" y="0" width="14.93" height="100" data-tip="Oct 24
+AppLovin: $11.66
+Google Ads: $18.65
+Meta: $22.56"/><rect x="901.63" y="0" width="14.93" height="100" data-tip="Oct 25
+AppLovin: $6.01
+Google Ads: $18.52
+Meta: $28.53"/><rect x="916.78" y="0" width="14.93" height="100" data-tip="Oct 26
+AppLovin: $13.57
+Google Ads: $12.28
+Meta: $17.86"/><rect x="931.93" y="0" width="14.93" height="100" data-tip="Oct 27
+AppLovin: $11.97
+Google Ads: $14.03
+Meta: $18.78"/><rect x="947.08" y="0" width="14.93" height="100" data-tip="Oct 28
+AppLovin: $6.27
+Google Ads: $11.59
+Meta: $17.88"/><rect x="962.23" y="0" width="14.93" height="100" data-tip="Oct 29
+AppLovin: $12.55
+Google Ads: $9.14
+Meta: $26.25"/><rect x="977.39" y="0" width="14.93" height="100" data-tip="Oct 30
+AppLovin: $9.14
+Google Ads: $11.13
+Meta: $20.62"/><rect x="992.54" y="0" width="14.93" height="100" data-tip="Oct 31
+AppLovin: $10.64
+Google Ads: $19.44
+Meta: $22.24"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 26</span><span class="" style="left:24.24%">Sep 11</span><span class="" style="left:50.00%">Sep 28</span><span class="" style="left:75.76%">Oct 15</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>AppLovin</th><th>Google Ads</th><th>Meta</th></tr></thead><tbody><tr><td>Aug 26</td><td>$6.96</td><td>$12.93</td><td>$20.61</td></tr><tr><td>Aug 27</td><td>$16.19</td><td>$8.97</td><td>$18.20</td></tr><tr><td>Aug 28</td><td>$11.72</td><td>$13.81</td><td>$24.15</td></tr><tr><td>Aug 29</td><td>$8.27</td><td>$12.79</td><td>$20.77</td></tr><tr><td>Aug 30</td><td>$13.68</td><td>$14.37</td><td>$23.54</td></tr><tr><td>Aug 31</td><td>$10.45</td><td>$11.09</td><td>$16.64</td></tr><tr><td>Sep 1</td><td>$13.76</td><td>$6.05</td><td>$22.78</td></tr><tr><td>Sep 2</td><td>$11.05</td><td>$10.69</td><td>$18.36</td></tr><tr><td>Sep 3</td><td>$9.32</td><td>$16.14</td><td>$25.33</td></tr><tr><td>Sep 4</td><td>$11.32</td><td>$13.71</td><td>$32.83</td></tr><tr><td>Sep 5</td><td>$13.13</td><td>$13.24</td><td>$21.16</td></tr><tr><td>Sep 6</td><td>$9.00</td><td>$9.30</td><td>$25.66</td></tr><tr><td>Sep 7</td><td>$10.28</td><td>$12.38</td><td>$20.23</td></tr><tr><td>Sep 8</td><td>$11.55</td><td>$14.29</td><td>$30.60</td></tr><tr><td>Sep 9</td><td>$11.71</td><td>$10.11</td><td>$12.61</td></tr><tr><td>Sep 10</td><td>$8.09</td><td>$16.99</td><td>$20.79</td></tr><tr><td>Sep 11</td><td>$7.26</td><td>$18.31</td><td>$25.00</td></tr><tr><td>Sep 12</td><td>$15.28</td><td>$22.24</td><td>$26.95</td></tr><tr><td>Sep 13</td><td>$10.09</td><td>$15.69</td><td>$26.37</td></tr><tr><td>Sep 14</td><td>$8.21</td><td>$13.32</td><td>$25.80</td></tr><tr><td>Sep 15</td><td>$20.83</td><td>$18.07</td><td>$47.23</td></tr><tr><td>Sep 16</td><td>$16.83</td><td>$26.20</td><td>$38.51</td></tr><tr><td>Sep 17</td><td>$19.73</td><td>$28.39</td><td>$31.81</td></tr><tr><td>Sep 18</td><td>$16.07</td><td>$20.91</td><td>$35.95</td></tr><tr><td>Sep 19</td><td>$20.19</td><td>$23.35</td><td>$53.01</td></tr><tr><td>Sep 20</td><td>$19.39</td><td>$22.08</td><td>$32.95</td></tr><tr><td>Sep 21</td><td>$11.41</td><td>$23.81</td><td>$43.92</td></tr><tr><td>Sep 22</td><td>$17.20</td><td>$22.04</td><td>$39.13</td></tr><tr><td>Sep 23</td><td>$9.25</td><td>$10.34</td><td>$24.98</td></tr><tr><td>Sep 24</td><td>$12.11</td><td>$13.41</td><td>$25.34</td></tr><tr><td>Sep 25</td><td>$11.20</td><td>$14.76</td><td>$25.28</td></tr><tr><td>Sep 26</td><td>$12.81</td><td>$11.99</td><td>$36.75</td></tr><tr><td>Sep 27</td><td>$11.36</td><td>$14.34</td><td>$23.38</td></tr><tr><td>Sep 28</td><td>$7.00</td><td>$18.42</td><td>$26.97</td></tr><tr><td>Sep 29</td><td>$16.63</td><td>$15.85</td><td>$19.95</td></tr><tr><td>Sep 30</td><td>$12.90</td><td>$13.87</td><td>$30.55</td></tr><tr><td>Oct 1</td><td>$11.24</td><td>$21.93</td><td>$24.70</td></tr><tr><td>Oct 2</td><td>$8.87</td><td>$16.36</td><td>$17.59</td></tr><tr><td>Oct 3</td><td>$7.64</td><td>$16.75</td><td>$27.38</td></tr><tr><td>Oct 4</td><td>$7.45</td><td>$15.82</td><td>$23.97</td></tr><tr><td>Oct 5</td><td>$14.26</td><td>$12.45</td><td>$23.45</td></tr><tr><td>Oct 6</td><td>$9.55</td><td>$16.03</td><td>$21.51</td></tr><tr><td>Oct 7</td><td>$7.63</td><td>$9.41</td><td>$18.72</td></tr><tr><td>Oct 8</td><td>$7.71</td><td>$19.72</td><td>$35.86</td></tr><tr><td>Oct 9</td><td>$9.15</td><td>$12.84</td><td>$26.51</td></tr><tr><td>Oct 10</td><td>$14.81</td><td>$13.75</td><td>$30.72</td></tr><tr><td>Oct 11</td><td>$9.56</td><td>$12.48</td><td>$23.86</td></tr><tr><td>Oct 12</td><td>$8.85</td><td>$11.79</td><td>$18.31</td></tr><tr><td>Oct 13</td><td>$9.64</td><td>$8.50</td><td>$32.08</td></tr><tr><td>Oct 14</td><td>$11.82</td><td>$15.94</td><td>$23.88</td></tr><tr><td>Oct 15</td><td>$10.22</td><td>$11.67</td><td>$25.26</td></tr><tr><td>Oct 16</td><td>$14.99</td><td>$9.52</td><td>$22.24</td></tr><tr><td>Oct 17</td><td>$4.72</td><td>$13.89</td><td>$24.26</td></tr><tr><td>Oct 18</td><td>$13.69</td><td>$11.51</td><td>$25.59</td></tr><tr><td>Oct 19</td><td>$12.89</td><td>$16.45</td><td>$29.04</td></tr><tr><td>Oct 20</td><td>$10.87</td><td>$15.54</td><td>$26.72</td></tr><tr><td>Oct 21</td><td>$5.57</td><td>$13.16</td><td>$17.47</td></tr><tr><td>Oct 22</td><td>$8.10</td><td>$19.41</td><td>$26.02</td></tr><tr><td>Oct 23</td><td>$15.11</td><td>$17.16</td><td>$20.64</td></tr><tr><td>Oct 24</td><td>$11.66</td><td>$18.65</td><td>$22.56</td></tr><tr><td>Oct 25</td><td>$6.01</td><td>$18.52</td><td>$28.53</td></tr><tr><td>Oct 26</td><td>$13.57</td><td>$12.28</td><td>$17.86</td></tr><tr><td>Oct 27</td><td>$11.97</td><td>$14.03</td><td>$18.78</td></tr><tr><td>Oct 28</td><td>$6.27</td><td>$11.59</td><td>$17.88</td></tr><tr><td>Oct 29</td><td>$12.55</td><td>$9.14</td><td>$26.25</td></tr><tr><td>Oct 30</td><td>$9.14</td><td>$11.13</td><td>$20.62</td></tr><tr><td>Oct 31</td><td>$10.64</td><td>$19.44</td><td>$22.24</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-roasbydayssinceinstall"><figcaption><h3>ROAS by days since install</h3><p>Pooled over the cohorts complete at each day; 100% = payback</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>All networks</span><span class="key"><i class="sw b2"></i>AppLovin</span><span class="key"><i class="sw b3"></i>Google Ads</span><span class="key"><i class="sw b4"></i>Meta</span><span class="key"><i class="sw b8" style="background-image:linear-gradient(90deg,transparent 50%,var(--surface) 50%);background-size:6px 3px"></i>Blended (all new users)</span></div><div role="img" aria-label="ROAS by days since install: line chart, 5 series, 61 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">0.0%</span><span style="bottom:33.33%">50.0%</span><span style="bottom:66.67%">100.0%</span><span style="bottom:100.00%">150.0%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,90.165 L16.67,86.965 L33.33,85.354 L50.00,84.185 L66.67,83.504 L83.33,82.608 L100.00,82.142 L116.67,81.288 L133.33,81.292 L150.00,81.631 L166.67,81.238 L183.33,80.894 L200.00,80.474 L216.67,80.543 L233.33,80.615 L250.00,80.141 L266.67,79.959 L283.33,79.732 L300.00,79.736 L316.67,79.413 L333.33,79.176 L350.00,79.592 L366.67,79.435 L383.33,78.961 L400.00,78.628 L416.67,78.432 L433.33,78.827 L450.00,78.755 L466.67,78.634 L483.33,78.216 L500.00,78.141 L516.67,77.754 L533.33,77.369 L550.00,77.344 L566.67,77.377 L583.33,76.872 L600.00,77.633 L616.67,77.307 L633.33,77.041 L650.00,76.916 L666.67,76.593 L683.33,76.842 L700.00,76.303 L716.67,75.650 L733.33,76.582 L750.00,75.839 L766.67,76.521 L783.33,76.038 L800.00,75.254 L816.67,74.685 L833.33,74.108 L850.00,73.752 L866.67,75.002 L883.33,75.846 L900.00,75.644 L916.67,74.699 L933.33,74.336 L950.00,72.995 L966.67,72.207 L983.33,71.131 L1000.00,70.684" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,90.323 L16.67,86.670 L33.33,84.692 L50.00,83.899 L66.67,83.034 L83.33,81.913 L100.00,81.283 L116.67,80.561 L133.33,80.256 L150.00,80.285 L166.67,79.761 L183.33,79.466 L200.00,79.010 L216.67,78.894 L233.33,78.855 L250.00,78.598 L266.67,78.236 L283.33,77.981 L300.00,77.979 L316.67,77.660 L333.33,77.491 L350.00,77.576 L366.67,77.481 L383.33,77.015 L400.00,76.856 L416.67,76.639 L433.33,76.787 L450.00,76.677 L466.67,76.555 L483.33,76.216 L500.00,76.210 L516.67,75.912 L533.33,75.611 L550.00,75.460 L566.67,75.452 L583.33,75.023 L600.00,75.263 L616.67,75.062 L633.33,74.790 L650.00,74.444 L666.67,74.202 L683.33,74.099 L700.00,73.604 L716.67,73.208 L733.33,74.577 L750.00,73.934 L766.67,73.483 L783.33,73.135 L800.00,72.472 L816.67,72.287 L833.33,71.985 L850.00,72.079 L866.67,72.114 L883.33,72.922 L900.00,73.532 L916.67,72.712 L933.33,72.777 L950.00,71.262 L966.67,71.623 L983.33,72.955 L1000.00,73.300" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M0.00,85.777 L16.67,81.977 L33.33,80.449 L50.00,78.033 L66.67,77.397 L83.33,76.390 L100.00,75.874 L116.67,74.470 L133.33,74.907 L150.00,76.227 L166.67,76.011 L183.33,75.523 L200.00,75.056 L216.67,75.461 L233.33,75.895 L250.00,74.997 L266.67,75.070 L283.33,74.881 L300.00,74.824 L316.67,74.522 L333.33,74.106 L350.00,75.530 L366.67,75.119 L383.33,74.525 L400.00,73.969 L416.67,73.627 L433.33,74.759 L450.00,74.628 L466.67,74.390 L483.33,73.828 L500.00,73.276 L516.67,72.479 L533.33,71.906 L550.00,71.774 L566.67,71.606 L583.33,70.600 L600.00,72.896 L616.67,72.234 L633.33,71.672 L650.00,72.031 L666.67,71.188 L683.33,72.712 L700.00,71.522 L716.67,70.264 L733.33,70.862 L750.00,69.033 L766.67,72.022 L783.33,70.749 L800.00,69.778 L816.67,68.397 L833.33,66.295 L850.00,65.365 L866.67,70.238 L883.33,71.353 L900.00,69.446 L916.67,67.440 L933.33,66.193 L950.00,63.857 L966.67,60.550 L983.33,54.846 L1000.00,52.730" vector-effect="non-scaling-stroke"/><path class="ln c4" d="M0.00,92.652 L16.67,89.985 L33.33,88.489 L50.00,87.900 L66.67,87.270 L83.33,86.525 L100.00,86.149 L116.67,85.552 L133.33,85.417 L150.00,85.305 L166.67,84.856 L183.33,84.562 L200.00,84.184 L216.67,84.145 L233.33,84.067 L250.00,83.746 L266.67,83.503 L283.33,83.277 L300.00,83.307 L316.67,83.016 L333.33,82.846 L350.00,82.831 L366.67,82.806 L383.33,82.412 L400.00,82.150 L416.67,82.056 L433.33,82.118 L450.00,82.095 L466.67,82.042 L483.33,81.678 L500.00,81.820 L516.67,81.585 L533.33,81.291 L550.00,81.343 L566.67,81.498 L583.33,81.232 L600.00,81.426 L616.67,81.232 L633.33,81.145 L650.00,80.875 L666.67,80.823 L683.33,80.541 L700.00,80.321 L716.67,79.980 L733.33,80.906 L750.00,80.617 L766.67,80.484 L783.33,80.489 L800.00,79.803 L816.67,79.534 L833.33,79.569 L850.00,79.245 L866.67,79.030 L883.33,79.652 L900.00,80.020 L916.67,79.537 L933.33,79.597 L950.00,78.806 L966.67,79.061 L983.33,79.062 L1000.00,79.031" vector-effect="non-scaling-stroke"/><path class="ln c8 dashed" d="M0.00,71.981 L16.67,61.491 L33.33,55.848 L50.00,53.621 L66.67,51.423 L83.33,48.472 L100.00,46.839 L116.67,44.662 L133.33,44.127 L150.00,43.945 L166.67,42.238 L183.33,41.165 L200.00,39.794 L216.67,39.375 L233.33,39.360 L250.00,38.308 L266.67,37.453 L283.33,36.591 L300.00,36.402 L316.67,35.252 L333.33,34.595 L350.00,34.888 L366.67,34.648 L383.33,33.165 L400.00,32.503 L416.67,32.318 L433.33,32.772 L450.00,32.641 L466.67,32.393 L483.33,31.131 L500.00,31.609 L516.67,30.572 L533.33,29.420 L550.00,29.209 L566.67,29.498 L583.33,28.490 L600.00,29.212 L616.67,28.430 L633.33,27.824 L650.00,26.712 L666.67,26.371 L683.33,25.678 L700.00,24.940 L716.67,24.112 L733.33,27.723 L750.00,26.187 L766.67,25.260 L783.33,24.042 L800.00,21.849 L816.67,21.046 L833.33,20.717 L850.00,19.228 L866.67,18.154 L883.33,21.810 L900.00,21.583 L916.67,19.692 L933.33,20.704 L950.00,17.561 L966.67,17.991 L983.33,17.859 L1000.00,18.244" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="70.684" y2="70.684" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="70.684" y2="70.684" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="73.300" y2="73.300" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="73.300" y2="73.300" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="52.730" y2="52.730" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="1000.00" x2="1000.00" y1="52.730" y2="52.730" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="79.031" y2="79.031" vector-effect="non-scaling-stroke"/><line class="dot c4" x1="1000.00" x2="1000.00" y1="79.031" y2="79.031" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="18.244" y2="18.244" vector-effect="non-scaling-stroke"/><line class="dot c8" x1="1000.00" x2="1000.00" y1="18.244" y2="18.244" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="16.39" height="100" data-tip="D0
+All networks: 14.8%
+AppLovin: 14.5%
+Google Ads: 21.3%
+Meta: 11.0%
+Blended (all new users): 42.0%"/><rect x="8.47" y="0" width="16.39" height="100" data-tip="D1
+All networks: 19.6%
+AppLovin: 20.0%
+Google Ads: 27.0%
+Meta: 15.0%
+Blended (all new users): 57.8%"/><rect x="25.14" y="0" width="16.39" height="100" data-tip="D2
+All networks: 22.0%
+AppLovin: 23.0%
+Google Ads: 29.3%
+Meta: 17.3%
+Blended (all new users): 66.2%"/><rect x="41.80" y="0" width="16.39" height="100" data-tip="D3
+All networks: 23.7%
+AppLovin: 24.2%
+Google Ads: 33.0%
+Meta: 18.2%
+Blended (all new users): 69.6%"/><rect x="58.47" y="0" width="16.39" height="100" data-tip="D4
+All networks: 24.7%
+AppLovin: 25.4%
+Google Ads: 33.9%
+Meta: 19.1%
+Blended (all new users): 72.9%"/><rect x="75.14" y="0" width="16.39" height="100" data-tip="D5
+All networks: 26.1%
+AppLovin: 27.1%
+Google Ads: 35.4%
+Meta: 20.2%
+Blended (all new users): 77.3%"/><rect x="91.80" y="0" width="16.39" height="100" data-tip="D6
+All networks: 26.8%
+AppLovin: 28.1%
+Google Ads: 36.2%
+Meta: 20.8%
+Blended (all new users): 79.7%"/><rect x="108.47" y="0" width="16.39" height="100" data-tip="D7
+All networks: 28.1%
+AppLovin: 29.2%
+Google Ads: 38.3%
+Meta: 21.7%
+Blended (all new users): 83.0%"/><rect x="125.14" y="0" width="16.39" height="100" data-tip="D8
+All networks: 28.1%
+AppLovin: 29.6%
+Google Ads: 37.6%
+Meta: 21.9%
+Blended (all new users): 83.8%"/><rect x="141.80" y="0" width="16.39" height="100" data-tip="D9
+All networks: 27.6%
+AppLovin: 29.6%
+Google Ads: 35.7%
+Meta: 22.0%
+Blended (all new users): 84.1%"/><rect x="158.47" y="0" width="16.39" height="100" data-tip="D10
+All networks: 28.1%
+AppLovin: 30.4%
+Google Ads: 36.0%
+Meta: 22.7%
+Blended (all new users): 86.6%"/><rect x="175.14" y="0" width="16.39" height="100" data-tip="D11
+All networks: 28.7%
+AppLovin: 30.8%
+Google Ads: 36.7%
+Meta: 23.2%
+Blended (all new users): 88.3%"/><rect x="191.80" y="0" width="16.39" height="100" data-tip="D12
+All networks: 29.3%
+AppLovin: 31.5%
+Google Ads: 37.4%
+Meta: 23.7%
+Blended (all new users): 90.3%"/><rect x="208.47" y="0" width="16.39" height="100" data-tip="D13
+All networks: 29.2%
+AppLovin: 31.7%
+Google Ads: 36.8%
+Meta: 23.8%
+Blended (all new users): 90.9%"/><rect x="225.14" y="0" width="16.39" height="100" data-tip="D14
+All networks: 29.1%
+AppLovin: 31.7%
+Google Ads: 36.2%
+Meta: 23.9%
+Blended (all new users): 91.0%"/><rect x="241.80" y="0" width="16.39" height="100" data-tip="D15
+All networks: 29.8%
+AppLovin: 32.1%
+Google Ads: 37.5%
+Meta: 24.4%
+Blended (all new users): 92.5%"/><rect x="258.47" y="0" width="16.39" height="100" data-tip="D16
+All networks: 30.1%
+AppLovin: 32.6%
+Google Ads: 37.4%
+Meta: 24.7%
+Blended (all new users): 93.8%"/><rect x="275.14" y="0" width="16.39" height="100" data-tip="D17
+All networks: 30.4%
+AppLovin: 33.0%
+Google Ads: 37.7%
+Meta: 25.1%
+Blended (all new users): 95.1%"/><rect x="291.80" y="0" width="16.39" height="100" data-tip="D18
+All networks: 30.4%
+AppLovin: 33.0%
+Google Ads: 37.8%
+Meta: 25.0%
+Blended (all new users): 95.4%"/><rect x="308.47" y="0" width="16.39" height="100" data-tip="D19
+All networks: 30.9%
+AppLovin: 33.5%
+Google Ads: 38.2%
+Meta: 25.5%
+Blended (all new users): 97.1%"/><rect x="325.14" y="0" width="16.39" height="100" data-tip="D20
+All networks: 31.2%
+AppLovin: 33.8%
+Google Ads: 38.8%
+Meta: 25.7%
+Blended (all new users): 98.1%"/><rect x="341.80" y="0" width="16.39" height="100" data-tip="D21
+All networks: 30.6%
+AppLovin: 33.6%
+Google Ads: 36.7%
+Meta: 25.8%
+Blended (all new users): 97.7%"/><rect x="358.47" y="0" width="16.39" height="100" data-tip="D22
+All networks: 30.8%
+AppLovin: 33.8%
+Google Ads: 37.3%
+Meta: 25.8%
+Blended (all new users): 98.0%"/><rect x="375.14" y="0" width="16.39" height="100" data-tip="D23
+All networks: 31.6%
+AppLovin: 34.5%
+Google Ads: 38.2%
+Meta: 26.4%
+Blended (all new users): 100.3%"/><rect x="391.80" y="0" width="16.39" height="100" data-tip="D24
+All networks: 32.1%
+AppLovin: 34.7%
+Google Ads: 39.0%
+Meta: 26.8%
+Blended (all new users): 101.2%"/><rect x="408.47" y="0" width="16.39" height="100" data-tip="D25
+All networks: 32.4%
+AppLovin: 35.0%
+Google Ads: 39.6%
+Meta: 26.9%
+Blended (all new users): 101.5%"/><rect x="425.14" y="0" width="16.39" height="100" data-tip="D26
+All networks: 31.8%
+AppLovin: 34.8%
+Google Ads: 37.9%
+Meta: 26.8%
+Blended (all new users): 100.8%"/><rect x="441.80" y="0" width="16.39" height="100" data-tip="D27
+All networks: 31.9%
+AppLovin: 35.0%
+Google Ads: 38.1%
+Meta: 26.9%
+Blended (all new users): 101.0%"/><rect x="458.47" y="0" width="16.39" height="100" data-tip="D28
+All networks: 32.0%
+AppLovin: 35.2%
+Google Ads: 38.4%
+Meta: 26.9%
+Blended (all new users): 101.4%"/><rect x="475.14" y="0" width="16.39" height="100" data-tip="D29
+All networks: 32.7%
+AppLovin: 35.7%
+Google Ads: 39.3%
+Meta: 27.5%
+Blended (all new users): 103.3%"/><rect x="491.80" y="0" width="16.39" height="100" data-tip="D30
+All networks: 32.8%
+AppLovin: 35.7%
+Google Ads: 40.1%
+Meta: 27.3%
+Blended (all new users): 102.6%"/><rect x="508.47" y="0" width="16.39" height="100" data-tip="D31
+All networks: 33.4%
+AppLovin: 36.1%
+Google Ads: 41.3%
+Meta: 27.6%
+Blended (all new users): 104.1%"/><rect x="525.14" y="0" width="16.39" height="100" data-tip="D32
+All networks: 33.9%
+AppLovin: 36.6%
+Google Ads: 42.1%
+Meta: 28.1%
+Blended (all new users): 105.9%"/><rect x="541.80" y="0" width="16.39" height="100" data-tip="D33
+All networks: 34.0%
+AppLovin: 36.8%
+Google Ads: 42.3%
+Meta: 28.0%
+Blended (all new users): 106.2%"/><rect x="558.47" y="0" width="16.39" height="100" data-tip="D34
+All networks: 33.9%
+AppLovin: 36.8%
+Google Ads: 42.6%
+Meta: 27.8%
+Blended (all new users): 105.8%"/><rect x="575.14" y="0" width="16.39" height="100" data-tip="D35
+All networks: 34.7%
+AppLovin: 37.5%
+Google Ads: 44.1%
+Meta: 28.2%
+Blended (all new users): 107.3%"/><rect x="591.80" y="0" width="16.39" height="100" data-tip="D36
+All networks: 33.6%
+AppLovin: 37.1%
+Google Ads: 40.7%
+Meta: 27.9%
+Blended (all new users): 106.2%"/><rect x="608.47" y="0" width="16.39" height="100" data-tip="D37
+All networks: 34.0%
+AppLovin: 37.4%
+Google Ads: 41.6%
+Meta: 28.2%
+Blended (all new users): 107.4%"/><rect x="625.14" y="0" width="16.39" height="100" data-tip="D38
+All networks: 34.4%
+AppLovin: 37.8%
+Google Ads: 42.5%
+Meta: 28.3%
+Blended (all new users): 108.3%"/><rect x="641.80" y="0" width="16.39" height="100" data-tip="D39
+All networks: 34.6%
+AppLovin: 38.3%
+Google Ads: 42.0%
+Meta: 28.7%
+Blended (all new users): 109.9%"/><rect x="658.47" y="0" width="16.39" height="100" data-tip="D40
+All networks: 35.1%
+AppLovin: 38.7%
+Google Ads: 43.2%
+Meta: 28.8%
+Blended (all new users): 110.4%"/><rect x="675.14" y="0" width="16.39" height="100" data-tip="D41
+All networks: 34.7%
+AppLovin: 38.9%
+Google Ads: 40.9%
+Meta: 29.2%
+Blended (all new users): 111.5%"/><rect x="691.80" y="0" width="16.39" height="100" data-tip="D42
+All networks: 35.5%
+AppLovin: 39.6%
+Google Ads: 42.7%
+Meta: 29.5%
+Blended (all new users): 112.6%"/><rect x="708.47" y="0" width="16.39" height="100" data-tip="D43
+All networks: 36.5%
+AppLovin: 40.2%
+Google Ads: 44.6%
+Meta: 30.0%
+Blended (all new users): 113.8%"/><rect x="725.14" y="0" width="16.39" height="100" data-tip="D44
+All networks: 35.1%
+AppLovin: 38.1%
+Google Ads: 43.7%
+Meta: 28.6%
+Blended (all new users): 108.4%"/><rect x="741.80" y="0" width="16.39" height="100" data-tip="D45
+All networks: 36.2%
+AppLovin: 39.1%
+Google Ads: 46.4%
+Meta: 29.1%
+Blended (all new users): 110.7%"/><rect x="758.47" y="0" width="16.39" height="100" data-tip="D46
+All networks: 35.2%
+AppLovin: 39.8%
+Google Ads: 42.0%
+Meta: 29.3%
+Blended (all new users): 112.1%"/><rect x="775.14" y="0" width="16.39" height="100" data-tip="D47
+All networks: 35.9%
+AppLovin: 40.3%
+Google Ads: 43.9%
+Meta: 29.3%
+Blended (all new users): 113.9%"/><rect x="791.80" y="0" width="16.39" height="100" data-tip="D48
+All networks: 37.1%
+AppLovin: 41.3%
+Google Ads: 45.3%
+Meta: 30.3%
+Blended (all new users): 117.2%"/><rect x="808.47" y="0" width="16.39" height="100" data-tip="D49
+All networks: 38.0%
+AppLovin: 41.6%
+Google Ads: 47.4%
+Meta: 30.7%
+Blended (all new users): 118.4%"/><rect x="825.14" y="0" width="16.39" height="100" data-tip="D50
+All networks: 38.8%
+AppLovin: 42.0%
+Google Ads: 50.6%
+Meta: 30.6%
+Blended (all new users): 118.9%"/><rect x="841.80" y="0" width="16.39" height="100" data-tip="D51
+All networks: 39.4%
+AppLovin: 41.9%
+Google Ads: 52.0%
+Meta: 31.1%
+Blended (all new users): 121.2%"/><rect x="858.47" y="0" width="16.39" height="100" data-tip="D52
+All networks: 37.5%
+AppLovin: 41.8%
+Google Ads: 44.6%
+Meta: 31.5%
+Blended (all new users): 122.8%"/><rect x="875.14" y="0" width="16.39" height="100" data-tip="D53
+All networks: 36.2%
+AppLovin: 40.6%
+Google Ads: 43.0%
+Meta: 30.5%
+Blended (all new users): 117.3%"/><rect x="891.80" y="0" width="16.39" height="100" data-tip="D54
+All networks: 36.5%
+AppLovin: 39.7%
+Google Ads: 45.8%
+Meta: 30.0%
+Blended (all new users): 117.6%"/><rect x="908.47" y="0" width="16.39" height="100" data-tip="D55
+All networks: 38.0%
+AppLovin: 40.9%
+Google Ads: 48.8%
+Meta: 30.7%
+Blended (all new users): 120.5%"/><rect x="925.14" y="0" width="16.39" height="100" data-tip="D56
+All networks: 38.5%
+AppLovin: 40.8%
+Google Ads: 50.7%
+Meta: 30.6%
+Blended (all new users): 118.9%"/><rect x="941.80" y="0" width="16.39" height="100" data-tip="D57
+All networks: 40.5%
+AppLovin: 43.1%
+Google Ads: 54.2%
+Meta: 31.8%
+Blended (all new users): 123.7%"/><rect x="958.47" y="0" width="16.39" height="100" data-tip="D58
+All networks: 41.7%
+AppLovin: 42.6%
+Google Ads: 59.2%
+Meta: 31.4%
+Blended (all new users): 123.0%"/><rect x="975.14" y="0" width="16.39" height="100" data-tip="D59
+All networks: 43.3%
+AppLovin: 40.6%
+Google Ads: 67.7%
+Meta: 31.4%
+Blended (all new users): 123.2%"/><rect x="991.80" y="0" width="16.39" height="100" data-tip="D60
+All networks: 44.0%
+AppLovin: 40.1%
+Google Ads: 70.9%
+Meta: 31.5%
+Blended (all new users): 122.6%"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">D0</span><span class="" style="left:25.00%">D15</span><span class="" style="left:50.00%">D30</span><span class="" style="left:75.00%">D45</span><span class="last" style="left:100.00%">D60</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Day</th><th>All networks</th><th>AppLovin</th><th>Google Ads</th><th>Meta</th><th>Blended (all new users)</th></tr></thead><tbody><tr><td>D0</td><td>14.8%</td><td>14.5%</td><td>21.3%</td><td>11.0%</td><td>42.0%</td></tr><tr><td>D1</td><td>19.6%</td><td>20.0%</td><td>27.0%</td><td>15.0%</td><td>57.8%</td></tr><tr><td>D2</td><td>22.0%</td><td>23.0%</td><td>29.3%</td><td>17.3%</td><td>66.2%</td></tr><tr><td>D3</td><td>23.7%</td><td>24.2%</td><td>33.0%</td><td>18.2%</td><td>69.6%</td></tr><tr><td>D4</td><td>24.7%</td><td>25.4%</td><td>33.9%</td><td>19.1%</td><td>72.9%</td></tr><tr><td>D5</td><td>26.1%</td><td>27.1%</td><td>35.4%</td><td>20.2%</td><td>77.3%</td></tr><tr><td>D6</td><td>26.8%</td><td>28.1%</td><td>36.2%</td><td>20.8%</td><td>79.7%</td></tr><tr><td>D7</td><td>28.1%</td><td>29.2%</td><td>38.3%</td><td>21.7%</td><td>83.0%</td></tr><tr><td>D8</td><td>28.1%</td><td>29.6%</td><td>37.6%</td><td>21.9%</td><td>83.8%</td></tr><tr><td>D9</td><td>27.6%</td><td>29.6%</td><td>35.7%</td><td>22.0%</td><td>84.1%</td></tr><tr><td>D10</td><td>28.1%</td><td>30.4%</td><td>36.0%</td><td>22.7%</td><td>86.6%</td></tr><tr><td>D11</td><td>28.7%</td><td>30.8%</td><td>36.7%</td><td>23.2%</td><td>88.3%</td></tr><tr><td>D12</td><td>29.3%</td><td>31.5%</td><td>37.4%</td><td>23.7%</td><td>90.3%</td></tr><tr><td>D13</td><td>29.2%</td><td>31.7%</td><td>36.8%</td><td>23.8%</td><td>90.9%</td></tr><tr><td>D14</td><td>29.1%</td><td>31.7%</td><td>36.2%</td><td>23.9%</td><td>91.0%</td></tr><tr><td>D15</td><td>29.8%</td><td>32.1%</td><td>37.5%</td><td>24.4%</td><td>92.5%</td></tr><tr><td>D16</td><td>30.1%</td><td>32.6%</td><td>37.4%</td><td>24.7%</td><td>93.8%</td></tr><tr><td>D17</td><td>30.4%</td><td>33.0%</td><td>37.7%</td><td>25.1%</td><td>95.1%</td></tr><tr><td>D18</td><td>30.4%</td><td>33.0%</td><td>37.8%</td><td>25.0%</td><td>95.4%</td></tr><tr><td>D19</td><td>30.9%</td><td>33.5%</td><td>38.2%</td><td>25.5%</td><td>97.1%</td></tr><tr><td>D20</td><td>31.2%</td><td>33.8%</td><td>38.8%</td><td>25.7%</td><td>98.1%</td></tr><tr><td>D21</td><td>30.6%</td><td>33.6%</td><td>36.7%</td><td>25.8%</td><td>97.7%</td></tr><tr><td>D22</td><td>30.8%</td><td>33.8%</td><td>37.3%</td><td>25.8%</td><td>98.0%</td></tr><tr><td>D23</td><td>31.6%</td><td>34.5%</td><td>38.2%</td><td>26.4%</td><td>100.3%</td></tr><tr><td>D24</td><td>32.1%</td><td>34.7%</td><td>39.0%</td><td>26.8%</td><td>101.2%</td></tr><tr><td>D25</td><td>32.4%</td><td>35.0%</td><td>39.6%</td><td>26.9%</td><td>101.5%</td></tr><tr><td>D26</td><td>31.8%</td><td>34.8%</td><td>37.9%</td><td>26.8%</td><td>100.8%</td></tr><tr><td>D27</td><td>31.9%</td><td>35.0%</td><td>38.1%</td><td>26.9%</td><td>101.0%</td></tr><tr><td>D28</td><td>32.0%</td><td>35.2%</td><td>38.4%</td><td>26.9%</td><td>101.4%</td></tr><tr><td>D29</td><td>32.7%</td><td>35.7%</td><td>39.3%</td><td>27.5%</td><td>103.3%</td></tr><tr><td>D30</td><td>32.8%</td><td>35.7%</td><td>40.1%</td><td>27.3%</td><td>102.6%</td></tr><tr><td>D31</td><td>33.4%</td><td>36.1%</td><td>41.3%</td><td>27.6%</td><td>104.1%</td></tr><tr><td>D32</td><td>33.9%</td><td>36.6%</td><td>42.1%</td><td>28.1%</td><td>105.9%</td></tr><tr><td>D33</td><td>34.0%</td><td>36.8%</td><td>42.3%</td><td>28.0%</td><td>106.2%</td></tr><tr><td>D34</td><td>33.9%</td><td>36.8%</td><td>42.6%</td><td>27.8%</td><td>105.8%</td></tr><tr><td>D35</td><td>34.7%</td><td>37.5%</td><td>44.1%</td><td>28.2%</td><td>107.3%</td></tr><tr><td>D36</td><td>33.6%</td><td>37.1%</td><td>40.7%</td><td>27.9%</td><td>106.2%</td></tr><tr><td>D37</td><td>34.0%</td><td>37.4%</td><td>41.6%</td><td>28.2%</td><td>107.4%</td></tr><tr><td>D38</td><td>34.4%</td><td>37.8%</td><td>42.5%</td><td>28.3%</td><td>108.3%</td></tr><tr><td>D39</td><td>34.6%</td><td>38.3%</td><td>42.0%</td><td>28.7%</td><td>109.9%</td></tr><tr><td>D40</td><td>35.1%</td><td>38.7%</td><td>43.2%</td><td>28.8%</td><td>110.4%</td></tr><tr><td>D41</td><td>34.7%</td><td>38.9%</td><td>40.9%</td><td>29.2%</td><td>111.5%</td></tr><tr><td>D42</td><td>35.5%</td><td>39.6%</td><td>42.7%</td><td>29.5%</td><td>112.6%</td></tr><tr><td>D43</td><td>36.5%</td><td>40.2%</td><td>44.6%</td><td>30.0%</td><td>113.8%</td></tr><tr><td>D44</td><td>35.1%</td><td>38.1%</td><td>43.7%</td><td>28.6%</td><td>108.4%</td></tr><tr><td>D45</td><td>36.2%</td><td>39.1%</td><td>46.4%</td><td>29.1%</td><td>110.7%</td></tr><tr><td>D46</td><td>35.2%</td><td>39.8%</td><td>42.0%</td><td>29.3%</td><td>112.1%</td></tr><tr><td>D47</td><td>35.9%</td><td>40.3%</td><td>43.9%</td><td>29.3%</td><td>113.9%</td></tr><tr><td>D48</td><td>37.1%</td><td>41.3%</td><td>45.3%</td><td>30.3%</td><td>117.2%</td></tr><tr><td>D49</td><td>38.0%</td><td>41.6%</td><td>47.4%</td><td>30.7%</td><td>118.4%</td></tr><tr><td>D50</td><td>38.8%</td><td>42.0%</td><td>50.6%</td><td>30.6%</td><td>118.9%</td></tr><tr><td>D51</td><td>39.4%</td><td>41.9%</td><td>52.0%</td><td>31.1%</td><td>121.2%</td></tr><tr><td>D52</td><td>37.5%</td><td>41.8%</td><td>44.6%</td><td>31.5%</td><td>122.8%</td></tr><tr><td>D53</td><td>36.2%</td><td>40.6%</td><td>43.0%</td><td>30.5%</td><td>117.3%</td></tr><tr><td>D54</td><td>36.5%</td><td>39.7%</td><td>45.8%</td><td>30.0%</td><td>117.6%</td></tr><tr><td>D55</td><td>38.0%</td><td>40.9%</td><td>48.8%</td><td>30.7%</td><td>120.5%</td></tr><tr><td>D56</td><td>38.5%</td><td>40.8%</td><td>50.7%</td><td>30.6%</td><td>118.9%</td></tr><tr><td>D57</td><td>40.5%</td><td>43.1%</td><td>54.2%</td><td>31.8%</td><td>123.7%</td></tr><tr><td>D58</td><td>41.7%</td><td>42.6%</td><td>59.2%</td><td>31.4%</td><td>123.0%</td></tr><tr><td>D59</td><td>43.3%</td><td>40.6%</td><td>67.7%</td><td>31.4%</td><td>123.2%</td></tr><tr><td>D60</td><td>44.0%</td><td>40.1%</td><td>70.9%</td><td>31.5%</td><td>122.6%</td></tr></tbody></table></div></details></figure></div><h3>Networks and campaigns</h3><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Network</th><th class="l">Campaign</th><th class="l">Basis</th><th class="">Spend 30d</th><th class="">Installs 30d</th><th class="">CPI</th><th class="">CTR</th><th class="">IPM</th><th class="">D0 ROAS</th><th class="">D7 ROAS</th><th class="">D30 ROAS</th><th class="">Payback</th></tr></thead><tbody><tr><td class="l">All networks</td><td class="l"></td><td class="l">mixed bases</td><td>$1,446</td><td>2,731</td><td>$0.529</td><td>1.44%</td><td>7.89</td><td>15%</td><td>28%</td><td>33%</td><td>not within 60 days</td></tr><tr><td class="l">AppLovin</td><td class="l"></td><td class="l">network installs x cohort ARPU (modeled)</td><td>$305</td><td>688</td><td>$0.443</td><td>2.54%</td><td>13</td><td>15%</td><td>29%</td><td>36%</td><td>not within 60 days</td></tr><tr><td class="l">AppLovin</td><td class="l">AL_Puzzle_ROAS</td><td class="l">network installs x cohort ARPU (modeled)</td><td>$305</td><td>688</td><td>$0.443</td><td>2.54%</td><td>13</td><td>15%</td><td>29%</td><td>36%</td><td>not within 60 days</td></tr><tr><td class="l">Google Ads</td><td class="l"></td><td class="l">GA4 first touch</td><td>$425</td><td>826</td><td>$0.514</td><td>1.51%</td><td>7.93</td><td>21%</td><td>38%</td><td>40%</td><td>not within 60 days</td></tr><tr><td class="l">Google Ads</td><td class="l">UAC_Android_Tier1</td><td class="l">GA4 first touch</td><td>$329</td><td>411</td><td>$0.800</td><td>1.49%</td><td>7.04</td><td>23%</td><td>42%</td><td>42%</td><td>not within 60 days</td></tr><tr><td class="l">Google Ads</td><td class="l">UAC_Android_Global</td><td class="l">GA4 first touch</td><td>$96.17</td><td>415</td><td>$0.232</td><td>1.53%</td><td>9.08</td><td>15%</td><td>24%</td><td>35%</td><td>not within 60 days</td></tr><tr><td class="l">Meta</td><td class="l"></td><td class="l">network installs x cohort ARPU (modeled)</td><td>$716</td><td>1,217</td><td>$0.588</td><td>1.09%</td><td>6.49</td><td>11%</td><td>22%</td><td>27%</td><td>not within 60 days</td></tr><tr><td class="l">Meta</td><td class="l">Meta_AEO_Tier1</td><td class="l">network installs x cohort ARPU (modeled)</td><td>$554</td><td>618</td><td>$0.897</td><td>1.10%</td><td>6.45</td><td>7%</td><td>15%</td><td>19%</td><td>not within 60 days</td></tr><tr><td class="l">Meta</td><td class="l">Meta_AEO_RoW</td><td class="l">network installs x cohort ARPU (modeled)</td><td>$161</td><td>599</td><td>$0.270</td><td>1.08%</td><td>6.52</td><td>25%</td><td>49%</td><td>61%</td><td>not within 60 days</td></tr></tbody></table></div></div><h3>Creative scorecard</h3><p class="note">One row per creative across networks (creative-forge ids parsed from ad names; other ads by network ad id). Ranked by installs per 1,000 impressions only with at least 5,000 impressions; below that a creative is <em>insufficient data</em>, never ranked.</p><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="">Rank</th><th class="l">Creative</th><th class="l">Concept</th><th class="">Impressions</th><th class="">Installs</th><th class="">IPM (95% CI)</th><th class="">CTR</th><th class="">CPI</th><th class="">Spend</th><th class="">D7 ROAS (modeled)</th><th class="l">Status</th></tr></thead><tbody><tr><td>–</td><td class="l">b7b351de41</td><td class="l">fail-bait</td><td>214</td><td>1</td><td>4.67 (0.83–26)</td><td>0.93%</td><td>$0.799</td><td>$0.799</td><td>–</td><td class="l">insufficient data</td></tr><tr><td>1</td><td class="l">a013a2fa68</td><td class="l">playable-sort</td><td>68,321</td><td>1,025</td><td>15 (14–16)</td><td>2.59%</td><td>$0.460</td><td>$471</td><td>29%</td><td class="l">ranked</td></tr><tr><td>2</td><td class="l">c8d7c0052d</td><td class="l">moss-sweep</td><td>102,835</td><td>927</td><td>9.01 (8.46–9.61)</td><td>1.51%</td><td>$0.238</td><td>$221</td><td>56%</td><td class="l">ranked</td></tr><tr><td>3</td><td class="l">dc8435a1cd</td><td class="l">satisfying-clean</td><td>62,986</td><td>566</td><td>8.99 (8.28–9.75)</td><td>1.03%</td><td>$0.908</td><td>$514</td><td>15%</td><td class="l">ranked</td></tr><tr><td>4</td><td class="l">4a69bf2c4d</td><td class="l">satisfying-clean</td><td>291,469</td><td>2,217</td><td>7.61 (7.30–7.93)</td><td>1.40%</td><td>$0.539</td><td>$1,196</td><td>25%</td><td class="l">ranked</td></tr><tr><td>5</td><td class="l">34aa951f40</td><td class="l">moss-sweep</td><td>137,172</td><td>964</td><td>7.03 (6.60–7.48)</td><td>1.49%</td><td>$0.820</td><td>$790</td><td>16%</td><td class="l">ranked</td></tr><tr><td>6</td><td class="l">bfeaf44f25</td><td class="l">fail-bait</td><td>155,277</td><td>729</td><td>4.69 (4.37–5.05)</td><td>1.08%</td><td>$0.441</td><td>$322</td><td>29%</td><td class="l">ranked</td></tr></tbody></table></div></div><h2>Pacer Pal</h2><div class="tiles"><div class="tile"><div class="label">Spend (30 days)</div><div class="value">$2,244</div></div><div class="tile" title="On each network&#x27;s attribution basis"><div class="label">Installs (30 days)</div><div class="value">1,342</div></div><div class="tile"><div class="label">CPI (30 days)</div><div class="value">$1.67</div></div><div class="tile" title="network installs x cohort ARPU (modeled)"><div class="label">D7 ROAS</div><div class="value">34%</div></div><div class="tile"><div class="label">D30 ROAS</div><div class="value">35%</div></div><div class="tile"><div class="label">Payback (observed)</div><div class="value">not within 60 days</div></div><div class="tile" title="First day the pLTV model&#x27;s predicted cumulative ARPU reaches the CPI"><div class="label">Payback (predicted)</div><div class="value">beyond day 180 (model)</div></div></div><div class="grid2"><figure class="chart" id="c-spendperdaybynetwork"><figcaption><h3>Spend per day by network</h3><p>USD, converted with the configured FX rates</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Google Ads</span><span class="key"><i class="sw b2"></i>Meta</span></div><div role="img" aria-label="Spend per day by network: line chart, 2 series, 67 points"><div class="plot" style="--h:200px;--endw:119px"><div class="yaxis"><span style="bottom:0.00%">$0</span><span style="bottom:25.00%">$25.00</span><span style="bottom:50.00%">$50.00</span><span style="bottom:75.00%">$75.00</span><span style="bottom:100.00%">$100</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,82.250 L15.15,78.140 L30.30,94.490 L45.45,88.720 L60.61,68.670 L75.76,87.710 L90.91,90.100 L106.06,95.320 L121.21,83.600 L136.36,91.310 L151.52,80.370 L166.67,86.190 L181.82,90.500 L196.97,89.350 L212.12,91.690 L227.27,92.030 L242.42,87.620 L257.58,83.840 L272.73,90.810 L287.88,83.620 L303.03,91.200 L318.18,87.120 L333.33,89.850 L348.48,94.930 L363.64,96.000 L378.79,81.320 L393.94,93.030 L409.09,82.300 L424.24,80.170 L439.39,83.280 L454.55,86.260 L469.70,85.170 L484.85,84.140 L500.00,85.190 L515.15,90.980 L530.30,86.880 L545.45,90.130 L560.61,92.180 L575.76,70.850 L590.91,76.200 L606.06,88.080 L621.21,82.210 L636.36,87.360 L651.52,84.230 L666.67,79.700 L681.82,85.420 L696.97,81.930 L712.12,73.890 L727.27,93.700 L742.42,81.640 L757.58,74.440 L772.73,91.200 L787.88,87.890 L803.03,78.380 L818.18,83.030 L833.33,76.140 L848.48,84.640 L863.64,84.440 L878.79,89.090 L893.94,81.570 L909.09,84.290 L924.24,86.400 L939.39,87.470 L954.55,93.150 L969.70,81.060 L984.85,89.720 L1000.00,83.490" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,43.640 L15.15,62.490 L30.30,42.870 L45.45,39.700 L60.61,27.510 L75.76,52.410 L90.91,42.090 L106.06,35.010 L121.21,64.870 L136.36,38.860 L151.52,44.630 L166.67,31.040 L181.82,19.510 L196.97,53.540 L212.12,36.810 L227.27,43.240 L242.42,44.440 L257.58,20.640 L272.73,40.200 L287.88,46.220 L303.03,64.730 L318.18,66.020 L333.33,52.320 L348.48,53.910 L363.64,58.430 L378.79,50.470 L393.94,53.710 L409.09,30.530 L424.24,44.850 L439.39,55.690 L454.55,55.960 L469.70,37.140 L484.85,29.060 L500.00,42.650 L515.15,40.180 L530.30,46.450 L545.45,51.730 L560.61,43.810 L575.76,43.980 L590.91,38.200 L606.06,47.700 L621.21,61.070 L636.36,44.960 L651.52,63.110 L666.67,38.980 L681.82,34.660 L696.97,26.770 L712.12,43.440 L727.27,35.400 L742.42,52.190 L757.58,41.050 L772.73,29.560 L787.88,51.020 L803.03,34.140 L818.18,36.510 L833.33,49.300 L848.48,37.120 L863.64,52.200 L878.79,27.260 L893.94,28.680 L909.09,33.350 L924.24,48.980 L939.39,31.300 L954.55,48.420 L969.70,39.020 L984.85,33.600 L1000.00,46.280" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="83.490" y2="83.490" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="83.490" y2="83.490" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="46.280" y2="46.280" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="46.280" y2="46.280" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="14.93" height="100" data-tip="Aug 26
+Google Ads: $17.75
+Meta: $56.36"/><rect x="7.69" y="0" width="14.93" height="100" data-tip="Aug 27
+Google Ads: $21.86
+Meta: $37.51"/><rect x="22.84" y="0" width="14.93" height="100" data-tip="Aug 28
+Google Ads: $5.51
+Meta: $57.13"/><rect x="37.99" y="0" width="14.93" height="100" data-tip="Aug 29
+Google Ads: $11.28
+Meta: $60.30"/><rect x="53.14" y="0" width="14.93" height="100" data-tip="Aug 30
+Google Ads: $31.33
+Meta: $72.49"/><rect x="68.29" y="0" width="14.93" height="100" data-tip="Aug 31
+Google Ads: $12.29
+Meta: $47.59"/><rect x="83.45" y="0" width="14.93" height="100" data-tip="Sep 1
+Google Ads: $9.90
+Meta: $57.91"/><rect x="98.60" y="0" width="14.93" height="100" data-tip="Sep 2
+Google Ads: $4.68
+Meta: $64.99"/><rect x="113.75" y="0" width="14.93" height="100" data-tip="Sep 3
+Google Ads: $16.40
+Meta: $35.13"/><rect x="128.90" y="0" width="14.93" height="100" data-tip="Sep 4
+Google Ads: $8.69
+Meta: $61.14"/><rect x="144.05" y="0" width="14.93" height="100" data-tip="Sep 5
+Google Ads: $19.63
+Meta: $55.37"/><rect x="159.20" y="0" width="14.93" height="100" data-tip="Sep 6
+Google Ads: $13.81
+Meta: $68.96"/><rect x="174.36" y="0" width="14.93" height="100" data-tip="Sep 7
+Google Ads: $9.50
+Meta: $80.49"/><rect x="189.51" y="0" width="14.93" height="100" data-tip="Sep 8
+Google Ads: $10.65
+Meta: $46.46"/><rect x="204.66" y="0" width="14.93" height="100" data-tip="Sep 9
+Google Ads: $8.31
+Meta: $63.19"/><rect x="219.81" y="0" width="14.93" height="100" data-tip="Sep 10
+Google Ads: $7.97
+Meta: $56.76"/><rect x="234.96" y="0" width="14.93" height="100" data-tip="Sep 11
+Google Ads: $12.38
+Meta: $55.56"/><rect x="250.11" y="0" width="14.93" height="100" data-tip="Sep 12
+Google Ads: $16.16
+Meta: $79.36"/><rect x="265.26" y="0" width="14.93" height="100" data-tip="Sep 13
+Google Ads: $9.19
+Meta: $59.80"/><rect x="280.42" y="0" width="14.93" height="100" data-tip="Sep 14
+Google Ads: $16.38
+Meta: $53.78"/><rect x="295.57" y="0" width="14.93" height="100" data-tip="Sep 15
+Google Ads: $8.80
+Meta: $35.27"/><rect x="310.72" y="0" width="14.93" height="100" data-tip="Sep 16
+Google Ads: $12.88
+Meta: $33.98"/><rect x="325.87" y="0" width="14.93" height="100" data-tip="Sep 17
+Google Ads: $10.15
+Meta: $47.68"/><rect x="341.02" y="0" width="14.93" height="100" data-tip="Sep 18
+Google Ads: $5.07
+Meta: $46.09"/><rect x="356.17" y="0" width="14.93" height="100" data-tip="Sep 19
+Google Ads: $4.00
+Meta: $41.57"/><rect x="371.33" y="0" width="14.93" height="100" data-tip="Sep 20
+Google Ads: $18.68
+Meta: $49.53"/><rect x="386.48" y="0" width="14.93" height="100" data-tip="Sep 21
+Google Ads: $6.97
+Meta: $46.29"/><rect x="401.63" y="0" width="14.93" height="100" data-tip="Sep 22
+Google Ads: $17.70
+Meta: $69.47"/><rect x="416.78" y="0" width="14.93" height="100" data-tip="Sep 23
+Google Ads: $19.83
+Meta: $55.15"/><rect x="431.93" y="0" width="14.93" height="100" data-tip="Sep 24
+Google Ads: $16.72
+Meta: $44.31"/><rect x="447.08" y="0" width="14.93" height="100" data-tip="Sep 25
+Google Ads: $13.74
+Meta: $44.04"/><rect x="462.23" y="0" width="14.93" height="100" data-tip="Sep 26
+Google Ads: $14.83
+Meta: $62.86"/><rect x="477.39" y="0" width="14.93" height="100" data-tip="Sep 27
+Google Ads: $15.86
+Meta: $70.94"/><rect x="492.54" y="0" width="14.93" height="100" data-tip="Sep 28
+Google Ads: $14.81
+Meta: $57.35"/><rect x="507.69" y="0" width="14.93" height="100" data-tip="Sep 29
+Google Ads: $9.02
+Meta: $59.82"/><rect x="522.84" y="0" width="14.93" height="100" data-tip="Sep 30
+Google Ads: $13.12
+Meta: $53.55"/><rect x="537.99" y="0" width="14.93" height="100" data-tip="Oct 1
+Google Ads: $9.87
+Meta: $48.27"/><rect x="553.14" y="0" width="14.93" height="100" data-tip="Oct 2
+Google Ads: $7.82
+Meta: $56.19"/><rect x="568.29" y="0" width="14.93" height="100" data-tip="Oct 3
+Google Ads: $29.15
+Meta: $56.02"/><rect x="583.45" y="0" width="14.93" height="100" data-tip="Oct 4
+Google Ads: $23.80
+Meta: $61.80"/><rect x="598.60" y="0" width="14.93" height="100" data-tip="Oct 5
+Google Ads: $11.92
+Meta: $52.30"/><rect x="613.75" y="0" width="14.93" height="100" data-tip="Oct 6
+Google Ads: $17.79
+Meta: $38.93"/><rect x="628.90" y="0" width="14.93" height="100" data-tip="Oct 7
+Google Ads: $12.64
+Meta: $55.04"/><rect x="644.05" y="0" width="14.93" height="100" data-tip="Oct 8
+Google Ads: $15.77
+Meta: $36.89"/><rect x="659.20" y="0" width="14.93" height="100" data-tip="Oct 9
+Google Ads: $20.30
+Meta: $61.02"/><rect x="674.36" y="0" width="14.93" height="100" data-tip="Oct 10
+Google Ads: $14.58
+Meta: $65.34"/><rect x="689.51" y="0" width="14.93" height="100" data-tip="Oct 11
+Google Ads: $18.07
+Meta: $73.23"/><rect x="704.66" y="0" width="14.93" height="100" data-tip="Oct 12
+Google Ads: $26.11
+Meta: $56.56"/><rect x="719.81" y="0" width="14.93" height="100" data-tip="Oct 13
+Google Ads: $6.30
+Meta: $64.60"/><rect x="734.96" y="0" width="14.93" height="100" data-tip="Oct 14
+Google Ads: $18.36
+Meta: $47.81"/><rect x="750.11" y="0" width="14.93" height="100" data-tip="Oct 15
+Google Ads: $25.56
+Meta: $58.95"/><rect x="765.26" y="0" width="14.93" height="100" data-tip="Oct 16
+Google Ads: $8.80
+Meta: $70.44"/><rect x="780.42" y="0" width="14.93" height="100" data-tip="Oct 17
+Google Ads: $12.11
+Meta: $48.98"/><rect x="795.57" y="0" width="14.93" height="100" data-tip="Oct 18
+Google Ads: $21.62
+Meta: $65.86"/><rect x="810.72" y="0" width="14.93" height="100" data-tip="Oct 19
+Google Ads: $16.97
+Meta: $63.49"/><rect x="825.87" y="0" width="14.93" height="100" data-tip="Oct 20
+Google Ads: $23.86
+Meta: $50.70"/><rect x="841.02" y="0" width="14.93" height="100" data-tip="Oct 21
+Google Ads: $15.36
+Meta: $62.88"/><rect x="856.17" y="0" width="14.93" height="100" data-tip="Oct 22
+Google Ads: $15.56
+Meta: $47.80"/><rect x="871.33" y="0" width="14.93" height="100" data-tip="Oct 23
+Google Ads: $10.91
+Meta: $72.74"/><rect x="886.48" y="0" width="14.93" height="100" data-tip="Oct 24
+Google Ads: $18.43
+Meta: $71.32"/><rect x="901.63" y="0" width="14.93" height="100" data-tip="Oct 25
+Google Ads: $15.71
+Meta: $66.65"/><rect x="916.78" y="0" width="14.93" height="100" data-tip="Oct 26
+Google Ads: $13.60
+Meta: $51.02"/><rect x="931.93" y="0" width="14.93" height="100" data-tip="Oct 27
+Google Ads: $12.53
+Meta: $68.70"/><rect x="947.08" y="0" width="14.93" height="100" data-tip="Oct 28
+Google Ads: $6.85
+Meta: $51.58"/><rect x="962.23" y="0" width="14.93" height="100" data-tip="Oct 29
+Google Ads: $18.94
+Meta: $60.98"/><rect x="977.39" y="0" width="14.93" height="100" data-tip="Oct 30
+Google Ads: $10.28
+Meta: $66.40"/><rect x="992.54" y="0" width="14.93" height="100" data-tip="Oct 31
+Google Ads: $16.51
+Meta: $53.72"/></g></svg></div><div class="endlabels"><span style="top:83.49%">Google Ads $16.51</span><span style="top:46.28%">Meta $53.72</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 26</span><span class="" style="left:24.24%">Sep 11</span><span class="" style="left:50.00%">Sep 28</span><span class="" style="left:75.76%">Oct 15</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Google Ads</th><th>Meta</th></tr></thead><tbody><tr><td>Aug 26</td><td>$17.75</td><td>$56.36</td></tr><tr><td>Aug 27</td><td>$21.86</td><td>$37.51</td></tr><tr><td>Aug 28</td><td>$5.51</td><td>$57.13</td></tr><tr><td>Aug 29</td><td>$11.28</td><td>$60.30</td></tr><tr><td>Aug 30</td><td>$31.33</td><td>$72.49</td></tr><tr><td>Aug 31</td><td>$12.29</td><td>$47.59</td></tr><tr><td>Sep 1</td><td>$9.90</td><td>$57.91</td></tr><tr><td>Sep 2</td><td>$4.68</td><td>$64.99</td></tr><tr><td>Sep 3</td><td>$16.40</td><td>$35.13</td></tr><tr><td>Sep 4</td><td>$8.69</td><td>$61.14</td></tr><tr><td>Sep 5</td><td>$19.63</td><td>$55.37</td></tr><tr><td>Sep 6</td><td>$13.81</td><td>$68.96</td></tr><tr><td>Sep 7</td><td>$9.50</td><td>$80.49</td></tr><tr><td>Sep 8</td><td>$10.65</td><td>$46.46</td></tr><tr><td>Sep 9</td><td>$8.31</td><td>$63.19</td></tr><tr><td>Sep 10</td><td>$7.97</td><td>$56.76</td></tr><tr><td>Sep 11</td><td>$12.38</td><td>$55.56</td></tr><tr><td>Sep 12</td><td>$16.16</td><td>$79.36</td></tr><tr><td>Sep 13</td><td>$9.19</td><td>$59.80</td></tr><tr><td>Sep 14</td><td>$16.38</td><td>$53.78</td></tr><tr><td>Sep 15</td><td>$8.80</td><td>$35.27</td></tr><tr><td>Sep 16</td><td>$12.88</td><td>$33.98</td></tr><tr><td>Sep 17</td><td>$10.15</td><td>$47.68</td></tr><tr><td>Sep 18</td><td>$5.07</td><td>$46.09</td></tr><tr><td>Sep 19</td><td>$4.00</td><td>$41.57</td></tr><tr><td>Sep 20</td><td>$18.68</td><td>$49.53</td></tr><tr><td>Sep 21</td><td>$6.97</td><td>$46.29</td></tr><tr><td>Sep 22</td><td>$17.70</td><td>$69.47</td></tr><tr><td>Sep 23</td><td>$19.83</td><td>$55.15</td></tr><tr><td>Sep 24</td><td>$16.72</td><td>$44.31</td></tr><tr><td>Sep 25</td><td>$13.74</td><td>$44.04</td></tr><tr><td>Sep 26</td><td>$14.83</td><td>$62.86</td></tr><tr><td>Sep 27</td><td>$15.86</td><td>$70.94</td></tr><tr><td>Sep 28</td><td>$14.81</td><td>$57.35</td></tr><tr><td>Sep 29</td><td>$9.02</td><td>$59.82</td></tr><tr><td>Sep 30</td><td>$13.12</td><td>$53.55</td></tr><tr><td>Oct 1</td><td>$9.87</td><td>$48.27</td></tr><tr><td>Oct 2</td><td>$7.82</td><td>$56.19</td></tr><tr><td>Oct 3</td><td>$29.15</td><td>$56.02</td></tr><tr><td>Oct 4</td><td>$23.80</td><td>$61.80</td></tr><tr><td>Oct 5</td><td>$11.92</td><td>$52.30</td></tr><tr><td>Oct 6</td><td>$17.79</td><td>$38.93</td></tr><tr><td>Oct 7</td><td>$12.64</td><td>$55.04</td></tr><tr><td>Oct 8</td><td>$15.77</td><td>$36.89</td></tr><tr><td>Oct 9</td><td>$20.30</td><td>$61.02</td></tr><tr><td>Oct 10</td><td>$14.58</td><td>$65.34</td></tr><tr><td>Oct 11</td><td>$18.07</td><td>$73.23</td></tr><tr><td>Oct 12</td><td>$26.11</td><td>$56.56</td></tr><tr><td>Oct 13</td><td>$6.30</td><td>$64.60</td></tr><tr><td>Oct 14</td><td>$18.36</td><td>$47.81</td></tr><tr><td>Oct 15</td><td>$25.56</td><td>$58.95</td></tr><tr><td>Oct 16</td><td>$8.80</td><td>$70.44</td></tr><tr><td>Oct 17</td><td>$12.11</td><td>$48.98</td></tr><tr><td>Oct 18</td><td>$21.62</td><td>$65.86</td></tr><tr><td>Oct 19</td><td>$16.97</td><td>$63.49</td></tr><tr><td>Oct 20</td><td>$23.86</td><td>$50.70</td></tr><tr><td>Oct 21</td><td>$15.36</td><td>$62.88</td></tr><tr><td>Oct 22</td><td>$15.56</td><td>$47.80</td></tr><tr><td>Oct 23</td><td>$10.91</td><td>$72.74</td></tr><tr><td>Oct 24</td><td>$18.43</td><td>$71.32</td></tr><tr><td>Oct 25</td><td>$15.71</td><td>$66.65</td></tr><tr><td>Oct 26</td><td>$13.60</td><td>$51.02</td></tr><tr><td>Oct 27</td><td>$12.53</td><td>$68.70</td></tr><tr><td>Oct 28</td><td>$6.85</td><td>$51.58</td></tr><tr><td>Oct 29</td><td>$18.94</td><td>$60.98</td></tr><tr><td>Oct 30</td><td>$10.28</td><td>$66.40</td></tr><tr><td>Oct 31</td><td>$16.51</td><td>$53.72</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-roasbydayssinceinstall"><figcaption><h3>ROAS by days since install</h3><p>Pooled over the cohorts complete at each day; 100% = payback</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>All networks</span><span class="key"><i class="sw b2"></i>Google Ads</span><span class="key"><i class="sw b3"></i>Meta</span><span class="key"><i class="sw b8" style="background-image:linear-gradient(90deg,transparent 50%,var(--surface) 50%);background-size:6px 3px"></i>Blended (all new users)</span></div><div role="img" aria-label="ROAS by days since install: line chart, 4 series, 61 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">0.0%</span><span style="bottom:25.00%">50.0%</span><span style="bottom:50.00%">100.0%</span><span style="bottom:75.00%">150.0%</span><span style="bottom:100.00%">200.0%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,100.000 L16.67,100.000 L33.33,100.000 L50.00,100.000 L66.67,100.000 L83.33,100.000 L100.00,100.000 L116.67,83.129 L133.33,82.534 L150.00,83.059 L166.67,82.791 L183.33,82.472 L200.00,82.203 L216.67,82.414 L233.33,82.059 L250.00,81.815 L266.67,81.713 L283.33,81.963 L300.00,82.033 L316.67,82.077 L333.33,82.314 L350.00,82.195 L366.67,81.948 L383.33,81.618 L400.00,81.620 L416.67,81.840 L433.33,82.019 L450.00,82.143 L466.67,82.218 L483.33,81.885 L500.00,82.560 L516.67,82.441 L533.33,82.400 L550.00,82.434 L566.67,82.590 L583.33,82.105 L600.00,82.085 L616.67,77.476 L633.33,76.893 L650.00,77.257 L666.67,76.811 L683.33,77.529 L700.00,77.215 L716.67,77.297 L733.33,76.564 L750.00,77.006 L766.67,76.813 L783.33,76.931 L800.00,75.940 L816.67,75.713 L833.33,75.412 L850.00,74.693 L866.67,74.643 L883.33,73.358 L900.00,73.908 L916.67,74.851 L933.33,74.327 L950.00,72.837 L966.67,70.416 L983.33,71.376 L1000.00,73.507" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,100.000 L16.67,100.000 L33.33,100.000 L50.00,100.000 L66.67,100.000 L83.33,100.000 L100.00,100.000 L116.67,82.454 L133.33,81.815 L150.00,82.189 L166.67,81.852 L183.33,81.531 L200.00,81.058 L216.67,81.409 L233.33,80.953 L250.00,80.699 L266.67,80.721 L283.33,81.153 L300.00,81.122 L316.67,81.176 L333.33,81.772 L350.00,81.727 L366.67,81.500 L383.33,81.132 L400.00,81.124 L416.67,81.661 L433.33,81.929 L450.00,82.062 L466.67,82.355 L483.33,81.666 L500.00,81.804 L516.67,81.719 L533.33,81.653 L550.00,81.636 L566.67,81.823 L583.33,81.334 L600.00,81.195 L616.67,76.127 L633.33,75.365 L650.00,75.255 L666.67,74.619 L683.33,75.461 L700.00,74.995 L716.67,75.196 L733.33,74.770 L750.00,75.796 L766.67,75.547 L783.33,75.476 L800.00,74.171 L816.67,73.942 L833.33,74.038 L850.00,73.358 L866.67,73.188 L883.33,72.425 L900.00,72.851 L916.67,73.945 L933.33,73.809 L950.00,72.018 L966.67,70.622 L983.33,72.771 L1000.00,74.771" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M0.00,100.000 L16.67,100.000 L33.33,100.000 L50.00,100.000 L66.67,100.000 L83.33,100.000 L100.00,100.000 L116.67,83.303 L133.33,82.719 L150.00,83.284 L166.67,83.033 L183.33,82.716 L200.00,82.496 L216.67,82.670 L233.33,82.339 L250.00,82.098 L266.67,81.967 L283.33,82.167 L300.00,82.261 L316.67,82.306 L333.33,82.449 L350.00,82.312 L366.67,82.060 L383.33,81.739 L400.00,81.742 L416.67,81.884 L433.33,82.040 L450.00,82.162 L466.67,82.185 L483.33,81.935 L500.00,82.736 L516.67,82.610 L533.33,82.575 L550.00,82.623 L566.67,82.771 L583.33,82.287 L600.00,82.295 L616.67,77.792 L633.33,77.245 L650.00,77.709 L666.67,77.303 L683.33,77.998 L700.00,77.707 L716.67,77.771 L733.33,76.975 L750.00,77.285 L766.67,77.100 L783.33,77.258 L800.00,76.332 L816.67,76.112 L833.33,75.724 L850.00,74.996 L866.67,74.983 L883.33,73.583 L900.00,74.164 L916.67,75.084 L933.33,74.463 L950.00,73.044 L966.67,70.361 L983.33,71.024 L1000.00,73.150" vector-effect="non-scaling-stroke"/><path class="ln c8 dashed" d="M0.00,100.000 L16.67,100.000 L33.33,100.000 L50.00,100.000 L66.67,100.000 L83.33,100.000 L100.00,100.000 L116.67,44.043 L133.33,42.012 L150.00,43.453 L166.67,42.558 L183.33,41.502 L200.00,40.591 L216.67,41.113 L233.33,39.925 L250.00,39.126 L266.67,38.691 L283.33,39.453 L300.00,39.729 L316.67,39.955 L333.33,40.483 L350.00,39.911 L366.67,39.203 L383.33,38.047 L400.00,38.059 L416.67,38.919 L433.33,39.458 L450.00,39.766 L466.67,39.932 L483.33,38.757 L500.00,40.679 L516.67,40.344 L533.33,40.224 L550.00,40.376 L566.67,41.050 L583.33,39.392 L600.00,39.098 L616.67,23.731 L633.33,21.757 L650.00,22.386 L666.67,20.712 L683.33,23.313 L700.00,22.426 L716.67,23.432 L733.33,20.957 L750.00,21.751 L766.67,21.720 L783.33,22.588 L800.00,19.162 L816.67,18.990 L833.33,17.266 L850.00,15.005 L866.67,15.338 L883.33,11.137 L900.00,14.401 L916.67,15.881 L933.33,14.323 L950.00,9.322 L966.67,1.040 L983.33,4.305 L1000.00,10.469" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="73.507" y2="73.507" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="73.507" y2="73.507" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="74.771" y2="74.771" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="74.771" y2="74.771" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="73.150" y2="73.150" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="1000.00" x2="1000.00" y1="73.150" y2="73.150" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="10.469" y2="10.469" vector-effect="non-scaling-stroke"/><line class="dot c8" x1="1000.00" x2="1000.00" y1="10.469" y2="10.469" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="16.39" height="100" data-tip="D0
+All networks: 0.0%
+Google Ads: 0.0%
+Meta: 0.0%
+Blended (all new users): 0.0%"/><rect x="8.47" y="0" width="16.39" height="100" data-tip="D1
+All networks: 0.0%
+Google Ads: 0.0%
+Meta: 0.0%
+Blended (all new users): 0.0%"/><rect x="25.14" y="0" width="16.39" height="100" data-tip="D2
+All networks: 0.0%
+Google Ads: 0.0%
+Meta: 0.0%
+Blended (all new users): 0.0%"/><rect x="41.80" y="0" width="16.39" height="100" data-tip="D3
+All networks: 0.0%
+Google Ads: 0.0%
+Meta: 0.0%
+Blended (all new users): 0.0%"/><rect x="58.47" y="0" width="16.39" height="100" data-tip="D4
+All networks: 0.0%
+Google Ads: 0.0%
+Meta: 0.0%
+Blended (all new users): 0.0%"/><rect x="75.14" y="0" width="16.39" height="100" data-tip="D5
+All networks: 0.0%
+Google Ads: 0.0%
+Meta: 0.0%
+Blended (all new users): 0.0%"/><rect x="91.80" y="0" width="16.39" height="100" data-tip="D6
+All networks: 0.0%
+Google Ads: 0.0%
+Meta: 0.0%
+Blended (all new users): 0.0%"/><rect x="108.47" y="0" width="16.39" height="100" data-tip="D7
+All networks: 33.7%
+Google Ads: 35.1%
+Meta: 33.4%
+Blended (all new users): 111.9%"/><rect x="125.14" y="0" width="16.39" height="100" data-tip="D8
+All networks: 34.9%
+Google Ads: 36.4%
+Meta: 34.6%
+Blended (all new users): 116.0%"/><rect x="141.80" y="0" width="16.39" height="100" data-tip="D9
+All networks: 33.9%
+Google Ads: 35.6%
+Meta: 33.4%
+Blended (all new users): 113.1%"/><rect x="158.47" y="0" width="16.39" height="100" data-tip="D10
+All networks: 34.4%
+Google Ads: 36.3%
+Meta: 33.9%
+Blended (all new users): 114.9%"/><rect x="175.14" y="0" width="16.39" height="100" data-tip="D11
+All networks: 35.1%
+Google Ads: 36.9%
+Meta: 34.6%
+Blended (all new users): 117.0%"/><rect x="191.80" y="0" width="16.39" height="100" data-tip="D12
+All networks: 35.6%
+Google Ads: 37.9%
+Meta: 35.0%
+Blended (all new users): 118.8%"/><rect x="208.47" y="0" width="16.39" height="100" data-tip="D13
+All networks: 35.2%
+Google Ads: 37.2%
+Meta: 34.7%
+Blended (all new users): 117.8%"/><rect x="225.14" y="0" width="16.39" height="100" data-tip="D14
+All networks: 35.9%
+Google Ads: 38.1%
+Meta: 35.3%
+Blended (all new users): 120.1%"/><rect x="241.80" y="0" width="16.39" height="100" data-tip="D15
+All networks: 36.4%
+Google Ads: 38.6%
+Meta: 35.8%
+Blended (all new users): 121.7%"/><rect x="258.47" y="0" width="16.39" height="100" data-tip="D16
+All networks: 36.6%
+Google Ads: 38.6%
+Meta: 36.1%
+Blended (all new users): 122.6%"/><rect x="275.14" y="0" width="16.39" height="100" data-tip="D17
+All networks: 36.1%
+Google Ads: 37.7%
+Meta: 35.7%
+Blended (all new users): 121.1%"/><rect x="291.80" y="0" width="16.39" height="100" data-tip="D18
+All networks: 35.9%
+Google Ads: 37.8%
+Meta: 35.5%
+Blended (all new users): 120.5%"/><rect x="308.47" y="0" width="16.39" height="100" data-tip="D19
+All networks: 35.8%
+Google Ads: 37.6%
+Meta: 35.4%
+Blended (all new users): 120.1%"/><rect x="325.14" y="0" width="16.39" height="100" data-tip="D20
+All networks: 35.4%
+Google Ads: 36.5%
+Meta: 35.1%
+Blended (all new users): 119.0%"/><rect x="341.80" y="0" width="16.39" height="100" data-tip="D21
+All networks: 35.6%
+Google Ads: 36.5%
+Meta: 35.4%
+Blended (all new users): 120.2%"/><rect x="358.47" y="0" width="16.39" height="100" data-tip="D22
+All networks: 36.1%
+Google Ads: 37.0%
+Meta: 35.9%
+Blended (all new users): 121.6%"/><rect x="375.14" y="0" width="16.39" height="100" data-tip="D23
+All networks: 36.8%
+Google Ads: 37.7%
+Meta: 36.5%
+Blended (all new users): 123.9%"/><rect x="391.80" y="0" width="16.39" height="100" data-tip="D24
+All networks: 36.8%
+Google Ads: 37.8%
+Meta: 36.5%
+Blended (all new users): 123.9%"/><rect x="408.47" y="0" width="16.39" height="100" data-tip="D25
+All networks: 36.3%
+Google Ads: 36.7%
+Meta: 36.2%
+Blended (all new users): 122.2%"/><rect x="425.14" y="0" width="16.39" height="100" data-tip="D26
+All networks: 36.0%
+Google Ads: 36.1%
+Meta: 35.9%
+Blended (all new users): 121.1%"/><rect x="441.80" y="0" width="16.39" height="100" data-tip="D27
+All networks: 35.7%
+Google Ads: 35.9%
+Meta: 35.7%
+Blended (all new users): 120.5%"/><rect x="458.47" y="0" width="16.39" height="100" data-tip="D28
+All networks: 35.6%
+Google Ads: 35.3%
+Meta: 35.6%
+Blended (all new users): 120.1%"/><rect x="475.14" y="0" width="16.39" height="100" data-tip="D29
+All networks: 36.2%
+Google Ads: 36.7%
+Meta: 36.1%
+Blended (all new users): 122.5%"/><rect x="491.80" y="0" width="16.39" height="100" data-tip="D30
+All networks: 34.9%
+Google Ads: 36.4%
+Meta: 34.5%
+Blended (all new users): 118.6%"/><rect x="508.47" y="0" width="16.39" height="100" data-tip="D31
+All networks: 35.1%
+Google Ads: 36.6%
+Meta: 34.8%
+Blended (all new users): 119.3%"/><rect x="525.14" y="0" width="16.39" height="100" data-tip="D32
+All networks: 35.2%
+Google Ads: 36.7%
+Meta: 34.9%
+Blended (all new users): 119.6%"/><rect x="541.80" y="0" width="16.39" height="100" data-tip="D33
+All networks: 35.1%
+Google Ads: 36.7%
+Meta: 34.8%
+Blended (all new users): 119.2%"/><rect x="558.47" y="0" width="16.39" height="100" data-tip="D34
+All networks: 34.8%
+Google Ads: 36.4%
+Meta: 34.5%
+Blended (all new users): 117.9%"/><rect x="575.14" y="0" width="16.39" height="100" data-tip="D35
+All networks: 35.8%
+Google Ads: 37.3%
+Meta: 35.4%
+Blended (all new users): 121.2%"/><rect x="591.80" y="0" width="16.39" height="100" data-tip="D36
+All networks: 35.8%
+Google Ads: 37.6%
+Meta: 35.4%
+Blended (all new users): 121.8%"/><rect x="608.47" y="0" width="16.39" height="100" data-tip="D37
+All networks: 45.0%
+Google Ads: 47.7%
+Meta: 44.4%
+Blended (all new users): 152.5%"/><rect x="625.14" y="0" width="16.39" height="100" data-tip="D38
+All networks: 46.2%
+Google Ads: 49.3%
+Meta: 45.5%
+Blended (all new users): 156.5%"/><rect x="641.80" y="0" width="16.39" height="100" data-tip="D39
+All networks: 45.5%
+Google Ads: 49.5%
+Meta: 44.6%
+Blended (all new users): 155.2%"/><rect x="658.47" y="0" width="16.39" height="100" data-tip="D40
+All networks: 46.4%
+Google Ads: 50.8%
+Meta: 45.4%
+Blended (all new users): 158.6%"/><rect x="675.14" y="0" width="16.39" height="100" data-tip="D41
+All networks: 44.9%
+Google Ads: 49.1%
+Meta: 44.0%
+Blended (all new users): 153.4%"/><rect x="691.80" y="0" width="16.39" height="100" data-tip="D42
+All networks: 45.6%
+Google Ads: 50.0%
+Meta: 44.6%
+Blended (all new users): 155.1%"/><rect x="708.47" y="0" width="16.39" height="100" data-tip="D43
+All networks: 45.4%
+Google Ads: 49.6%
+Meta: 44.5%
+Blended (all new users): 153.1%"/><rect x="725.14" y="0" width="16.39" height="100" data-tip="D44
+All networks: 46.9%
+Google Ads: 50.5%
+Meta: 46.0%
+Blended (all new users): 158.1%"/><rect x="741.80" y="0" width="16.39" height="100" data-tip="D45
+All networks: 46.0%
+Google Ads: 48.4%
+Meta: 45.4%
+Blended (all new users): 156.5%"/><rect x="758.47" y="0" width="16.39" height="100" data-tip="D46
+All networks: 46.4%
+Google Ads: 48.9%
+Meta: 45.8%
+Blended (all new users): 156.6%"/><rect x="775.14" y="0" width="16.39" height="100" data-tip="D47
+All networks: 46.1%
+Google Ads: 49.0%
+Meta: 45.5%
+Blended (all new users): 154.8%"/><rect x="791.80" y="0" width="16.39" height="100" data-tip="D48
+All networks: 48.1%
+Google Ads: 51.7%
+Meta: 47.3%
+Blended (all new users): 161.7%"/><rect x="808.47" y="0" width="16.39" height="100" data-tip="D49
+All networks: 48.6%
+Google Ads: 52.1%
+Meta: 47.8%
+Blended (all new users): 162.0%"/><rect x="825.14" y="0" width="16.39" height="100" data-tip="D50
+All networks: 49.2%
+Google Ads: 51.9%
+Meta: 48.6%
+Blended (all new users): 165.5%"/><rect x="841.80" y="0" width="16.39" height="100" data-tip="D51
+All networks: 50.6%
+Google Ads: 53.3%
+Meta: 50.0%
+Blended (all new users): 170.0%"/><rect x="858.47" y="0" width="16.39" height="100" data-tip="D52
+All networks: 50.7%
+Google Ads: 53.6%
+Meta: 50.0%
+Blended (all new users): 169.3%"/><rect x="875.14" y="0" width="16.39" height="100" data-tip="D53
+All networks: 53.3%
+Google Ads: 55.2%
+Meta: 52.8%
+Blended (all new users): 177.7%"/><rect x="891.80" y="0" width="16.39" height="100" data-tip="D54
+All networks: 52.2%
+Google Ads: 54.3%
+Meta: 51.7%
+Blended (all new users): 171.2%"/><rect x="908.47" y="0" width="16.39" height="100" data-tip="D55
+All networks: 50.3%
+Google Ads: 52.1%
+Meta: 49.8%
+Blended (all new users): 168.2%"/><rect x="925.14" y="0" width="16.39" height="100" data-tip="D56
+All networks: 51.3%
+Google Ads: 52.4%
+Meta: 51.1%
+Blended (all new users): 171.4%"/><rect x="941.80" y="0" width="16.39" height="100" data-tip="D57
+All networks: 54.3%
+Google Ads: 56.0%
+Meta: 53.9%
+Blended (all new users): 181.4%"/><rect x="958.47" y="0" width="16.39" height="100" data-tip="D58
+All networks: 59.2%
+Google Ads: 58.8%
+Meta: 59.3%
+Blended (all new users): 197.9%"/><rect x="975.14" y="0" width="16.39" height="100" data-tip="D59
+All networks: 57.2%
+Google Ads: 54.5%
+Meta: 58.0%
+Blended (all new users): 191.4%"/><rect x="991.80" y="0" width="16.39" height="100" data-tip="D60
+All networks: 53.0%
+Google Ads: 50.5%
+Meta: 53.7%
+Blended (all new users): 179.1%"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">D0</span><span class="" style="left:25.00%">D15</span><span class="" style="left:50.00%">D30</span><span class="" style="left:75.00%">D45</span><span class="last" style="left:100.00%">D60</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Day</th><th>All networks</th><th>Google Ads</th><th>Meta</th><th>Blended (all new users)</th></tr></thead><tbody><tr><td>D0</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>0.0%</td></tr><tr><td>D1</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>0.0%</td></tr><tr><td>D2</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>0.0%</td></tr><tr><td>D3</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>0.0%</td></tr><tr><td>D4</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>0.0%</td></tr><tr><td>D5</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>0.0%</td></tr><tr><td>D6</td><td>0.0%</td><td>0.0%</td><td>0.0%</td><td>0.0%</td></tr><tr><td>D7</td><td>33.7%</td><td>35.1%</td><td>33.4%</td><td>111.9%</td></tr><tr><td>D8</td><td>34.9%</td><td>36.4%</td><td>34.6%</td><td>116.0%</td></tr><tr><td>D9</td><td>33.9%</td><td>35.6%</td><td>33.4%</td><td>113.1%</td></tr><tr><td>D10</td><td>34.4%</td><td>36.3%</td><td>33.9%</td><td>114.9%</td></tr><tr><td>D11</td><td>35.1%</td><td>36.9%</td><td>34.6%</td><td>117.0%</td></tr><tr><td>D12</td><td>35.6%</td><td>37.9%</td><td>35.0%</td><td>118.8%</td></tr><tr><td>D13</td><td>35.2%</td><td>37.2%</td><td>34.7%</td><td>117.8%</td></tr><tr><td>D14</td><td>35.9%</td><td>38.1%</td><td>35.3%</td><td>120.1%</td></tr><tr><td>D15</td><td>36.4%</td><td>38.6%</td><td>35.8%</td><td>121.7%</td></tr><tr><td>D16</td><td>36.6%</td><td>38.6%</td><td>36.1%</td><td>122.6%</td></tr><tr><td>D17</td><td>36.1%</td><td>37.7%</td><td>35.7%</td><td>121.1%</td></tr><tr><td>D18</td><td>35.9%</td><td>37.8%</td><td>35.5%</td><td>120.5%</td></tr><tr><td>D19</td><td>35.8%</td><td>37.6%</td><td>35.4%</td><td>120.1%</td></tr><tr><td>D20</td><td>35.4%</td><td>36.5%</td><td>35.1%</td><td>119.0%</td></tr><tr><td>D21</td><td>35.6%</td><td>36.5%</td><td>35.4%</td><td>120.2%</td></tr><tr><td>D22</td><td>36.1%</td><td>37.0%</td><td>35.9%</td><td>121.6%</td></tr><tr><td>D23</td><td>36.8%</td><td>37.7%</td><td>36.5%</td><td>123.9%</td></tr><tr><td>D24</td><td>36.8%</td><td>37.8%</td><td>36.5%</td><td>123.9%</td></tr><tr><td>D25</td><td>36.3%</td><td>36.7%</td><td>36.2%</td><td>122.2%</td></tr><tr><td>D26</td><td>36.0%</td><td>36.1%</td><td>35.9%</td><td>121.1%</td></tr><tr><td>D27</td><td>35.7%</td><td>35.9%</td><td>35.7%</td><td>120.5%</td></tr><tr><td>D28</td><td>35.6%</td><td>35.3%</td><td>35.6%</td><td>120.1%</td></tr><tr><td>D29</td><td>36.2%</td><td>36.7%</td><td>36.1%</td><td>122.5%</td></tr><tr><td>D30</td><td>34.9%</td><td>36.4%</td><td>34.5%</td><td>118.6%</td></tr><tr><td>D31</td><td>35.1%</td><td>36.6%</td><td>34.8%</td><td>119.3%</td></tr><tr><td>D32</td><td>35.2%</td><td>36.7%</td><td>34.9%</td><td>119.6%</td></tr><tr><td>D33</td><td>35.1%</td><td>36.7%</td><td>34.8%</td><td>119.2%</td></tr><tr><td>D34</td><td>34.8%</td><td>36.4%</td><td>34.5%</td><td>117.9%</td></tr><tr><td>D35</td><td>35.8%</td><td>37.3%</td><td>35.4%</td><td>121.2%</td></tr><tr><td>D36</td><td>35.8%</td><td>37.6%</td><td>35.4%</td><td>121.8%</td></tr><tr><td>D37</td><td>45.0%</td><td>47.7%</td><td>44.4%</td><td>152.5%</td></tr><tr><td>D38</td><td>46.2%</td><td>49.3%</td><td>45.5%</td><td>156.5%</td></tr><tr><td>D39</td><td>45.5%</td><td>49.5%</td><td>44.6%</td><td>155.2%</td></tr><tr><td>D40</td><td>46.4%</td><td>50.8%</td><td>45.4%</td><td>158.6%</td></tr><tr><td>D41</td><td>44.9%</td><td>49.1%</td><td>44.0%</td><td>153.4%</td></tr><tr><td>D42</td><td>45.6%</td><td>50.0%</td><td>44.6%</td><td>155.1%</td></tr><tr><td>D43</td><td>45.4%</td><td>49.6%</td><td>44.5%</td><td>153.1%</td></tr><tr><td>D44</td><td>46.9%</td><td>50.5%</td><td>46.0%</td><td>158.1%</td></tr><tr><td>D45</td><td>46.0%</td><td>48.4%</td><td>45.4%</td><td>156.5%</td></tr><tr><td>D46</td><td>46.4%</td><td>48.9%</td><td>45.8%</td><td>156.6%</td></tr><tr><td>D47</td><td>46.1%</td><td>49.0%</td><td>45.5%</td><td>154.8%</td></tr><tr><td>D48</td><td>48.1%</td><td>51.7%</td><td>47.3%</td><td>161.7%</td></tr><tr><td>D49</td><td>48.6%</td><td>52.1%</td><td>47.8%</td><td>162.0%</td></tr><tr><td>D50</td><td>49.2%</td><td>51.9%</td><td>48.6%</td><td>165.5%</td></tr><tr><td>D51</td><td>50.6%</td><td>53.3%</td><td>50.0%</td><td>170.0%</td></tr><tr><td>D52</td><td>50.7%</td><td>53.6%</td><td>50.0%</td><td>169.3%</td></tr><tr><td>D53</td><td>53.3%</td><td>55.2%</td><td>52.8%</td><td>177.7%</td></tr><tr><td>D54</td><td>52.2%</td><td>54.3%</td><td>51.7%</td><td>171.2%</td></tr><tr><td>D55</td><td>50.3%</td><td>52.1%</td><td>49.8%</td><td>168.2%</td></tr><tr><td>D56</td><td>51.3%</td><td>52.4%</td><td>51.1%</td><td>171.4%</td></tr><tr><td>D57</td><td>54.3%</td><td>56.0%</td><td>53.9%</td><td>181.4%</td></tr><tr><td>D58</td><td>59.2%</td><td>58.8%</td><td>59.3%</td><td>197.9%</td></tr><tr><td>D59</td><td>57.2%</td><td>54.5%</td><td>58.0%</td><td>191.4%</td></tr><tr><td>D60</td><td>53.0%</td><td>50.5%</td><td>53.7%</td><td>179.1%</td></tr></tbody></table></div></details></figure></div><h3>Networks and campaigns</h3><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Network</th><th class="l">Campaign</th><th class="l">Basis</th><th class="">Spend 30d</th><th class="">Installs 30d</th><th class="">CPI</th><th class="">CTR</th><th class="">IPM</th><th class="">D0 ROAS</th><th class="">D7 ROAS</th><th class="">D30 ROAS</th><th class="">Payback</th></tr></thead><tbody><tr><td class="l">All networks</td><td class="l"></td><td class="l">network installs x cohort ARPU (modeled)</td><td>$2,244</td><td>1,342</td><td>$1.67</td><td>0.97%</td><td>4.15</td><td>0%</td><td>34%</td><td>35%</td><td>not within 60 days</td></tr><tr><td class="l">Google Ads</td><td class="l"></td><td class="l">network installs x cohort ARPU (modeled)</td><td>$486</td><td>313</td><td>$1.55</td><td>1.20%</td><td>4.49</td><td>0%</td><td>35%</td><td>36%</td><td>not within 60 days</td></tr><tr><td class="l">Google Ads</td><td class="l">UAC_Fitness_Global</td><td class="l">network installs x cohort ARPU (modeled)</td><td>$486</td><td>313</td><td>$1.55</td><td>1.20%</td><td>4.49</td><td>0%</td><td>35%</td><td>36%</td><td>not within 60 days</td></tr><tr><td class="l">Meta</td><td class="l"></td><td class="l">network installs x cohort ARPU (modeled)</td><td>$1,758</td><td>1,029</td><td>$1.71</td><td>0.90%</td><td>4.06</td><td>0%</td><td>33%</td><td>35%</td><td>not within 60 days</td></tr><tr><td class="l">Meta</td><td class="l">Meta_Trials_Tier1</td><td class="l">network installs x cohort ARPU (modeled)</td><td>$1,310</td><td>483</td><td>$2.71</td><td>0.89%</td><td>3.31</td><td>0%</td><td>22%</td><td>23%</td><td>not within 60 days</td></tr><tr><td class="l">Meta</td><td class="l">Meta_Trials_RoW</td><td class="l">network installs x cohort ARPU (modeled)</td><td>$448</td><td>546</td><td>$0.821</td><td>0.92%</td><td>5.06</td><td>0%</td><td>68%</td><td>71%</td><td>day 50</td></tr></tbody></table></div></div><h3>Creative scorecard</h3><p class="note">One row per creative across networks (creative-forge ids parsed from ad names; other ads by network ad id). Ranked by installs per 1,000 impressions only with at least 5,000 impressions; below that a creative is <em>insufficient data</em>, never ranked.</p><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="">Rank</th><th class="l">Creative</th><th class="l">Concept</th><th class="">Impressions</th><th class="">Installs</th><th class="">IPM (95% CI)</th><th class="">CTR</th><th class="">CPI</th><th class="">Spend</th><th class="">D7 ROAS (modeled)</th><th class="l">Status</th></tr></thead><tbody><tr><td>1</td><td class="l">3767896241</td><td class="l">streak-badge</td><td>241,712</td><td>1,035</td><td>4.28 (4.03–4.55)</td><td>1.06%</td><td>$2.00</td><td>$2,069</td><td>29%</td><td class="l">ranked</td></tr><tr><td>2</td><td class="l">9be51f17dd</td><td class="l">morning-run</td><td>447,048</td><td>1,809</td><td>4.05 (3.86–4.24)</td><td>0.91%</td><td>$1.49</td><td>$2,687</td><td>38%</td><td class="l">ranked</td></tr></tbody></table></div></div><h2>Quartz Merge</h2><div class="tiles"><div class="tile"><div class="label">Spend (30 days)</div><div class="value">$1,290</div></div><div class="tile" title="On each network&#x27;s attribution basis"><div class="label">Installs (30 days)</div><div class="value">3,207</div></div><div class="tile"><div class="label">CPI (30 days)</div><div class="value">$0.402</div></div><div class="tile" title="network installs x cohort ARPU (modeled)"><div class="label">D7 ROAS</div><div class="value">23%</div></div><div class="tile"><div class="label">D30 ROAS</div><div class="value">29%</div></div><div class="tile"><div class="label">Payback (observed)</div><div class="value">not within 60 days</div></div><div class="tile" title="First day the pLTV model&#x27;s predicted cumulative ARPU reaches the CPI"><div class="label">Payback (predicted)</div><div class="value">beyond day 180 (model)</div></div></div><div class="grid2"><figure class="chart" id="c-spendperdaybynetwork"><figcaption><h3>Spend per day by network</h3><p>USD, converted with the configured FX rates</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>TikTok</span><span class="key"><i class="sw b2"></i>Unity Ads</span></div><div role="img" aria-label="Spend per day by network: line chart, 2 series, 67 points"><div class="plot" style="--h:200px;--endw:112px"><div class="yaxis"><span style="bottom:0.00%">$0</span><span style="bottom:33.33%">$20.00</span><span style="bottom:66.67%">$40.00</span><span style="bottom:100.00%">$60.00</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,59.867 L15.15,62.067 L30.30,56.350 L45.45,44.250 L60.61,47.917 L75.76,54.083 L90.91,65.300 L106.06,60.283 L121.21,63.283 L136.36,57.650 L151.52,49.300 L166.67,44.883 L181.82,71.050 L196.97,69.183 L212.12,56.350 L227.27,67.667 L242.42,58.000 L257.58,49.117 L272.73,46.800 L287.88,60.633 L303.03,65.767 L318.18,60.067 L333.33,49.717 L348.48,54.550 L363.64,44.133 L378.79,32.700 L393.94,50.400 L409.09,45.867 L424.24,80.433 L439.39,60.650 L454.55,69.267 L469.70,45.200 L484.85,45.733 L500.00,59.017 L515.15,60.717 L530.30,56.217 L545.45,51.383 L560.61,49.250 L575.76,64.683 L590.91,53.067 L606.06,50.883 L621.21,58.050 L636.36,49.417 L651.52,48.067 L666.67,44.033 L681.82,38.800 L696.97,25.800 L712.12,57.217 L727.27,63.533 L742.42,59.500 L757.58,53.150 L772.73,60.967 L787.88,43.550 L803.03,58.400 L818.18,52.717 L833.33,61.417 L848.48,61.283 L863.64,64.667 L878.79,54.167 L893.94,50.933 L909.09,44.067 L924.24,47.417 L939.39,63.033 L954.55,40.867 L969.70,56.067 L984.85,55.450 L1000.00,48.100" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,85.033 L15.15,80.717 L30.30,80.917 L45.45,79.883 L60.61,82.467 L75.76,78.433 L90.91,83.367 L106.06,81.000 L121.21,78.483 L136.36,76.750 L151.52,75.300 L166.67,77.067 L181.82,86.333 L196.97,77.767 L212.12,80.033 L227.27,84.933 L242.42,75.317 L257.58,71.150 L272.73,77.783 L287.88,83.383 L303.03,80.333 L318.18,84.817 L333.33,83.633 L348.48,79.883 L363.64,73.617 L378.79,66.967 L393.94,77.983 L409.09,77.600 L424.24,82.450 L439.39,87.117 L454.55,80.317 L469.70,75.267 L484.85,81.233 L500.00,73.550 L515.15,76.200 L530.30,81.467 L545.45,79.867 L560.61,78.267 L575.76,76.183 L590.91,78.767 L606.06,83.117 L621.21,78.783 L636.36,79.717 L651.52,76.383 L666.67,82.333 L681.82,73.733 L696.97,74.183 L712.12,72.267 L727.27,70.683 L742.42,75.417 L757.58,77.367 L772.73,80.117 L787.88,62.117 L803.03,80.650 L818.18,73.750 L833.33,85.817 L848.48,77.317 L863.64,76.517 L878.79,72.267 L893.94,73.267 L909.09,62.767 L924.24,76.200 L939.39,76.083 L954.55,77.367 L969.70,77.517 L984.85,72.050 L1000.00,71.033" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="48.100" y2="48.100" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="48.100" y2="48.100" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="71.033" y2="71.033" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="71.033" y2="71.033" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="14.93" height="100" data-tip="Aug 26
+TikTok: $24.08
+Unity Ads: $8.98"/><rect x="7.69" y="0" width="14.93" height="100" data-tip="Aug 27
+TikTok: $22.76
+Unity Ads: $11.57"/><rect x="22.84" y="0" width="14.93" height="100" data-tip="Aug 28
+TikTok: $26.19
+Unity Ads: $11.45"/><rect x="37.99" y="0" width="14.93" height="100" data-tip="Aug 29
+TikTok: $33.45
+Unity Ads: $12.07"/><rect x="53.14" y="0" width="14.93" height="100" data-tip="Aug 30
+TikTok: $31.25
+Unity Ads: $10.52"/><rect x="68.29" y="0" width="14.93" height="100" data-tip="Aug 31
+TikTok: $27.55
+Unity Ads: $12.94"/><rect x="83.45" y="0" width="14.93" height="100" data-tip="Sep 1
+TikTok: $20.82
+Unity Ads: $9.98"/><rect x="98.60" y="0" width="14.93" height="100" data-tip="Sep 2
+TikTok: $23.83
+Unity Ads: $11.40"/><rect x="113.75" y="0" width="14.93" height="100" data-tip="Sep 3
+TikTok: $22.03
+Unity Ads: $12.91"/><rect x="128.90" y="0" width="14.93" height="100" data-tip="Sep 4
+TikTok: $25.41
+Unity Ads: $13.95"/><rect x="144.05" y="0" width="14.93" height="100" data-tip="Sep 5
+TikTok: $30.42
+Unity Ads: $14.82"/><rect x="159.20" y="0" width="14.93" height="100" data-tip="Sep 6
+TikTok: $33.07
+Unity Ads: $13.76"/><rect x="174.36" y="0" width="14.93" height="100" data-tip="Sep 7
+TikTok: $17.37
+Unity Ads: $8.20"/><rect x="189.51" y="0" width="14.93" height="100" data-tip="Sep 8
+TikTok: $18.49
+Unity Ads: $13.34"/><rect x="204.66" y="0" width="14.93" height="100" data-tip="Sep 9
+TikTok: $26.19
+Unity Ads: $11.98"/><rect x="219.81" y="0" width="14.93" height="100" data-tip="Sep 10
+TikTok: $19.40
+Unity Ads: $9.04"/><rect x="234.96" y="0" width="14.93" height="100" data-tip="Sep 11
+TikTok: $25.20
+Unity Ads: $14.81"/><rect x="250.11" y="0" width="14.93" height="100" data-tip="Sep 12
+TikTok: $30.53
+Unity Ads: $17.31"/><rect x="265.26" y="0" width="14.93" height="100" data-tip="Sep 13
+TikTok: $31.92
+Unity Ads: $13.33"/><rect x="280.42" y="0" width="14.93" height="100" data-tip="Sep 14
+TikTok: $23.62
+Unity Ads: $9.97"/><rect x="295.57" y="0" width="14.93" height="100" data-tip="Sep 15
+TikTok: $20.54
+Unity Ads: $11.80"/><rect x="310.72" y="0" width="14.93" height="100" data-tip="Sep 16
+TikTok: $23.96
+Unity Ads: $9.11"/><rect x="325.87" y="0" width="14.93" height="100" data-tip="Sep 17
+TikTok: $30.17
+Unity Ads: $9.82"/><rect x="341.02" y="0" width="14.93" height="100" data-tip="Sep 18
+TikTok: $27.27
+Unity Ads: $12.07"/><rect x="356.17" y="0" width="14.93" height="100" data-tip="Sep 19
+TikTok: $33.52
+Unity Ads: $15.83"/><rect x="371.33" y="0" width="14.93" height="100" data-tip="Sep 20
+TikTok: $40.38
+Unity Ads: $19.82"/><rect x="386.48" y="0" width="14.93" height="100" data-tip="Sep 21
+TikTok: $29.76
+Unity Ads: $13.21"/><rect x="401.63" y="0" width="14.93" height="100" data-tip="Sep 22
+TikTok: $32.48
+Unity Ads: $13.44"/><rect x="416.78" y="0" width="14.93" height="100" data-tip="Sep 23
+TikTok: $11.74
+Unity Ads: $10.53"/><rect x="431.93" y="0" width="14.93" height="100" data-tip="Sep 24
+TikTok: $23.61
+Unity Ads: $7.73"/><rect x="447.08" y="0" width="14.93" height="100" data-tip="Sep 25
+TikTok: $18.44
+Unity Ads: $11.81"/><rect x="462.23" y="0" width="14.93" height="100" data-tip="Sep 26
+TikTok: $32.88
+Unity Ads: $14.84"/><rect x="477.39" y="0" width="14.93" height="100" data-tip="Sep 27
+TikTok: $32.56
+Unity Ads: $11.26"/><rect x="492.54" y="0" width="14.93" height="100" data-tip="Sep 28
+TikTok: $24.59
+Unity Ads: $15.87"/><rect x="507.69" y="0" width="14.93" height="100" data-tip="Sep 29
+TikTok: $23.57
+Unity Ads: $14.28"/><rect x="522.84" y="0" width="14.93" height="100" data-tip="Sep 30
+TikTok: $26.27
+Unity Ads: $11.12"/><rect x="537.99" y="0" width="14.93" height="100" data-tip="Oct 1
+TikTok: $29.17
+Unity Ads: $12.08"/><rect x="553.14" y="0" width="14.93" height="100" data-tip="Oct 2
+TikTok: $30.45
+Unity Ads: $13.04"/><rect x="568.29" y="0" width="14.93" height="100" data-tip="Oct 3
+TikTok: $21.19
+Unity Ads: $14.29"/><rect x="583.45" y="0" width="14.93" height="100" data-tip="Oct 4
+TikTok: $28.16
+Unity Ads: $12.74"/><rect x="598.60" y="0" width="14.93" height="100" data-tip="Oct 5
+TikTok: $29.47
+Unity Ads: $10.13"/><rect x="613.75" y="0" width="14.93" height="100" data-tip="Oct 6
+TikTok: $25.17
+Unity Ads: $12.73"/><rect x="628.90" y="0" width="14.93" height="100" data-tip="Oct 7
+TikTok: $30.35
+Unity Ads: $12.17"/><rect x="644.05" y="0" width="14.93" height="100" data-tip="Oct 8
+TikTok: $31.16
+Unity Ads: $14.17"/><rect x="659.20" y="0" width="14.93" height="100" data-tip="Oct 9
+TikTok: $33.58
+Unity Ads: $10.60"/><rect x="674.36" y="0" width="14.93" height="100" data-tip="Oct 10
+TikTok: $36.72
+Unity Ads: $15.76"/><rect x="689.51" y="0" width="14.93" height="100" data-tip="Oct 11
+TikTok: $44.52
+Unity Ads: $15.49"/><rect x="704.66" y="0" width="14.93" height="100" data-tip="Oct 12
+TikTok: $25.67
+Unity Ads: $16.64"/><rect x="719.81" y="0" width="14.93" height="100" data-tip="Oct 13
+TikTok: $21.88
+Unity Ads: $17.59"/><rect x="734.96" y="0" width="14.93" height="100" data-tip="Oct 14
+TikTok: $24.30
+Unity Ads: $14.75"/><rect x="750.11" y="0" width="14.93" height="100" data-tip="Oct 15
+TikTok: $28.11
+Unity Ads: $13.58"/><rect x="765.26" y="0" width="14.93" height="100" data-tip="Oct 16
+TikTok: $23.42
+Unity Ads: $11.93"/><rect x="780.42" y="0" width="14.93" height="100" data-tip="Oct 17
+TikTok: $33.87
+Unity Ads: $22.73"/><rect x="795.57" y="0" width="14.93" height="100" data-tip="Oct 18
+TikTok: $24.96
+Unity Ads: $11.61"/><rect x="810.72" y="0" width="14.93" height="100" data-tip="Oct 19
+TikTok: $28.37
+Unity Ads: $15.75"/><rect x="825.87" y="0" width="14.93" height="100" data-tip="Oct 20
+TikTok: $23.15
+Unity Ads: $8.51"/><rect x="841.02" y="0" width="14.93" height="100" data-tip="Oct 21
+TikTok: $23.23
+Unity Ads: $13.61"/><rect x="856.17" y="0" width="14.93" height="100" data-tip="Oct 22
+TikTok: $21.20
+Unity Ads: $14.09"/><rect x="871.33" y="0" width="14.93" height="100" data-tip="Oct 23
+TikTok: $27.50
+Unity Ads: $16.64"/><rect x="886.48" y="0" width="14.93" height="100" data-tip="Oct 24
+TikTok: $29.44
+Unity Ads: $16.04"/><rect x="901.63" y="0" width="14.93" height="100" data-tip="Oct 25
+TikTok: $33.56
+Unity Ads: $22.34"/><rect x="916.78" y="0" width="14.93" height="100" data-tip="Oct 26
+TikTok: $31.55
+Unity Ads: $14.28"/><rect x="931.93" y="0" width="14.93" height="100" data-tip="Oct 27
+TikTok: $22.18
+Unity Ads: $14.35"/><rect x="947.08" y="0" width="14.93" height="100" data-tip="Oct 28
+TikTok: $35.48
+Unity Ads: $13.58"/><rect x="962.23" y="0" width="14.93" height="100" data-tip="Oct 29
+TikTok: $26.36
+Unity Ads: $13.49"/><rect x="977.39" y="0" width="14.93" height="100" data-tip="Oct 30
+TikTok: $26.73
+Unity Ads: $16.77"/><rect x="992.54" y="0" width="14.93" height="100" data-tip="Oct 31
+TikTok: $31.14
+Unity Ads: $17.38"/></g></svg></div><div class="endlabels"><span style="top:48.10%">TikTok $31.14</span><span style="top:71.03%">Unity Ads $17.38</span></div><div class="xaxis"><span class="first" style="left:0.00%">Aug 26</span><span class="" style="left:24.24%">Sep 11</span><span class="" style="left:50.00%">Sep 28</span><span class="" style="left:75.76%">Oct 15</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>TikTok</th><th>Unity Ads</th></tr></thead><tbody><tr><td>Aug 26</td><td>$24.08</td><td>$8.98</td></tr><tr><td>Aug 27</td><td>$22.76</td><td>$11.57</td></tr><tr><td>Aug 28</td><td>$26.19</td><td>$11.45</td></tr><tr><td>Aug 29</td><td>$33.45</td><td>$12.07</td></tr><tr><td>Aug 30</td><td>$31.25</td><td>$10.52</td></tr><tr><td>Aug 31</td><td>$27.55</td><td>$12.94</td></tr><tr><td>Sep 1</td><td>$20.82</td><td>$9.98</td></tr><tr><td>Sep 2</td><td>$23.83</td><td>$11.40</td></tr><tr><td>Sep 3</td><td>$22.03</td><td>$12.91</td></tr><tr><td>Sep 4</td><td>$25.41</td><td>$13.95</td></tr><tr><td>Sep 5</td><td>$30.42</td><td>$14.82</td></tr><tr><td>Sep 6</td><td>$33.07</td><td>$13.76</td></tr><tr><td>Sep 7</td><td>$17.37</td><td>$8.20</td></tr><tr><td>Sep 8</td><td>$18.49</td><td>$13.34</td></tr><tr><td>Sep 9</td><td>$26.19</td><td>$11.98</td></tr><tr><td>Sep 10</td><td>$19.40</td><td>$9.04</td></tr><tr><td>Sep 11</td><td>$25.20</td><td>$14.81</td></tr><tr><td>Sep 12</td><td>$30.53</td><td>$17.31</td></tr><tr><td>Sep 13</td><td>$31.92</td><td>$13.33</td></tr><tr><td>Sep 14</td><td>$23.62</td><td>$9.97</td></tr><tr><td>Sep 15</td><td>$20.54</td><td>$11.80</td></tr><tr><td>Sep 16</td><td>$23.96</td><td>$9.11</td></tr><tr><td>Sep 17</td><td>$30.17</td><td>$9.82</td></tr><tr><td>Sep 18</td><td>$27.27</td><td>$12.07</td></tr><tr><td>Sep 19</td><td>$33.52</td><td>$15.83</td></tr><tr><td>Sep 20</td><td>$40.38</td><td>$19.82</td></tr><tr><td>Sep 21</td><td>$29.76</td><td>$13.21</td></tr><tr><td>Sep 22</td><td>$32.48</td><td>$13.44</td></tr><tr><td>Sep 23</td><td>$11.74</td><td>$10.53</td></tr><tr><td>Sep 24</td><td>$23.61</td><td>$7.73</td></tr><tr><td>Sep 25</td><td>$18.44</td><td>$11.81</td></tr><tr><td>Sep 26</td><td>$32.88</td><td>$14.84</td></tr><tr><td>Sep 27</td><td>$32.56</td><td>$11.26</td></tr><tr><td>Sep 28</td><td>$24.59</td><td>$15.87</td></tr><tr><td>Sep 29</td><td>$23.57</td><td>$14.28</td></tr><tr><td>Sep 30</td><td>$26.27</td><td>$11.12</td></tr><tr><td>Oct 1</td><td>$29.17</td><td>$12.08</td></tr><tr><td>Oct 2</td><td>$30.45</td><td>$13.04</td></tr><tr><td>Oct 3</td><td>$21.19</td><td>$14.29</td></tr><tr><td>Oct 4</td><td>$28.16</td><td>$12.74</td></tr><tr><td>Oct 5</td><td>$29.47</td><td>$10.13</td></tr><tr><td>Oct 6</td><td>$25.17</td><td>$12.73</td></tr><tr><td>Oct 7</td><td>$30.35</td><td>$12.17</td></tr><tr><td>Oct 8</td><td>$31.16</td><td>$14.17</td></tr><tr><td>Oct 9</td><td>$33.58</td><td>$10.60</td></tr><tr><td>Oct 10</td><td>$36.72</td><td>$15.76</td></tr><tr><td>Oct 11</td><td>$44.52</td><td>$15.49</td></tr><tr><td>Oct 12</td><td>$25.67</td><td>$16.64</td></tr><tr><td>Oct 13</td><td>$21.88</td><td>$17.59</td></tr><tr><td>Oct 14</td><td>$24.30</td><td>$14.75</td></tr><tr><td>Oct 15</td><td>$28.11</td><td>$13.58</td></tr><tr><td>Oct 16</td><td>$23.42</td><td>$11.93</td></tr><tr><td>Oct 17</td><td>$33.87</td><td>$22.73</td></tr><tr><td>Oct 18</td><td>$24.96</td><td>$11.61</td></tr><tr><td>Oct 19</td><td>$28.37</td><td>$15.75</td></tr><tr><td>Oct 20</td><td>$23.15</td><td>$8.51</td></tr><tr><td>Oct 21</td><td>$23.23</td><td>$13.61</td></tr><tr><td>Oct 22</td><td>$21.20</td><td>$14.09</td></tr><tr><td>Oct 23</td><td>$27.50</td><td>$16.64</td></tr><tr><td>Oct 24</td><td>$29.44</td><td>$16.04</td></tr><tr><td>Oct 25</td><td>$33.56</td><td>$22.34</td></tr><tr><td>Oct 26</td><td>$31.55</td><td>$14.28</td></tr><tr><td>Oct 27</td><td>$22.18</td><td>$14.35</td></tr><tr><td>Oct 28</td><td>$35.48</td><td>$13.58</td></tr><tr><td>Oct 29</td><td>$26.36</td><td>$13.49</td></tr><tr><td>Oct 30</td><td>$26.73</td><td>$16.77</td></tr><tr><td>Oct 31</td><td>$31.14</td><td>$17.38</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-roasbydayssinceinstall"><figcaption><h3>ROAS by days since install</h3><p>Pooled over the cohorts complete at each day; 100% = payback</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>All networks</span><span class="key"><i class="sw b2"></i>TikTok</span><span class="key"><i class="sw b3"></i>Unity Ads</span><span class="key"><i class="sw b8" style="background-image:linear-gradient(90deg,transparent 50%,var(--surface) 50%);background-size:6px 3px"></i>Blended (all new users)</span></div><div role="img" aria-label="ROAS by days since install: line chart, 4 series, 61 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">0.0%</span><span style="bottom:33.33%">50.0%</span><span style="bottom:66.67%">100.0%</span><span style="bottom:100.00%">150.0%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,90.623 L16.67,88.528 L33.33,87.178 L50.00,86.462 L66.67,85.832 L83.33,85.611 L100.00,85.139 L116.67,84.727 L133.33,84.421 L150.00,83.994 L166.67,83.692 L183.33,83.433 L200.00,83.242 L216.67,83.075 L233.33,83.035 L250.00,82.734 L266.67,82.543 L283.33,82.313 L300.00,82.171 L316.67,82.491 L333.33,82.261 L350.00,81.963 L366.67,81.615 L383.33,81.433 L400.00,81.375 L416.67,81.244 L433.33,81.107 L450.00,80.814 L466.67,80.765 L483.33,80.768 L500.00,80.672 L516.67,80.997 L533.33,80.734 L550.00,80.686 L566.67,80.518 L583.33,80.206 L600.00,80.540 L616.67,80.427 L633.33,80.429 L650.00,80.275 L666.67,80.522 L683.33,80.261 L700.00,79.596 L716.67,79.433 L733.33,79.920 L750.00,79.771 L766.67,79.803 L783.33,80.021 L800.00,79.898 L816.67,79.255 L833.33,78.656 L850.00,78.497 L866.67,78.622 L883.33,77.968 L900.00,78.602 L916.67,78.719 L933.33,78.092 L950.00,76.746 L966.67,76.074 L983.33,75.419 L1000.00,75.110" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,90.872 L16.67,88.849 L33.33,87.543 L50.00,86.850 L66.67,86.225 L83.33,85.980 L100.00,85.489 L116.67,85.096 L133.33,84.796 L150.00,84.391 L166.67,84.128 L183.33,83.880 L200.00,83.696 L216.67,83.535 L233.33,83.499 L250.00,83.242 L266.67,83.049 L283.33,82.841 L300.00,82.710 L316.67,82.944 L333.33,82.761 L350.00,82.466 L366.67,82.120 L383.33,81.932 L400.00,81.889 L416.67,81.767 L433.33,81.651 L450.00,81.346 L466.67,81.287 L483.33,81.285 L500.00,81.190 L516.67,81.532 L533.33,81.270 L550.00,81.226 L566.67,81.084 L583.33,80.727 L600.00,81.069 L616.67,80.936 L633.33,80.919 L650.00,80.794 L666.67,80.997 L683.33,80.722 L700.00,80.058 L716.67,79.917 L733.33,80.270 L750.00,80.076 L766.67,80.092 L783.33,80.262 L800.00,80.134 L816.67,79.471 L833.33,78.903 L850.00,78.854 L866.67,78.942 L883.33,78.351 L900.00,78.903 L916.67,78.973 L933.33,78.281 L950.00,76.960 L966.67,76.346 L983.33,75.798 L1000.00,75.541" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M0.00,90.113 L16.67,87.871 L33.33,86.427 L50.00,85.660 L66.67,85.025 L83.33,84.850 L100.00,84.418 L116.67,83.962 L133.33,83.641 L150.00,83.165 L166.67,82.778 L183.33,82.490 L200.00,82.287 L216.67,82.106 L233.33,82.058 L250.00,81.652 L266.67,81.465 L283.33,81.187 L300.00,81.017 L316.67,81.510 L333.33,81.170 L350.00,80.873 L366.67,80.524 L383.33,80.362 L400.00,80.277 L416.67,80.129 L433.33,79.944 L450.00,79.686 L466.67,79.660 L483.33,79.663 L500.00,79.567 L516.67,79.861 L533.33,79.598 L550.00,79.534 L566.67,79.296 L583.33,79.093 L600.00,79.413 L616.67,79.332 L633.33,79.384 L650.00,79.152 L666.67,79.500 L683.33,79.269 L700.00,78.602 L716.67,78.390 L733.33,79.164 L750.00,79.124 L766.67,79.194 L783.33,79.510 L800.00,79.401 L816.67,78.802 L833.33,78.133 L850.00,77.729 L866.67,77.934 L883.33,77.145 L900.00,77.932 L916.67,78.153 L933.33,77.676 L950.00,76.271 L966.67,75.455 L983.33,74.524 L1000.00,74.075" vector-effect="non-scaling-stroke"/><path class="ln c8 dashed" d="M0.00,69.685 L16.67,62.868 L33.33,58.477 L50.00,56.200 L66.67,54.152 L83.33,53.437 L100.00,51.944 L116.67,50.628 L133.33,49.734 L150.00,48.332 L166.67,47.345 L183.33,46.602 L200.00,46.088 L216.67,45.466 L233.33,45.404 L250.00,44.417 L266.67,43.942 L283.33,43.228 L300.00,42.746 L316.67,43.965 L333.33,43.282 L350.00,42.349 L366.67,41.134 L383.33,40.484 L400.00,40.234 L416.67,39.773 L433.33,39.452 L450.00,38.488 L466.67,38.362 L483.33,38.757 L500.00,38.559 L516.67,39.589 L533.33,38.706 L550.00,38.312 L566.67,37.625 L583.33,36.619 L600.00,37.685 L616.67,37.440 L633.33,37.712 L650.00,37.465 L666.67,38.152 L683.33,37.115 L700.00,34.743 L716.67,34.328 L733.33,35.782 L750.00,35.206 L766.67,35.462 L783.33,36.261 L800.00,36.109 L816.67,34.021 L833.33,32.141 L850.00,31.484 L866.67,31.978 L883.33,29.968 L900.00,32.726 L916.67,34.207 L933.33,32.229 L950.00,28.015 L966.67,26.667 L983.33,25.456 L1000.00,24.177" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="75.110" y2="75.110" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="75.110" y2="75.110" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="75.541" y2="75.541" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="75.541" y2="75.541" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="74.075" y2="74.075" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="1000.00" x2="1000.00" y1="74.075" y2="74.075" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="24.177" y2="24.177" vector-effect="non-scaling-stroke"/><line class="dot c8" x1="1000.00" x2="1000.00" y1="24.177" y2="24.177" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="16.39" height="100" data-tip="D0
+All networks: 14.1%
+TikTok: 13.7%
+Unity Ads: 14.8%
+Blended (all new users): 45.5%"/><rect x="8.47" y="0" width="16.39" height="100" data-tip="D1
+All networks: 17.2%
+TikTok: 16.7%
+Unity Ads: 18.2%
+Blended (all new users): 55.7%"/><rect x="25.14" y="0" width="16.39" height="100" data-tip="D2
+All networks: 19.2%
+TikTok: 18.7%
+Unity Ads: 20.4%
+Blended (all new users): 62.3%"/><rect x="41.80" y="0" width="16.39" height="100" data-tip="D3
+All networks: 20.3%
+TikTok: 19.7%
+Unity Ads: 21.5%
+Blended (all new users): 65.7%"/><rect x="58.47" y="0" width="16.39" height="100" data-tip="D4
+All networks: 21.3%
+TikTok: 20.7%
+Unity Ads: 22.5%
+Blended (all new users): 68.8%"/><rect x="75.14" y="0" width="16.39" height="100" data-tip="D5
+All networks: 21.6%
+TikTok: 21.0%
+Unity Ads: 22.7%
+Blended (all new users): 69.8%"/><rect x="91.80" y="0" width="16.39" height="100" data-tip="D6
+All networks: 22.3%
+TikTok: 21.8%
+Unity Ads: 23.4%
+Blended (all new users): 72.1%"/><rect x="108.47" y="0" width="16.39" height="100" data-tip="D7
+All networks: 22.9%
+TikTok: 22.4%
+Unity Ads: 24.1%
+Blended (all new users): 74.1%"/><rect x="125.14" y="0" width="16.39" height="100" data-tip="D8
+All networks: 23.4%
+TikTok: 22.8%
+Unity Ads: 24.5%
+Blended (all new users): 75.4%"/><rect x="141.80" y="0" width="16.39" height="100" data-tip="D9
+All networks: 24.0%
+TikTok: 23.4%
+Unity Ads: 25.3%
+Blended (all new users): 77.5%"/><rect x="158.47" y="0" width="16.39" height="100" data-tip="D10
+All networks: 24.5%
+TikTok: 23.8%
+Unity Ads: 25.8%
+Blended (all new users): 79.0%"/><rect x="175.14" y="0" width="16.39" height="100" data-tip="D11
+All networks: 24.9%
+TikTok: 24.2%
+Unity Ads: 26.3%
+Blended (all new users): 80.1%"/><rect x="191.80" y="0" width="16.39" height="100" data-tip="D12
+All networks: 25.1%
+TikTok: 24.5%
+Unity Ads: 26.6%
+Blended (all new users): 80.9%"/><rect x="208.47" y="0" width="16.39" height="100" data-tip="D13
+All networks: 25.4%
+TikTok: 24.7%
+Unity Ads: 26.8%
+Blended (all new users): 81.8%"/><rect x="225.14" y="0" width="16.39" height="100" data-tip="D14
+All networks: 25.4%
+TikTok: 24.8%
+Unity Ads: 26.9%
+Blended (all new users): 81.9%"/><rect x="241.80" y="0" width="16.39" height="100" data-tip="D15
+All networks: 25.9%
+TikTok: 25.1%
+Unity Ads: 27.5%
+Blended (all new users): 83.4%"/><rect x="258.47" y="0" width="16.39" height="100" data-tip="D16
+All networks: 26.2%
+TikTok: 25.4%
+Unity Ads: 27.8%
+Blended (all new users): 84.1%"/><rect x="275.14" y="0" width="16.39" height="100" data-tip="D17
+All networks: 26.5%
+TikTok: 25.7%
+Unity Ads: 28.2%
+Blended (all new users): 85.2%"/><rect x="291.80" y="0" width="16.39" height="100" data-tip="D18
+All networks: 26.7%
+TikTok: 25.9%
+Unity Ads: 28.5%
+Blended (all new users): 85.9%"/><rect x="308.47" y="0" width="16.39" height="100" data-tip="D19
+All networks: 26.3%
+TikTok: 25.6%
+Unity Ads: 27.7%
+Blended (all new users): 84.1%"/><rect x="325.14" y="0" width="16.39" height="100" data-tip="D20
+All networks: 26.6%
+TikTok: 25.9%
+Unity Ads: 28.2%
+Blended (all new users): 85.1%"/><rect x="341.80" y="0" width="16.39" height="100" data-tip="D21
+All networks: 27.1%
+TikTok: 26.3%
+Unity Ads: 28.7%
+Blended (all new users): 86.5%"/><rect x="358.47" y="0" width="16.39" height="100" data-tip="D22
+All networks: 27.6%
+TikTok: 26.8%
+Unity Ads: 29.2%
+Blended (all new users): 88.3%"/><rect x="375.14" y="0" width="16.39" height="100" data-tip="D23
+All networks: 27.9%
+TikTok: 27.1%
+Unity Ads: 29.5%
+Blended (all new users): 89.3%"/><rect x="391.80" y="0" width="16.39" height="100" data-tip="D24
+All networks: 27.9%
+TikTok: 27.2%
+Unity Ads: 29.6%
+Blended (all new users): 89.6%"/><rect x="408.47" y="0" width="16.39" height="100" data-tip="D25
+All networks: 28.1%
+TikTok: 27.3%
+Unity Ads: 29.8%
+Blended (all new users): 90.3%"/><rect x="425.14" y="0" width="16.39" height="100" data-tip="D26
+All networks: 28.3%
+TikTok: 27.5%
+Unity Ads: 30.1%
+Blended (all new users): 90.8%"/><rect x="441.80" y="0" width="16.39" height="100" data-tip="D27
+All networks: 28.8%
+TikTok: 28.0%
+Unity Ads: 30.5%
+Blended (all new users): 92.3%"/><rect x="458.47" y="0" width="16.39" height="100" data-tip="D28
+All networks: 28.9%
+TikTok: 28.1%
+Unity Ads: 30.5%
+Blended (all new users): 92.5%"/><rect x="475.14" y="0" width="16.39" height="100" data-tip="D29
+All networks: 28.8%
+TikTok: 28.1%
+Unity Ads: 30.5%
+Blended (all new users): 91.9%"/><rect x="491.80" y="0" width="16.39" height="100" data-tip="D30
+All networks: 29.0%
+TikTok: 28.2%
+Unity Ads: 30.6%
+Blended (all new users): 92.2%"/><rect x="508.47" y="0" width="16.39" height="100" data-tip="D31
+All networks: 28.5%
+TikTok: 27.7%
+Unity Ads: 30.2%
+Blended (all new users): 90.6%"/><rect x="525.14" y="0" width="16.39" height="100" data-tip="D32
+All networks: 28.9%
+TikTok: 28.1%
+Unity Ads: 30.6%
+Blended (all new users): 91.9%"/><rect x="541.80" y="0" width="16.39" height="100" data-tip="D33
+All networks: 29.0%
+TikTok: 28.2%
+Unity Ads: 30.7%
+Blended (all new users): 92.5%"/><rect x="558.47" y="0" width="16.39" height="100" data-tip="D34
+All networks: 29.2%
+TikTok: 28.4%
+Unity Ads: 31.1%
+Blended (all new users): 93.6%"/><rect x="575.14" y="0" width="16.39" height="100" data-tip="D35
+All networks: 29.7%
+TikTok: 28.9%
+Unity Ads: 31.4%
+Blended (all new users): 95.1%"/><rect x="591.80" y="0" width="16.39" height="100" data-tip="D36
+All networks: 29.2%
+TikTok: 28.4%
+Unity Ads: 30.9%
+Blended (all new users): 93.5%"/><rect x="608.47" y="0" width="16.39" height="100" data-tip="D37
+All networks: 29.4%
+TikTok: 28.6%
+Unity Ads: 31.0%
+Blended (all new users): 93.8%"/><rect x="625.14" y="0" width="16.39" height="100" data-tip="D38
+All networks: 29.4%
+TikTok: 28.6%
+Unity Ads: 30.9%
+Blended (all new users): 93.4%"/><rect x="641.80" y="0" width="16.39" height="100" data-tip="D39
+All networks: 29.6%
+TikTok: 28.8%
+Unity Ads: 31.3%
+Blended (all new users): 93.8%"/><rect x="658.47" y="0" width="16.39" height="100" data-tip="D40
+All networks: 29.2%
+TikTok: 28.5%
+Unity Ads: 30.7%
+Blended (all new users): 92.8%"/><rect x="675.14" y="0" width="16.39" height="100" data-tip="D41
+All networks: 29.6%
+TikTok: 28.9%
+Unity Ads: 31.1%
+Blended (all new users): 94.3%"/><rect x="691.80" y="0" width="16.39" height="100" data-tip="D42
+All networks: 30.6%
+TikTok: 29.9%
+Unity Ads: 32.1%
+Blended (all new users): 97.9%"/><rect x="708.47" y="0" width="16.39" height="100" data-tip="D43
+All networks: 30.8%
+TikTok: 30.1%
+Unity Ads: 32.4%
+Blended (all new users): 98.5%"/><rect x="725.14" y="0" width="16.39" height="100" data-tip="D44
+All networks: 30.1%
+TikTok: 29.6%
+Unity Ads: 31.3%
+Blended (all new users): 96.3%"/><rect x="741.80" y="0" width="16.39" height="100" data-tip="D45
+All networks: 30.3%
+TikTok: 29.9%
+Unity Ads: 31.3%
+Blended (all new users): 97.2%"/><rect x="758.47" y="0" width="16.39" height="100" data-tip="D46
+All networks: 30.3%
+TikTok: 29.9%
+Unity Ads: 31.2%
+Blended (all new users): 96.8%"/><rect x="775.14" y="0" width="16.39" height="100" data-tip="D47
+All networks: 30.0%
+TikTok: 29.6%
+Unity Ads: 30.7%
+Blended (all new users): 95.6%"/><rect x="791.80" y="0" width="16.39" height="100" data-tip="D48
+All networks: 30.2%
+TikTok: 29.8%
+Unity Ads: 30.9%
+Blended (all new users): 95.8%"/><rect x="808.47" y="0" width="16.39" height="100" data-tip="D49
+All networks: 31.1%
+TikTok: 30.8%
+Unity Ads: 31.8%
+Blended (all new users): 99.0%"/><rect x="825.14" y="0" width="16.39" height="100" data-tip="D50
+All networks: 32.0%
+TikTok: 31.6%
+Unity Ads: 32.8%
+Blended (all new users): 101.8%"/><rect x="841.80" y="0" width="16.39" height="100" data-tip="D51
+All networks: 32.3%
+TikTok: 31.7%
+Unity Ads: 33.4%
+Blended (all new users): 102.8%"/><rect x="858.47" y="0" width="16.39" height="100" data-tip="D52
+All networks: 32.1%
+TikTok: 31.6%
+Unity Ads: 33.1%
+Blended (all new users): 102.0%"/><rect x="875.14" y="0" width="16.39" height="100" data-tip="D53
+All networks: 33.0%
+TikTok: 32.5%
+Unity Ads: 34.3%
+Blended (all new users): 105.0%"/><rect x="891.80" y="0" width="16.39" height="100" data-tip="D54
+All networks: 32.1%
+TikTok: 31.6%
+Unity Ads: 33.1%
+Blended (all new users): 100.9%"/><rect x="908.47" y="0" width="16.39" height="100" data-tip="D55
+All networks: 31.9%
+TikTok: 31.5%
+Unity Ads: 32.8%
+Blended (all new users): 98.7%"/><rect x="925.14" y="0" width="16.39" height="100" data-tip="D56
+All networks: 32.9%
+TikTok: 32.6%
+Unity Ads: 33.5%
+Blended (all new users): 101.7%"/><rect x="941.80" y="0" width="16.39" height="100" data-tip="D57
+All networks: 34.9%
+TikTok: 34.6%
+Unity Ads: 35.6%
+Blended (all new users): 108.0%"/><rect x="958.47" y="0" width="16.39" height="100" data-tip="D58
+All networks: 35.9%
+TikTok: 35.5%
+Unity Ads: 36.8%
+Blended (all new users): 110.0%"/><rect x="975.14" y="0" width="16.39" height="100" data-tip="D59
+All networks: 36.9%
+TikTok: 36.3%
+Unity Ads: 38.2%
+Blended (all new users): 111.8%"/><rect x="991.80" y="0" width="16.39" height="100" data-tip="D60
+All networks: 37.3%
+TikTok: 36.7%
+Unity Ads: 38.9%
+Blended (all new users): 113.7%"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">D0</span><span class="" style="left:25.00%">D15</span><span class="" style="left:50.00%">D30</span><span class="" style="left:75.00%">D45</span><span class="last" style="left:100.00%">D60</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Day</th><th>All networks</th><th>TikTok</th><th>Unity Ads</th><th>Blended (all new users)</th></tr></thead><tbody><tr><td>D0</td><td>14.1%</td><td>13.7%</td><td>14.8%</td><td>45.5%</td></tr><tr><td>D1</td><td>17.2%</td><td>16.7%</td><td>18.2%</td><td>55.7%</td></tr><tr><td>D2</td><td>19.2%</td><td>18.7%</td><td>20.4%</td><td>62.3%</td></tr><tr><td>D3</td><td>20.3%</td><td>19.7%</td><td>21.5%</td><td>65.7%</td></tr><tr><td>D4</td><td>21.3%</td><td>20.7%</td><td>22.5%</td><td>68.8%</td></tr><tr><td>D5</td><td>21.6%</td><td>21.0%</td><td>22.7%</td><td>69.8%</td></tr><tr><td>D6</td><td>22.3%</td><td>21.8%</td><td>23.4%</td><td>72.1%</td></tr><tr><td>D7</td><td>22.9%</td><td>22.4%</td><td>24.1%</td><td>74.1%</td></tr><tr><td>D8</td><td>23.4%</td><td>22.8%</td><td>24.5%</td><td>75.4%</td></tr><tr><td>D9</td><td>24.0%</td><td>23.4%</td><td>25.3%</td><td>77.5%</td></tr><tr><td>D10</td><td>24.5%</td><td>23.8%</td><td>25.8%</td><td>79.0%</td></tr><tr><td>D11</td><td>24.9%</td><td>24.2%</td><td>26.3%</td><td>80.1%</td></tr><tr><td>D12</td><td>25.1%</td><td>24.5%</td><td>26.6%</td><td>80.9%</td></tr><tr><td>D13</td><td>25.4%</td><td>24.7%</td><td>26.8%</td><td>81.8%</td></tr><tr><td>D14</td><td>25.4%</td><td>24.8%</td><td>26.9%</td><td>81.9%</td></tr><tr><td>D15</td><td>25.9%</td><td>25.1%</td><td>27.5%</td><td>83.4%</td></tr><tr><td>D16</td><td>26.2%</td><td>25.4%</td><td>27.8%</td><td>84.1%</td></tr><tr><td>D17</td><td>26.5%</td><td>25.7%</td><td>28.2%</td><td>85.2%</td></tr><tr><td>D18</td><td>26.7%</td><td>25.9%</td><td>28.5%</td><td>85.9%</td></tr><tr><td>D19</td><td>26.3%</td><td>25.6%</td><td>27.7%</td><td>84.1%</td></tr><tr><td>D20</td><td>26.6%</td><td>25.9%</td><td>28.2%</td><td>85.1%</td></tr><tr><td>D21</td><td>27.1%</td><td>26.3%</td><td>28.7%</td><td>86.5%</td></tr><tr><td>D22</td><td>27.6%</td><td>26.8%</td><td>29.2%</td><td>88.3%</td></tr><tr><td>D23</td><td>27.9%</td><td>27.1%</td><td>29.5%</td><td>89.3%</td></tr><tr><td>D24</td><td>27.9%</td><td>27.2%</td><td>29.6%</td><td>89.6%</td></tr><tr><td>D25</td><td>28.1%</td><td>27.3%</td><td>29.8%</td><td>90.3%</td></tr><tr><td>D26</td><td>28.3%</td><td>27.5%</td><td>30.1%</td><td>90.8%</td></tr><tr><td>D27</td><td>28.8%</td><td>28.0%</td><td>30.5%</td><td>92.3%</td></tr><tr><td>D28</td><td>28.9%</td><td>28.1%</td><td>30.5%</td><td>92.5%</td></tr><tr><td>D29</td><td>28.8%</td><td>28.1%</td><td>30.5%</td><td>91.9%</td></tr><tr><td>D30</td><td>29.0%</td><td>28.2%</td><td>30.6%</td><td>92.2%</td></tr><tr><td>D31</td><td>28.5%</td><td>27.7%</td><td>30.2%</td><td>90.6%</td></tr><tr><td>D32</td><td>28.9%</td><td>28.1%</td><td>30.6%</td><td>91.9%</td></tr><tr><td>D33</td><td>29.0%</td><td>28.2%</td><td>30.7%</td><td>92.5%</td></tr><tr><td>D34</td><td>29.2%</td><td>28.4%</td><td>31.1%</td><td>93.6%</td></tr><tr><td>D35</td><td>29.7%</td><td>28.9%</td><td>31.4%</td><td>95.1%</td></tr><tr><td>D36</td><td>29.2%</td><td>28.4%</td><td>30.9%</td><td>93.5%</td></tr><tr><td>D37</td><td>29.4%</td><td>28.6%</td><td>31.0%</td><td>93.8%</td></tr><tr><td>D38</td><td>29.4%</td><td>28.6%</td><td>30.9%</td><td>93.4%</td></tr><tr><td>D39</td><td>29.6%</td><td>28.8%</td><td>31.3%</td><td>93.8%</td></tr><tr><td>D40</td><td>29.2%</td><td>28.5%</td><td>30.7%</td><td>92.8%</td></tr><tr><td>D41</td><td>29.6%</td><td>28.9%</td><td>31.1%</td><td>94.3%</td></tr><tr><td>D42</td><td>30.6%</td><td>29.9%</td><td>32.1%</td><td>97.9%</td></tr><tr><td>D43</td><td>30.8%</td><td>30.1%</td><td>32.4%</td><td>98.5%</td></tr><tr><td>D44</td><td>30.1%</td><td>29.6%</td><td>31.3%</td><td>96.3%</td></tr><tr><td>D45</td><td>30.3%</td><td>29.9%</td><td>31.3%</td><td>97.2%</td></tr><tr><td>D46</td><td>30.3%</td><td>29.9%</td><td>31.2%</td><td>96.8%</td></tr><tr><td>D47</td><td>30.0%</td><td>29.6%</td><td>30.7%</td><td>95.6%</td></tr><tr><td>D48</td><td>30.2%</td><td>29.8%</td><td>30.9%</td><td>95.8%</td></tr><tr><td>D49</td><td>31.1%</td><td>30.8%</td><td>31.8%</td><td>99.0%</td></tr><tr><td>D50</td><td>32.0%</td><td>31.6%</td><td>32.8%</td><td>101.8%</td></tr><tr><td>D51</td><td>32.3%</td><td>31.7%</td><td>33.4%</td><td>102.8%</td></tr><tr><td>D52</td><td>32.1%</td><td>31.6%</td><td>33.1%</td><td>102.0%</td></tr><tr><td>D53</td><td>33.0%</td><td>32.5%</td><td>34.3%</td><td>105.0%</td></tr><tr><td>D54</td><td>32.1%</td><td>31.6%</td><td>33.1%</td><td>100.9%</td></tr><tr><td>D55</td><td>31.9%</td><td>31.5%</td><td>32.8%</td><td>98.7%</td></tr><tr><td>D56</td><td>32.9%</td><td>32.6%</td><td>33.5%</td><td>101.7%</td></tr><tr><td>D57</td><td>34.9%</td><td>34.6%</td><td>35.6%</td><td>108.0%</td></tr><tr><td>D58</td><td>35.9%</td><td>35.5%</td><td>36.8%</td><td>110.0%</td></tr><tr><td>D59</td><td>36.9%</td><td>36.3%</td><td>38.2%</td><td>111.8%</td></tr><tr><td>D60</td><td>37.3%</td><td>36.7%</td><td>38.9%</td><td>113.7%</td></tr></tbody></table></div></details></figure></div><h3>Networks and campaigns</h3><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Network</th><th class="l">Campaign</th><th class="l">Basis</th><th class="">Spend 30d</th><th class="">Installs 30d</th><th class="">CPI</th><th class="">CTR</th><th class="">IPM</th><th class="">D0 ROAS</th><th class="">D7 ROAS</th><th class="">D30 ROAS</th><th class="">Payback</th></tr></thead><tbody><tr><td class="l">All networks</td><td class="l"></td><td class="l">network installs x cohort ARPU (modeled)</td><td>$1,290</td><td>3,207</td><td>$0.402</td><td>1.50%</td><td>8.90</td><td>14%</td><td>23%</td><td>29%</td><td>not within 60 days</td></tr><tr><td class="l">TikTok</td><td class="l"></td><td class="l">network installs x cohort ARPU (modeled)</td><td>$853</td><td>2,090</td><td>$0.408</td><td>0.91%</td><td>8.06</td><td>14%</td><td>22%</td><td>28%</td><td>not within 60 days</td></tr><tr><td class="l">TikTok</td><td class="l">TT_Merge_AEO</td><td class="l">network installs x cohort ARPU (modeled)</td><td>$853</td><td>2,090</td><td>$0.408</td><td>0.91%</td><td>8.06</td><td>14%</td><td>22%</td><td>28%</td><td>not within 60 days</td></tr><tr><td class="l">Unity Ads</td><td class="l"></td><td class="l">network installs x cohort ARPU (modeled)</td><td>$437</td><td>1,117</td><td>$0.391</td><td>3.01%</td><td>11</td><td>15%</td><td>24%</td><td>31%</td><td>not within 60 days</td></tr><tr><td class="l">Unity Ads</td><td class="l">UA_Merge_Global</td><td class="l">network installs x cohort ARPU (modeled)</td><td>$437</td><td>1,117</td><td>$0.391</td><td>3.01%</td><td>11</td><td>15%</td><td>24%</td><td>31%</td><td>not within 60 days</td></tr></tbody></table></div></div><h3>Creative scorecard</h3><p class="note">One row per creative across networks (creative-forge ids parsed from ad names; other ads by network ad id). Ranked by installs per 1,000 impressions only with at least 5,000 impressions; below that a creative is <em>insufficient data</em>, never ranked.</p><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="">Rank</th><th class="l">Creative</th><th class="l">Concept</th><th class="">Impressions</th><th class="">Installs</th><th class="">IPM (95% CI)</th><th class="">CTR</th><th class="">CPI</th><th class="">Spend</th><th class="">D7 ROAS (modeled)</th><th class="l">Status</th></tr></thead><tbody><tr><td>1</td><td class="l">3cc69f1f45</td><td class="l">coin-rain</td><td>132,375</td><td>1,587</td><td>12 (11–13)</td><td>0.93%</td><td>$0.416</td><td>$660</td><td>22%</td><td class="l">ranked</td></tr><tr><td>2</td><td class="l">unity_ads:u_30100</td><td class="l">–</td><td>212,617</td><td>2,349</td><td>11 (11–12)</td><td>3.00%</td><td>$0.380</td><td>$894</td><td>24%</td><td class="l">ranked</td></tr><tr><td>3</td><td class="l">ee1eb5e276</td><td class="l">coin-rain</td><td>260,226</td><td>2,078</td><td>7.99 (7.65–8.33)</td><td>0.89%</td><td>$0.399</td><td>$829</td><td>23%</td><td class="l">ranked</td></tr><tr><td>4</td><td class="l">25dcf731fb</td><td class="l">merge-asmr</td><td>164,463</td><td>823</td><td>5.00 (4.67–5.36)</td><td>0.93%</td><td>$0.411</td><td>$339</td><td>22%</td><td class="l">ranked</td></tr></tbody></table></div></div>
+</main>
+<footer>Generated by studio-pulse. Metric definitions: docs/METRICS.md. Hover a chart for values, or open its data table.<br>
+Retention benchmarks: <a href="https://gamedevreports.substack.com/p/gameanalytics-mobile-and-pc-game" rel="noopener">GameAnalytics, Mobile and PC Game Benchmarks 2026</a>
+(16,262 mobile games with at least 1,000 MAU, iOS and Android, all genres combined).</footer>
+</div>
+<div id="tip" role="tooltip"></div>
+<script>
+(function () {
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem('pulse-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  var btn = document.querySelector('button.theme');
+  function label() {
+    var dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    if (btn) btn.textContent = dark ? 'Light mode' : 'Dark mode';
+    return dark;
+  }
+  if (btn) {
+    label();
+    btn.addEventListener('click', function () {
+      var next = label() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('pulse-theme', next); } catch (e) {}
+      label();
+    });
+  }
+  var tip = document.getElementById('tip');
+  function show(el, x, y) {
+    tip.textContent = el.getAttribute('data-tip');
+    tip.style.display = 'block';
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var left = Math.min(Math.max(8, x + 12), window.innerWidth - w - 8);
+    var top = y - h - 12; if (top < 8) top = y + 16;
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  document.addEventListener('pointermove', function (ev) {
+    var el = ev.target.closest && ev.target.closest('[data-tip]');
+    if (el) show(el, ev.clientX, ev.clientY); else tip.style.display = 'none';
+  });
+  document.addEventListener('focusin', function (ev) {
+    var el = ev.target.closest && ev.target.closest('[data-tip]');
+    if (el) { var r = el.getBoundingClientRect(); show(el, r.left + r.width / 2, r.top); }
+  });
+  document.addEventListener('focusout', function () { tip.style.display = 'none'; });
+})();
+</script>
+</body>
+</html>

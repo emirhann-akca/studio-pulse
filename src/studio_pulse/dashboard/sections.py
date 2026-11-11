@@ -215,7 +215,7 @@ def ua_page(con: duckdb.DuckDBPyConnection, apps: list[dict[str, Any]]) -> tuple
         cards = q(
             con,
             "SELECT * FROM fct_creative_scorecard WHERE app_id = ? AND network = '(all)' "
-            "ORDER BY status, ipm_rank NULLS LAST, impressions DESC",
+            "ORDER BY status DESC, ipm_rank NULLS LAST, impressions DESC",  # ranked first
             [app_id],
         )
         min_imps = cards[0]["min_impressions"] if cards else 5000

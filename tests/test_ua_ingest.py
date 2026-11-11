@@ -438,3 +438,24 @@ def test_second_source_of_a_type_with_a_suffix(tmp_path):
         ).fetchall() == [("ua_csv", 2), ("ua_csv@unity", 2)]
     finally:
         con.close()
+
+
+def test_doctor_reports_api_credentials_without_values(tmp_path, monkeypatch):
+    from studio_pulse import doctor
+
+    p = ua_config(tmp_path)
+    data = yaml.safe_load(p.read_text(encoding="utf-8"))
+    srcs = data["apps"][0]["sources"]
+    srcs["meta_ads"].pop("replay")
+    srcs["tiktok_ads"].pop("replay")
+    p.write_text(yaml.safe_dump(data), encoding="utf-8")
+    monkeypatch.setenv("PULSE_META_ACCESS_TOKEN", "EAAB-secret-value-123")
+    monkeypatch.delenv("PULSE_TIKTOK_ACCESS_TOKEN", raising=False)
+    res = {r.name: r for r in doctor.check_api_sources(load_config(p))}
+    assert (
+        res["app.meta_ads"].status == "ok"
+        and "PULSE_META_ACCESS_TOKEN" in res["app.meta_ads"].detail
+    )
+    assert res["app.tiktok_ads"].status == "fail"
+    assert res["app.google_ads"].status == "info"  # replay
+    assert all("secret-value" not in r.detail for r in res.values())

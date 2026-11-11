@@ -56,8 +56,8 @@ store reviews included).
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.
-- 470 tests (Python) + 8 (Flutter), ruff, dart analyze; CI on Windows, macOS
-  and Linux x Python 3.11-3.13.
+- 351 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
+  macOS and Linux x Python 3.11-3.13.
 
 ## Install
 
@@ -315,7 +315,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 470 tests (2 skipped: Windows-only, statsforecast), ~40 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 351 tests (1 Windows-only, 1 needs the forecast extra), ~70 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 
