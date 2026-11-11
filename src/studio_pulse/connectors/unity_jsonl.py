@@ -97,6 +97,7 @@ def parse_lines(
                     "ft_p95_ms": _f(params.get(E.PARAM_FT_P95)),
                     "ft_max_ms": _f(params.get(E.PARAM_FT_MAX)),
                     "slow_frames": _i(params.get(E.PARAM_SLOW_FRAMES)),
+                    "janky_frames": _i(params.get(E.PARAM_JANKY_FRAMES)),
                     "mem_alloc_mb": _f(params.get(E.PARAM_MEM_ALLOC)),
                     "mem_reserved_mb": _f(params.get(E.PARAM_MEM_RESERVED)),
                     "ft_src": params.get(E.PARAM_FT_SOURCE),

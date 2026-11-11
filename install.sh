@@ -2,11 +2,18 @@
 # install.sh - studio-pulse for macOS (Apple Silicon or Intel) and Linux.
 # No sudo and no system Python needed: uv installs Python and the tool for this user.
 #
-#   curl -LsSf https://raw.githubusercontent.com/emirhann-akca/studio-pulse/v0.2.0/install.sh | sh
+#   curl -LsSf https://raw.githubusercontent.com/emirhann-akca/studio-pulse/main/install.sh | sh
+#
+# Source: the wheel of the v0.2.0 GitHub release when it exists; when that
+# download answers 404 (no release published), the main-branch archive, built
+# locally by uv. The installer says which one it used.
 #
 # Options (environment variables):
-#   PULSE_SOURCE   wheel path or URL to install (default: the v0.2.0 release wheel)
-#   PULSE_EXTRAS   extras to install, default "gcp" (BigQuery / Cloud Storage); "none" for none
+#   PULSE_SOURCE       wheel or source archive (path or URL) to install; skips the release lookup
+#   PULSE_ARCHIVE_URL  archive used when there is no release (default: the main branch zip)
+#   PULSE_RELEASE_BASE where release wheels are looked up (default: this repository's releases)
+#   PULSE_EXTRAS   extras to install, default "gcp,ua" (BigQuery / Cloud Storage, ad-network
+#                  APIs); add "forecast" or "stores"; "none" for none
 #   PULSE_PYTHON   Python version for the tool, default 3.13 (uv downloads it if missing)
 #   PULSE_DEMO=1   build the demo dashboard afterwards (in PULSE_DEMO_DIR, default ~/studio-pulse-demo)
 #   UV_NO_MODIFY_PATH=1   leave shell profiles alone
@@ -16,20 +23,43 @@ VERSION="0.2.0"
 UV_VERSION="0.13.7"   # pinned; Astral's install.sh verifies the SHA-256 of what it downloads
 REPO="https://github.com/emirhann-akca/studio-pulse"
 PYTHON="${PULSE_PYTHON:-3.13}"
-EXTRAS="${PULSE_EXTRAS:-gcp}"
-SOURCE="${PULSE_SOURCE:-$REPO/releases/download/v$VERSION/studio_pulse-$VERSION-py3-none-any.whl}"
+EXTRAS="${PULSE_EXTRAS:-gcp,ua}"
+RELEASE_BASE="${PULSE_RELEASE_BASE:-$REPO/releases/download}"
+ARCHIVE="${PULSE_ARCHIVE_URL:-$REPO/archive/refs/heads/main.zip}"
 
 say() { printf 'pulse-install: %s\n' "$*"; }
 die() { printf 'pulse-install: error: %s\n' "$*" >&2; exit 1; }
 
+choose_source() {
+    if [ -n "${PULSE_SOURCE:-}" ]; then
+        SOURCE="$PULSE_SOURCE"
+        say "source: PULSE_SOURCE ($SOURCE)"
+        return
+    fi
+    WHEEL="$RELEASE_BASE/v$VERSION/studio_pulse-$VERSION-py3-none-any.whl"
+    # One byte of the wheel is enough to tell a published release from a 404.
+    CODE=$(curl -sL -r 0-0 -o /dev/null -w '%{http_code}' "$WHEEL" 2>/dev/null || true)
+    case "$CODE" in
+        200|206)
+            SOURCE="$WHEEL"
+            say "source: release wheel v$VERSION ($WHEEL)" ;;
+        404)
+            SOURCE="$ARCHIVE"
+            say "no release wheel for v$VERSION (HTTP 404); source: branch archive ($ARCHIVE)" ;;
+        *)
+            die "cannot reach $WHEEL (HTTP ${CODE:-none}); check the connection or set PULSE_SOURCE" ;;
+    esac
+}
+
 main() {
+    command -v curl >/dev/null 2>&1 || die "curl is needed"
+    choose_source
     UV_DIR="${UV_INSTALL_DIR:-$HOME/.local/bin}"
     if command -v uv >/dev/null 2>&1; then
         UV=$(command -v uv)
     elif [ -x "$UV_DIR/uv" ]; then
         UV="$UV_DIR/uv"
     else
-        command -v curl >/dev/null 2>&1 || die "curl is needed to download uv"
         say "installing uv $UV_VERSION into $UV_DIR"
         curl -LsSf "https://astral.sh/uv/$UV_VERSION/install.sh" | sh || die "uv installation failed"
         UV="$UV_DIR/uv"
@@ -42,7 +72,7 @@ main() {
     esac
     SPEC="studio-pulse"
     if [ -n "$EXTRAS" ] && [ "$EXTRAS" != "none" ]; then SPEC="studio-pulse[$EXTRAS]"; fi
-    say "installing $SPEC $VERSION with Python $PYTHON (uv downloads Python if it is missing)"
+    say "installing $SPEC with Python $PYTHON (uv downloads Python if it is missing)"
     "$UV" tool install --force --python "$PYTHON" "$SPEC @ $SOURCE" || die "uv tool install failed"
 
     BIN=$("$UV" tool dir --bin)

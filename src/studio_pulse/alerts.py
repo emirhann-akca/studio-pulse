@@ -107,6 +107,13 @@ METRICS: dict[str, MetricSpec] = {
         "pct",
         ("device_tier",),
     ),
+    "janky_frame_share": MetricSpec(
+        "SELECT app_id, date, janky_frame_share AS value, windows AS sample, device_tier "
+        "FROM fct_perf_daily WHERE janky_frame_share IS NOT NULL",
+        "pct",
+        ("device_tier",),
+        "Frames over the display's frame budget / frames (Flutter package)",
+    ),
     "memory_p95_mb": MetricSpec(
         "SELECT app_id, date, mem_alloc_p95_mb AS value, windows AS sample, device_tier FROM fct_perf_daily",
         "mb",

@@ -1,9 +1,10 @@
-"""Shared client event schema (Unity package <-> Python connectors).
+"""Shared client event schema (Unity and Flutter packages <-> Python connectors).
 
 This module is the single Python source of truth for the event and parameter
 names documented in docs/EVENTS.md. The Unity package declares the same names
-in unity/com.studio.pulse/Runtime/PulseSchema.cs; tests/test_event_schema.py
-fails if the two drift apart.
+in unity/com.studio.pulse/Runtime/PulseSchema.cs and the Flutter package in
+flutter/studio_pulse_perf/lib/src/schema.dart; tests/test_event_schema.py and
+tests/test_flutter_package.py fail if they drift apart.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ PARAM_FT_P50 = "ft_p50_ms"
 PARAM_FT_P95 = "ft_p95_ms"
 PARAM_FT_MAX = "ft_max_ms"
 PARAM_SLOW_FRAMES = "slow_frames"
+PARAM_JANKY_FRAMES = "janky_frames"  # optional: frames over the display's frame budget (Flutter)
 PARAM_CPU_MAIN_P95 = "cpu_main_p95_ms"
 PARAM_GPU_P95 = "gpu_p95_ms"
 PARAM_MEM_SOURCE = "mem_src"
@@ -47,6 +49,7 @@ PERF_PARAMS: dict[str, str] = {
     PARAM_FT_P95: "double",
     PARAM_FT_MAX: "double",
     PARAM_SLOW_FRAMES: "int",
+    PARAM_JANKY_FRAMES: "int",  # optional: Flutter package only
     PARAM_CPU_MAIN_P95: "double",  # optional: only when the counter reported
     PARAM_GPU_P95: "double",  # optional: off on OpenGL ES by default
     PARAM_MEM_SOURCE: "string",
@@ -70,6 +73,8 @@ SOURCE_FRAME_TIMING = "ftm"  # FrameTimingManager "CPU Total Frame Time" via Pro
 SOURCE_DELTA_TIME = "dt"  # Time.unscaledDeltaTime fallback
 SOURCE_RECORDER = "recorder"  # ProfilerRecorder memory counters
 SOURCE_PROFILER_API = "profiler_api"  # Profiler.GetTotal*Memory fallback
+SOURCE_FLUTTER = "flutter_ft"  # Flutter: FrameTiming via SchedulerBinding.addTimingsCallback
+SOURCE_RSS = "dart_rss"  # Flutter: dart:io ProcessInfo.currentRss (resident set size)
 
 LOAD_KIND_COLD_START = "cold_start"
 LOAD_KIND_SCENE = "scene_load"

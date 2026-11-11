@@ -11,6 +11,7 @@ series is counted alongside: it fires on ordinary weekends.
 from __future__ import annotations
 
 import datetime as dt
+import os
 import random
 
 import duckdb
@@ -81,9 +82,17 @@ def test_seasonal_engine_backtest():
     assert false <= 1 and trailing >= 5, (false, trailing)
 
 
+def need_statsforecast() -> None:
+    """Skip without the extra, except in the CI job that installs it (there it must run)."""
+    if os.environ.get("PULSE_REQUIRE_FORECAST") == "1":
+        import statsforecast  # noqa: F401
+    else:
+        pytest.importorskip("statsforecast")
+
+
 @pytest.mark.forecast
 def test_statsforecast_engine_backtest():
-    pytest.importorskip("statsforecast")
+    need_statsforecast()
     results = [check("statsforecast", seed) for seed in (1, 2, 3, 4)]
     false = [f for f, _ in results]
     # AutoETS at its default 99.9% level: at most one false alert per 120-day series on average

@@ -19,6 +19,9 @@ namespace Studio.Pulse
         public const string ParamFtP95 = "ft_p95_ms";
         public const string ParamFtMax = "ft_max_ms";
         public const string ParamSlowFrames = "slow_frames";
+        // Frames over the display's frame budget. Sent by the Flutter package
+        // (flutter/studio_pulse_perf); optional in the contract, not sent by Unity yet.
+        public const string ParamJankyFrames = "janky_frames";
         public const string ParamCpuMainP95 = "cpu_main_p95_ms";
         public const string ParamGpuP95 = "gpu_p95_ms";
         public const string ParamMemSource = "mem_src";

@@ -6,14 +6,23 @@ different on Windows. Commands are the same on every OS.
 ## Install
 
 `install.sh` (macOS / Linux) and `install.ps1` (Windows PowerShell 5.1 or 7)
-install uv 0.13.7 if it is missing, then `uv tool install` the studio-pulse
-wheel with Python 3.13 (downloaded by uv when absent), and run `pulse doctor`.
-No administrator rights; nothing is installed outside your user profile.
+install uv 0.13.7 if it is missing, then `uv tool install` studio-pulse with
+Python 3.13 (downloaded by uv when absent), and run `pulse doctor`. No
+administrator rights; nothing is installed outside your user profile.
+
+Which studio-pulse: the installers request one byte of the wheel attached to
+the GitHub release of their version (`v0.2.0`). If it exists they install it;
+if GitHub answers 404 (no release is published at the moment) they install
+the main-branch archive instead, which uv builds locally, and print
+`no release wheel for v0.2.0 (HTTP 404); source: branch archive (...)`. Any
+other answer (no network) stops with an error rather than guessing.
 
 | Variable | Meaning |
 |---|---|
-| `PULSE_SOURCE` | wheel path or URL (default: the release wheel of the installer's version) |
-| `PULSE_EXTRAS` | extras, default `gcp` (BigQuery / Cloud Storage clients); `none` for a smaller install |
+| `PULSE_SOURCE` | wheel or source archive (path or URL); skips the release lookup |
+| `PULSE_ARCHIVE_URL` | the archive used when there is no release (default `.../archive/refs/heads/main.zip`) |
+| `PULSE_RELEASE_BASE` | where release wheels are looked up (default this repository's releases) |
+| `PULSE_EXTRAS` | extras, default `gcp,ua` (BigQuery / Cloud Storage clients, dlt for the ad-network APIs); add `forecast` (statsforecast) or `stores` (App Store Connect key signing); `none` for the smallest install |
 | `PULSE_PYTHON` | Python version for the tool, default `3.13` |
 | `PULSE_DEMO=1` | also build the demo into `PULSE_DEMO_DIR` (default `~/studio-pulse-demo`) |
 | `UV_NO_MODIFY_PATH=1` | do not touch shell profiles / the user PATH |
@@ -125,6 +134,64 @@ python -c "import duckdb; c = duckdb.connect('local/pulse-state/snapshot.duckdb'
 
 `duckdb -ui` is the same thing from the separate DuckDB command-line tool, which
 studio-pulse does not install.
+
+## Ad-network spend, reviews and vitals
+
+Credentials are read from environment variables (or Google's Application
+Default Credentials) and never from the config: a source that contains
+`access_token`, `token`, `api_key`, `secret`, `password` or a similar key is
+refused. Every error message is passed through a redactor that removes the
+secret values the connector holds, and tokens travel only in headers, never in
+URLs (Meta's `paging.next` links have their `access_token` removed).
+
+| Source | Config | Credential |
+|---|---|---|
+| `meta_ads` | `account_id`, optional `platform`, `api_version` (v27.0), `lookback_days` (30) | `$PULSE_META_ACCESS_TOKEN` (or `token_env`) |
+| `google_ads` | `customer_id`, optional `login_customer_id` (MCC), `quota_project`, `api_version` (v26) | `$PULSE_GOOGLE_ADS_ACCESS_TOKEN` or ADC with the `adwords` scope; `$PULSE_GOOGLE_ADS_DEVELOPER_TOKEN` only for accounts still on developer tokens |
+| `tiktok_ads` | `advertiser_id` | `$PULSE_TIKTOK_ACCESS_TOKEN` |
+| `ua_csv` | `network`, `path`, optional `currency`, `platform`, `date_format`, `columns` | - |
+| `play_reviews` | `path` (folder or `gs://pubsite_prod_rev_<id>/reviews/`), `package`, `api: true` | ADC (GCS, androidpublisher) or `$PULSE_PLAY_ACCESS_TOKEN` |
+| `app_store_reviews` | `apple_id` | `PULSE_ASC_KEY_ID`, `PULSE_ASC_ISSUER_ID`, `PULSE_ASC_PRIVATE_KEY` or `..._PATH` (ES256, extra `stores`), or `$PULSE_ASC_TOKEN` |
+| `android_vitals` | `package` | ADC (`playdeveloperreporting`) or `$PULSE_PLAY_ACCESS_TOKEN` |
+
+Google Ads access: Google retired developer tokens on 9 September 2026 and
+grants API access per Google Cloud project; the connector therefore sends an
+OAuth token and, when set, the Cloud project as `x-goog-user-project`. This
+model has not been verified against a live account.
+
+Two sources of one type for one app: suffix the key, `meta_ads@ios:`.
+Recorded responses: `replay: <folder>` makes an API source read
+`<folder>/replay.json` instead of the network (the demo and the tests use it).
+UA sources re-read the last `lookback_days` (30) each run, so the networks'
+attribution revisions arrive; Play API reviews cover only the last 7 days,
+so schedule the refresh daily or rely on the monthly CSVs.
+
+## Experiments
+
+Log an exposure event when a user first sees a variant (default name
+`experiment_exposure`, parameters `experiment_id` and `variant`; Firebase A/B
+Testing users can log it from Remote Config), and list the test under the
+app:
+
+```yaml
+experiments:
+  - id: paywall_copy_v2
+    start: 2026-11-01
+    end: 2026-11-21          # last exposure day counted
+    metric_event: in_app_purchase
+    metric_value: value      # sum of event_value_in_usd (count: number of events)
+    conversion_event: in_app_purchase
+    window_days: 7
+    pre_days: 14             # CUPED covariate window
+    control: A
+    split: {A: 0.5, B: 0.5}
+```
+
+Each refresh runs one aggregate query per experiment in BigQuery (dry-run and
+byte cap as for the other queries); `pulse experiment --sql` prints it,
+`pulse experiment` prints the analysis, and `pulse experiment --input
+arms.csv` analyses totals from anywhere (columns `variant, users, conversions,
+y_sum, y_sumsq, x_sum, x_sumsq, xy_sum`).
 
 ## Windows notes
 

@@ -6,18 +6,38 @@
 
 Analytics and monitoring for a small mobile studio's app portfolio. GA4 /
 Firebase, Crashlytics, RevenueCat, AdMob, Play Console and App Store reports,
-plus a Unity telemetry package, go into one DuckDB warehouse; every app gets
-the same SQL metric definitions, the same alert rules and the same static
-dashboard.
+ad-network spend (Meta, Google Ads, TikTok, CSV exports), store reviews and
+Android vitals, plus Unity and Flutter telemetry packages, go into one DuckDB
+warehouse; every app gets the same SQL metric definitions, the same alert
+rules and the same static dashboard.
 
 **Live demo: <https://emirhann-akca.github.io/studio-pulse/>** - synthetic data
-for three fictional apps, built by `pulse demo`.
+for three fictional apps, built by `pulse demo` (UA spend, an A/B test and
+store reviews included).
 
 [![Portfolio page of the demo dashboard](docs/img/dashboard.png)](https://emirhann-akca.github.io/studio-pulse/)
 
-- **9 source connectors -> 20 SQL models -> 39 data-quality checks -> 7 alert
-  rules -> static HTML.** `pulse demo` generates export-shaped files and runs
-  them through the real connectors in about 15 seconds.
+- **16 source connectors -> 34 SQL models + 2 statistics steps -> 51
+  data-quality checks -> 11 alert rules -> static HTML.** `pulse demo`
+  generates export-shaped files and recorded API responses and runs them
+  through the real connectors in about 20 seconds.
+- **UA economics**: Meta, Google Ads and TikTok spend through
+  [dlt](https://github.com/dlt-hub/dlt)'s REST client, any other network from
+  its CSV export; cohort ROAS D0/D7/D30, CPI, pooled ROAS curve and payback day
+  per network and campaign, and a creative scorecard (IPM with a Wilson
+  interval, CTR, CPI, modeled D7 ROAS, never ranked below a minimum of
+  impressions) keyed by [creative-forge](https://github.com/emirhann-akca/creative-forge)'s
+  creative ids parsed from ad names.
+- **Experiments**: `pulse experiment` reads per-variant sums computed inside
+  BigQuery (no user rows leave it) and reports a sample-ratio-mismatch check,
+  z and Welch tests, CUPED and an always-valid (sequential) interval, ported
+  from GrowthBook's MIT stats engine and checked against scipy, statsmodels and
+  the NIST handbook.
+- **Seasonality-aware alerts** (`forecast_band`: trend + weekday regression,
+  or Nixtla statsforecast as an optional extra), **store reviews and Android
+  vitals** (Play CSV + API, App Store Connect, Play Reporting API; rating by
+  version, keyword topics in English and Turkish) and **predicted LTV v1**
+  (curve fits with a time-based backtest, shown as a model with its error).
 - **Runs on Windows 10/11 and macOS** (and Linux): a one-line installer, a
   daily refresh registered with launchd or Task Scheduler, and a local web UI.
   CI installs it with the real installers on all three and checks that the
@@ -29,13 +49,15 @@ for three fictional apps, built by `pulse demo`.
 - **Retention against public benchmarks**: game pages place D1/D7/D30 in the
   GameAnalytics 2026 brackets (16,262 mobile games). The demo is calibrated to
   them: the good puzzle game sits at D1 38% / D7 9% / D30 3%.
-- **Unity package** on the runtime APIs Unity documents for release players
-  (`ProfilerRecorder`, FrameTimingManager counters), zero per-frame
-  allocations, and every event says which API produced its numbers.
+- **Unity and Flutter packages** on one event contract: Unity's
+  `ProfilerRecorder` / FrameTimingManager counters and Flutter's
+  `addTimingsCallback` (build / raster p95, janky frames, RSS, cold start),
+  zero per-frame allocations, and every event says which API produced its numbers.
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.
-- 178 tests, ruff; CI on Windows, macOS and Linux x Python 3.11-3.13.
+- 470 tests (Python) + 8 (Flutter), ruff, dart analyze; CI on Windows, macOS
+  and Linux x Python 3.11-3.13.
 
 ## Install
 
@@ -44,17 +66,22 @@ installs Python 3.13 and studio-pulse for your user only.
 
 ```bash
 # macOS / Linux
-curl -LsSf https://raw.githubusercontent.com/emirhann-akca/studio-pulse/v0.2.0/install.sh | sh
+curl -LsSf https://raw.githubusercontent.com/emirhann-akca/studio-pulse/main/install.sh | sh
 ```
 
 ```powershell
 # Windows 10/11 (PowerShell)
-powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/emirhann-akca/studio-pulse/v0.2.0/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/emirhann-akca/studio-pulse/main/install.ps1 | iex"
 ```
 
-The installers download the wheel attached to the `v0.2.0` GitHub release
-(the release workflow publishes it when the tag is pushed) and finish with
-`pulse doctor`. From a clone instead: `uv tool install .`, or pip as below.
+The installers look for the wheel of the `v0.2.0` GitHub release; no release
+is published at the moment, so that download answers 404 and they install the
+main-branch archive instead (uv builds it), printing which source they used.
+Extras `gcp,ua` (BigQuery / Cloud Storage, ad-network APIs) are included;
+`PULSE_EXTRAS=gcp,ua,forecast,stores` adds statsforecast and App Store Connect
+key signing. They finish with `pulse doctor`. From a clone instead:
+`uv tool install .`, or pip as below. CI runs these two lines verbatim on
+Windows PowerShell 5.1, macOS and Ubuntu, and forces the 404 fallback once.
 
 ```bash
 pulse demo --open           # synthetic data for 3 apps -> dashboard in the browser
@@ -72,15 +99,22 @@ python3 -m venv .venv
 One demo app ships a bad release in its last four days. The run ends with:
 
 ```
-Data quality: 39/39 checks passed, 0 error(s), 0 warning(s).
-3 alert(s):
+Data quality: 51/51 checks passed, 0 error(s), 0 warning(s).
+4 alert(s):
   [CRITICAL] quartz_merge  crash_free_users_low      2026-10-31  crash_free_users 98.46% is below 99.00%
   [WARNING ] quartz_merge  d1_retention_drop         2026-10-30  d1_retention 17.03% is down 36.3% vs the trailing 14-day mean 26.76% (limit 20%) (z=-4.2, n=364)
   [WARNING ] quartz_merge  low_tier_frame_time_high  2026-10-31  frame_time_p50_ms 24.7 ms is above 20.0 ms [device_tier=low]
+  [WARNING ] quartz_merge  play_crash_rate_bad       2026-10-31  vitals_crash_rate 1.31% is above 1.09%
 ```
 
-and the app's version table shows the regression is GPU-bound on low-tier
-phones (GPU p95 close to the frame p95, CPU main thread well below it).
+The app's version table shows the regression is GPU-bound on low-tier phones
+(GPU p95 close to the frame p95, CPU main thread well below it), Play vitals
+put its crash rate over Play's bad-behaviour threshold, and version 1.8.0's
+reviews average 1.7 stars. The UA page shows D7 ROAS of 15-68% across
+networks and campaigns, one campaign paying back on day 50 and one creative
+held back as "insufficient data"; the experiments page shows the demo's A/B
+test, where CUPED corrects a lucky pre-period imbalance and the always-valid
+interval says to keep running.
 
 ## Operating it
 
@@ -89,7 +123,8 @@ phones (GPU p95 close to the frame p95, CPU main thread well below it).
 | `pulse run` | one refresh: ingest, models, data-quality checks, alerts, dashboard. Holds a run lock (a second run exits 75, "locked") and writes a heartbeat |
 | `pulse schedule install --at 09:30` | registers the daily refresh: a LaunchAgent on macOS (a missed run starts on wake), a Task Scheduler task on Windows (starts on battery, runs when missed, no console window) |
 | `pulse schedule status` / `run-now --wait 600` / `remove` | registration, last result and last refresh; start it now; unregister |
-| `pulse check` | the 39 checks in [`checks.yaml`](checks.yaml): keys, nulls, accepted values, ranges, per-source freshness, volume drop vs the trailing median, referential, reconciliations (DAU <= WAU <= MAU, retention in [0, 1], crash counts within their denominators, GA4 vs AdMob ad revenue). Error-level failures fail the run, are stored in the warehouse, shown on the dashboard and notified |
+| `pulse check` | the 51 checks in [`checks.yaml`](checks.yaml): keys, nulls, accepted values, ranges, per-source freshness, volume drop vs the trailing median, referential, reconciliations (DAU <= WAU <= MAU, retention in [0, 1], crash counts within their denominators, GA4 vs AdMob ad revenue, UA spend converted to USD, one spend row per network/day/ad, experiment sample ratio). Error-level failures fail the run, are stored in the warehouse, shown on the dashboard and notified |
+| `pulse experiment` | A/B test results from the warehouse (`--sql` prints the BigQuery aggregate query, `--input arms.csv` analyses totals from anywhere); exit 3 on a sample ratio mismatch |
 | `pulse serve` | local UI on 127.0.0.1: dashboard, refresh health (heartbeat, recent runs, check results, source freshness, schedule state), alerts, and a run-now button. It opens the warehouse read-only per request and serves the last good snapshot while a refresh is writing |
 | `pulse doctor [--json]` | Python, time zones, DuckDB, config, writable folders, Google credentials (present or not, never their contents), schedule state |
 
@@ -186,7 +221,20 @@ and sources. No secrets go in the file; values can reference `${ENV_VARS}`.
 | `revenuecat` | scheduled Transactions export, `gs://...` or a folder | ADC for GCS |
 | `admob` | Reporting API `networkReport:generate` | ADC (`admob.readonly`) or `PULSE_ADMOB_ACCESS_TOKEN` |
 | `play_console`, `app_store` | installs/ratings CSVs, Summary Sales reports | files you copy |
-| `unity_jsonl` | files written by the Unity package's `JsonLinesSink` | - |
+| `unity_jsonl` | files written by the Unity or Flutter package's `JsonLinesSink` | - |
+| `meta_ads` | Marketing API Insights, ad x country x day | `$PULSE_META_ACCESS_TOKEN` (system user, ads_read) |
+| `google_ads` | `googleAds:search` GAQL, ad x day | ADC with the adwords scope or `$PULSE_GOOGLE_ADS_ACCESS_TOKEN`; Cloud-project access (developer tokens were retired on 9 Sep 2026); not verified against a live account |
+| `tiktok_ads` | `report/integrated/get`, ad x country x day | `$PULSE_TIKTOK_ACCESS_TOKEN` |
+| `ua_csv` | AppLovin, Unity Ads, Mintegral or any network's report export | files you copy |
+| `play_reviews` | monthly `reviews/` CSVs from the Play Console bucket (+ the Play API's last 7 days) | ADC for GCS / androidpublisher |
+| `app_store_reviews` | App Store Connect `customerReviews` | API key in `PULSE_ASC_*` env variables |
+| `android_vitals` | Play Developer Reporting API crash and ANR rates | ADC (playdeveloperreporting) |
+
+Ad-network and store APIs read credentials from the environment only (a
+config that contains a token is refused, and every error message is redacted);
+every API source can also replay recorded responses (`replay:`), which is how
+the demo and the tests run. The UA and experiment setup is described in
+[docs/METRICS.md](docs/METRICS.md) and [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 ```bash
 pulse ingest --dry-run   # BigQuery: estimate bytes for every query, load nothing
@@ -200,6 +248,18 @@ which also picks up events GA4 adds to a day late.
 [`.github/workflows/refresh.example.yml`](.github/workflows/refresh.example.yml)
 is a disabled template for running it from a private repository with a service
 account instead; this repository schedules nothing.
+
+## Flutter package
+
+[`flutter/studio_pulse_perf`](flutter/studio_pulse_perf): the same
+`pulse_perf` / `pulse_load` events from a Flutter app. Frame build and raster
+times from `SchedulerBinding.addTimingsCallback` (p50 / p95 / max, frames over
+33.3 ms and over the display's frame budget), cold start to the first
+rasterized frame, resident memory, device tier; sinks for Firebase Analytics
+(pass `FirebaseAnalytics.instance.logEvent`, no plugin dependency) and JSON
+lines. The per-frame callback stores integers in preallocated typed lists.
+`dart analyze` and `flutter test` run in CI; the JSON its tests write is parsed
+by the Python connector (`tests/test_flutter_package.py`).
 
 ## Unity package
 
@@ -238,13 +298,24 @@ Mono to produce the fixtures the Python tests parse.
 - `pulse schedule` covers macOS and Windows; on Linux use cron or a systemd
   timer. The Windows task runs while you are logged in (a missed run starts at
   the next logon or wake).
+- The ad-network, store-review and vitals connectors are tested only with
+  recorded responses in the documented shapes; none has been run against a
+  live account (Google Ads under its post-September-2026 access model
+  included). CSV header aliases for AppLovin, Unity Ads and Mintegral come
+  from public help pages, not from real exports.
+- Without an MMP, ROAS per campaign is GA4 first-touch where GA4 sees the
+  campaign (Google Ads) and otherwise a model (network installs x the
+  cohort's average ARPU), which overstates cheap geos; every figure carries
+  its basis. Creative D7 ROAS is always that model.
+- pLTV v1 fits smooth curves; a subscription app's stepped revenue fits badly
+  (the demo's fitness app backtests at about 35% error, shown on its page).
 
 ## Development
 
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 178 tests (1 Windows-only), ~20 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 470 tests (2 skipped: Windows-only, statsforecast), ~40 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 
@@ -257,9 +328,10 @@ characters, registers and fires a real launchd / Task Scheduler job, and
 compares the SHA-256 of every model table across all jobs. Tags `v*` build and
 publish the release ([`release.yml`](.github/workflows/release.yml)).
 
-Layout: `src/studio_pulse/` (config, warehouse, runner, connectors, checks,
-alerts, runstate, schedule, serve, doctor, dashboard, demo, CLI), `models/`
-(SQL), `tests/`, `unity/`, `docs/`.
+Layout: `src/studio_pulse/` (config, warehouse, runner, connectors incl. `ua/`
+and `reviews`, stats (experiments, forecast, pLTV), checks, alerts, runstate,
+schedule, serve, doctor, dashboard, demo, CLI), `models/` (SQL), `tests/`,
+`unity/`, `flutter/`, `docs/`.
 
 ## License
 

@@ -57,14 +57,68 @@ def test_ci_matrix_covers_three_oses_and_three_pythons():
     assert jobs["cross-os-hash"]["needs"] == "tests"
 
 
-def test_user_install_runs_the_real_installers_in_a_turkish_path():
+def test_user_install_runs_the_readme_one_liners_in_a_turkish_path():
     steps = _wf("ci.yml")["jobs"]["user-install"]["steps"]
     text = " ".join(s.get("run", "") for s in steps)
-    assert "sh install.sh" in text and "install.ps1 | Invoke-Expression" in text
+    assert "readme_oneliner.py sh" in text and "readme_oneliner.py ps" in text
+    assert "cmd /c oneliner.cmd" in text and "PULSE_SOURCE" in text
     assert "[char]0x015E" in text  # the work directory has Turkish characters
     for cmd in ("pulse doctor", "pulse demo", "pulse check", "pulse serve --config"):
         assert cmd in text
     assert any(s.get("uses", "").startswith("actions/upload-artifact@") for s in steps)
+
+
+def test_install_fallback_job_forces_a_404_and_checks_the_archive_line():
+    job = _wf("ci.yml")["jobs"]["install-fallback"]
+    assert set(job["strategy"]["matrix"]["os"]) == {"ubuntu-latest", "windows-latest"}
+    assert "ci-no-such-release" in job["env"]["PULSE_RELEASE_BASE"]
+    assert "${{ github.sha }}.zip" in job["env"]["PULSE_ARCHIVE_URL"]
+    text = " ".join(s.get("run", "") for s in job["steps"])
+    assert "PULSE_SOURCE" not in text and "source: branch archive" in text
+
+
+def test_readme_one_liners_are_what_ci_runs():
+    import importlib.util
+
+    root = WORKFLOWS.parents[1]
+    spec = importlib.util.spec_from_file_location(
+        "readme_oneliner", root / ".github" / "scripts" / "readme_oneliner.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    sh = mod.oneliner("sh", readme=root / "README.md")
+    ps = mod.oneliner("ps", readme=root / "README.md")
+    assert sh == (
+        "curl -LsSf https://raw.githubusercontent.com/emirhann-akca/studio-pulse/main/install.sh | sh"
+    )
+    assert ps.startswith('powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent')
+    assert mod.oneliner("sh", "abc123", readme=root / "README.md").endswith(
+        "/studio-pulse/abc123/install.sh | sh"
+    )
+
+
+def test_installers_fall_back_to_the_branch_archive_on_404():
+    root = WORKFLOWS.parents[1]
+    sh = (root / "install.sh").read_text(encoding="utf-8")
+    ps = (root / "install.ps1").read_text(encoding="utf-8")
+    for text in (sh, ps):
+        assert "archive/refs/heads/main.zip" in text and "PULSE_ARCHIVE_URL" in text
+        assert "404" in text and "source: branch archive" in text
+    assert all(b < 128 for b in (root / "install.ps1").read_bytes())  # irm | iex needs ASCII
+
+
+def test_optional_extra_and_flutter_jobs():
+    jobs = _wf("ci.yml")["jobs"]
+    fc = jobs["forecast-extra"]
+    assert set(fc["strategy"]["matrix"]["os"]) == {
+        "windows-latest",
+        "macos-latest",
+        "ubuntu-latest",
+    }
+    assert fc["env"]["PULSE_REQUIRE_FORECAST"] == "1"
+    assert ".[dev,forecast]" in " ".join(s.get("run", "") for s in fc["steps"])
+    fl = " ".join(s.get("run", "") for s in jobs["flutter-package"]["steps"])
+    assert "dart analyze" in fl and "flutter test" in fl
 
 
 def test_schedule_smoke_always_removes_what_it_registered():

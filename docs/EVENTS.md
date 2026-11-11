@@ -1,16 +1,20 @@
 # Client event schema
 
 This is the contract between the game client and the warehouse. The Unity
-package (`unity/com.studio.pulse`) emits exactly these events; the Python
-connectors read exactly these names. The constants live in two places that a
-test keeps in sync:
+package (`unity/com.studio.pulse`) and the Flutter package
+(`flutter/studio_pulse_perf`) emit exactly these events; the Python connectors
+read exactly these names. The constants live in three places that tests keep
+in sync:
 
 - C#: `unity/com.studio.pulse/Runtime/PulseSchema.cs`
+- Dart: `flutter/studio_pulse_perf/lib/src/schema.dart`
 - Python: `src/studio_pulse/events.py`
 
-`tests/test_event_schema.py` fails if they drift apart, and also parses a
-sample produced by running the package's serializer under Mono
-(`tests/fixtures/unity/csharp_sample.jsonl`).
+`tests/test_event_schema.py` fails if C# and Python drift apart, and also
+parses a sample produced by running the package's serializer under Mono
+(`tests/fixtures/unity/csharp_sample.jsonl`). `tests/test_flutter_package.py`
+does the same for Dart: the constants, and the JSON lines that the package's
+own `flutter test` writes (`flutter/studio_pulse_perf/test/golden/pulse_sample.jsonl`).
 
 ## Transports
 
@@ -38,14 +42,15 @@ Sessions can be sampled with `PulseConfig.sessionSampleRate`.
 | `scene` | string | - | Active scene when the window closed |
 | `window_s` | double | s | Window length actually covered |
 | `frames` | int | frames | Frames rendered in the window |
-| `ft_src` | string | - | Where the frame times came from: `ftm` or `dt` (below) |
+| `ft_src` | string | - | Where the frame times came from: `ftm` or `dt` (Unity, below), `flutter_ft` (Flutter) |
 | `ft_p50_ms` | double | ms | Median frame time of the window |
 | `ft_p95_ms` | double | ms | 95th percentile frame time of the window |
 | `ft_max_ms` | double | ms | Slowest frame of the window |
 | `slow_frames` | int | frames | Frames slower than 33.3 ms (below 30 fps) |
+| `janky_frames` | int | frames | Frames longer than the display's frame budget (16.7 ms at 60 Hz). Optional; sent by the Flutter package |
 | `cpu_main_p95_ms` | double | ms | p95 of FrameTimingManager "CPU Main Thread Frame Time" (main thread work, vsync and render-thread waits excluded). Optional |
 | `gpu_p95_ms` | double | ms | p95 of FrameTimingManager "GPU Frame Time". Optional; off on OpenGL ES by default |
-| `mem_src` | string | - | `recorder` (ProfilerRecorder memory counters) or `profiler_api` (fallback) |
+| `mem_src` | string | - | `recorder` (ProfilerRecorder memory counters) or `profiler_api` (fallback); `dart_rss` (Flutter) |
 | `mem_alloc_mb` | int | MB | Peak `Profiler.GetTotalAllocatedMemoryLong()`, sampled once per second |
 | `mem_reserved_mb` | int | MB | Peak "Total Reserved Memory" counter (fallback `Profiler.GetTotalReservedMemoryLong()`) |
 | `gc_reserved_mb` | int | MB | Peak "GC Reserved Memory" counter (fallback `Profiler.GetMonoHeapSizeLong()`) |
@@ -85,6 +90,55 @@ window up to ~136 fps); `frames` and `slow_frames` count every frame of the
 window. Per frame the sampler does up to three `ProfilerRecorder.LastValue`
 reads and three stores into preallocated rings, nothing that allocates (the
 compiled IL of `PerfSampler.Tick` has no `newobj`, `newarr` or `box`).
+
+## Flutter package (`flutter/studio_pulse_perf`)
+
+The same `pulse_perf` / `pulse_load` events from a Flutter app, for the
+camera-heavy fitness app as much as for games:
+
+```dart
+final perfStart = PulsePerf.markProcessStart();     // first line of main()
+WidgetsFlutterBinding.ensureInitialized();
+final perf = PulsePerf(
+  sinks: [FirebaseAnalyticsSink(FirebaseAnalytics.instance.logEvent)],
+  processStart: perfStart,
+  deviceMemoryMb: ramMb,                           // e.g. from device_info_plus; optional
+)..start();
+perf.scene = 'Workout';                            // reported with the next window
+// on AppLifecycleState.paused: await perf.flush();
+```
+
+- **Frame times** come from `SchedulerBinding.addTimingsCallback`, which the
+  engine calls with batches of `FrameTiming`. Per frame the callback reads five
+  integer timestamps and stores three durations in preallocated typed lists
+  (no objects beyond the list the engine passes in; a static guard in both test
+  suites checks the per-frame code): total span (vsync start to raster finish,
+  `FrameTiming.totalSpan`), UI-thread build time and raster-thread time.
+- Per 30 s window: `ft_p50_ms`, `ft_p95_ms`, `ft_max_ms` of the total span,
+  `slow_frames` (> 33.3 ms), `janky_frames` (> the frame budget, `1000 /
+  refreshRateHz` ms), `cpu_main_p95_ms` = UI-thread build p95 and
+  `gpu_p95_ms` = raster-thread p95. Flutter does not expose GPU time; the
+  raster thread is where the frame is submitted to the GPU. `ft_src` is
+  `flutter_ft` for these windows, so dashboards never mix them with Unity's
+  FrameTimingManager numbers.
+- **Memory**: `sys_used_mb` = peak `ProcessInfo.currentRss` (dart:io, the
+  resident set the OS counts), sampled once per second, `mem_src` = `dart_rss`.
+  The Dart heap is not readable in release builds, so `mem_alloc_mb`,
+  `mem_reserved_mb` and `gc_reserved_mb` are not sent.
+- **Cold start** (`pulse_load`, `cold_start`): from `markProcessStart()` to the
+  wall-clock raster finish of the first frame (`FrameTiming`
+  `rasterFinishWallTime`). Engine start-up before `main()` is not included.
+- **Device tier**: the Unity rules (below). Pure Dart cannot read device RAM;
+  pass `deviceMemoryMb`, otherwise the tier is `low` (4 or fewer processors)
+  or `unknown`.
+- **Sinks**: `FirebaseAnalyticsSink` takes the plugin's `logEvent` function,
+  so the package itself depends on nothing but Flutter; `JsonLinesSink` writes
+  the envelope below to a file; `MemorySink` for tests. The events are within
+  GA4's limits (at most 16 parameters, names under 40 characters).
+
+The GA4 connector maps these events into `stg_perf_windows` with no change
+(`tests/test_flutter_package.py` runs the golden window through it), and
+`fct_perf_daily` / `fct_perf_by_tier` add `janky_frame_share`.
 
 ## `pulse_load` - a load time
 

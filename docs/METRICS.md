@@ -215,3 +215,184 @@ frame time p50, the latest store rating and the LTV curve at the latest day <= 3
 (`data_through`), the oldest, the time of the last successful load, rows and
 BigQuery bytes billed by the last load. The dashboard marks a source fresh
 (<= 2 days behind the "as of" date), stale (<= 7) or old.
+
+## User acquisition (UA)
+
+Spend comes from the ad networks (`raw_ua_spend`, one contract for every
+network, see `src/studio_pulse/connectors/ua/common.py`). Amounts are kept in
+the account currency and converted in `stg_ua_spend`: `spend_usd = spend` for
+USD accounts, otherwise `spend x usd_per_unit` of the fallback FX table on that
+day (`fx_rates` in the config); a currency without a rate leaves `spend_usd`
+empty and fails the check `ua_spend_converted`.
+
+| Metric | Formula | Model / column |
+|---|---|---|
+| CPI (network) | spend_usd / network-reported installs | `fct_ua_daily.cpi_usd`, `fct_ua_summary.network_cpi_30d_usd` |
+| CTR | clicks / impressions | `fct_ua_daily.ctr` |
+| IPM | network installs / impressions x 1000 | `fct_ua_daily.ipm` |
+| Spend share | the campaign's spend / the app's spend that day | `fct_ua_daily.spend_share` |
+| Cohort revenue by day N | see the two bases below; cumulative over days 0..N of the install cohort of the spend day | `stg_ua_cohort_cum.cum_revenue_usd` |
+| Cohort ROAS DN | cohort revenue by day N / spend of that day; empty until day N is complete | `fct_ua_cohort_roas.roas_d0/d7/d30` |
+| Pooled ROAS curve | sum over the cohorts that have reached day N of revenue by day N / their spend; points backed by fewer than 7 cohorts are dropped | `fct_ua_roas_curve.roas` |
+| Payback day (observed) | the first N whose pooled ROAS reaches 100%; empty when the curve has not reached it within its observed days | `fct_ua_summary.payback_day` |
+| Blended ROAS | revenue of *all* new users (paid and organic) of the spend days / spend | `fct_ua_roas_curve.blended_roas` (app rows) |
+| CPI (basis) | spend / installs on the network's attribution basis, 30 days | `fct_ua_summary.cpi_30d_usd` |
+| Payback day (predicted) | the first day the pLTV model's predicted cumulative ARPU reaches the CPI (UA page) | `fct_pltv_curve` |
+
+Spend on day d is assumed to buy the installs of cohort d. Two attribution
+bases, chosen per network in the config (`attribution:`; default `ga4` for
+Google Ads, `network_installs` for the rest):
+
+- **`ga4` (GA4 first touch).** GA4's user-scoped `traffic_source.source /
+  medium / name` (the user's first-touch campaign) is aggregated in the
+  extraction query `campaign_cohorts` (paid media only, day 0..90, no ids).
+  A network's cohort is the users whose source is in its `ga4_sources`
+  (default `google`) and whose campaign name equals the spend's campaign name
+  (case-insensitive, trimmed); installs = those users, revenue = their GA4
+  purchase and `ad_impression` values. It works where GA4 sees the campaign
+  (Google Ads linked to Firebase). GA4 purchase values are gross (before store
+  fees), so a subscription app whose revenue arrives through RevenueCat should
+  use the other basis.
+- **`network_installs` (modeled).** Installs = the network's own count;
+  revenue = installs x the cumulative ARPU of the app's whole install cohort of
+  that day (`fct_cohort_ltv`, the LTV curve's revenue definition). It assumes
+  bought users monetise like the average new user of the same day, so it
+  overstates campaigns that buy cheap, low-ARPU countries; without an MMP
+  there is no per-user attribution for Meta, TikTok or iOS. Every figure on
+  the UA page names its basis.
+
+## Creative scorecard
+
+`fct_creative_scorecard`, one row per creative and network plus a network
+`(all)` row. A creative is the `creative_id` parsed from its ad name when the
+name is one of ours, otherwise `network:ad_id`.
+
+| Metric | Formula |
+|---|---|
+| Impressions, clicks, installs, spend | sums over every day and ad of the creative (network-reported) |
+| IPM and 95% interval | installs / impressions x 1000; Wilson score interval for the proportion installs / impressions, x 1000 (`ipm_low`, `ipm_high`) |
+| CTR, CPI | clicks / impressions, spend / installs |
+| D7 ROAS (modeled) | sum over spend days complete at day 7 of installs x the app cohort's D7 cumulative ARPU / the spend of those days (networks do not attribute revenue to ads) |
+| Status and rank | `insufficient data` below the minimum impressions (`ua: {min_creative_impressions: 5000}`), never ranked; otherwise ranked by IPM within app and network |
+
+Creative ids: the default parser (`connectors/ua/creative.py`) finds a
+[creative-forge](https://github.com/emirhann-akca/creative-forge) ad name
+anywhere in the network's name and checks its id:
+`cf1.<spec>.<concept>.<hook>.<segment>.<end_card>.<format>.<language>.<creative_id>`
+with `creative_id` = the first 10 hex digits of
+`sha256("cf1|spec|concept|hook|segment|end_card|format|language")`; a name
+whose id does not match is not ours. Contract for another parser
+(`ua: {creative_parser: "package.module:function"}` or
+`"regex:<pattern with (?P<creative_id>...)>"`): a callable
+`parse(ad_name) -> mapping | None` returning at least `creative_id`, optionally
+`concept`.
+
+## Experiments
+
+The extraction query `experiment_arms` (`connectors/ga4.py`, run inside
+BigQuery; `pulse experiment --sql` prints it) returns per variant: users,
+conversions, sum(y), sum(y^2), sum(x), sum(x^2), sum(x y), where for each
+user exposed to exactly one variant, from the first exposure day (day 0):
+y = the metric over `window_days` (count of `metric_event`, or with
+`metric_value: value` the sum of its `event_value_in_usd`), x = the same metric
+over the `pre_days` before day 0, converted = at least one `conversion_event`
+in the window. Users exposed to two variants are dropped; users whose window is
+not complete yet are not counted. Exposure is an event (default
+`experiment_exposure`) whose parameters hold the experiment id and the variant.
+
+From those sums (`src/studio_pulse/stats/experiments.py`, stdlib only):
+
+| Test | Formula |
+|---|---|
+| Sample ratio mismatch | chi-square goodness of fit of users per variant against the configured split, k - 1 degrees of freedom; flagged at p < 0.001 (GrowthBook's threshold) |
+| Conversion | two-proportion z-test: z = (p_t - p_c) / sqrt(p (1 - p) (1/n_c + 1/n_t)) with the pooled p; Wald interval with unpooled variances |
+| Mean (Welch) | mean = sum(y) / n, var = (sum(y^2) - sum(y)^2 / n) / (n - 1); t = (m_t - m_c) / sqrt(v_t/n_t + v_c/n_c), Welch-Satterthwaite degrees of freedom |
+| CUPED | theta = cov(x, y) / var(x) over the users of both arms; per arm adjusted mean = mean(y) - theta mean(x), adjusted variance = var(y) + theta^2 var(x) - 2 theta cov(x, y); then Welch. Variance reduction = 1 - se_cuped^2 / se_welch^2 (about rho^2) |
+| Always-valid (sequential) | rho = sqrt((-2 ln alpha + ln(-2 ln alpha + 1)) / 5000); with n = users of both arms and s2 = se^2 n: half-width = sqrt(s2) sqrt(2 (n rho^2 + 1) ln(sqrt(n rho^2 + 1) / alpha) / (n rho)^2); p = min(1, sqrt(n rho^2 + 1) / exp(rho^2 (est^2 n / se^2) / (2 (n rho^2 + 1)))) (Waudby-Smith et al., arXiv:2103.06476, eq. 9 and 155), on the CUPED difference when a covariate exists |
+| Relative lift | (m_t - m_c) / m_c with a delta-method interval |
+
+The CUPED, Welch and sequential formulas are ported from GrowthBook's
+statistics engine (`growthbook/growthbook`, `packages/stats/gbstats`:
+`models/statistics.py` RegressionAdjustedStatistic / compute_theta,
+`frequentist/tests.py` TwoSidedTTest, sequential_rho,
+sequential_interval_halfwidth, SequentialTwoSidedTTest.p_value; commit
+df3f4e2, 11 Nov 2026; MIT licence, Copyright (c) 2025 GrowthBook, Inc.). The
+`gbstats` package on PyPI is not used: its latest release (0.8.0, June 2024)
+pins pandas < 2 and numpy < 2.
+
+Validation (`tests/test_experiments.py`): Student t and chi-square functions
+against scipy to 1e-9 or better; Welch against `scipy.stats.ttest_ind`; the
+z-test and its interval against statsmodels; CUPED against Welch on the
+adjusted raw rows and against an OLS `y ~ treatment + x`; the sequential
+formulas against a numpy transcription of GrowthBook's code, plus a
+simulation in which 20 looks at A/A tests make the fixed-horizon test find an
+"effect" in over 15% of experiments and the sequential test in at most 5%;
+and the published example of the NIST/SEMATECH e-Handbook of Statistical
+Methods, section 7.3.1 (two assembly processes, n = 11 and 9, unequal
+variances: t = 2.2694, about 15.5 degrees of freedom), reproduced to four
+decimals.
+
+Reading it: a flagged SRM invalidates the experiment. A fixed-horizon p-value
+is valid only at the planned end; if you look every day, decide on the
+always-valid interval (the verdict says which applies).
+
+## Seasonality-aware alerts (`forecast_band`)
+
+The rule forecasts the evaluated day from the `history_days` (default 56)
+before it and fires when the value leaves the prediction interval (`direction`
+drop, rise or both). Engines (`src/studio_pulse/stats/forecast.py`):
+
+- `seasonal` (no extra dependency): least squares of log(value) on a linear
+  trend and weekday effects (additive when a value is <= 0); points more than
+  4 robust standard deviations (1.4826 MAD) off the first fit are dropped and
+  the model refitted; interval = t(n - 8) s sqrt(1 + x0'(X'X)^-1 x0), the
+  classical prediction interval, at least 2% wide.
+- `statsforecast` (extra `studio-pulse[forecast]`, Apache-2.0): Nixtla
+  statsforecast AutoETS with a 7-day season and its `level` interval.
+- `auto` (default): statsforecast when installed, otherwise seasonal.
+
+`holidays:` days never alert and are left out of the history. Default levels,
+from the backtest in `tests/test_forecast.py` (120 days, weekends -20%,
++0.2%/day trend, 3% noise, a listed holiday at -25%, a -30% step from day
+100): the seasonal engine at 99.5% caught the step on its first day with 0-1
+false alerts over seeds 1-8; AutoETS at 99.5% gave 1-3 and at 99.9% 0-2, so
+its default is 99.9%. A trailing 14-day mean rule (drop 15%) on the same series
+fired 7-12 times, on ordinary weekends.
+
+## Store reviews and ratings
+
+| Metric | Formula | Model / column |
+|---|---|---|
+| Review | one row per (app, store, review id), the latest edit; Play CSV and Play API rows of the same review merge | `stg_store_reviews` |
+| Rating of new reviews | mean stars of the reviews written (or last edited) that day; the dashboard shows a 7-day review-weighted mean | `fct_review_daily.avg_rating` |
+| Low-star share | share of 1- and 2-star reviews | `fct_review_daily.low_star_share` |
+| Rating by version | mean stars and low-star share per app version (Play reviews carry the version, App Store reviews do not) | `fct_rating_by_version` |
+| Topics | share of the last 30 days' reviews whose title + text match a keyword pattern (English words, Turkish stems), against the 30 days before; a review can match several topics | `fct_review_topics` |
+
+The cumulative store rating (Play's `Total Average Rating`) remains in
+`stg_store_daily`. Reviews are dated in the app's time zone.
+
+## Android vitals
+
+`fct_android_vitals_daily`: Play Developer Reporting API, DAILY (America/Los_
+Angeles days): `crash_rate`, `user_perceived_crash_rate`, `anr_rate`,
+`user_perceived_anr_rate`, `distinct_users`. Play's bad-behaviour thresholds
+are a user-perceived crash rate of 1.09% and ANR rate of 0.47%; the rule
+`play_crash_rate_bad` uses the first.
+
+## Predicted LTV v1
+
+`src/studio_pulse/stats/pltv.py`, tables `fct_pltv_summary`,
+`fct_pltv_curve`, `fct_pltv_backtest`. Install cohorts are pooled by week; a
+group's curve is its pooled cumulative ARPU (`fct_cohort_ltv`). Two models are
+fitted on days 0..7: power `a (t + 1)^b` (least squares in log-log) and log
+`a + b ln(t + 1)`. A raw extrapolation is calibrated by the median of actual /
+raw D30 over earlier groups. Backtest: each weekly group with a known D30 is
+predicted from its days 0..7, calibrated only on groups whose D30 was known
+when that group's day 7 arrived; MAPE = mean |predicted - actual| / actual. The
+model with the lower MAPE predicts the latest 28 cohorts at D14/30/60/90/180,
+with an interval from the 10th-90th percentile of the calibration ratios,
+widened to at least +-MAPE, and never below the observed day-7 value. On the
+demo: games backtest at 2.5-4% (log curve); the subscription app at about 35%,
+because trial conversions on day 7 and renewals from day 37 make a stepped
+curve that neither shape follows (a Shifted-BG subscription model is the v2).

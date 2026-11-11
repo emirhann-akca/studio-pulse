@@ -114,8 +114,9 @@ def test_installers_are_pinned_and_match_the_package():
     assert uv_sh == uv_ps, "both installers pin the same uv"
     assert "astral.sh/uv/$UV_VERSION/install.sh" in sh
     assert "astral.sh/uv/$UvVersion/install.ps1" in ps
-    for text in (sh, ps):
-        assert "releases/download/v" in text  # default source: the release wheel
+    # first choice: the release wheel of this version; on a 404, the branch archive
+    assert "releases/download" in sh and "/v$VERSION/studio_pulse-$VERSION-py3-none-any.whl" in sh
+    assert "releases/download" in ps and "/v$Version/studio_pulse-$Version-py3-none-any.whl" in ps
     code = [ln for ln in ps.splitlines() if not ln.lstrip().startswith("#")]
     statement_exit = re.compile(r"(^|[;{}])\s*exit\b", re.I)  # not the word inside messages
     assert not any(statement_exit.search(ln) for ln in code), "never exit: it closes the window"

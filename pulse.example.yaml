@@ -11,7 +11,10 @@ site_dir: local/site               # dashboard output
 lookback_days: 60                  # every run refreshes this window
 max_bytes_billed: 2000000000       # hard cap per BigQuery query (2 GB)
 alerts: alerts.yaml
-fx_rates:                          # fallback only, USD per unit
+ua:
+  min_creative_impressions: 5000   # below: "insufficient data", never ranked
+  # creative_parser: "regex:(?P<creative_id>cr\d+)"   # default: creative-forge ad names
+fx_rates:                          # fallback only, USD per unit (also UA spend)
   EUR: 1.08
   TRY: 0.029
 
@@ -48,6 +51,35 @@ apps:
       unity_jsonl:
         path: local/telemetry/puzzle        # files written by JsonLinesSink
         app: com.example.puzzle
+      # Ad-network spend. Tokens come from environment variables only.
+      meta_ads:
+        account_id: "0000000000"            # PULSE_META_ACCESS_TOKEN
+      google_ads:
+        customer_id: "000-000-0000"         # ADC (adwords scope) or PULSE_GOOGLE_ADS_ACCESS_TOKEN
+        quota_project: ${PULSE_GCP_PROJECT}
+        platform: ANDROID
+        attribution: ga4                    # GA4 first-touch campaign (default for Google Ads)
+      tiktok_ads:
+        advertiser_id: "0000000000000000000"  # PULSE_TIKTOK_ACCESS_TOKEN
+      ua_csv:
+        network: applovin
+        path: local/reports/applovin        # report exports you download
+      play_reviews:
+        path: gs://pubsite_prod_rev_00000000000000000000/reviews/
+        package: com.example.puzzle
+        api: true                           # also the Play API's last 7 days
+      app_store_reviews:
+        apple_id: "0000000000"              # PULSE_ASC_KEY_ID / _ISSUER_ID / _PRIVATE_KEY_PATH
+      android_vitals:
+        package: com.example.puzzle
+    experiments:
+      - id: booster_offer_v2
+        start: 2026-11-01
+        end: 2026-11-21
+        metric_event: booster_used          # count per user in the 7 days after exposure
+        conversion_event: in_app_purchase
+        control: A
+        split: {A: 0.5, B: 0.5}
 
   - id: fitness_app
     name: Fitness App

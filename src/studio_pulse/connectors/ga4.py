@@ -539,6 +539,7 @@ SELECT
     {only_perf(d.param_num(E.PARAM_FT_P95))} AS ft_p95_ms,
     {only_perf(d.param_num(E.PARAM_FT_MAX))} AS ft_max_ms,
     CAST({only_perf(d.param_num(E.PARAM_SLOW_FRAMES))} AS {d.int_type}) AS slow_frames,
+    CAST({only_perf(d.param_num(E.PARAM_JANKY_FRAMES))} AS {d.int_type}) AS janky_frames,
     {only_perf(d.param_num(E.PARAM_MEM_ALLOC))} AS mem_alloc_mb,
     {only_perf(d.param_num(E.PARAM_MEM_RESERVED))} AS mem_reserved_mb,
     {only_perf(d.param_str(E.PARAM_FT_SOURCE))} AS ft_src,

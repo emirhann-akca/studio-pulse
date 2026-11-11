@@ -1,11 +1,16 @@
 # install.ps1 - studio-pulse for Windows 10/11 (x64). No admin rights and no system Python needed:
 # uv installs Python and the tool for this user.
 #
-#   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/emirhann-akca/studio-pulse/v0.2.0/install.ps1 | iex"
+#   powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/emirhann-akca/studio-pulse/main/install.ps1 | iex"
+#
+# Source: the wheel of the v0.2.0 GitHub release when it exists; when that download answers 404
+# (no release published), the main-branch archive, built locally by uv. It says which one it used.
 #
 # Options (environment variables), as in install.sh:
-#   PULSE_SOURCE   wheel path or URL to install (default: the v0.2.0 release wheel)
-#   PULSE_EXTRAS   extras to install, default "gcp"; "none" for none
+#   PULSE_SOURCE       wheel or source archive (path or URL) to install; skips the release lookup
+#   PULSE_ARCHIVE_URL  archive used when there is no release (default: the main branch zip)
+#   PULSE_RELEASE_BASE where release wheels are looked up (default: this repository's releases)
+#   PULSE_EXTRAS   extras to install, default "gcp,ua"; add "forecast" or "stores"; "none" for none
 #   PULSE_PYTHON   Python version for the tool, default 3.13
 #   PULSE_DEMO=1   build the demo dashboard afterwards (in PULSE_DEMO_DIR, default %USERPROFILE%\studio-pulse-demo)
 #   UV_NO_MODIFY_PATH=1   leave the user PATH alone
@@ -18,19 +23,57 @@
     $UvVersion = '0.13.7'
     $Repo = 'https://github.com/emirhann-akca/studio-pulse'
     $Python = if ($env:PULSE_PYTHON) { $env:PULSE_PYTHON } else { '3.13' }
-    $Extras = if ($env:PULSE_EXTRAS) { $env:PULSE_EXTRAS } else { 'gcp' }
-    $Source = if ($env:PULSE_SOURCE) { $env:PULSE_SOURCE } else {
-        "$Repo/releases/download/v$Version/studio_pulse-$Version-py3-none-any.whl" }
-    if (Test-Path -LiteralPath $Source) {
-        $Source = ([System.Uri](Resolve-Path -LiteralPath $Source).Path).AbsoluteUri
-    }
+    $Extras = if ($env:PULSE_EXTRAS) { $env:PULSE_EXTRAS } else { 'gcp,ua' }
+    $ReleaseBase = if ($env:PULSE_RELEASE_BASE) { $env:PULSE_RELEASE_BASE } else { "$Repo/releases/download" }
+    $Archive = if ($env:PULSE_ARCHIVE_URL) { $env:PULSE_ARCHIVE_URL } else { "$Repo/archive/refs/heads/main.zip" }
 
     function Invoke-Native([string]$Exe, [string[]]$ArgList) {
         & $Exe @ArgList
         if ($LASTEXITCODE -ne 0) { throw "$Exe $($ArgList -join ' ') failed with exit code $LASTEXITCODE" }
     }
 
+    # HTTP status of a one-byte GET (0 when the host cannot be reached). Works in
+    # Windows PowerShell 5.1, where a Range header cannot be set through Invoke-WebRequest.
+    function Get-HttpStatus([string]$Url) {
+        try {
+            $req = [System.Net.HttpWebRequest]::Create($Url)
+            $req.Method = 'GET'
+            $req.AllowAutoRedirect = $true
+            $req.Timeout = 30000
+            $req.AddRange(0, 0)
+            $resp = $req.GetResponse()
+            $code = [int]$resp.StatusCode
+            $resp.Close()
+            return $code
+        } catch {
+            $ex = $_.Exception
+            while ($ex -and -not ($ex -is [System.Net.WebException])) { $ex = $ex.InnerException }
+            if ($ex -and $ex.Response) { return [int]$ex.Response.StatusCode }
+            return 0
+        }
+    }
+
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
+    if ($env:PULSE_SOURCE) {
+        $Source = $env:PULSE_SOURCE
+        Write-Host "pulse-install: source: PULSE_SOURCE ($Source)"
+    } else {
+        $Wheel = "$ReleaseBase/v$Version/studio_pulse-$Version-py3-none-any.whl"
+        $code = Get-HttpStatus $Wheel
+        if ($code -eq 200 -or $code -eq 206) {
+            $Source = $Wheel
+            Write-Host "pulse-install: source: release wheel v$Version ($Wheel)"
+        } elseif ($code -eq 404) {
+            $Source = $Archive
+            Write-Host "pulse-install: no release wheel for v$Version (HTTP 404); source: branch archive ($Archive)"
+        } else {
+            throw "cannot reach $Wheel (HTTP $code); check the connection or set PULSE_SOURCE"
+        }
+    }
+    if (Test-Path -LiteralPath $Source) {
+        $Source = ([System.Uri](Resolve-Path -LiteralPath $Source).Path).AbsoluteUri
+    }
 
     $uvDir = if ($env:UV_INSTALL_DIR) { $env:UV_INSTALL_DIR } else { Join-Path $env:USERPROFILE '.local\bin' }
     $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
@@ -48,7 +91,7 @@
     Write-Host "pulse-install: using $(& $uv --version)"
 
     $spec = if ($Extras -and $Extras -ne 'none') { "studio-pulse[$Extras]" } else { 'studio-pulse' }
-    Write-Host "pulse-install: installing $spec $Version with Python $Python (uv downloads Python if it is missing)"
+    Write-Host "pulse-install: installing $spec with Python $Python (uv downloads Python if it is missing)"
     Invoke-Native $uv @('tool', 'install', '--force', '--python', $Python, "$spec @ $Source")
 
     $bin = (& $uv tool dir --bin).Trim()

@@ -1,6 +1,8 @@
 # Tests on Windows, macOS (Apple Silicon) and Linux x Python 3.11-3.13, a real
-# user install on each OS, a real OS schedule round trip, and a check that the
-# demo's model tables are byte-identical on every job. Failures are published
+# user install on each OS through the README's one-liners, the no-release
+# fallback of the installers, the optional forecast extra, the Flutter package,
+# a real OS schedule round trip, and a check that the demo's model tables are
+# byte-identical on every job. Failures are published
 # as annotations (.github/scripts/annotate.py) because job logs need a token.
 name: ci
 
@@ -118,18 +120,26 @@ jobs:
         with:
           name: dist
           path: dist
-      - name: Install with install.sh
+      # The README's one-liners, character for character, with only the branch segment
+      # of the raw URL pointed at this commit; the built wheel is the release stand-in.
+      - name: README one-liner (macOS / Linux)
         if: runner.os != 'Windows'
         shell: bash
         run: |
           export PULSE_SOURCE="$(ls "$PWD"/dist/*.whl)"
-          $PY .github/scripts/annotate.py "install.sh (${{ matrix.os }})" sh install.sh
-      - name: Install with install.ps1 (Windows PowerShell 5.1, the irm | iex path)
+          line="$($PY .github/scripts/readme_oneliner.py sh "$GITHUB_SHA")"
+          echo "README one-liner: $line"
+          $PY .github/scripts/annotate.py "README one-liner, install.sh (${{ matrix.os }})" sh -c "$line"
+      - name: README one-liner (Windows PowerShell 5.1, the irm | iex path)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           $env:PULSE_SOURCE = (Get-ChildItem dist\*.whl).FullName
-          & $env:PY .github\scripts\annotate.py "install.ps1 (Windows PowerShell 5.1)" powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-Content -Raw .\install.ps1 | Invoke-Expression"
+          $line = & $env:PY .github\scripts\readme_oneliner.py ps $env:GITHUB_SHA
+          Write-Host "README one-liner: $line"
+          # cmd runs the line as typed at a prompt (it works the same in cmd and PowerShell)
+          Set-Content -Path oneliner.cmd -Value $line -Encoding Ascii
+          & $env:PY .github\scripts\annotate.py "README one-liner, install.ps1 (Windows PowerShell 5.1)" cmd /c oneliner.cmd
           exit $LASTEXITCODE
       - name: Doctor, demo, checks and UI in a folder with Turkish characters
         shell: pwsh
@@ -164,6 +174,93 @@ jobs:
           path: ${{ env.PULSE_OUT }}/demo-site
           if-no-files-found: warn
           retention-days: 7
+
+  install-fallback:
+    # No GitHub release is published: the installers must find the release wheel
+    # missing (HTTP 404) and install the branch archive instead, saying so.
+    name: install fallback 404 -> archive (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      UV_PYTHON_PREFERENCE: only-managed
+      PY: ${{ matrix.os == 'windows-latest' && 'python' || 'python3' }}
+      PULSE_RELEASE_BASE: https://github.com/${{ github.repository }}/releases/download/ci-no-such-release
+      PULSE_ARCHIVE_URL: https://github.com/${{ github.repository }}/archive/${{ github.sha }}.zip
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: README one-liner without PULSE_SOURCE (install.sh)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          line="$($PY .github/scripts/readme_oneliner.py sh "$GITHUB_SHA")"
+          $PY .github/scripts/annotate.py "fallback install.sh" sh -c "$line" | tee install.log
+          test "${PIPESTATUS[0]}" = 0
+          grep -q "no release wheel for v.* (HTTP 404); source: branch archive" install.log \
+            || { echo "::error title=install fallback::the installer did not report the archive fallback"; exit 1; }
+      - name: README one-liner without PULSE_SOURCE (install.ps1, Windows PowerShell 5.1)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $line = & $env:PY .github\scripts\readme_oneliner.py ps $env:GITHUB_SHA
+          Set-Content -Path oneliner.cmd -Value $line -Encoding Ascii
+          & $env:PY .github\scripts\annotate.py "fallback install.ps1" cmd /c oneliner.cmd | Tee-Object -FilePath install.log
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          if (-not (Select-String -Path install.log -Pattern 'source: branch archive' -Quiet)) {
+            "::error title=install fallback::the installer did not report the archive fallback"; exit 1
+          }
+      - name: The archive install works
+        shell: pwsh
+        run: |
+          $env:PATH = (Join-Path $HOME '.local/bin') + [IO.Path]::PathSeparator + $env:PATH
+          $annotate = Join-Path $env:GITHUB_WORKSPACE '.github/scripts/annotate.py'
+          $work = Join-Path $env:RUNNER_TEMP 'fallback'
+          New-Item -ItemType Directory -Force $work | Out-Null
+          Set-Location -LiteralPath $work
+          & $env:PY $annotate "pulse demo from the archive install (${{ matrix.os }})" pulse demo --scale 0.05
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          "::notice title=install fallback (${{ matrix.os }})::no release (HTTP 404): installed the branch archive and ran pulse demo"
+          exit 0
+
+  forecast-extra:
+    name: forecast extra (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      PULSE_REQUIRE_FORECAST: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install with the statsforecast extra
+        run: python .github/scripts/annotate.py "pip install [dev,forecast] (${{ matrix.os }})" python -m pip install -e ".[dev,forecast]"
+      - name: forecast_band with statsforecast (and the alert engine)
+        run: python .github/scripts/annotate.py "forecast tests (${{ matrix.os }})" python -X warn_default_encoding -W error::EncodingWarning -m pytest -p no:cacheprovider -rs tests/test_forecast.py tests/test_alerts.py
+
+  flutter-package:
+    name: flutter package (dart analyze, flutter test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: flutter/studio_pulse_perf
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: python3 ../../.github/scripts/annotate.py "dart analyze" dart analyze
+      - run: python3 ../../.github/scripts/annotate.py "flutter test" flutter test
 
   schedule-smoke:
     name: schedule smoke (${{ matrix.os }})
