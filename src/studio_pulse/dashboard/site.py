@@ -36,6 +36,8 @@ from .charts import (
 )
 
 TIER_SLOTS = {"low": 1, "mid": 2, "high": 3, "unknown": 4, "all": 7}
+# Portfolio-wide pages next to the per-app pages: (file name without .html, nav label).
+SECTIONS = (("ua", "UA"), ("experiments", "Experiments"))
 SOURCE_LABELS = {
     "ga4_bigquery": "GA4 export (BigQuery)",
     "ga4_files": "GA4 export (files)",
@@ -46,6 +48,13 @@ SOURCE_LABELS = {
     "play_console": "Google Play Console reports",
     "app_store": "App Store Connect sales",
     "unity_jsonl": "Unity telemetry (JSON lines)",
+    "meta_ads": "Meta Marketing API (Insights)",
+    "google_ads": "Google Ads API (GAQL)",
+    "tiktok_ads": "TikTok API for Business (reports)",
+    "ua_csv": "Ad-network CSV export",
+    "play_reviews": "Google Play reviews",
+    "app_store_reviews": "App Store Connect customer reviews",
+    "android_vitals": "Play Developer Reporting API (vitals)",
 }
 
 
@@ -84,6 +93,9 @@ def _page(
 ) -> str:
     here = ' aria-current="page"' if current is None else ""
     nav = [f'<a href="{prefix}index.html"{here}>Portfolio</a>']
+    for key, label in SECTIONS:
+        cur = ' aria-current="page"' if current == f"@{key}" else ""
+        nav.append(f'<a href="{prefix}{key}.html"{cur}>{label}</a>')
     for a in apps:
         cur = ' aria-current="page"' if current == a["app_id"] else ""
         nav.append(
@@ -843,6 +855,13 @@ def build_site(
     for a in apps:
         p = out_dir / "apps" / f"{a['app_id']}.html"
         _write(p, app_page(con, cfg, apps, a, alerts, rules, demo, as_of))
+        written.append(p)
+    from .sections import experiments_page, ua_page
+
+    for key, builder in (("ua", ua_page), ("experiments", experiments_page)):
+        title, body = builder(con, apps)
+        p = out_dir / f"{key}.html"
+        _write(p, _page(cfg, f"{title} · {cfg.title}", body, apps, f"@{key}", demo, as_of, ""))
         written.append(p)
     if not (out_dir / ".nojekyll").exists():
         (out_dir / ".nojekyll").write_text("", encoding="utf-8")

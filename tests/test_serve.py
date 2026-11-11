@@ -149,3 +149,5 @@ def test_serve_check_command(ui, capsys):
     assert cli.main(["serve", "-c", str(cfg.path), "--check"]) == 0
     out = capsys.readouterr().out
     assert "UI check passed." in out and "database read by the UI: live" in out
+    for page in ("dashboard/ua.html", "dashboard/experiments.html", "dashboard/apps/"):
+        assert f"GET /{page}" in out

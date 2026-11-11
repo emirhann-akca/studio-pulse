@@ -1,0 +1,34 @@
+{
+ "code": 0,
+ "message": "OK",
+ "request_id": "r2",
+ "data": {
+  "list": [
+   {
+    "dimensions": {
+     "ad_id": "1790000000001002",
+     "stat_time_day": "2026-10-02 00:00:00",
+     "country_code": "US"
+    },
+    "metrics": {
+     "campaign_id": "1790000000000001",
+     "campaign_name": "TT_Merge_AEO",
+     "adgroup_id": "1790000000000101",
+     "adgroup_name": "broad",
+     "ad_name": "cf1.merge-ads.coin-rain.fast.lvl3.tap.4x5.pt-br.e49be7e60a",
+     "currency": "USD",
+     "spend": "11.11",
+     "impressions": "4000",
+     "clicks": "50",
+     "app_install": "9"
+    }
+   }
+  ],
+  "page_info": {
+   "page": 2,
+   "page_size": 2,
+   "total_number": 3,
+   "total_page": 2
+  }
+ }
+}

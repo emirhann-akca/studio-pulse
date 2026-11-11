@@ -1,0 +1,40 @@
+{
+ "results": [
+  {
+   "customer": {
+    "resourceName": "customers/1234567890",
+    "id": "1234567890",
+    "currencyCode": "USD"
+   },
+   "campaign": {
+    "resourceName": "customers/1234567890/campaigns/112",
+    "id": "112",
+    "name": "UAC_Android_LatAm"
+   },
+   "adGroup": {
+    "resourceName": "customers/1234567890/adGroups/222",
+    "id": "222",
+    "name": "AG_all"
+   },
+   "adGroupAd": {
+    "resourceName": "customers/1234567890/adGroupAds/222~335",
+    "ad": {
+     "resourceName": "customers/1234567890/ads/335",
+     "id": "335",
+     "name": "cf1.puzzle-ads.dust-blower.blower.lvl21.fill.9x16.tr.91c97d00dc"
+    }
+   },
+   "metrics": {
+    "clicks": "4",
+    "costMicros": "1234567",
+    "impressions": "500",
+    "biddableAppInstallConversions": 1.0
+   },
+   "segments": {
+    "date": "2026-10-03"
+   }
+  }
+ ],
+ "fieldMask": "segments.date",
+ "requestId": "rq-2"
+}

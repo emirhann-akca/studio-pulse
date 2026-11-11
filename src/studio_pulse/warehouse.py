@@ -162,6 +162,25 @@ def upsert_apps(con: duckdb.DuckDBPyConnection, apps: Iterable[Any], is_demo: bo
         )
 
 
+def upsert_ua_networks(
+    con: duckdb.DuckDBPyConnection, networks: Iterable[tuple[str, str, str, list[str]]]
+) -> None:
+    """Replace the UA attribution settings (app_id, network, attribution, ga4_sources)."""
+    con.execute("DELETE FROM meta_ua_networks")
+    for app_id, network, attribution, ga4_sources in networks:
+        con.execute(
+            "INSERT INTO meta_ua_networks VALUES (?, ?, ?, ?)",
+            [app_id, network, attribution, list(ga4_sources)],
+        )
+
+
+def upsert_experiments(con: duckdb.DuckDBPyConnection, rows: Iterable[tuple[Any, ...]]) -> None:
+    """Replace the experiment settings (meta_experiments) from the config."""
+    con.execute("DELETE FROM meta_experiments")
+    for r in rows:
+        con.execute("INSERT INTO meta_experiments VALUES (?, ?, ?, ?, ?, ?, ?, ?)", list(r))
+
+
 def load_fx_rates(
     con: duckdb.DuckDBPyConnection, rates: Mapping[str, float], valid_from: dt.date
 ) -> None:

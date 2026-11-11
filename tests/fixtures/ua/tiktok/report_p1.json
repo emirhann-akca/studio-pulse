@@ -1,0 +1,53 @@
+{
+ "code": 0,
+ "message": "OK",
+ "request_id": "r1",
+ "data": {
+  "list": [
+   {
+    "dimensions": {
+     "ad_id": "1790000000001001",
+     "stat_time_day": "2026-10-01 00:00:00",
+     "country_code": "US"
+    },
+    "metrics": {
+     "campaign_id": "1790000000000001",
+     "campaign_name": "TT_Merge_AEO",
+     "adgroup_id": "1790000000000101",
+     "adgroup_name": "broad",
+     "ad_name": "cf1.merge-ads.coin-rain.main.main.main.9x16.en.0371245c35",
+     "currency": "USD",
+     "spend": "20.00",
+     "impressions": "10000",
+     "clicks": "150",
+     "app_install": "25"
+    }
+   },
+   {
+    "dimensions": {
+     "ad_id": "1790000000001001",
+     "stat_time_day": "2026-10-01 00:00:00",
+     "country_code": "BR"
+    },
+    "metrics": {
+     "campaign_id": "1790000000000001",
+     "campaign_name": "TT_Merge_AEO",
+     "adgroup_id": "1790000000000101",
+     "adgroup_name": "broad",
+     "ad_name": "cf1.merge-ads.coin-rain.main.main.main.9x16.en.0371245c35",
+     "currency": "USD",
+     "spend": "5.50",
+     "impressions": "6000",
+     "clicks": "80",
+     "app_install": "15"
+    }
+   }
+  ],
+  "page_info": {
+   "page": 1,
+   "page_size": 2,
+   "total_number": 3,
+   "total_page": 2
+  }
+ }
+}

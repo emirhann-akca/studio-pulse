@@ -46,6 +46,14 @@ gcp = [
   "google-cloud-storage>=2.14",
   "google-auth>=2.28",
 ]
+# Ad-network APIs (Meta, Google Ads, TikTok) through dlt's REST client. Not
+# dlt[duckdb]: that extra pins duckdb < 2 and dlt's loader is not used.
+ua = ["dlt>=1.32,<2"]
+# App Store Connect API keys (ES256 JWT) for customer reviews.
+stores = ["pyjwt[crypto]>=2.8"]
+# Seasonality-aware alert bands with Nixtla statsforecast (AutoETS); without it
+# forecast_band uses a same-weekday median +- MAD band.
+forecast = ["statsforecast>=2.0"]
 dev = [
   "pytest>=8",
   "pytest-github-actions-annotate-failures>=0.2",
@@ -55,6 +63,11 @@ dev = [
   "google-cloud-bigquery>=3.20",
   "google-cloud-storage>=2.14",
   "google-auth>=2.28",
+  "dlt>=1.32,<2",
+  "pyjwt[crypto]>=2.8",
+  # reference implementations the statistics are checked against (tests only)
+  "scipy>=1.11",
+  "statsmodels>=0.14",
 ]
 
 [project.scripts]

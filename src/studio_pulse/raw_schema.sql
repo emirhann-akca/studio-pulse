@@ -107,6 +107,9 @@ ALTER TABLE raw_perf_windows ADD COLUMN IF NOT EXISTS mem_src VARCHAR;
 ALTER TABLE raw_perf_windows ADD COLUMN IF NOT EXISTS gc_reserved_mb DOUBLE;
 ALTER TABLE raw_perf_windows ADD COLUMN IF NOT EXISTS sys_used_mb DOUBLE;
 
+-- Frames over the display's frame budget (Flutter package; optional).
+ALTER TABLE raw_perf_windows ADD COLUMN IF NOT EXISTS janky_frames BIGINT;
+
 -- One row per pulse_load event. kind in ('cold_start', 'scene_load').
 CREATE TABLE IF NOT EXISTS raw_load_times (
     app_id            VARCHAR NOT NULL,
@@ -210,6 +213,124 @@ CREATE TABLE IF NOT EXISTS raw_store_ratings (
     daily_avg_rating  DOUBLE,
     total_avg_rating  DOUBLE,
     _file             VARCHAR,
+    _source           VARCHAR NOT NULL,
+    _loaded_at        TIMESTAMP
+);
+
+-- GA4 install cohorts split by the user's first-touch traffic source
+-- (traffic_source.source / medium / name). Aggregated in the source; no ids.
+CREATE TABLE IF NOT EXISTS raw_ga4_campaign_cohorts (
+    app_id            VARCHAR NOT NULL,
+    platform          VARCHAR,
+    cohort_date       DATE NOT NULL,
+    day_n             INTEGER NOT NULL,
+    ts_source         VARCHAR,
+    ts_medium         VARCHAR,
+    ts_campaign       VARCHAR,
+    users             BIGINT,
+    iap_revenue_usd   DOUBLE,
+    ad_revenue_usd    DOUBLE,
+    _source           VARCHAR NOT NULL,
+    _loaded_at        TIMESTAMP
+);
+
+-- Ad-network spend (connectors/ua): one row per date x campaign x ad x country.
+-- Amounts in the account currency; network_installs as the network reports them.
+CREATE TABLE IF NOT EXISTS raw_ua_spend (
+    app_id            VARCHAR NOT NULL,
+    date              DATE NOT NULL,
+    network           VARCHAR NOT NULL,
+    account_id        VARCHAR,
+    campaign_id       VARCHAR,
+    campaign_name     VARCHAR,
+    adset_id          VARCHAR,
+    adset_name        VARCHAR,
+    ad_id             VARCHAR,
+    ad_name           VARCHAR,
+    creative_id       VARCHAR,   -- from the ad name (creative_parser), NULL when not one of ours
+    creative_concept  VARCHAR,
+    country           VARCHAR,   -- ISO 3166-1 alpha-2, NULL when the report has no country split
+    platform          VARCHAR,   -- ANDROID | IOS | NULL
+    spend             DOUBLE,
+    currency          VARCHAR,
+    impressions       BIGINT,
+    clicks            BIGINT,
+    network_installs  DOUBLE,
+    _file             VARCHAR,
+    _source           VARCHAR NOT NULL,
+    _loaded_at        TIMESTAMP
+);
+
+-- How each app's UA networks are attributed (written from the config at ingest).
+CREATE TABLE IF NOT EXISTS meta_ua_networks (
+    app_id            VARCHAR NOT NULL,
+    network           VARCHAR NOT NULL,
+    attribution       VARCHAR NOT NULL,   -- ga4 | network_installs
+    ga4_sources       VARCHAR[]           -- GA4 traffic_source.source values of this network
+);
+
+-- Experiment sufficient statistics per variant, computed inside the source
+-- (BigQuery or DuckDB): no user ids. y = metric in the analysis window after
+-- first exposure, x = the same metric in the pre-period (CUPED covariate).
+CREATE TABLE IF NOT EXISTS raw_experiment_arms (
+    app_id            VARCHAR NOT NULL,
+    experiment_id     VARCHAR NOT NULL,
+    variant           VARCHAR NOT NULL,
+    users             BIGINT,
+    conversions       BIGINT,
+    y_sum             DOUBLE,
+    y_sumsq           DOUBLE,
+    x_sum             DOUBLE,
+    x_sumsq           DOUBLE,
+    xy_sum            DOUBLE,
+    first_exposure    DATE,
+    last_exposure     DATE,
+    _source           VARCHAR NOT NULL,
+    _loaded_at        TIMESTAMP
+);
+
+-- Experiment settings from the config (control, expected split, alpha).
+CREATE TABLE IF NOT EXISTS meta_experiments (
+    app_id            VARCHAR NOT NULL,
+    experiment_id     VARCHAR NOT NULL,
+    name              VARCHAR,
+    control           VARCHAR,
+    split             VARCHAR,   -- JSON {variant: weight}
+    alpha             DOUBLE,
+    metric            VARCHAR,
+    tuning            DOUBLE
+);
+
+-- Store reviews: Play Console monthly CSVs (reviews/), the Play Developer API
+-- (last 7 days only) and App Store Connect customerReviews. No reviewer names.
+CREATE TABLE IF NOT EXISTS raw_store_reviews (
+    app_id            VARCHAR NOT NULL,
+    store             VARCHAR NOT NULL,
+    review_id         VARCHAR NOT NULL,
+    submitted_at      TIMESTAMP,
+    updated_at        TIMESTAMP,
+    date              DATE,
+    rating            INTEGER,
+    title             VARCHAR,
+    body              VARCHAR,
+    language          VARCHAR,
+    territory         VARCHAR,
+    app_version       VARCHAR,
+    device            VARCHAR,
+    has_reply         BOOLEAN,
+    origin            VARCHAR,   -- play_csv | play_api | asc_api
+    _file             VARCHAR,
+    _source           VARCHAR NOT NULL,
+    _loaded_at        TIMESTAMP
+);
+
+-- Android vitals (Play Developer Reporting API), one row per day x metric.
+CREATE TABLE IF NOT EXISTS raw_android_vitals (
+    app_id            VARCHAR NOT NULL,
+    date              DATE NOT NULL,
+    metric_set        VARCHAR NOT NULL,
+    metric            VARCHAR NOT NULL,
+    value             DOUBLE,
     _source           VARCHAR NOT NULL,
     _loaded_at        TIMESTAMP
 );

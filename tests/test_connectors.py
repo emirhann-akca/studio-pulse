@@ -165,14 +165,16 @@ def test_bigquery_ga4_ingest_records_bytes(con):
 def test_ga4_outputs_carry_no_user_ids(tmp_path):
     b = GA4Builder()
     for u in ("user-aaa", "user-bbb"):
-        b.add(0, "first_open", u).add(0, "session_start", u, ga_session_id=1).add(
-            1, "level_start", u, level=1
-        )
+        paid = ("google", "cpc", "UAC_1")
+        b.add(0, "first_open", u, traffic=paid).add(
+            0, "session_start", u, ga_session_id=1, traffic=paid
+        ).add(1, "level_start", u, level=1, traffic=paid)
         b.add(0, "pulse_perf", u, tier="low", frames=100, ft_p50_ms=20.0)
     ex = DuckDBExecutor({"ga4_events": b.write(tmp_path / "e.parquet")})
     q = ga4.GA4Queries(DuckDBDialect(), D0, D0 + dt.timedelta(days=2), ga4.GA4Options())
-    for name in ga4.GA4Options().queries:
+    for name in [*ga4.GA4Options().queries, "campaign_cohorts"]:
         t = ex.run(name, getattr(q, name)())
+        assert t.num_rows > 0 or name in ("levels", "level_max", "loads"), name
         assert not {"user_pseudo_id", "u", "user_id"} & set(t.column_names), name
         for col in t.columns:
             assert "user-aaa" not in [str(v) for v in col.to_pylist()], name

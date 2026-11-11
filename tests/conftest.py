@@ -62,6 +62,7 @@ class GA4Builder:
         version: str = "1.0.0",
         app: str = "com.example.app",
         ts_micros: int | None = None,
+        traffic: tuple[str, str, str] | None = None,
         **params: Any,
     ) -> GA4Builder:
         d = D0 + dt.timedelta(days=day)
@@ -83,6 +84,9 @@ class GA4Builder:
             "mobile_model_name": "Model X",
             "country": "Turkey",
             "event_value_in_usd": value_usd,
+            "ts_source": traffic[0] if traffic else None,
+            "ts_medium": traffic[1] if traffic else None,
+            "ts_name": traffic[2] if traffic else None,
         }
         for k in params:
             if k not in self.PARAMS:
@@ -132,7 +136,7 @@ class DemoBuild:
         data.update(warehouse="warehouse.duckdb", state_dir="pulse-state", site_dir="site")
         for app in data["apps"]:
             for src in app["sources"].values():
-                for key in ("path", "response_file"):
+                for key in ("path", "response_file", "replay"):
                     if key in src:
                         src[key] = str((self.work / src[key]).resolve())
         path = dest / "pulse.yaml"

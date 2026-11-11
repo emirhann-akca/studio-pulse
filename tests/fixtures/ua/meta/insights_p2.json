@@ -1,0 +1,49 @@
+{
+ "data": [
+  {
+   "account_id": "1234567890",
+   "account_currency": "EUR",
+   "campaign_id": "23850000001",
+   "campaign_name": "Puzzle_AEO_Tier1",
+   "adset_id": "23850000101",
+   "adset_name": "broad_18+",
+   "ad_id": "23850000202",
+   "ad_name": "Summer promo v3 (not a forge name)",
+   "country": "US",
+   "impressions": "9000",
+   "clicks": "110",
+   "spend": "30.00",
+   "actions": [
+    {
+     "action_type": "mobile_app_install",
+     "value": "18"
+    }
+   ],
+   "date_start": "2026-10-02",
+   "date_stop": "2026-10-02"
+  },
+  {
+   "account_id": "1234567890",
+   "account_currency": "EUR",
+   "campaign_id": "23850000001",
+   "campaign_name": "Puzzle_AEO_Tier1",
+   "adset_id": "23850000101",
+   "adset_name": "broad_18+",
+   "ad_id": "23850000202",
+   "ad_name": "Summer promo v3 (not a forge name)",
+   "country": "US",
+   "impressions": "100",
+   "clicks": "1",
+   "spend": "99.00",
+   "actions": [],
+   "date_start": "2026-11-05",
+   "date_stop": "2026-11-05"
+  }
+ ],
+ "paging": {
+  "cursors": {
+   "before": "c2",
+   "after": "c3"
+  }
+ }
+}

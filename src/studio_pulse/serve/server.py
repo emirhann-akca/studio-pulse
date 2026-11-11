@@ -101,6 +101,11 @@ def _self_check(server: uvicorn.Server, sock: socket.socket, base: str, cfg: Con
     if (site / "index.html").exists():
         pages.append(("dashboard/index.html", "<!doctype html>"))
         pages += [
+            (f"dashboard/{p.name}", "<!doctype html>")
+            for p in sorted(site.glob("*.html"))
+            if p.name != "index.html"
+        ]
+        pages += [
             (f"dashboard/apps/{p.name}", "<!doctype html>")
             for p in sorted((site / "apps").glob("*.html"))
         ]

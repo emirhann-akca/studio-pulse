@@ -124,4 +124,30 @@ def run_models(
         results.append(res)
         if verbose:
             print(f"  model {m.name:<28} {rows:>9} rows  {res.seconds * 1000:7.1f} ms")
+    results += run_python_models(con, verbose)
     return results
+
+
+# Models computed in Python after the SQL models (statistics that SQL cannot
+# express well). Each takes the connection and (re)creates its fct_* tables.
+PYTHON_MODELS = (
+    ("fct_experiment_*", "studio_pulse.stats.experiments", "store"),
+    ("fct_pltv_*", "studio_pulse.stats.pltv", "store"),
+)
+
+
+def run_python_models(con: duckdb.DuckDBPyConnection, verbose: bool = False) -> list[ModelResult]:
+    import importlib
+
+    out = []
+    for name, module, fn in PYTHON_MODELS:
+        t0 = time.perf_counter()
+        try:
+            n = getattr(importlib.import_module(module), fn)(con)
+        except duckdb.Error as exc:
+            raise ModelError(f"python model {name} ({module}) failed: {exc}") from exc
+        res = ModelResult(name, n, time.perf_counter() - t0)
+        out.append(res)
+        if verbose:
+            print(f"  model {name:<28} {n:>9} rows  {res.seconds * 1000:7.1f} ms")
+    return out

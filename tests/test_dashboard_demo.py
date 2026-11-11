@@ -28,7 +28,9 @@ def test_demo_builds_every_page(demo):
         "apps/mossy_match.html",
         "apps/pacer_pal.html",
         "apps/quartz_merge.html",
+        "experiments.html",
         "index.html",
+        "ua.html",
     ]
 
 

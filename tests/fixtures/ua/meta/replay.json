@@ -1,0 +1,23 @@
+{
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/v27.0/act_1234567890/insights",
+   "file": "insights_p1.json"
+  },
+  {
+   "method": "GET",
+   "path": "/v27.0/act_1234567890/insights",
+   "query": {
+    "after": "c2"
+   },
+   "file": "insights_p2.json"
+  },
+  {
+   "method": "GET",
+   "path": "/v27.0/act_999/insights",
+   "status": 400,
+   "file": "error_400.json"
+  }
+ ]
+}

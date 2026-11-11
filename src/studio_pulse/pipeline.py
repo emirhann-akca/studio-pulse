@@ -15,6 +15,7 @@ from . import checks as checks_mod
 from . import runner, runstate, warehouse
 from .config import AppConfig, Config, ConfigError
 from .connectors import admob, crashlytics, ga4, revenuecat, stores, unity_jsonl
+from .connectors import ua as ua_pkg
 from .connectors.dialect import BigQueryDialect, DuckDBDialect
 from .connectors.executors import BigQueryExecutor, DuckDBExecutor, QueryStat
 
@@ -28,7 +29,62 @@ SOURCE_TYPES = (
     "play_console",
     "app_store",
     "unity_jsonl",
+    *ua_pkg.SOURCE_TYPES,
 )
+
+
+def source_kind(key: str) -> str:
+    """`meta_ads@ios` -> `meta_ads`: a suffix allows two sources of one type per app."""
+    return key.split("@", 1)[0]
+
+
+UA_NETWORK = {"meta_ads": "meta", "google_ads": "google_ads", "tiktok_ads": "tiktok"}
+
+
+def experiment_settings(cfg: Config) -> list[tuple[Any, ...]]:
+    """meta_experiments rows: (app_id, id, name, control, split json, alpha, metric, tuning)."""
+    import json
+
+    out = []
+    for app in cfg.apps:
+        for raw in app.experiments:
+            e = ga4.ExperimentSpec.from_dict(raw)
+            out.append(
+                (
+                    app.id,
+                    e.id,
+                    e.name or e.id,
+                    e.control,
+                    json.dumps(e.split, sort_keys=True),
+                    e.alpha,
+                    e.metric_label,
+                    e.tuning,
+                )
+            )
+    return out
+
+
+def ua_networks(cfg: Config) -> list[tuple[str, str, str, list[str]]]:
+    """(app_id, network, attribution, ga4_sources) for every configured UA source."""
+    out = []
+    for app in cfg.apps:
+        for key, src in app.sources.items():
+            kind, src = source_kind(key), src or {}
+            if kind not in ua_pkg.SOURCE_TYPES or src.get("enabled", True) is False:
+                continue
+            network = UA_NETWORK.get(kind) or str(src.get("network") or "other").lower()
+            default = "ga4" if kind == "google_ads" else "network_installs"
+            attribution = str(src.get("attribution", default))
+            if attribution not in ("ga4", "network_installs"):
+                raise ConfigError(
+                    f"app {app.id!r} source {key!r}: attribution must be ga4 or network_installs"
+                )
+            ga4_sources = [
+                str(x).lower()
+                for x in src.get("ga4_sources", ["google"] if kind == "google_ads" else [])
+            ]
+            out.append((app.id, network, attribution, ga4_sources))
+    return out
 
 
 @dataclass
@@ -71,6 +127,10 @@ def _ingest_source(
     if kind in ("ga4_bigquery", "ga4_files"):
         opts = ga4.GA4Options.from_source(src)
         opts.timezone = app.timezone
+        opts.experiments = [ga4.ExperimentSpec.from_dict(e) for e in app.experiments]
+        ga4_attributed = any(a == app.id and b == "ga4" for a, _, b, _ in ua_networks(cfg))
+        if ga4_attributed and "campaign_cohorts" not in opts.queries and "queries" not in src:
+            opts.queries.append("campaign_cohorts")
         if kind == "ga4_bigquery":
             dialect = BigQueryDialect(src["project"], src["dataset"])
             ex = BigQueryExecutor(
@@ -139,6 +199,8 @@ def _ingest_source(
             bq_stats.extend(ex.stats if kind == "crashlytics_bigquery" else [])
     if dry_run:
         return "skipped (dry run)"
+    if kind in ua_pkg.SOURCE_TYPES:
+        return _ingest_ua(con, cfg, app, kind, name, src, start, end, log)
     if kind == "revenuecat":
         path = src["path"]
         if not str(path).startswith("gs://"):
@@ -198,6 +260,49 @@ def _ingest_source(
     raise ConfigError(f"unknown source type {kind!r} (known: {', '.join(SOURCE_TYPES)})")
 
 
+def _ingest_ua(
+    con: duckdb.DuckDBPyConnection,
+    cfg: Config,
+    app: AppConfig,
+    kind: str,
+    name: str,
+    src: dict[str, Any],
+    start: dt.date,
+    end: dt.date,
+    log: Any,
+) -> Any:
+    from .connectors.ua import csv_import, google_ads, meta, rest, tiktok
+    from .connectors.ua.common import UAError
+
+    parser = cfg.ua.get("creative_parser")
+    if kind == "ua_csv":
+        return csv_import.ingest(
+            con,
+            app_id=app.id,
+            source=name,
+            src=src,
+            path=cfg.resolve(src["path"]),
+            creative_parser=parser,
+            log=log,
+        )
+    if not rest.dlt_available():
+        raise UAError(rest.INSTALL_HINT)
+    src = dict(src)
+    if src.get("replay"):
+        src["replay"] = str(cfg.resolve(src["replay"]))
+    module = {"meta_ads": meta, "google_ads": google_ads, "tiktok_ads": tiktok}[kind]
+    return module.ingest(
+        con,
+        app_id=app.id,
+        source=name,
+        src=src,
+        start=start,
+        end=end,
+        creative_parser=parser,
+        log=log,
+    )
+
+
 def ingest(
     con: duckdb.DuckDBPyConnection,
     cfg: Config,
@@ -212,24 +317,31 @@ def ingest(
     start, end = cfg.window()
     warehouse.upsert_apps(con, cfg.apps, cfg.is_demo)
     warehouse.load_fx_rates(con, cfg.fx_rates, dt.date(2000, 1, 1))
+    warehouse.upsert_ua_networks(con, ua_networks(cfg))
+    warehouse.upsert_experiments(con, experiment_settings(cfg))
+    warehouse.set_meta(
+        con, "ua_min_creative_impressions", str(int(cfg.ua.get("min_creative_impressions", 5000)))
+    )
     report = IngestReport()
     for app in cfg.apps:
         if apps and app.id not in apps:
             continue
         log(f"[{app.id}] window {start} .. {end}")
-        for kind, src in app.sources.items():
-            if sources and kind not in sources:
+        for skey, src in app.sources.items():
+            kind = source_kind(skey)
+            if sources and kind not in sources and skey not in sources:
                 continue
-            if src.get("enabled", True) is False:
+            if (src or {}).get("enabled", True) is False:
                 continue
-            key = f"{app.id}.{kind}"
+            key = f"{app.id}.{skey}"
+            src = {"name": skey, **(src or {})}
             try:
                 report.loaded[key] = _ingest_source(
                     con,
                     cfg,
                     app,
                     kind,
-                    src or {},
+                    src,
                     start,
                     end,
                     dry_run,

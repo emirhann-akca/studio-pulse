@@ -1,0 +1,63 @@
+{
+ "data": [
+  {
+   "account_id": "1234567890",
+   "account_currency": "EUR",
+   "campaign_id": "23850000001",
+   "campaign_name": "Puzzle_AEO_Tier1",
+   "adset_id": "23850000101",
+   "adset_name": "broad_18+",
+   "ad_id": "23850000201",
+   "ad_name": "cf1.puzzle-ads.dust-blower.main.main.main.9x16.en.6453fdb366 - Copy",
+   "country": "US",
+   "impressions": "5000",
+   "clicks": "60",
+   "spend": "12.50",
+   "actions": [
+    {
+     "action_type": "app_install",
+     "value": "9"
+    },
+    {
+     "action_type": "mobile_app_install",
+     "value": "10"
+    },
+    {
+     "action_type": "video_view",
+     "value": "2100"
+    }
+   ],
+   "date_start": "2026-10-01",
+   "date_stop": "2026-10-01"
+  },
+  {
+   "account_id": "1234567890",
+   "account_currency": "EUR",
+   "campaign_id": "23850000001",
+   "campaign_name": "Puzzle_AEO_Tier1",
+   "adset_id": "23850000101",
+   "adset_name": "broad_18+",
+   "ad_id": "23850000201",
+   "ad_name": "cf1.puzzle-ads.dust-blower.main.main.main.9x16.en.6453fdb366 - Copy",
+   "country": "DE",
+   "impressions": "2100",
+   "clicks": "20",
+   "spend": "7.25",
+   "actions": [
+    {
+     "action_type": "omni_app_install",
+     "value": "4"
+    }
+   ],
+   "date_start": "2026-10-01",
+   "date_stop": "2026-10-01"
+  }
+ ],
+ "paging": {
+  "cursors": {
+   "before": "c1",
+   "after": "c2"
+  },
+  "next": "https://graph.facebook.com/v27.0/act_1234567890/insights?access_token=EAAB-PAGING-TOKEN-IN-NEXT-LINK&after=c2&limit=500"
+ }
+}

@@ -60,6 +60,8 @@ class AppConfig:
     # already in it; UTC timestamps from Crashlytics, RevenueCat and the Unity
     # package are converted to it so every source agrees on what "a day" is.
     timezone: str = "UTC"
+    # A/B tests read from the GA4 export (connectors/ga4.py ExperimentSpec).
+    experiments: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -81,6 +83,8 @@ class Config:
     state_dir: Path | None = None
     fx_rates: dict[str, float] = field(default_factory=dict)
     max_bytes_billed: int = 2_000_000_000
+    # UA settings: creative_parser, min_creative_impressions (docs/METRICS.md).
+    ua: dict[str, Any] = field(default_factory=dict)
     raw: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -120,6 +124,22 @@ def _timezone(value: Any, app_id: str) -> str:
     except (ValueError, zoneinfo.ZoneInfoNotFoundError) as exc:
         raise ConfigError(f"app {app_id!r}: unknown time zone {tz!r}") from exc
     return tz
+
+
+def _experiments(value: Any, app_id: str) -> list[dict[str, Any]]:
+    from .connectors.ga4 import ExperimentSpec
+
+    out = []
+    for e in value or []:
+        try:
+            ExperimentSpec.from_dict(dict(e))
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(f"app {app_id!r}: {exc}") from exc
+        out.append(dict(e))
+    ids = [e["id"] for e in out]
+    if len(ids) != len(set(ids)):
+        raise ConfigError(f"app {app_id!r}: experiment ids must be unique")
+    return out
 
 
 def find_config(explicit: str | Path | None = None) -> Path:
@@ -168,6 +188,7 @@ def config_from_dict(data: dict[str, Any], base_dir: Path, path: Path | None = N
                 platforms=[str(x).upper() for x in a.get("platforms", [])],
                 sources=a.get("sources") or {},
                 timezone=_timezone(a.get("timezone"), a["id"]),
+                experiments=_experiments(a.get("experiments"), a["id"]),
             )
         )
 
@@ -199,5 +220,6 @@ def config_from_dict(data: dict[str, Any], base_dir: Path, path: Path | None = N
         state_dir=optional_path("state_dir") or warehouse.parent / "pulse-state",
         fx_rates={str(k).upper(): float(v) for k, v in (data.get("fx_rates") or {}).items()},
         max_bytes_billed=int(data.get("max_bytes_billed", 2_000_000_000)),
+        ua=dict(data.get("ua") or {}),
         raw=data,
     )

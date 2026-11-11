@@ -231,7 +231,7 @@ WHERE b.points >= ? AND b.baseline > 0 AND b.baseline >= ?
                     src = src or {}
                     if src.get("enabled", True) is False:
                         continue
-                    expected.append((app.id, str(src.get("name", kind)), kind))
+                    expected.append((app.id, str(src.get("name", kind)), kind.split("@", 1)[0]))
         params: list[Any] = [x for e in expected for x in e]
         if expected:
             expected_cte = (

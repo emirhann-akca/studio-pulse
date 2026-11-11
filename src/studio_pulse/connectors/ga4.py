@@ -50,6 +50,7 @@ class GA4Options:
     # {"event": "camera_session_completed", "fps_param": "median_fps", "scene": "camera"}
     fps_events: list[dict[str, str]] = field(default_factory=list)
     churn_window_days: int = 7
+    experiments: list[ExperimentSpec] = field(default_factory=list)
     # The GA4 property's reporting time zone (event_date is already in it);
     # used for the first-touch fallback date. Set from the app's `timezone`.
     timezone: str = "UTC"
@@ -88,6 +89,71 @@ class GA4Options:
             check_key(f["event"])
             check_key(f["fps_param"])
         return o
+
+
+@dataclass
+class ExperimentSpec:
+    """One A/B test read from the GA4 export (an app's `experiments:` list).
+
+    Exposure is an event (default `experiment_exposure`) whose parameters hold
+    the experiment id and the variant. A user's first exposure between start
+    and end fixes the variant and day 0; users seen in two variants are
+    dropped. y is the metric over window_days from day 0 (the count of
+    metric_event, or with metric_value: value the sum of its
+    event_value_in_usd), x the same over the pre_days before day 0 (the CUPED
+    covariate), conversion = at least one conversion_event in the window.
+    Only users whose whole window lies inside the data are counted.
+    """
+
+    id: str
+    start: dt.date
+    end: dt.date
+    metric_event: str
+    name: str = ""
+    metric_value: str = "count"  # count | value
+    conversion_event: str | None = None
+    exposure_event: str = "experiment_exposure"
+    experiment_param: str = "experiment_id"
+    variant_param: str = "variant"
+    window_days: int = 7
+    pre_days: int = 14
+    control: str | None = None
+    split: dict[str, float] = field(default_factory=dict)
+    alpha: float = 0.05
+    tuning: float = 5000.0
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> ExperimentSpec:
+        known = set(cls.__dataclass_fields__)
+        unknown = set(d) - known
+        if unknown:
+            raise ValueError(f"experiment {d.get('id')!r}: unknown keys {sorted(unknown)}")
+        for req in ("id", "start", "end", "metric_event"):
+            if req not in d:
+                raise ValueError(f"experiment {d.get('id')!r}: needs {req}")
+        e = cls(**{**d, "start": _as_date(d["start"]), "end": _as_date(d["end"])})
+        check_key(e.id)
+        for k in (e.metric_event, e.exposure_event, e.experiment_param, e.variant_param):
+            check_key(k)
+        if e.conversion_event:
+            check_key(e.conversion_event)
+        if e.metric_value not in ("count", "value"):
+            raise ValueError(f"experiment {e.id!r}: metric_value must be count or value")
+        if e.window_days < 1 or e.pre_days < 0 or e.end < e.start:
+            raise ValueError(f"experiment {e.id!r}: bad window (start/end, window_days, pre_days)")
+        if not 0 < e.alpha < 0.5:
+            raise ValueError(f"experiment {e.id!r}: alpha must be in (0, 0.5)")
+        e.split = {str(k): float(v) for k, v in (e.split or {}).items()}
+        return e
+
+    @property
+    def metric_label(self) -> str:
+        what = "events" if self.metric_value == "count" else "value (USD)"
+        return f"{self.metric_event} {what} per user, {self.window_days} d"
+
+
+def _as_date(v: Any) -> dt.date:
+    return v if isinstance(v, dt.date) else dt.date.fromisoformat(str(v))
 
 
 class GA4Queries:
@@ -247,6 +313,120 @@ FULL OUTER JOIN payers p
     ON a.platform = p.platform AND a.cohort_date = p.cohort_date AND a.day_n = p.day_n
 """
 
+    def experiment_arms(self, e: ExperimentSpec) -> str:
+        """Per-variant sufficient statistics of one experiment; no user leaves the source."""
+        d = self.d
+        conv = e.conversion_event or e.metric_event
+        names = sql_list(sorted({e.metric_event, conv}))
+        m = "1" if e.metric_value == "count" else "COALESCE(e.value_usd, 0)"
+        data_start = e.start - dt.timedelta(days=e.pre_days)
+        last_exposure = min(e.end, self.end - dt.timedelta(days=e.window_days - 1))
+        lag = d.days_between("e.d", "x.exp_d")
+        return f"""
+WITH ev AS (
+    SELECT
+        {d.event_date()} AS d,
+        user_pseudo_id AS u,
+        event_name,
+        event_value_in_usd AS value_usd,
+        {d.param_str(e.experiment_param)} AS exp_id,
+        {d.param_str(e.variant_param)} AS variant
+    FROM {d.ga4_events()}
+    WHERE {self._where(data_start, f"event_name IN ('{e.exposure_event}', {names})")}
+),
+exposed AS (
+    SELECT u, MIN(d) AS exp_d, MIN(variant) AS variant, COUNT(DISTINCT variant) AS variants
+    FROM ev
+    WHERE event_name = '{e.exposure_event}' AND exp_id = '{e.id}' AND variant IS NOT NULL
+      AND d BETWEEN {d.date_lit(e.start)} AND {d.date_lit(e.end)}
+    GROUP BY u
+),
+per_user AS (
+    SELECT
+        x.u, x.variant,
+        SUM(CASE WHEN e.event_name = '{e.metric_event}' AND {lag} BETWEEN 0 AND {e.window_days - 1}
+                 THEN {m} ELSE 0 END) AS y,
+        SUM(CASE WHEN e.event_name = '{e.metric_event}' AND {lag} BETWEEN {-e.pre_days} AND -1
+                 THEN {m} ELSE 0 END) AS x,
+        MAX(CASE WHEN e.event_name = '{conv}' AND {lag} BETWEEN 0 AND {e.window_days - 1}
+                 THEN 1 ELSE 0 END) AS converted,
+        MIN(x.exp_d) AS exp_d
+    FROM exposed x
+    LEFT JOIN ev e ON e.u = x.u AND e.event_name IN ({names})
+    WHERE x.variants = 1 AND x.exp_d <= {d.date_lit(last_exposure)}
+    GROUP BY x.u, x.variant
+)
+SELECT
+    variant,
+    COUNT(*) AS users,
+    SUM(converted) AS conversions,
+    SUM(y) AS y_sum,
+    SUM(y * y) AS y_sumsq,
+    SUM(x) AS x_sum,
+    SUM(x * x) AS x_sumsq,
+    SUM(x * y) AS xy_sum,
+    MIN(exp_d) AS first_exposure,
+    MAX(exp_d) AS last_exposure
+FROM per_user
+GROUP BY variant
+"""
+
+    def campaign_cohorts(self) -> str:
+        """Install cohorts x day N split by first-touch traffic source (paid traffic only).
+
+        traffic_source.* is GA4's user-scoped first-touch attribution (source,
+        medium, campaign name). Rows whose medium is organic / (none) are not
+        returned; UA models match the rest to ad-network campaigns by name.
+        """
+        d = self.d
+        iap, ad, new = (
+            sql_list(self.o.iap_events),
+            sql_list(self.o.ad_events),
+            sql_list(self.o.new_user_events),
+        )
+        return f"""
+WITH ev AS (
+    SELECT
+        {d.event_date()} AS d,
+        user_pseudo_id AS u,
+        UPPER(platform) AS platform,
+        event_name,
+        event_timestamp AS ts,
+        {d.micros_to_date("user_first_touch_timestamp", self.o.timezone)} AS first_touch_d,
+        event_value_in_usd AS value_usd,
+        LOWER(traffic_source.source) AS ts_source,
+        LOWER(traffic_source.medium) AS ts_medium,
+        traffic_source.name AS ts_campaign
+    FROM {d.ga4_events()}
+    WHERE {self._where(None, self._active_filter())}
+),{self._money_day(iap, ad)},
+cohort AS (
+    SELECT u, platform,
+           COALESCE(MIN(CASE WHEN event_name IN ({new}) THEN d END), MIN(first_touch_d)) AS cohort_date,
+           MAX(ts_source) AS ts_source, MAX(ts_medium) AS ts_medium, MAX(ts_campaign) AS ts_campaign
+    FROM ev
+    GROUP BY u, platform
+),
+paid AS (
+    SELECT * FROM cohort
+    WHERE ts_source IS NOT NULL AND COALESCE(ts_medium, '(none)') NOT IN ('(none)', 'organic', '(not set)')
+      AND cohort_date BETWEEN {d.date_lit(self.start)} AND {d.date_lit(self.end)}
+),
+user_day AS (
+    SELECT a.d, a.platform, a.u, COALESCE(m.iap_usd, 0) AS iap_usd, COALESCE(m.ad_usd, 0) AS ad_usd
+    FROM (SELECT DISTINCT d, platform, u FROM ev) a
+    LEFT JOIN money_day m ON m.d = a.d AND m.platform = a.platform AND m.u = a.u
+)
+SELECT
+    c.platform, c.cohort_date, {d.days_between("ud.d", "c.cohort_date")} AS day_n,
+    c.ts_source, c.ts_medium, c.ts_campaign,
+    COUNT(*) AS users, SUM(ud.iap_usd) AS iap_revenue_usd, SUM(ud.ad_usd) AS ad_revenue_usd
+FROM user_day ud
+JOIN paid c ON c.u = ud.u AND c.platform = ud.platform
+WHERE ud.d >= c.cohort_date AND ud.d <= {d.add_days("c.cohort_date", 90)}
+GROUP BY 1, 2, 3, 4, 5, 6
+"""
+
     @staticmethod
     def _money_day(iap: str, ad: str) -> str:
         """Purchase and ad revenue per user and day, each event counted once.
@@ -391,6 +571,7 @@ WHERE {self._where(None, f"event_name = '{E.LOAD_EVENT}'")}
 _TARGETS = {
     "active_users": ("raw_ga4_active_users", "date"),
     "cohorts": ("raw_ga4_cohort_days", "cohort_date"),
+    "campaign_cohorts": ("raw_ga4_campaign_cohorts", "cohort_date"),
     "event_counts": ("raw_ga4_event_counts", "date"),
     "levels": ("raw_level_daily", "date"),
     "level_max": ("raw_level_max", None),
@@ -440,4 +621,32 @@ def ingest(
         )
         loaded[name] = n
         log(f"    ga4 {name:<13} -> {table:<22} {n:>7} rows")
+    for e in opts.experiments:
+        before = len(executor.stats)
+        result = executor.run(f"{app_id}.ga4.experiment.{e.id}", q.experiment_arms(e))
+        if result is None:  # dry-run only
+            continue
+        n = replace_slice(
+            con,
+            "raw_experiment_arms",
+            result,
+            app_id=app_id,
+            source=source,
+            where="experiment_id = ?",
+            params=[e.id],
+            constants={"experiment_id": e.id},
+        )
+        billed = executor.stats[-1].billed_bytes if len(executor.stats) > before else None
+        record_load(
+            con,
+            app_id=app_id,
+            source=source,
+            table="raw_experiment_arms",
+            rows=n,
+            date_col=None,
+            bytes_billed=billed,
+            detail=f"experiment {e.id}",
+        )
+        loaded[f"experiment:{e.id}"] = n
+        log(f"    ga4 experiment {e.id} -> raw_experiment_arms {n:>3} variants")
     return loaded

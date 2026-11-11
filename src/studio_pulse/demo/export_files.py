@@ -8,6 +8,7 @@ BigQuery can run on them in DuckDB.
 Flat input columns (GA4): event_date (YYYYMMDD), event_timestamp (micros),
 event_name, user_pseudo_id, user_first_touch_timestamp, platform, app_id,
 app_version, device_category, mobile_model_name, country, event_value_in_usd,
+ts_source, ts_medium, ts_name (first-touch traffic source, optional),
 plus one column per event parameter named p_<param> (string, int or float).
 """
 
@@ -33,6 +34,10 @@ GA4_BASE_COLUMNS = {
     "mobile_model_name": pa.string(),
     "country": pa.string(),
     "event_value_in_usd": pa.float64(),
+    # first-touch traffic source (GA4 traffic_source.source / medium / name)
+    "ts_source": pa.string(),
+    "ts_medium": pa.string(),
+    "ts_name": pa.string(),
 }
 
 
@@ -98,6 +103,7 @@ def write_ga4_parquet(flat: pa.Table, out_path: str | Path) -> Path:
                 {{'id': app_id, 'version': app_version}} AS app_info,
                 {{'category': device_category, 'mobile_model_name': mobile_model_name}} AS device,
                 {{'country': country}} AS geo,
+                {{'name': ts_name, 'medium': ts_medium, 'source': ts_source}} AS traffic_source,
                 event_value_in_usd
             FROM flat
             ORDER BY event_date, event_timestamp

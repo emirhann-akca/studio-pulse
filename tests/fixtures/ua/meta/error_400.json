@@ -1,0 +1,8 @@
+{
+ "error": {
+  "message": "Invalid OAuth access token - tok-SECRET-meta-0123456789 cannot be parsed",
+  "type": "OAuthException",
+  "code": 190,
+  "fbtrace_id": "AbCdEf"
+ }
+}

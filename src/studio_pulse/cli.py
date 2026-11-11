@@ -217,6 +217,70 @@ def cmd_fingerprint(args: argparse.Namespace) -> int:
     return 0
 
 
+def _split(text: str | None) -> dict[str, float]:
+    out: dict[str, float] = {}
+    for part in (text or "").split(","):
+        if part.strip():
+            k, _, v = part.partition("=")
+            out[k.strip()] = float(v)
+    return out
+
+
+def cmd_experiment(args: argparse.Namespace) -> int:
+    from .stats import experiments as X
+
+    if args.input:
+        exp = X.Experiment(
+            id=Path(args.input).stem,
+            name=args.name or Path(args.input).stem,
+            arms=X.read_arms(args.input),
+            control=args.control,
+            split=_split(args.split),
+            alpha=args.alpha,
+            metric=args.metric,
+        )
+        results = [X.analyze(exp)]
+    else:
+        cfg = load_config(args.config)
+        if args.sql:
+            from .connectors import ga4
+            from .connectors.dialect import BigQueryDialect
+
+            for app in cfg.apps:
+                src = app.sources.get("ga4_bigquery") or {}
+                for raw in app.experiments:
+                    e = ga4.ExperimentSpec.from_dict(raw)
+                    if args.id and e.id not in args.id:
+                        continue
+                    start, end = cfg.window()
+                    d = BigQueryDialect(
+                        src.get("project", "PROJECT"), src.get("dataset", "DATASET")
+                    )
+                    opts = ga4.GA4Options.from_source(src)
+                    opts.timezone = app.timezone
+                    print(f"-- {app.id} / {e.id}: per-variant sufficient statistics (no user ids)")
+                    print(ga4.GA4Queries(d, start, end, opts).experiment_arms(e).strip() + ";\n")
+            return 0
+        con = warehouse.connect(cfg.warehouse, read_only=True)
+        try:
+            exps = X.load_experiments(con)
+        finally:
+            con.close()
+        exps = [e for e in exps if not args.id or e.id in args.id]
+        if not exps:
+            print(
+                "no experiment results in the warehouse (configure experiments: and run pulse run)",
+                file=sys.stderr,
+            )
+            return 2
+        results = [X.analyze(e) for e in exps]
+    if args.json:
+        print(json.dumps(results, indent=2, default=str))
+    else:
+        print("\n\n".join(X.format_console(r) for r in results))
+    return 3 if any(r["srm"]["flagged"] for r in results) else 0
+
+
 # -- schedule ----------------------------------------------------------------------
 
 
@@ -497,6 +561,31 @@ def build_parser() -> argparse.ArgumentParser:
     f.add_argument("--out", help="directory for the CSV files and fingerprint.json")
     f.set_defaults(func=cmd_fingerprint)
 
+    ex = with_config(
+        sub.add_parser(
+            "experiment",
+            help="A/B test analysis: SRM, z / Welch tests, CUPED and an always-valid interval",
+        )
+    )
+    ex.add_argument("--id", action="append", help="only this experiment id (repeatable)")
+    ex.add_argument(
+        "--input",
+        help="analyse a CSV/JSON of per-variant aggregates instead of the warehouse "
+        "(columns: variant, users, conversions, y_sum, y_sumsq, x_sum, x_sumsq, xy_sum)",
+    )
+    ex.add_argument("--control", help="control variant (with --input; default: first)")
+    ex.add_argument("--split", help="expected split, e.g. A=0.5,B=0.5 (with --input)")
+    ex.add_argument("--alpha", type=float, default=0.05, help="significance level (default 0.05)")
+    ex.add_argument("--name", help="experiment name (with --input)")
+    ex.add_argument("--metric", default="metric", help="metric label (with --input)")
+    ex.add_argument(
+        "--sql",
+        action="store_true",
+        help="print the BigQuery SQL that computes the per-variant aggregates; run nothing",
+    )
+    ex.add_argument("--json", action="store_true")
+    ex.set_defaults(func=cmd_experiment)
+
     s = sub.add_parser(
         "schedule", help="daily refresh through launchd (macOS) or Task Scheduler (Windows)"
     )
@@ -572,6 +661,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     except (alerts.RuleError, CheckError) as exc:
         print(f"rules error: {exc}", file=sys.stderr)
+        return 2
+    except ValueError as exc:
+        if args.func is not cmd_experiment:
+            raise
+        print(f"experiment error: {exc}", file=sys.stderr)
         return 2
     except ScheduleError as exc:
         print(f"schedule error: {exc}", file=sys.stderr)

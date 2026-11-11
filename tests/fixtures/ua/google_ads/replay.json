@@ -1,0 +1,17 @@
+{
+ "requests": [
+  {
+   "method": "POST",
+   "path": "/v26/customers/1234567890/googleAds:search",
+   "file": "search_p1.json"
+  },
+  {
+   "method": "POST",
+   "path": "/v26/customers/1234567890/googleAds:search",
+   "json": {
+    "pageToken": "t2"
+   },
+   "file": "search_p2.json"
+  }
+ ]
+}

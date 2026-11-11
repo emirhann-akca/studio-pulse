@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
+import hashlib
 import io
 import json
 import math
@@ -47,6 +48,7 @@ import yaml
 
 from .. import events as E
 from .export_files import flat_table, write_crashlytics_parquet, write_ga4_parquet
+from .ua import UASim
 
 DEMO_END = dt.date(2026, 10, 31)
 DEMO_DAYS = 75
@@ -79,6 +81,23 @@ PARAM_TYPES = {
     E.PARAM_SYS_MEM: "int",
     E.PARAM_KIND: "string",
     E.PARAM_DURATION: "double",
+    "experiment_id": "string",
+    "variant": "string",
+}
+
+# A/B test in the demo: Mossy Match shows variant B a cheaper booster offer
+# from day 50 to day 63 to players with 14+ days of tenure; B players use about
+# 8% more boosters. Exposure is an
+# event with the experiment id and variant; the metric is booster_used events
+# in the 7 days after first exposure, the CUPED covariate the 14 days before.
+DEMO_EXPERIMENTS = {
+    "mossy_match": {
+        "id": "booster_offer_v2",
+        "name": "Booster offer v2",
+        "start": 50,
+        "end": 63,
+        "lift": 1.08,
+    }
 }
 
 COUNTRIES = [
@@ -255,6 +274,7 @@ class User:
     payer: bool
     level: int = 1
     sub: dict[str, Any] | None = None
+    traffic: tuple[str, str, str] = ("(direct)", "(none)", "(direct)")
 
 
 class EventBuffer:
@@ -287,6 +307,9 @@ class EventBuffer:
         g["mobile_model_name"].append(base["mobile_model_name"])
         g["country"].append(base["country"])
         g["event_value_in_usd"].append(value_usd)
+        g["ts_source"].append(base["ts_source"])
+        g["ts_medium"].append(base["ts_medium"])
+        g["ts_name"].append(base["ts_name"])
         for k, v in params.items():
             g["p_" + k].append(v)
 
@@ -343,6 +366,12 @@ class Generator:
             list
         )  # (day, platform, currency)
         self.dau_by_day: dict[tuple[int, str], int] = defaultdict(int)
+        # Bought users and the ad networks' reports (own random stream).
+        self.ua = UASim(app.id, app.seed, start)
+        # Experiment events (own random stream, so the other numbers do not move).
+        self.rng_x = random.Random(app.seed * 31 + 5)
+        self.booster_rate: dict[str, float] = {}
+        self.exposed: dict[str, int] = {}
 
     # -- population ---------------------------------------------------------------
     def _new_user(self, day_idx: int) -> User:
@@ -388,7 +417,9 @@ class Generator:
                 mult *= a.campaign[2]
             n_new = max(0, int(round(a.installs * self.scale * mult * r.gauss(1.0, 0.08))))
             for _ in range(n_new):
-                users.append(self._new_user(di))
+                u = self._new_user(di)
+                u.traffic = self.ua.traffic(di, u.country[1], u.platform)
+                users.append(u)
             for u in users:
                 n = di - u.install
                 if n == 0 or r.random() < self._p_active(u, n):
@@ -407,6 +438,9 @@ class Generator:
             "app_version": version,
             "mobile_model_name": u.model,
             "country": u.country[0],
+            "ts_source": u.traffic[0],
+            "ts_medium": u.traffic[1],
+            "ts_name": u.traffic[2],
         }
         self.dau_by_day[(di, u.platform)] += 1
         t = r.uniform(7 * 3600, 21 * 3600)
@@ -476,9 +510,54 @@ class Generator:
                 self.crash["issue_id"].append("nonfatal-01")
                 self.crash["app_version"].append(version)
         self._purchases(u, base, di, day, t)
+        self._experiment(u, base, di, day, t)
 
-    def _poisson(self, lam: float) -> int:
-        r, L, k, p = self.rng, math.exp(-lam), 0, 1.0
+    def _experiment(self, u: User, base: dict, di: int, day: dt.date, t: float) -> None:
+        x = DEMO_EXPERIMENTS.get(self.app.id)
+        if not x:
+            return
+        r = self.rng_x
+        rate = self.booster_rate.get(u.uid)
+        if rate is None:
+            rate = self.booster_rate[u.uid] = 1.5 * r.lognormvariate(0, 0.9)
+        h = int(hashlib.sha256(f"{x['id']}:{u.uid}".encode()).hexdigest()[:8], 16)
+        variant = "B" if h % 2 else "A"
+        first = self.exposed.get(u.uid)
+        # Shown to players with at least 14 days of tenure (the pre-period is complete).
+        if first is None and x["start"] <= di <= x["end"] and di - u.install >= 14:
+            first = self.exposed[u.uid] = di
+            self.ev.add(
+                base,
+                "experiment_exposure",
+                _micros(day, t + 5),
+                None,
+                {"experiment_id": x["id"], "variant": variant},
+            )
+        lam = rate * (x["lift"] if first is not None and variant == "B" else 1.0)
+        for k in range(self._poisson(lam, r)):
+            self.ev.add(base, "booster_used", _micros(day, t + 90 + 30 * k), None, {})
+
+    def experiments(self) -> list[dict[str, Any]]:
+        x = DEMO_EXPERIMENTS.get(self.app.id)
+        if not x:
+            return []
+        return [
+            {
+                "id": x["id"],
+                "name": x["name"],
+                "start": (self.start + dt.timedelta(days=x["start"])).isoformat(),
+                "end": (self.start + dt.timedelta(days=x["end"])).isoformat(),
+                "metric_event": "booster_used",
+                "conversion_event": "in_app_purchase",
+                "window_days": 7,
+                "pre_days": 14,
+                "control": "A",
+                "split": {"A": 0.5, "B": 0.5},
+            }
+        ]
+
+    def _poisson(self, lam: float, rng: random.Random | None = None) -> int:
+        r, L, k, p = rng or self.rng, math.exp(-lam), 0, 1.0
         while True:
             p *= r.random()
             if p <= L:
@@ -839,6 +918,7 @@ class Generator:
                     "\n".join(lines) + "\n", encoding="utf-8"
                 )
             sources["unity_jsonl"] = {"path": f"unity/{a.id}", "app": a.package}
+        sources.update(self.ua.write(out))
         return sources
 
     def _write_revenuecat(self, root: Path) -> None:
@@ -1148,15 +1228,16 @@ def generate(
         g.run()
         g.run_subscriptions()
         sources = g.write()
-        cfg["apps"].append(
-            {
-                "id": app.id,
-                "name": app.name,
-                "genre": app.genre,
-                "platforms": app.platforms,
-                "sources": sources,
-            }
-        )
+        entry = {
+            "id": app.id,
+            "name": app.name,
+            "genre": app.genre,
+            "platforms": app.platforms,
+            "sources": sources,
+        }
+        if g.experiments():
+            entry["experiments"] = g.experiments()
+        cfg["apps"].append(entry)
         n_events = sum(len(v["event_name"]) for v in g.ev.groups.values())
         log(
             f"  generated {app.name}: {n_events:,} GA4 events, {len(g.rc_tx)} RevenueCat rows, {sum(len(v) for v in g.unity_lines.values())} Unity lines"

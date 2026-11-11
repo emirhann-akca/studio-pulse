@@ -1,0 +1,75 @@
+{
+ "results": [
+  {
+   "customer": {
+    "resourceName": "customers/1234567890",
+    "id": "1234567890",
+    "currencyCode": "USD"
+   },
+   "campaign": {
+    "resourceName": "customers/1234567890/campaigns/111",
+    "id": "111",
+    "name": "UAC_Android_Tier1"
+   },
+   "adGroup": {
+    "resourceName": "customers/1234567890/adGroups/222",
+    "id": "222",
+    "name": "AG_all"
+   },
+   "adGroupAd": {
+    "resourceName": "customers/1234567890/adGroupAds/222~333",
+    "ad": {
+     "resourceName": "customers/1234567890/ads/333",
+     "id": "333",
+     "name": "cf1.puzzle-ads.dust-blower.blower.lvl21.fill.9x16.tr.91c97d00dc"
+    }
+   },
+   "metrics": {
+    "clicks": "95",
+    "costMicros": "15000000",
+    "impressions": "8000",
+    "biddableAppInstallConversions": 12.0
+   },
+   "segments": {
+    "date": "2026-10-01"
+   }
+  },
+  {
+   "customer": {
+    "resourceName": "customers/1234567890",
+    "id": "1234567890",
+    "currencyCode": "USD"
+   },
+   "campaign": {
+    "resourceName": "customers/1234567890/campaigns/111",
+    "id": "111",
+    "name": "UAC_Android_Tier1"
+   },
+   "adGroup": {
+    "resourceName": "customers/1234567890/adGroups/222",
+    "id": "222",
+    "name": "AG_all"
+   },
+   "adGroupAd": {
+    "resourceName": "customers/1234567890/adGroupAds/222~334",
+    "ad": {
+     "resourceName": "customers/1234567890/ads/334",
+     "id": "334",
+     "name": ""
+    }
+   },
+   "metrics": {
+    "clicks": "30",
+    "costMicros": "4560000",
+    "impressions": "3000",
+    "biddableAppInstallConversions": 5.5
+   },
+   "segments": {
+    "date": "2026-10-02"
+   }
+  }
+ ],
+ "nextPageToken": "t2",
+ "fieldMask": "segments.date,customer.id,customer.currencyCode,campaign.id,campaign.name,adGroup.id,adGroup.name,adGroupAd.ad.id,adGroupAd.ad.name,metrics.costMicros,metrics.impressions,metrics.clicks,metrics.biddableAppInstallConversions",
+ "requestId": "rq-1"
+}

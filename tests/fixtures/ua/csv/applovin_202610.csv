@@ -1,0 +1,4 @@
+Day,Campaign,Campaign ID,Creative Set,Creative Set ID,Country,Platform,Impressions,Clicks,Installs,Cost
+2026-10-01,AL_Puzzle_US,al1,cf1.puzzle-ads.dust-blower.main.main.main.9x16.en.6453fdb366,cs1,us,android,12000,240,30,24.30
+2026-10-02,AL_Puzzle_US,al1,cf1.puzzle-ads.dust-blower.main.main.main.9x16.en.6453fdb366,cs1,us,android,4000,70,9,8.70
+Total,,,,,,,16000,310,39,33.00

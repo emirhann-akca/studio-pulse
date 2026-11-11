@@ -1,0 +1,29 @@
+{
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/open_api/v1.3/report/integrated/get/",
+   "query": {
+    "advertiser_id": "7000000000000000001"
+   },
+   "file": "report_p1.json"
+  },
+  {
+   "method": "GET",
+   "path": "/open_api/v1.3/report/integrated/get/",
+   "query": {
+    "advertiser_id": "7000000000000000001",
+    "page": "2"
+   },
+   "file": "report_p2.json"
+  },
+  {
+   "method": "GET",
+   "path": "/open_api/v1.3/report/integrated/get/",
+   "query": {
+    "advertiser_id": "7000000000000000099"
+   },
+   "file": "error_auth.json"
+  }
+ ]
+}
