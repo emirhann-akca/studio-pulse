@@ -41,7 +41,8 @@ store reviews included).
 - **Runs on Windows 10/11 and macOS** (and Linux): a one-line installer, a
   daily refresh registered with launchd or Task Scheduler, and a local web UI.
   CI installs it with the real installers on all three and checks that the
-  demo's model tables are byte-identical everywhere.
+  demo's model tables agree everywhere (text and integers exactly, floats to
+  a relative 1e-9).
 - **Industry-standard definitions**, one formula per metric in
   [docs/METRICS.md](docs/METRICS.md): classic day-N retention by install
   cohort, ARPDAU, payer conversion, cumulative ARPU (LTV) curve over complete
@@ -325,7 +326,9 @@ is how a Turkish-Windows (cp1254) bug shows up on a Mac. CI
 Linux x Python 3.11-3.13, installs the built wheel with `install.sh` /
 `install.ps1` and runs doctor, demo, checks and the UI in a folder with Turkish
 characters, registers and fires a real launchd / Task Scheduler job, and
-compares the SHA-256 of every model table across all jobs. Tags `v*` build and
+compares every model table across all jobs (equal hashes, or the same rows with
+floats within a relative 1e-9: parallel sums add in a different order on each
+machine). Tags `v*` build and
 publish the release ([`release.yml`](.github/workflows/release.yml)).
 
 Layout: `src/studio_pulse/` (config, warehouse, runner, connectors incl. `ua/`

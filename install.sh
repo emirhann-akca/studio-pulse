@@ -73,7 +73,9 @@ main() {
     SPEC="studio-pulse"
     if [ -n "$EXTRAS" ] && [ "$EXTRAS" != "none" ]; then SPEC="studio-pulse[$EXTRAS]"; fi
     say "installing $SPEC with Python $PYTHON (uv downloads Python if it is missing)"
-    "$UV" tool install --force --python "$PYTHON" "$SPEC @ $SOURCE" || die "uv tool install failed"
+    # --refresh-package: a branch archive keeps its URL while its contents change
+    "$UV" tool install --force --refresh-package studio-pulse --python "$PYTHON" "$SPEC @ $SOURCE" \
+        || die "uv tool install failed"
 
     BIN=$("$UV" tool dir --bin)
     if [ -z "${UV_NO_MODIFY_PATH:-}" ]; then

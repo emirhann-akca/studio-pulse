@@ -116,7 +116,10 @@ def test_installers_are_pinned_and_match_the_package():
     assert "astral.sh/uv/$UvVersion/install.ps1" in ps
     # first choice: the release wheel of this version; on a 404, the branch archive
     assert "releases/download" in sh and "/v$VERSION/studio_pulse-$VERSION-py3-none-any.whl" in sh
-    assert "releases/download" in ps and "/v$Version/studio_pulse-$Version-py3-none-any.whl" in ps
+    assert "releases/download" in ps and '"$ReleaseBase/v$Version/$WheelName"' in ps
+    assert '"studio_pulse-$Version-py3-none-any.whl"' in ps
+    # Windows PowerShell 5.1 may see GitHub's 404 as a closed connection: retry, then curl.exe
+    assert "-DisableKeepAlive" in ps and "curl.exe" in ps and "%{http_code}" in ps
     code = [ln for ln in ps.splitlines() if not ln.lstrip().startswith("#")]
     statement_exit = re.compile(r"(^|[;{}])\s*exit\b", re.I)  # not the word inside messages
     assert not any(statement_exit.search(ln) for ln in code), "never exit: it closes the window"

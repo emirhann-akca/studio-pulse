@@ -135,3 +135,56 @@ def test_release_builds_on_version_tags_only():
     assert wf[True] == {"push": {"tags": ["v*"]}}
     text = " ".join(s.get("run", "") for j in wf["jobs"].values() for s in j["steps"])
     assert "uv build" in text and "gh release create" in text
+
+
+def _compare_module():
+    import importlib.util
+
+    path = WORKFLOWS.parent / "scripts" / "compare_fingerprints.py"
+    spec = importlib.util.spec_from_file_location("compare_fingerprints", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_fingerprint_compare_tolerates_summation_order_but_not_real_changes():
+    cmp = _compare_module().compare_csv
+    head = "app_id,day_n,cohorts,cumulative_arpu_usd,label\n"
+    # The CI case: fct_ltv_curve differed in the 13th significant digit between jobs.
+    a = head + "a,7,30,0.0595886500436,x\nb,1,9,0.25,y\n"
+    b = head + "b,1,9,0.25,y\na,7,30,0.0595886500437,x\n"
+    ok, worst, _ = cmp(a, b)
+    assert ok and 1e-13 < worst < 1e-11
+    assert cmp(a, a) == (True, 0.0, "")
+    ok, _, detail = cmp(a, head + "a,7,30,0.0595887,x\nb,1,9,0.25,y\n")  # 1e-6 relative
+    assert not ok and "cumulative_arpu_usd" in detail
+    ok, _, detail = cmp(a, head + "a,7,31,0.0595886500436,x\nb,1,9,0.25,y\n")  # integer
+    assert not ok and "cohorts" in detail
+    ok, _, detail = cmp(a, head + "a,7,30,0.0595886500436,z\nb,1,9,0.25,y\n")  # text
+    assert not ok and "label" in detail
+    ok, _, detail = cmp(a, head + "a,7,30,0.0595886500436,x\n")
+    assert not ok and "row counts" in detail
+    # near zero the absolute tolerance applies; an empty cell never equals a number
+    z = "v\n0\n"
+    assert cmp(z, "v\n1e-14\n")[0] and not cmp(z, "v\n\n")[0]
+
+
+def test_fingerprint_compare_reports_identical_runs_and_tolerated_tables(tmp_path, capsys):
+    import json
+
+    mod = _compare_module()
+    for job, value in (("ubuntu", "0.0595886500436"), ("macos", "0.0595886500437")):
+        d = tmp_path / f"fingerprint-{job}"
+        d.mkdir()
+        (d / "fct_ltv_curve.csv").write_text(f"x\n{value}\n", encoding="utf-8")
+        (d / "fct_same.csv").write_text("y\n1\n", encoding="utf-8")
+        tables = {
+            "fct_ltv_curve": {"rows": 1, "sha256": job},
+            "fct_same": {"rows": 1, "sha256": "s"},
+        }
+        (d / "fingerprint.json").write_text(
+            json.dumps({"sha256": job, "tables": tables}), encoding="utf-8"
+        )
+    assert mod.main(tmp_path) == 0
+    out = capsys.readouterr().out
+    assert "1 identical" in out and "fct_ltv_curve (max rel" in out and "::error" not in out

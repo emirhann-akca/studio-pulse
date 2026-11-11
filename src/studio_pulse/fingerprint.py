@@ -1,16 +1,21 @@
 """Model fingerprint: every stg_* / fct_* table as sorted CSV plus its SHA-256.
 
-CI builds the demo on Windows, macOS and Linux and compares these hashes, so a
+CI builds the demo on Windows, macOS and Linux and compares these exports, so a
 platform difference in a connector, a model or the generator shows up as a
-changed table instead of going unnoticed.
+changed table instead of going unnoticed. Equal hashes mean identical tables;
+for a table whose hash differs, .github/scripts/compare_fingerprints.py
+compares the CSVs cell by cell: text, dates and integers exactly, floats within
+a relative 1e-9. Exact float equality cannot be required: DuckDB's parallel
+aggregation adds in an order that differs between machines (CI saw
+fct_ltv_curve differ in the 13th digit between two Python versions on one
+macOS runner), and rounding can always land on a tie.
 
 To be comparable the export is canonical:
 - columns in table order, minus load timestamps (`loaded_at` columns record
   when the pipeline ran, not what it computed);
-- floats written with 12 significant digits (after snapping to 15, so that
-  last-bit noise cannot flip a value that sits exactly on a rounding tie),
-  so a last-bit difference from a parallel sum does not count, while any
-  real difference does;
+- floats written with 12 significant digits (after snapping to 15, which
+  makes most last-bit noise disappear from the hash; the tolerant compare
+  covers the rest);
 - rows formatted first and then sorted as text, so ties and float noise cannot
   reorder them; LF line endings, UTF-8.
 """

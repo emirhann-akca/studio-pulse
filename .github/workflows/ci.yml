@@ -1,8 +1,9 @@
 # Tests on Windows, macOS (Apple Silicon) and Linux x Python 3.11-3.13, a real
 # user install on each OS through the README's one-liners, the no-release
 # fallback of the installers, the optional forecast extra, the Flutter package,
-# a real OS schedule round trip, and a check that the demo's model tables are
-# byte-identical on every job. Failures are published
+# a real OS schedule round trip, and a check that the demo's model tables agree
+# on every job (text and integers exactly, floats within a relative 1e-9; see
+# .github/scripts/compare_fingerprints.py). Failures are published
 # as annotations (.github/scripts/annotate.py) because job logs need a token.
 name: ci
 
