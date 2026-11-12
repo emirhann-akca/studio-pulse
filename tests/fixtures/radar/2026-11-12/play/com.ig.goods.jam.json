@@ -1,0 +1,46 @@
+{
+ "appId": "com.ig.goods.jam",
+ "title": "Goods Jam: Goods Sorting",
+ "description": "Goods Jam: Goods Sorting, a product developed by iKame Games, is the ultimate sorting games adventure. Step into a fun world of goods jam puzzles, where you can relax with calming levels or challenge your brain with exciting matching games. This goods jam game blends fun sorting games challenges with engaging matching games levels for a truly strategic goods sorting experience. Get ready to clear tricky levels, match master goods jam matching games, and explore a dynamic world full of exciting goods sorting action.\r\n\r\nWhy You'll Love Goods Jam: Goods Sorting\r\n🔥 Smart Gameplay – Plan your moves to solve goods jam puzzle efficiently\r\n🔥 Triple Goods Matching & Combos – Match 3 goods to trigger satisfying chain reactions\r\n🔥 Unique Sorting Games Challenge – Each stage introduces fresh goods jam puzzle mechanics and fantastic matching games theme\r\n🔥 Immersive 3D Goods Sorting Games – Explore vibrant locations and enhance your skills in sorting games\r\n🔥 Power-Ups & Boosters – Overcome tricky jam puzzle obstacles in the ultimate goods jam game\r\n\r\nHow to Play Goods Jam: Goods Sorting\r\n🚀 Sort & Match – Align three or more goods to win perfect matching games\r\n🚀 Solve Goods Jam Puzzle – Think ",
+ "summary": "Sort, match-3 and master goods jam in 3D goods sorting.",
+ "installs": "1,000,000+",
+ "minInstalls": 1000000,
+ "realInstalls": 4643131,
+ "score": 4.6515994,
+ "ratings": 102510,
+ "offersIAP": true,
+ "inAppProductPrice": "$0.99 - $99.99 per item",
+ "developer": "iKame Games - Zego Studio",
+ "developerEmail": "contact@example.invalid",
+ "genre": "Puzzle",
+ "genreId": "GAME_PUZZLE",
+ "categories": [
+  {
+   "name": "Puzzle",
+   "id": "GAME_PUZZLE"
+  },
+  {
+   "name": "Match 3",
+   "id": null
+  },
+  {
+   "name": "Single player",
+   "id": null
+  },
+  {
+   "name": "Stylized",
+   "id": null
+  },
+  {
+   "name": "Light-hearted",
+   "id": null
+  },
+  {
+   "name": "Offline",
+   "id": null
+  }
+ ],
+ "containsAds": true,
+ "released": "Jan 2, 2025",
+ "version": "1.129.1"
+}

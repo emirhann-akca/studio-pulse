@@ -1,0 +1,23 @@
+# Radar replay config for the recorded responses of 12 Nov 2026 (see README.md).
+# `pulse radar run --replay tests/fixtures/radar/2026-11-12` uses it; nothing is fetched.
+title: Radar fixture
+as_of: 2026-11-12
+apps:
+  - {id: radar_fixture, name: Radar fixture}
+radar:
+  enabled: true
+  countries: [us, tr]
+  charts:
+    - {chart: topfreeapplications, genre: "6014"}
+    - {chart: topfreeapplications, genre: "7012", limit: 50, countries: [us]}
+    - {chart: topgrossingapplications, genre: "6014", countries: [us]}
+    - {chart: newfreeapplications, genre: "6014", limit: 25, countries: [us]}
+  publishers:
+    - {id: "1743349083", name: ABI Global}
+  play:
+    country: us
+    map_file: play_map.yaml
+    watch: [com.dreamgames.royalmatch, com.block.juggle, com.ig.goods.jam, com.slg.policewar]
+  llm: {max_apps: 25}
+llm:
+  provider: none

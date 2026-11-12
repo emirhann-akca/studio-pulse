@@ -1,0 +1,3005 @@
+{
+"feed": {
+"updated": {
+"label": "2026-11-12T05:49:54-07:00"
+},
+"entry": [
+{
+"im:name": {
+"label": "Catch & Shoot: Fishing Game"
+},
+"im:artist": {
+"label": "Eric Gates",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/eric-gates/id6812787192"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6812787190",
+"im:bundleId": "com.catchAndShootGame.casg2059"
+}
+},
+"im:releaseDate": {
+"label": "2027-03-13T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Have Words"
+},
+"im:artist": {
+"label": "WindUp Rocket",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/windup-rocket/id393171854"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6790067839",
+"im:bundleId": "com.winduprobotgames.havewords"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-10T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Warlords of the Three Kingdoms"
+},
+"im:artist": {
+"label": "Hubertus Putu Widya Primanta Nugraha",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/hubertus-putu-widya-primanta-nugraha/id6802461131"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6814703061",
+"im:bundleId": "com.warlord3k"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-10T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Lark Alert"
+},
+"im:artist": {
+"label": "Odis Harkins",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/odis-harkins/id995130030"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6803740377",
+"im:bundleId": "com.harkinstech.larkalert"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6000",
+"term": "Business",
+"scheme": "https://apps.apple.com/us/genre/ios-business/id6000?uo=2",
+"label": "Business"
+}
+}
+},
+{
+"im:name": {
+"label": "Cashbear POS - Point of Sale"
+},
+"im:artist": {
+"label": "OneWorld Information Technology Co., Ltd",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/oneworld-information-technology-co-ltd/id1689176245"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6802182753",
+"im:bundleId": "com.cashbear.pos"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6000",
+"term": "Business",
+"scheme": "https://apps.apple.com/us/genre/ios-business/id6000?uo=2",
+"label": "Business"
+}
+}
+},
+{
+"im:name": {
+"label": "Shōtō"
+},
+"im:artist": {
+"label": "Pure Golf Tour Ltd",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/pure-golf-tour-ltd/id6775756541"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6823962060",
+"im:bundleId": "com.puregolftour.shoto"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "MaskCopy: Safe ID Copies"
+},
+"im:artist": {
+"label": "Feiyang Tang",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/feiyang-tang/id1877853832"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832059753",
+"im:bundleId": "com.feiyangtang.Maske"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6002",
+"term": "Utilities",
+"scheme": "https://apps.apple.com/us/genre/ios-utilities/id6002?uo=2",
+"label": "Utilities"
+}
+}
+},
+{
+"im:name": {
+"label": "MIOMANDO"
+},
+"im:artist": {
+"label": "ALBERTO CARRARA",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/alberto-carrara/id1890467257"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832545137",
+"im:bundleId": "carrara.alberto.miomando.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6002",
+"term": "Utilities",
+"scheme": "https://apps.apple.com/us/genre/ios-utilities/id6002?uo=2",
+"label": "Utilities"
+}
+}
+},
+{
+"im:name": {
+"label": "Nardella: Bible for Women"
+},
+"im:artist": {
+"label": "Sang Huynh",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/sang-huynh/id6816163922"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832275719",
+"im:bundleId": "com.huynhxuansang.nardella"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6012",
+"term": "Lifestyle",
+"scheme": "https://apps.apple.com/us/genre/ios-lifestyle/id6012?uo=2",
+"label": "Lifestyle"
+}
+}
+},
+{
+"im:name": {
+"label": "Flow Isle: Focus & App Blocker"
+},
+"im:artist": {
+"label": "宗亮 杨",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/%E5%AE%97%E4%BA%AE-%E6%9D%A8/id1872238997"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6826737372",
+"im:bundleId": "com.cyofun.flowisle"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T15:30:50-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "Stovariqo"
+},
+"im:artist": {
+"label": "Gunarto Empluk Kemal",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/gunarto-empluk-kemal/id6832270234"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832270232",
+"im:bundleId": "manchidala.mento.nestboxxms"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T15:19:22-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "CR: Korilakkuma Tower Defense"
+},
+"im:artist": {
+"label": "Crunchyroll, LLC",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/crunchyroll-llc/id329913457"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6780751871",
+"im:bundleId": "com.crunchyroll.gv.korilakkumatowerdefense"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T15:17:33-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "TalonFab Recorder and Editor"
+},
+"im:artist": {
+"label": "TalonFab",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/talonfab/id6808949132"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6808949130",
+"im:bundleId": "au.com.talonfab.recorderandeditor"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T15:17:22-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6002",
+"term": "Utilities",
+"scheme": "https://apps.apple.com/us/genre/ios-utilities/id6002?uo=2",
+"label": "Utilities"
+}
+}
+},
+{
+"im:name": {
+"label": "Ayaverse"
+},
+"im:artist": {
+"label": "Opijara AI LLC",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/opijara-ai-llc/id6774328554"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831713265",
+"im:bundleId": "ai.optijara.ayaverse"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T15:16:44-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6006",
+"term": "Reference",
+"scheme": "https://apps.apple.com/us/genre/ios-reference/id6006?uo=2",
+"label": "Reference"
+}
+}
+},
+{
+"im:name": {
+"label": "Auntie Rabbit: AI Friends"
+},
+"im:artist": {
+"label": "Hyunsang Cho",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/hyunsang-cho/id1844111032"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6829188655",
+"im:bundleId": "ai.raymind.tokkiimo"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6012",
+"term": "Lifestyle",
+"scheme": "https://apps.apple.com/us/genre/ios-lifestyle/id6012?uo=2",
+"label": "Lifestyle"
+}
+}
+},
+{
+"im:name": {
+"label": "RC Double Take™"
+},
+"im:artist": {
+"label": "What It Is What It Do LLC",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/what-it-is-what-it-do-llc/id1896209636"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6830465812",
+"im:bundleId": "com.whatitis.doubletake"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T15:15:18-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Powers & Roots: Learn Math"
+},
+"im:artist": {
+"label": "Myroslava Zazuliak",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/myroslava-zazuliak/id1860692193"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832317415",
+"im:bundleId": "com.apps.potenzen"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "MV Experience"
+},
+"im:artist": {
+"label": "Morin Innovation",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/morin-innovation/id715456990"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6824634109",
+"im:bundleId": "com.morin-innovation.MVExperience"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6008",
+"term": "Photo & Video",
+"scheme": "https://apps.apple.com/us/genre/ios-photo-video/id6008?uo=2",
+"label": "Photo & Video"
+}
+}
+},
+{
+"im:name": {
+"label": "RC Music Trivia Mayhem™"
+},
+"im:artist": {
+"label": "What It Is What It Do LLC",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/what-it-is-what-it-do-llc/id1896209636"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832264590",
+"im:bundleId": "com.whatitis.mayhem"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Virtual Recorder 7Keys"
+},
+"im:artist": {
+"label": "jungwon lee",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/jungwon-lee/id1679688844"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832487291",
+"im:bundleId": "kr.co.soundpost.virtualrecorder"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "Sonra Music"
+},
+"im:artist": {
+"label": "Jasmin Mustafic",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/jasmin-mustafic/id1712725683"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831142048",
+"im:bundleId": "space.sonra.sonra"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T14:15:08-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6011",
+"term": "Music",
+"scheme": "https://apps.apple.com/us/genre/ios-music/id6011?uo=2",
+"label": "Music"
+}
+}
+},
+{
+"im:name": {
+"label": "HootBits: Focus & App Blocker"
+},
+"im:artist": {
+"label": "Pratiksha Deka",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/pratiksha-deka/id6831053708"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831053706",
+"im:bundleId": "com.pratikshadeka.HootBits-no-ai"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "Dawim: Smart HR"
+},
+"im:artist": {
+"label": "Dawim Technologies LLC",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/dawim-technologies-llc/id6831938293"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831938291",
+"im:bundleId": "io.dawim.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T13:51:55-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6000",
+"term": "Business",
+"scheme": "https://apps.apple.com/us/genre/ios-business/id6000?uo=2",
+"label": "Business"
+}
+}
+},
+{
+"im:name": {
+"label": "BOTG Volunteers"
+},
+"im:artist": {
+"label": "Boots on the Ground",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/boots-on-the-ground/id6832421210"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832421208",
+"im:bundleId": "ca.bootsontheground.volunteers"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T13:50:07-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "Euler: Musical Paths"
+},
+"im:artist": {
+"label": "Dylan Cantor",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/dylan-cantor/id1891295855"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832371282",
+"im:bundleId": "com.dylancantor.euler"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6011",
+"term": "Music",
+"scheme": "https://apps.apple.com/us/genre/ios-music/id6011?uo=2",
+"label": "Music"
+}
+}
+},
+{
+"im:name": {
+"label": "Petalbound"
+},
+"im:artist": {
+"label": "Franklin Augustus Blackwood",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/franklin-augustus-blackwood/id6798118138"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6798118136",
+"im:bundleId": "com.bloom.augustus"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "STRATEGY GYM：AI戦略思考ジム"
+},
+"im:artist": {
+"label": "TAKAHIRO SHITARA",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/takahiro-shitara/id1880494831"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831904260",
+"im:bundleId": "jp.strategygym.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "명당 파트너스"
+},
+"im:artist": {
+"label": "RobustX",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/robustx/id1889078038"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832393388",
+"im:bundleId": "kr.co.robustx.myoungdang.teacher"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T13:44:29-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6000",
+"term": "Business",
+"scheme": "https://apps.apple.com/us/genre/ios-business/id6000?uo=2",
+"label": "Business"
+}
+}
+},
+{
+"im:name": {
+"label": "Hyperslot"
+},
+"im:artist": {
+"label": "Oliver Stephens",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/oliver-stephens/id1884070225"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6827260092",
+"im:bundleId": "com.olisteveo.hyperslot"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T13:44:17-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Tiny Healing Puzzles"
+},
+"im:artist": {
+"label": "李丹 王",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/%E6%9D%8E%E4%B8%B9-%E7%8E%8B/id1601226743"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6821247285",
+"im:bundleId": "studio.healing.tinyHealingPuzzles"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Woven - Your Wardrobe"
+},
+"im:artist": {
+"label": "Peter Lindholm",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/peter-lindholm/id6814047823"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6829323780",
+"im:bundleId": "com.prycelindholm.closet"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T13:39:45-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6012",
+"term": "Lifestyle",
+"scheme": "https://apps.apple.com/us/genre/ios-lifestyle/id6012?uo=2",
+"label": "Lifestyle"
+}
+}
+},
+{
+"im:name": {
+"label": "Tally: Split Bill from Receipt"
+},
+"im:artist": {
+"label": "Ryosuke Hoshino",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/ryosuke-hoshino/id1882920339"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6829149573",
+"im:bundleId": "com.Lei.tallysplit"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6015",
+"term": "Finance",
+"scheme": "https://apps.apple.com/us/genre/ios-finance/id6015?uo=2",
+"label": "Finance"
+}
+}
+},
+{
+"im:name": {
+"label": "Park Right Here"
+},
+"im:artist": {
+"label": "Sugahara Yuta",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/sugahara-yuta/id1554982278"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6829165517",
+"im:bundleId": "com.kosa3.parkinggame"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "MeraParichay"
+},
+"im:artist": {
+"label": "PAWAN KUMAR",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/pawan-kumar/id601930838"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831999278",
+"im:bundleId": "com.km.meraparichay"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6002",
+"term": "Utilities",
+"scheme": "https://apps.apple.com/us/genre/ios-utilities/id6002?uo=2",
+"label": "Utilities"
+}
+}
+},
+{
+"im:name": {
+"label": "VRemind App"
+},
+"im:artist": {
+"label": "Recep Taylanhan",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/recep-taylanhan/id1851785611"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6816366221",
+"im:bundleId": "com.vremind.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "Open Up Ponza"
+},
+"im:artist": {
+"label": "Open Up Italy",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/open-up-italy/id6832363002"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832363000",
+"im:bundleId": "com.openupitaly.audioguide"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6003",
+"term": "Travel",
+"scheme": "https://apps.apple.com/us/genre/ios-travel/id6003?uo=2",
+"label": "Travel"
+}
+}
+},
+{
+"im:name": {
+"label": "Cut Up: Highway Racer"
+},
+"im:artist": {
+"label": "catharina nilsson",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/catharina-nilsson/id6825605041"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6825605039",
+"im:bundleId": "com.owenayre.cutup"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Hoppy Planet: Orbit Jump"
+},
+"im:artist": {
+"label": "Sergey Vidishev",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/sergey-vidishev/id1806397935"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6822801380",
+"im:bundleId": "sv.planethop"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Stubtomb - Ticket Memory Vault"
+},
+"im:artist": {
+"label": "Neema Karia",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/neema-karia/id6831496184"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831496182",
+"im:bundleId": "com.stubtom.tkt"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:53:06-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6002",
+"term": "Utilities",
+"scheme": "https://apps.apple.com/us/genre/ios-utilities/id6002?uo=2",
+"label": "Utilities"
+}
+}
+},
+{
+"im:name": {
+"label": "Kurso: Antidepressant Tracker"
+},
+"im:artist": {
+"label": "Andrii Hermanov",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/andrii-hermanov/id1814089705"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6821469023",
+"im:bundleId": "com.hermanapps.pillo"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:48:20-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6020",
+"term": "Medical",
+"scheme": "https://apps.apple.com/us/genre/ios-medical/id6020?uo=2",
+"label": "Medical"
+}
+}
+},
+{
+"im:name": {
+"label": "OctoPlus – Learn math"
+},
+"im:artist": {
+"label": "Henrique Motta Canho",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/henrique-motta-canho/id1878477707"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6826905955",
+"im:bundleId": "com.henriquecanho.octoplus"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:47:47-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "Dicto"
+},
+"im:artist": {
+"label": "俐利 陆",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/%E4%BF%90%E5%88%A9-%E9%99%86/id6825869816"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6830501719",
+"im:bundleId": "com.eden.cijian"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:46:26-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6002",
+"term": "Utilities",
+"scheme": "https://apps.apple.com/us/genre/ios-utilities/id6002?uo=2",
+"label": "Utilities"
+}
+}
+},
+{
+"im:name": {
+"label": "Pack Lingo: Learn Japanese"
+},
+"im:artist": {
+"label": "Hyper Technology LLC",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/hyper-technology-llc/id6773109952"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6822447052",
+"im:bundleId": "app.packlingo"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "Genestack Console"
+},
+"im:artist": {
+"label": "P Industries",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/p-industries/id1733917154"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6824660214",
+"im:bundleId": "dev.genestack.console"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:43:14-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6026",
+"term": "Developer Tools",
+"scheme": "https://apps.apple.com/us/genre/ios-developer-tools/id6026?uo=2",
+"label": "Developer Tools"
+}
+}
+},
+{
+"im:name": {
+"label": "GB Twickenham"
+},
+"im:artist": {
+"label": "REIS BJJ LTD",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/reis-bjj-ltd/id6828560163"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6828560161",
+"im:bundleId": "ie.zappy.gbtwickenham"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:42:50-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6013",
+"term": "Health & Fitness",
+"scheme": "https://apps.apple.com/us/genre/ios-health-fitness/id6013?uo=2",
+"label": "Health & Fitness"
+}
+}
+},
+{
+"im:name": {
+"label": "LiveBack2"
+},
+"im:artist": {
+"label": "Paox Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/paox-inc/id1218372277"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6822988391",
+"im:bundleId": "net.paox.LiveBackMonitor2"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6008",
+"term": "Photo & Video",
+"scheme": "https://apps.apple.com/us/genre/ios-photo-video/id6008?uo=2",
+"label": "Photo & Video"
+}
+}
+},
+{
+"im:name": {
+"label": "Habitumap: Habit Tracker"
+},
+"im:artist": {
+"label": "Jason Jeong",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/jason-jeong/id6826944301"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6826943939",
+"im:bundleId": "com.jasonjeong.habitumap"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "趣豆面霜"
+},
+"im:artist": {
+"label": "蓉 许",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/%E8%93%89-%E8%AE%B8/id6830586147"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6830988240",
+"im:bundleId": "com.kjyhtgr.mianshuang"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:31:58-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6002",
+"term": "Utilities",
+"scheme": "https://apps.apple.com/us/genre/ios-utilities/id6002?uo=2",
+"label": "Utilities"
+}
+}
+},
+{
+"im:name": {
+"label": "Ultraviolet: Glucose Coach"
+},
+"im:artist": {
+"label": "Ultraviolet Technologies Ltd",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/ultraviolet-technologies-ltd/id1759138108"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6812762320",
+"im:bundleId": "com.tryultraviolet.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6013",
+"term": "Health & Fitness",
+"scheme": "https://apps.apple.com/us/genre/ios-health-fitness/id6013?uo=2",
+"label": "Health & Fitness"
+}
+}
+},
+{
+"im:name": {
+"label": "轻欢精华液"
+},
+"im:artist": {
+"label": "国林 邹",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/%E5%9B%BD%E6%9E%97-%E9%82%B9/id6830938244"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831000138",
+"im:bundleId": "com.cijweq.jinghuaye"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:31:04-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6002",
+"term": "Utilities",
+"scheme": "https://apps.apple.com/us/genre/ios-utilities/id6002?uo=2",
+"label": "Utilities"
+}
+}
+},
+{
+"im:name": {
+"label": "OttoSpot: Car Spotting"
+},
+"im:artist": {
+"label": "Brandon Maalouf",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/brandon-maalouf/id6810768720"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6810768718",
+"im:bundleId": "app.ottospot.mobile"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6016",
+"term": "Entertainment",
+"scheme": "https://apps.apple.com/us/genre/ios-entertainment/id6016?uo=2",
+"label": "Entertainment"
+}
+}
+},
+{
+"im:name": {
+"label": "Mcfilms"
+},
+"im:artist": {
+"label": "Jose Mercado",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/jose-mercado/id6781155674"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6828800450",
+"im:bundleId": "com.mcfilmsecuador.studio"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:22:29-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6008",
+"term": "Photo & Video",
+"scheme": "https://apps.apple.com/us/genre/ios-photo-video/id6008?uo=2",
+"label": "Photo & Video"
+}
+}
+},
+{
+"im:name": {
+"label": "Moovini : sport en douceur"
+},
+"im:artist": {
+"label": "Marc MAGNON",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/marc-magnon/id6825750324"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6825750322",
+"im:bundleId": "com.marcolevrai.moovini"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6013",
+"term": "Health & Fitness",
+"scheme": "https://apps.apple.com/us/genre/ios-health-fitness/id6013?uo=2",
+"label": "Health & Fitness"
+}
+}
+},
+{
+"im:name": {
+"label": "Sunlap: Birthday Reminders"
+},
+"im:artist": {
+"label": "ANTON BABCHENKOV",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/anton-babchenkov/id1868541294"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831861641",
+"im:bundleId": "com.antonstilet.sunlap"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6012",
+"term": "Lifestyle",
+"scheme": "https://apps.apple.com/us/genre/ios-lifestyle/id6012?uo=2",
+"label": "Lifestyle"
+}
+}
+},
+{
+"im:name": {
+"label": "Nolar"
+},
+"im:artist": {
+"label": "Nolar",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/nolar/id1821688865"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832357032",
+"im:bundleId": "appx.nolar.com.br"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:20:06-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6012",
+"term": "Lifestyle",
+"scheme": "https://apps.apple.com/us/genre/ios-lifestyle/id6012?uo=2",
+"label": "Lifestyle"
+}
+}
+},
+{
+"im:name": {
+"label": "CatPoro: Cozy Pomodoro Cat"
+},
+"im:artist": {
+"label": "Thuan Pham Van",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/thuan-pham-van/id6826968250"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832054116",
+"im:bundleId": "com.phamvant.catporo"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6012",
+"term": "Lifestyle",
+"scheme": "https://apps.apple.com/us/genre/ios-lifestyle/id6012?uo=2",
+"label": "Lifestyle"
+}
+}
+},
+{
+"im:name": {
+"label": "Bulut"
+},
+"im:artist": {
+"label": "CANER OBALI",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/caner-obali/id1815198876"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6830975540",
+"im:bundleId": "com.canerobal.bulut"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:17:43-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "ChordScroll"
+},
+"im:artist": {
+"label": "ARJUN RAVINDRAN EZHUTHACHAN",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/arjun-ravindran-ezhuthachan/id6832209104"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832209102",
+"im:bundleId": "com.codex.chordscroll"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:14:28-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6002",
+"term": "Utilities",
+"scheme": "https://apps.apple.com/us/genre/ios-utilities/id6002?uo=2",
+"label": "Utilities"
+}
+}
+},
+{
+"im:name": {
+"label": "FoldHop"
+},
+"im:artist": {
+"label": "Ahmet Sener",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/ahmet-sener/id6832169702"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832169700",
+"im:bundleId": "com.FoldTransit"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T12:13:39-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "Flip Poker - 絞って決める順番決め"
+},
+"im:artist": {
+"label": "株式会社ヒュプノス",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/%E6%A0%AA%E5%BC%8F%E4%BC%9A%E7%A4%BE%E3%83%92%E3%83%A5%E3%83%97%E3%83%8E%E3%82%B9/id1525282487"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831965543",
+"im:bundleId": "jp.hypnos.flippoker"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Smart Chalk"
+},
+"im:artist": {
+"label": "Brandon Schindo",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/brandon-schindo/id6829912097"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6829912095",
+"im:bundleId": "app.smartchalk.ask"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "Doris: Run Sheets"
+},
+"im:artist": {
+"label": "Liam Molloy",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/liam-molloy/id6826504348"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6826504346",
+"im:bundleId": "com.rundorisrun.doris"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "Padelbang: 3D Padel Game"
+},
+"im:artist": {
+"label": "Daniel Rica Gutierrez",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/daniel-rica-gutierrez/id1619603825"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831054817",
+"im:bundleId": "com.maia.padel"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Paperling: Compress PDF"
+},
+"im:artist": {
+"label": "Anish Hirlekar",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/anish-hirlekar/id6828299019"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6828299016",
+"im:bundleId": "com.anishhirlekar.paperling"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "CraqueFlow: Gestão Escolinhas"
+},
+"im:artist": {
+"label": "Arthur Rodrigues",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/arthur-rodrigues/id6828664065"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6828664063",
+"im:bundleId": "com.craqueflow.craqueflow"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6004",
+"term": "Sports",
+"scheme": "https://apps.apple.com/us/genre/ios-sports/id6004?uo=2",
+"label": "Sports"
+}
+}
+},
+{
+"im:name": {
+"label": "YourTrip: City Trip Planner"
+},
+"im:artist": {
+"label": "Mikhail Sholokhov",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/mikhail-sholokhov/id6773700856"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6819636770",
+"im:bundleId": "com.typecode.yourtrip"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T11:26:56-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6003",
+"term": "Travel",
+"scheme": "https://apps.apple.com/us/genre/ios-travel/id6003?uo=2",
+"label": "Travel"
+}
+}
+},
+{
+"im:name": {
+"label": "Hatlinki: Link in Bio & Shop"
+},
+"im:artist": {
+"label": "Mediumward Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/mediumward-inc/id6827589061"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6829863501",
+"im:bundleId": "com.hatlinki.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6000",
+"term": "Business",
+"scheme": "https://apps.apple.com/us/genre/ios-business/id6000?uo=2",
+"label": "Business"
+}
+}
+},
+{
+"im:name": {
+"label": "Radio SloMo"
+},
+"im:artist": {
+"label": "Damir Tresnjo",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/damir-tresnjo/id6786778225"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832110536",
+"im:bundleId": "com.bluerim.radioslomo"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "I god tid"
+},
+"im:artist": {
+"label": "Pal Omland Eilevstjønn",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/pal-omland-eilevstj%C3%B8nn/id1782139496"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831322416",
+"im:bundleId": "no.dynni.igodtid"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "Moments: Daily Gratitude"
+},
+"im:artist": {
+"label": "Salim Shariff",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/salim-shariff/id6796697138"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6796697136",
+"im:bundleId": "com.thegratefulteam.moments"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6012",
+"term": "Lifestyle",
+"scheme": "https://apps.apple.com/us/genre/ios-lifestyle/id6012?uo=2",
+"label": "Lifestyle"
+}
+}
+},
+{
+"im:name": {
+"label": "Chess: Road to 1500"
+},
+"im:artist": {
+"label": "Ashish Gupta",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/ashish-gupta/id6829940669"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6829940667",
+"im:bundleId": "com.aspiroconsulting.chess"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "eProSubmit"
+},
+"im:artist": {
+"label": "eProGroup",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/eprogroup/id6822795893"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6822795891",
+"im:bundleId": "com.eprogrp.eprosubmit"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6000",
+"term": "Business",
+"scheme": "https://apps.apple.com/us/genre/ios-business/id6000?uo=2",
+"label": "Business"
+}
+}
+},
+{
+"im:name": {
+"label": "Ben Connect"
+},
+"im:artist": {
+"label": "Dereck Yasu",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/dereck-yasu/id6801796706"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6824411390",
+"im:bundleId": "com.benconnect.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T11:12:50-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6000",
+"term": "Business",
+"scheme": "https://apps.apple.com/us/genre/ios-business/id6000?uo=2",
+"label": "Business"
+}
+}
+},
+{
+"im:name": {
+"label": "Moss: Email & Calendar, No AI"
+},
+"im:artist": {
+"label": "Pug Health LLC",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/pug-health-llc/id425676529"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6815083203",
+"im:bundleId": "app.mossmail.ios"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T11:12:36-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "GN manager: 강남매니저"
+},
+"im:artist": {
+"label": "Innos Solutions Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/innos-solutions-inc/id6819005281"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832183443",
+"im:bundleId": "com.innossolutions.gnmanager"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T11:12:07-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "Cam Grid: Cameras on TV"
+},
+"im:artist": {
+"label": "Nicola Erbacci",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/nicola-erbacci/id1893862108"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6824007399",
+"im:bundleId": "com.erbacci.camgrid"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T11:11:30-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6002",
+"term": "Utilities",
+"scheme": "https://apps.apple.com/us/genre/ios-utilities/id6002?uo=2",
+"label": "Utilities"
+}
+}
+},
+{
+"im:name": {
+"label": "Gak Gak"
+},
+"im:artist": {
+"label": "COLNEXT TECH",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/colnext-tech/id1886823145"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6823774175",
+"im:bundleId": "com.colnexttech.gakgak"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T11:09:50-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Granule for ClickHouse"
+},
+"im:artist": {
+"label": "Dalis Polikhranidi",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/dalis-polikhranidi/id6807838622"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6832011031",
+"im:bundleId": "by.digitalglobe.Clickhouse-Viewer"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6026",
+"term": "Developer Tools",
+"scheme": "https://apps.apple.com/us/genre/ios-developer-tools/id6026?uo=2",
+"label": "Developer Tools"
+}
+}
+},
+{
+"im:name": {
+"label": "GeoVerse Atlas"
+},
+"im:artist": {
+"label": "Ahmad AlAwadhi",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/ahmad-alawadhi/id6830790733"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831679225",
+"im:bundleId": "com.mapoftruth.geoverse"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T11:04:07-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "Yesterday - Dove andiamo?"
+},
+"im:artist": {
+"label": "Lumanex Srl",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/lumanex-srl/id6831333773"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831660365",
+"im:bundleId": "dev.lumanex.yesterday"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6012",
+"term": "Lifestyle",
+"scheme": "https://apps.apple.com/us/genre/ios-lifestyle/id6012?uo=2",
+"label": "Lifestyle"
+}
+}
+},
+{
+"im:name": {
+"label": "Acta To-Do"
+},
+"im:artist": {
+"label": "Naman Durve",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/naman-durve/id6823959867"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6823959865",
+"im:bundleId": "Naman-Durve.Acta"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:58:22-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "Bengala Gym"
+},
+"im:artist": {
+"label": "Fitmewise S.L",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/fitmewise-s-l/id1531618179"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6830914541",
+"im:bundleId": "com.fitmewise.bengalagym"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:50:17-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6013",
+"term": "Health & Fitness",
+"scheme": "https://apps.apple.com/us/genre/ios-health-fitness/id6013?uo=2",
+"label": "Health & Fitness"
+}
+}
+},
+{
+"im:name": {
+"label": "Unlatched"
+},
+"im:artist": {
+"label": "Yury Kovenskiy",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/yury-kovenskiy/id1866840932"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6823972912",
+"im:bundleId": "com.ykovenskiy.unlatch"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "SeenDis: Watchlist & Film Quiz"
+},
+"im:artist": {
+"label": "Slam Dunk Digital Limited",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/slam-dunk-digital-limited/id6831389820"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831389638",
+"im:bundleId": "co.seendis.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:24:37-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6016",
+"term": "Entertainment",
+"scheme": "https://apps.apple.com/us/genre/ios-entertainment/id6016?uo=2",
+"label": "Entertainment"
+}
+}
+},
+{
+"im:name": {
+"label": "GravityCrush"
+},
+"im:artist": {
+"label": "Niels Johan Adriaan Weggeman",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/niels-johan-adriaan-weggeman/id1728867000"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6821312215",
+"im:bundleId": "design.wayman.gravitycrush"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:23:43-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "مُتَنَافِسُون"
+},
+"im:artist": {
+"label": "Hamza Alamry",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/hamza-alamry/id6831339055"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831339053",
+"im:bundleId": "com.mutanafisoon.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:23:14-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "ORBIT 1969"
+},
+"im:artist": {
+"label": "Lithium ehf",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/lithium-ehf/id1583999127"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6830858882",
+"im:bundleId": "com.lithium.orbit"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:22:53-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Stop Scrolling: Morning Focus"
+},
+"im:artist": {
+"label": "Vasile Catana",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/vasile-catana/id1895284646"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6827953134",
+"im:bundleId": "app.stopscrolling.morning"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "Slidante: Music Sliding Puzzle"
+},
+"im:artist": {
+"label": "Self-Made Millionaire Academy, Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/self-made-millionaire-academy-inc/id1003794388"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831307385",
+"im:bundleId": "com.mondo.Slidante"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:21:27-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Caddy Ledger"
+},
+"im:artist": {
+"label": "Alex M",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/alex-m/id1883533438"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6824237413",
+"im:bundleId": "com.gridwhistle.caddyledger"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:21:24-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6000",
+"term": "Business",
+"scheme": "https://apps.apple.com/us/genre/ios-business/id6000?uo=2",
+"label": "Business"
+}
+}
+},
+{
+"im:name": {
+"label": "Aksvest: Investment Journal"
+},
+"im:artist": {
+"label": "Lukasz Laska",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/lukasz-laska/id6777516860"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6792468190",
+"im:bundleId": "pl.aksalsoftware.aksvest"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6015",
+"term": "Finance",
+"scheme": "https://apps.apple.com/us/genre/ios-finance/id6015?uo=2",
+"label": "Finance"
+}
+}
+},
+{
+"im:name": {
+"label": "FLPZ"
+},
+"im:artist": {
+"label": "Kiro Laban",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/kiro-laban/id6797226746"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6811039089",
+"im:bundleId": "com.kirolaban.fliptracker"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:19:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6007",
+"term": "Productivity",
+"scheme": "https://apps.apple.com/us/genre/ios-productivity/id6007?uo=2",
+"label": "Productivity"
+}
+}
+},
+{
+"im:name": {
+"label": "Time Legion"
+},
+"im:artist": {
+"label": "Palmanac Limited",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/palmanac-limited/id325658040"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6830890917",
+"im:bundleId": "com.richardwylie.ironroad"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:18:23-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Rower Rhythm: Stroke Rate"
+},
+"im:artist": {
+"label": "Ioan-Cristian Vezure",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/ioan-cristian-vezure/id1896782546"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831818630",
+"im:bundleId": "com.vezure.rowerrhythm"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:17:52-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6013",
+"term": "Health & Fitness",
+"scheme": "https://apps.apple.com/us/genre/ios-health-fitness/id6013?uo=2",
+"label": "Health & Fitness"
+}
+}
+},
+{
+"im:name": {
+"label": "IN COLOR: Магазин для авто"
+},
+"im:artist": {
+"label": "LLC ORSO",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/llc-orso/id6830166334"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6830166272",
+"im:bundleId": "com.incolor.carshoppingapp"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:17:20-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6024",
+"term": "Shopping",
+"scheme": "https://apps.apple.com/us/genre/ios-shopping/id6024?uo=2",
+"label": "Shopping"
+}
+}
+},
+{
+"im:name": {
+"label": "غيث الروح: قرآن وأذان وأذكار"
+},
+"im:artist": {
+"label": "Ahmed Ataalla",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/ahmed-ataalla/id6831892922"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831892920",
+"im:bundleId": "com.ghaithalrouh.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6006",
+"term": "Reference",
+"scheme": "https://apps.apple.com/us/genre/ios-reference/id6006?uo=2",
+"label": "Reference"
+}
+}
+},
+{
+"im:name": {
+"label": "Sunstreak: Sunscreen Tracker"
+},
+"im:artist": {
+"label": "Natalina Corrinne Vaccaro",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/natalina-corrinne-vaccaro/id6818816585"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6818816493",
+"im:bundleId": "com.ncvaccaro.sunstreak"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:16:08-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6013",
+"term": "Health & Fitness",
+"scheme": "https://apps.apple.com/us/genre/ios-health-fitness/id6013?uo=2",
+"label": "Health & Fitness"
+}
+}
+},
+{
+"im:name": {
+"label": "DinnerWinner"
+},
+"im:artist": {
+"label": "Aakash Mally",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/aakash-mally/id6830311296"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6830311294",
+"im:bundleId": "com.mally.dinnerwinner"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:16:07-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6023",
+"term": "Food & Drink",
+"scheme": "https://apps.apple.com/us/genre/ios-food-drink/id6023?uo=2",
+"label": "Food & Drink"
+}
+}
+},
+{
+"im:name": {
+"label": "InkNote - Handwritten Notes"
+},
+"im:artist": {
+"label": "YUKI TANAIKE",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/yuki-tanaike/id478558546"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6816182185",
+"im:bundleId": "jp.tanaike.inknote"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:14:36-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "The Deep Cut"
+},
+"im:artist": {
+"label": "David Surls",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/david-surls/id6809031611"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6809031608",
+"im:bundleId": "com.thedeepcut.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:14:36-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6011",
+"term": "Music",
+"scheme": "https://apps.apple.com/us/genre/ios-music/id6011?uo=2",
+"label": "Music"
+}
+}
+},
+{
+"im:name": {
+"label": "Mad Guess: Mystery Puzzles"
+},
+"im:artist": {
+"label": "Aditya Rai",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/aditya-rai/id1895522309"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6831251911",
+"im:bundleId": "app.playkraft.madguess"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:14:20-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "AnNoor: Adhan Prayer Quran"
+},
+"im:artist": {
+"label": "RentYard Inc",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/rentyard-inc/id1821462570"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6819280456",
+"im:bundleId": "com.annoor.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6012",
+"term": "Lifestyle",
+"scheme": "https://apps.apple.com/us/genre/ios-lifestyle/id6012?uo=2",
+"label": "Lifestyle"
+}
+}
+},
+{
+"im:name": {
+"label": "Chào Bà"
+},
+"im:artist": {
+"label": "BRANDON LEONARD BOWEN",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/brandon-leonard-bowen/id6821116584"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6825685211",
+"im:bundleId": "com.hivecreative.chaoba"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:08:35-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "JomIqra"
+},
+"im:artist": {
+"label": "JomAlphaCoders",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/jomalphacoders/id1495211284"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6822034868",
+"im:bundleId": "com.jomalphacoders.jomiqra"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6017",
+"term": "Education",
+"scheme": "https://apps.apple.com/us/genre/ios-education/id6017?uo=2",
+"label": "Education"
+}
+}
+},
+{
+"im:name": {
+"label": "Volum: Gym Progress Tracker"
+},
+"im:artist": {
+"label": "Lavio Ribeiro Fidelis Neto",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/lavio-ribeiro-fidelis-neto/id1881774862"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6759938940",
+"im:bundleId": "com.volum.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6013",
+"term": "Health & Fitness",
+"scheme": "https://apps.apple.com/us/genre/ios-health-fitness/id6013?uo=2",
+"label": "Health & Fitness"
+}
+}
+},
+{
+"im:name": {
+"label": "Ticketem Entry"
+},
+"im:artist": {
+"label": "Smart Direkt Hungária Kft.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/smart-direkt-hung%C3%A1ria-kft/id1750907300"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6830589707",
+"im:bundleId": "hu.ticketem.entry"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:06:42-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6000",
+"term": "Business",
+"scheme": "https://apps.apple.com/us/genre/ios-business/id6000?uo=2",
+"label": "Business"
+}
+}
+},
+{
+"im:name": {
+"label": "Oowee"
+},
+"im:artist": {
+"label": "Oowee App LLC",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/oowee-app-llc/id6787220039"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6787220037",
+"im:bundleId": "com.oowee.app"
+}
+},
+"im:releaseDate": {
+"label": "2026-11-09T10:06:40-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6004",
+"term": "Sports",
+"scheme": "https://apps.apple.com/us/genre/ios-sports/id6004?uo=2",
+"label": "Sports"
+}
+}
+}
+]
+}
+}

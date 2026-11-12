@@ -1,0 +1,28 @@
+# Apple app id -> Google Play package for the radar (null: no Play counterpart known).
+# The 12 Nov 2026 experiment tried bundleId -> Play mapping only for four new games
+# (all four matched); the other young charted games below were not requested then, so
+# they are marked null here and the replay never asks for pages that were not recorded.
+apple_to_play:
+  "6740617332": null   # com.azragames.ungodly
+  "6742809194": null   # com.farlightgames.warline.ios.global
+  "6752849675": null   # com.supermarkettycoon.idle
+  "6759788962": null   # com.s01.global
+  "6772922295": null   # com.wanda.transformers.ios.am
+  "6780751871": null   # com.crunchyroll.gv.korilakkumatowerdefense
+  "6783815362": null   # com.agavegames.wordtiles
+  "6790067839": null   # com.winduprobotgames.havewords
+  "6793924927": null   # com.nebula.rotaterings.ios
+  "6796547048": null   # com.tangle.six.relax
+  "6797530374": null   # bus.sand.fall.jam.loop.traffic.flow.ios
+  "6797929772": null   # com.vaultystudios.alldubs
+  "6802383216": null   # com.loop.packedloop
+  "6812384218": null   # com.rokogame.pigeon
+  "6812787190": null   # com.catchAndShootGame.casg2059
+  "6814703061": null   # com.warlord3k
+  "6816267506": null   # com.InsanityGroup.ProjetoGrau2
+  "6818206472": null   # com.songorulme.detective
+  "6823962060": null   # com.puregolftour.shoto
+  "6830465812": null   # com.whatitis.doubletake
+  "6830843219": null   # com.hamambocegidov
+  "6831095082": null   # com.kapistudyo.hangikapi
+  "6832264590": null   # com.whatitis.mayhem

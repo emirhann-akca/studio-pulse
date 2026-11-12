@@ -1,0 +1,50 @@
+{
+ "appId": "com.slg.policewar",
+ "title": "Police Chief",
+ "description": "The world is shrouded in crime. Cities teem with gangs, smuggling rings, and assassin syndicates — citizens live in fear. As the newly appointed police chief, you must start small and strategically expand a local precinct while safeguarding the city. Grow your reputation step by step: expand office space, establish new departments, streamline paperwork, recruit elite officers, and equip your team with top-tier gear to tackle increasingly complex cases. Transform a modest station into a prestigious law enforcement headquarters!\r\n\r\n1. Design & Build Your Police HQ\r\nBuild an empire of justice from the ground up! Freely arrange facilities such as interrogation rooms, holding cells, and armories to optimize investigations. Every brick you lay brings the city closer to order.\r\n\r\n2. Recruit Officers & Upgrade Gear\r\nAssemble a dream team of elite officers to dismantle criminal schemes. Invest resources in advanced weaponry and vehicles to handle escalating threats.\r\n\r\n3. Investigate Cases Strategically\r\nIntimidation or incentives? Choose interrogation strategies and adapt your approach to each suspect. As your caseload grows, you’ll face off against notorious criminals and deploy SWAT team",
+ "summary": "Can You Manage a Police Station and Become a World-Renowned Police Chief?",
+ "installs": "5,000,000+",
+ "minInstalls": 5000000,
+ "realInstalls": 5607378,
+ "score": 4.7491527,
+ "ratings": 210776,
+ "offersIAP": true,
+ "inAppProductPrice": "$0.99 - $99.99 per item",
+ "developer": "VoyagerOne IE",
+ "developerEmail": "contact@example.invalid",
+ "genre": "Strategy",
+ "genreId": "GAME_STRATEGY",
+ "categories": [
+  {
+   "name": "Simulation",
+   "id": "GAME_SIMULATION"
+  },
+  {
+   "name": "Management",
+   "id": null
+  },
+  {
+   "name": "Tycoon",
+   "id": null
+  },
+  {
+   "name": "Single player",
+   "id": null
+  },
+  {
+   "name": "Stylized",
+   "id": null
+  },
+  {
+   "name": "Police",
+   "id": null
+  },
+  {
+   "name": "Light-hearted",
+   "id": null
+  }
+ ],
+ "containsAds": false,
+ "released": "May 6, 2026",
+ "version": "0.1.158"
+}

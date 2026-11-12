@@ -1,0 +1,72 @@
+# Market radar taxonomy (research report 3.4).
+# Mechanics map to GameRefinery's public Casual > Puzzle subgenres (docs.gamerefinery.com,
+# "Puzzle", page dated 30 Sep 2024) plus the niche subgenres GameRefinery does not split out
+# (sort, screw, jam, block; Naavik x Sensor Tower, 22 Feb 2026), and to creative-forge's
+# `mechanic_shown` vocabulary (color-sort, screw-pin and jam were added there for the radar).
+#
+# keywords: lower-case phrases for the deterministic keyword tagger (whole-word match in the
+# title, Play tags and description). The quote of a keyword claim is the matched text itself.
+version: 1
+mechanics:
+  match-3:          {gamerefinery: Match3, forge: match-3, keywords: [match 3, match-3, match three, swap and match, match3]}
+  tile-match:       {gamerefinery: Other puzzle, forge: tile-match, keywords: [tile match, triple match, match 3 tiles, triple tile, tile puzzle, mahjong match]}
+  goods-sort:       {gamerefinery: Other puzzle, forge: goods-sort, keywords: [goods sort, sort goods, goods sorting, sorting goods, shelf sort, sort the goods, item sort]}
+  color-sort:       {gamerefinery: Other puzzle, forge: color-sort, keywords: [color sort, colour sort, ball sort, water sort, liquid sort, sort the colors, sort the colours]}
+  hexa-sort:        {gamerefinery: Other puzzle, forge: other, keywords: [hexa sort, hexa stack, stack sort, hexagon sort]}
+  screw-pin:        {gamerefinery: Action Puzzle, forge: screw-pin, keywords: [screw, screws, unscrew, bolts, nuts and bolts, pin puzzle, pull the pin]}
+  jam:              {gamerefinery: Other puzzle, forge: jam, keywords: [bus jam, car jam, parking jam, traffic jam, color block jam, block jam, seat jam, jam puzzle]}
+  block-puzzle:     {gamerefinery: Other puzzle, forge: block-puzzle, keywords: [block puzzle, block blast, blocks puzzle, place the blocks, wood block]}
+  merge:            {gamerefinery: Merge, forge: merge, keywords: [merge, merging]}
+  bubble-shooter:   {gamerefinery: Bubble Shooter, forge: other, keywords: [bubble shooter, bubble pop, pop bubbles]}
+  word:             {gamerefinery: Word Games, forge: word, keywords: [word game, word puzzle, crossword, word search, spell words]}
+  hidden-object:    {gamerefinery: Hidden Objects, forge: hidden-object, keywords: [hidden object, find the differences, spot the difference, find hidden]}
+  solitaire-mahjong: {gamerefinery: Solitaire/Mahjong, forge: other, keywords: [solitaire, mahjong, klondike, tripeaks]}
+  number-logic:     {gamerefinery: Other puzzle, forge: other, keywords: [sudoku, nonogram, number puzzle, logic puzzle]}
+  physics-draw:     {gamerefinery: Action Puzzle, forge: physics, keywords: [draw a line, draw to, physics puzzle, physics-based]}
+  idle-tycoon:      {gamerefinery: Simulation, forge: idle, keywords: [idle, tycoon, management, manage your]}
+  runner:           {gamerefinery: Arcade, forge: runner, keywords: [endless runner, runner, run and jump]}
+  cooking-sim:      {gamerefinery: Simulation, forge: other, keywords: [cooking game, cooking simulation, restaurant game, serve customers, cooking simulator]}
+twists:
+  timer:            {keywords: [timer, time limit, against the clock, beat the clock]}
+  move-limit:       {keywords: [limited moves, move limit, moves left]}
+  order-fulfil:     {keywords: [orders, customer orders, serve customers, hungry customers, fulfil orders, fulfill orders]}
+  obstacles:        {keywords: [obstacles, blockers, ice, chains, locked]}
+  boosters:         {keywords: [boosters, power-ups, power ups, booster]}
+  lives:            {keywords: [lives, hearts]}
+  pvp-race:         {keywords: [pvp, race against, compete against, multiplayer, tournament]}
+meta_layers:
+  decorate:         {keywords: [decorate, renovate, design your, build your dream]}
+  story:            {keywords: [story, storyline, chapters]}
+  collection:       {keywords: [collect, collection, album]}
+  events-leagues:   {keywords: [events, leagues, league, leaderboard, season]}
+  battle-pass:      {keywords: [battle pass, season pass]}
+themes:
+  food-cooking:     {keywords: [food, cooking, kitchen, restaurant, recipe, chef, burger, cafe]}
+  grocery-market:   {keywords: [grocery, market, supermarket, store shelves, shop]}
+  animals-cats:     {keywords: [cat, cats, kitten, dog, dogs, puppy, pets, animals]}
+  home:             {keywords: [home, house, mansion, room]}
+  fashion:          {keywords: [fashion, outfit, makeover, dress up]}
+  mystery:          {keywords: [mystery, detective, crime, investigate, police]}
+  fantasy:          {keywords: [fantasy, magic, dragon, kingdom, wizard]}
+  vehicles:         {keywords: [car, cars, bus, truck, parking, traffic, vehicle]}
+  sports:           {keywords: [football, soccer, basketball, golf, sports]}
+  horror:           {keywords: [horror, scary, monster, creepy]}
+monetization_features:
+  rewarded-ads:     {keywords: [watch ads, watch an ad, rewarded video, rewarded ads]}
+  remove-ads:       {keywords: [remove ads, ad-free, no ads]}
+  subscription-vip: {keywords: [subscription, vip, auto-renew, auto renew]}
+  iap-currency:     {keywords: [in-app purchases, in-app purchase, coins, gems]}
+  battle-pass:      {keywords: [battle pass, season pass]}
+# creative-forge hook_type suggestions per mechanic (inference, not data).
+hooks:
+  goods-sort: [satisfying-clean, before-after, near-miss]
+  color-sort: [satisfying-clean, near-miss, challenge]
+  screw-pin: [near-miss, fail-state, challenge]
+  jam: [near-miss, challenge, fail-state]
+  block-puzzle: [near-miss, challenge, satisfying-clean]
+  tile-match: [near-miss, before-after, challenge]
+  match-3: [rescue, fail-state, near-miss]
+  merge: [before-after, satisfying-clean, reveal]
+  hidden-object: [reveal, challenge]
+  cooking-sim: [satisfying-clean, before-after, character-reaction]
+  default: [challenge, near-miss]

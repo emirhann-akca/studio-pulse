@@ -290,4 +290,7 @@ def create_app(
             }
         )
 
+    from ..radar.page import register as register_radar
+
+    register_radar(app, cfg, templates, context)
     return app

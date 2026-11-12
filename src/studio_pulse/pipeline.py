@@ -459,6 +459,22 @@ def record_alerts(con: duckdb.DuckDBPyConnection, fired: list[Any], run_id: str)
     con.execute("DELETE FROM meta_alert_events WHERE fired_at < ?", [now - dt.timedelta(days=90)])
 
 
+def _radar(
+    con: duckdb.DuckDBPyConnection, cfg: Config, report: IngestReport, log: Any
+) -> list[checks_mod.CheckResult]:
+    """The market radar (radar.enabled in the config); a failure counts as a failed source."""
+    from .radar import run as radar_run
+
+    if not radar_run.enabled(cfg):
+        return []
+    try:
+        return radar_run.run_in_pipeline(con, cfg, log)
+    except Exception as exc:
+        report.errors["radar"] = f"{type(exc).__name__}: {exc}"
+        log(f"    ERROR radar: {report.errors['radar']}")
+        return []
+
+
 def run_all(
     cfg: Config,
     *,
@@ -490,12 +506,15 @@ def run_all(
             report = ingest(con, cfg, log=log, bq_client=bq_client)
             log("Running SQL models ...")
             runner.run_models(con, verbose=verbose_models)
+            radar_checks = _radar(con, cfg, report, log)
             as_of = cfg.as_of or dt.date.today()
             check_results: list[checks_mod.CheckResult] = []
             if checks_path and checks_path.exists():
                 check_results = checks_mod.run_checks(
                     con, checks_mod.load_checks(checks_path), cfg, as_of
                 )
+            check_results += radar_checks
+            if (checks_path and checks_path.exists()) or check_results:
                 run_id = checks_mod.store_results(con, check_results)
                 log(checks_mod.format_console(check_results))
             else:

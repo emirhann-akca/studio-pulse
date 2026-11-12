@@ -1,0 +1,26 @@
+{
+ "appId": "com.abi.foodpop",
+ "title": "Foodie Pop!",
+ "description": "Welcome to Foodie Pop! - The perfect blend of cozy cooking simulation and satisfying match-and-serve puzzle gameplay. Many hungry customers are lining up to enjoy the delicious food you make. \r\nYour mission? Simply choose the right ingredients - the rest of the cooking happens automatically!\r\n\r\nHOW TO PLAY: \r\n👀 Check what your cute customers order\r\n🧩 Choose the right ingredients from the puzzle grid\r\n⚡ Watch them cook automatically in ovens, blenders, grills & more\r\n🍩 Serve the finished dish and keep your customers smiling!\r\nMore and more customers are piling up! Serve them fast and in order to keep everyone satisfied. Don't let them get angry and leave!\r\n\r\nWHY YOU'LL LOVE IT:\r\n🐶 Meet a whole cast of lovable pet characters\r\n💗Relaxing ASMR-style cooking sounds make every order satisfying to watch\r\n🍰 Cook a huge variety of dishes — donuts, cupcakes, burgers, fries, drinks, and more\r\n🧩 Addictive puzzle mechanics that combine matching with time management\r\n🏭 Upgrade your kitchen and unlock new ingredients, serve orders faster\r\n📅 Progress through days with increasing challenges that keep gameplay fresh\r\n⏩ 2x speed mode so you can play at your own pace\r\n🔓 Unlock new ingredients, recipes,",
+ "summary": "Satisfy your hungry customers by picking the right ingredients for their orders!",
+ "installs": "500,000+",
+ "minInstalls": 500000,
+ "realInstalls": 544401,
+ "score": 3.6635513,
+ "ratings": 2481,
+ "offersIAP": true,
+ "inAppProductPrice": "$1.99 - $99.99 per item",
+ "developer": "ABI GAMES PTE. LTD.",
+ "developerEmail": "contact@example.invalid",
+ "genre": "Puzzle",
+ "genreId": "GAME_PUZZLE",
+ "categories": [
+  {
+   "name": "Puzzle",
+   "id": "GAME_PUZZLE"
+  }
+ ],
+ "containsAds": true,
+ "released": "Oct 10, 2026",
+ "version": "1.16"
+}

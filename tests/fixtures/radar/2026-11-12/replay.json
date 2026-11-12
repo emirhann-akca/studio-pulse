@@ -1,0 +1,102 @@
+{
+ "requests": [
+  {
+   "path": "/us/rss/topfreeapplications/limit=100/genre=6014/json",
+   "file": "apple/rss_us_topfree_6014.json"
+  },
+  {
+   "path": "/tr/rss/topfreeapplications/limit=100/genre=6014/json",
+   "file": "apple/rss_tr_topfree_6014.json"
+  },
+  {
+   "path": "/us/rss/topfreeapplications/limit=50/genre=7012/json",
+   "file": "apple/rss_us_topfree_7012.json"
+  },
+  {
+   "path": "/us/rss/topgrossingapplications/limit=100/genre=6014/json",
+   "file": "apple/rss_us_topgrossing_6014.json"
+  },
+  {
+   "path": "/us/rss/newfreeapplications/limit=25/genre=6014/json",
+   "file": "apple/rss_us_newfree_6014.json"
+  },
+  {
+   "path": "/lookup",
+   "query": {
+    "country": "us"
+   },
+   "pool": "apple/lookup_pool_us.json"
+  },
+  {
+   "path": "/lookup",
+   "query": {
+    "country": "tr"
+   },
+   "pool": "apple/lookup_pool_tr.json"
+  },
+  {
+   "path": "/lookup",
+   "query": {
+    "id": "1743349083",
+    "entity": "software",
+    "country": "us",
+    "limit": "200"
+   },
+   "file": "apple/lookup_publisher_abi_us.json"
+  },
+  {
+   "path": "/robots.txt",
+   "file": "robots/play_robots.txt",
+   "content_type": "text/plain"
+  },
+  {
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.abi.foodpop"
+   },
+   "play_fields": "play/com.abi.foodpop.json"
+  },
+  {
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.scram.app"
+   },
+   "play_fields": "play/com.scram.app.json"
+  },
+  {
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.slg.policewar"
+   },
+   "play_fields": "play/com.slg.policewar.json"
+  },
+  {
+   "path": "/store/apps/details",
+   "query": {
+    "id": "io.heseri.rock"
+   },
+   "play_fields": "play/io.heseri.rock.json"
+  },
+  {
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.dreamgames.royalmatch"
+   },
+   "play_fields": "play/com.dreamgames.royalmatch.json"
+  },
+  {
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.block.juggle"
+   },
+   "play_fields": "play/com.block.juggle.json"
+  },
+  {
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.ig.goods.jam"
+   },
+   "play_fields": "play/com.ig.goods.jam.json"
+  }
+ ]
+}
