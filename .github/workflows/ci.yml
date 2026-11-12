@@ -351,11 +351,21 @@ jobs:
         with:
           python-version: "3.13"
       - run: flutter pub get
-      - run: python ../../.github/scripts/annotate.py "dart analyze (${{ matrix.os }})" dart analyze
-      - run: python ../../.github/scripts/annotate.py "flutter test (${{ matrix.os }})" flutter test -r expanded
+      # The dry run checks the package as committed. If the Flutter tool rewrote a
+      # tracked file (seen once: analysis_options.yaml on a newer stable than 3.38.7),
+      # the change is published as a warning with its diff, then reverted.
       - name: pub publish dry run
         if: runner.os == 'Linux'
-        run: python ../../.github/scripts/annotate.py "flutter pub publish --dry-run" flutter pub publish --dry-run
+        shell: bash
+        run: |
+          if [ -n "$(git status --porcelain -- .)" ]; then
+            diff="$(git --no-pager diff -- . | head -40 | python -c 'import sys; print(sys.stdin.read().replace("%", "%25").replace(chr(13), "").replace(chr(10), "%0A"))')"
+            echo "::warning title=flutter pub get changed tracked files (reverted for the dry run)::$diff"
+            git checkout -- .
+          fi
+          python ../../.github/scripts/annotate.py "flutter pub publish --dry-run" flutter pub publish --dry-run
+      - run: python ../../.github/scripts/annotate.py "dart analyze (${{ matrix.os }})" dart analyze
+      - run: python ../../.github/scripts/annotate.py "flutter test (${{ matrix.os }})" flutter test -r expanded
       - name: Dart SDK session against a real collector
         if: runner.os == 'Linux'
         shell: bash

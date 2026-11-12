@@ -58,6 +58,7 @@ namespace Studio.Pulse.Tests
                 rig.Transport.Responder = s => null;
                 PulseCore a = rig.Start();
                 Play(a, 1);
+                a.Close(); // the process dies; the OS closes its files
                 string seg = rig.QueueFiles().First(f => f.EndsWith(".seg"));
                 File.AppendAllText(seg, "{\"id\":\"0190f0e2-7c1a-7cc3-9b1e-0000000"); // a write cut by power loss
                 rig.Transport.Responder = FakeTransport.Ok;

@@ -214,9 +214,15 @@ namespace Studio.Pulse.Tests
             return Core;
         }
 
-        /// <summary>Simulates a process kill: the old core is abandoned (no quit, no close).</summary>
+        /// <summary>
+        /// Simulates a process kill: the old core is abandoned (no quit, no flush, no answer
+        /// handled). Only its open queue file is closed, as the OS does for a dead process;
+        /// Windows would otherwise refuse to let the next launch read a file another handle
+        /// is writing.
+        /// </summary>
         public PulseCore Restart()
         {
+            try { Core?.Close(); } catch (Exception) { }
             return Start();
         }
 
