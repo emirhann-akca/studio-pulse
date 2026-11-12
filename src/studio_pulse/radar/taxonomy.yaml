@@ -23,7 +23,8 @@ mechanics:
   solitaire-mahjong: {gamerefinery: Solitaire/Mahjong, forge: other, keywords: [solitaire, mahjong, klondike, tripeaks]}
   number-logic:     {gamerefinery: Other puzzle, forge: other, keywords: [sudoku, nonogram, number puzzle, logic puzzle]}
   physics-draw:     {gamerefinery: Action Puzzle, forge: physics, keywords: [draw a line, draw to, physics puzzle, physics-based]}
-  idle-tycoon:      {gamerefinery: Simulation, forge: idle, keywords: [idle, tycoon, management, manage your]}
+  # not bare "idle" / "management": a driving game's engine idle or an idle RPG is not a tycoon
+  idle-tycoon:      {gamerefinery: Simulation, forge: idle, keywords: [tycoon, idle tycoon, idle game, idle clicker, idle empire, idle factory, idle miner, idle simulator, business simulator, management game, manage your business, manage your own]}
   runner:           {gamerefinery: Arcade, forge: runner, keywords: [endless runner, runner, run and jump]}
   cooking-sim:      {gamerefinery: Simulation, forge: other, keywords: [cooking game, cooking simulation, restaurant game, serve customers, cooking simulator]}
 twists:

@@ -712,6 +712,23 @@ def test_quote_and_number_rules():
     assert {"twist", "theme"} <= {c["dimension"] for c in claims}
 
 
+def test_idle_tycoon_needs_more_than_the_word_idle():
+    """12 Nov 2026 live run: a driving game ("engine idle") and an idle RPG were tagged tycoon."""
+    tax = load()
+
+    def primary(name: str, desc: str) -> str | None:
+        claims = keyword_claims({"apple.name": name, "apple.description": desc}, tax)
+        return next((c["value"] for c in claims if c["dimension"] == "mechanic_primary"), None)
+
+    assert (
+        primary("Manual Car Driving: Clutch", "Feel the engine idle, shift gears.") != "idle-tycoon"
+    )
+    assert primary("Eternal War", "Idle RPG battles. Management of your squad.") != "idle-tycoon"
+    assert (
+        primary("Burger Empire", "Build a restaurant empire in this idle tycoon.") == "idle-tycoon"
+    )
+
+
 FOODIE = "6811006356"
 
 
@@ -1025,6 +1042,8 @@ def test_radar_page_in_pulse_serve(replay_run, tmp_path):
     assert "Pazar Radarı" in page and "Foodie Pop!" in page and "YÜKSELİYOR" in page
     assert "https://apps.apple.com/us/app/id6811006356" in page
     assert page.count("(GÖZLEM)") >= 3 and "(MAĞAZA VERİSİ)" in page
+    # a mechanic says where it came from: an LLM claim with a verified quote or a keyword guess
+    assert "alıntıyla doğrulandı" in page or "anahtar kelime tahmini" in page
     en = client.get("/radar?lang=en").text
     assert "Market Radar" in en and "BREAKOUT" in en and "(OBSERVED)" in en
     empty = config_from_dict(
