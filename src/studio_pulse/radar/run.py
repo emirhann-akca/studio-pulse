@@ -134,6 +134,7 @@ def run_radar(
         _charts(con, f, s, day, res, log)
         _lookups(con, f, s, day, res, log)
         _publishers(con, f, s, day, res, log)
+        _settle_ratings(con, f, s, day, res, log)
         res.counts["models_1"] = run_models(con)
         if s.play_enabled:
             _play(con, f, s, day, res, log)
@@ -330,10 +331,136 @@ def _lookups(con, f: Fetcher, s: RadarSettings, day, res: RadarResult, log) -> N
             [day, cc],
             rows,
         )
+        _record_reads(con, day, f.run_id, cc, "batch", found)
         total += len(rows)
         if missing:
             res.notes.append(f"lookup {cc}: {len(missing)} charted app(s) not returned")
     res.counts["lookup_rows"] = total
+
+
+def _record_reads(con, day, run_id: str, cc: str, source: str, results: list[dict]) -> None:
+    now = store.utcnow()
+    store.insert(
+        con,
+        "raw_mr_lookup_read",
+        [
+            {
+                "snapshot_date": day,
+                "run_id": run_id,
+                "ts": now,
+                "country": cc,
+                "app_id": str(x["trackId"]),
+                "source": source,
+                "rating_count": int(x["userRatingCount"])
+                if x.get("userRatingCount") is not None
+                else None,
+            }
+            for x in results
+        ],
+    )
+
+
+def _suspects(con, day, cc: str) -> dict[str, str]:
+    """Apps whose rating count today is not trustworthy yet, with the reason: zero or missing,
+    lower than the previous snapshot, or different between today's reads."""
+    rows = con.execute(
+        """
+        WITH reads AS (
+          SELECT app_id, MAX(rating_count) AS hi, MIN(rating_count) AS lo,
+                 COUNT(*) FILTER (WHERE rating_count IS NULL) AS nulls, COUNT(*) AS n
+          FROM raw_mr_lookup_read WHERE snapshot_date = ? AND country = ? GROUP BY 1
+        ), prev AS (
+          SELECT app_id, rating_count AS prev FROM raw_mr_app
+          WHERE store = 'apple' AND source = 'lookup' AND country = ? AND snapshot_date < ?
+            AND rating_count IS NOT NULL
+          QUALIFY ROW_NUMBER() OVER (PARTITION BY app_id ORDER BY snapshot_date DESC) = 1
+        )
+        SELECT r.app_id,
+          CASE WHEN r.hi IS NULL OR r.hi = 0 THEN 'zero_or_missing'
+               WHEN p.prev IS NOT NULL AND r.hi < p.prev THEN 'below_previous'
+               WHEN r.hi <> r.lo OR (r.nulls > 0 AND r.nulls < r.n) THEN 'reads_differ'
+          END AS why
+        FROM reads AS r LEFT JOIN prev AS p USING (app_id)
+        """,
+        [day, cc, cc, day],
+    ).fetchall()
+    return {a: w for a, w in rows if w}
+
+
+def _settle_ratings(
+    con, f: Fetcher, s: RadarSettings, day, res: RadarResult, log, rechecks: int = 2
+) -> None:
+    """Re-query suspicious Lookup rating counts (up to `rechecks` times, through the polite
+    fetcher) and keep each app's maximum read of the day: counts only grow within a version,
+    and a transient 0 must not reach the velocity score or the reset flag."""
+    summary: dict[str, dict[str, int]] = {}
+    for cc in s.countries:
+        first = _suspects(con, day, cc)
+        if not first:
+            continue
+        st = summary.setdefault(cc, {"suspects": len(first), "requests": 0, "settled": 0})
+        todo = dict(first)
+        rechecked: set[str] = set()
+        for attempt in range(1, rechecks + 1):
+            if not todo:
+                break
+            before = f.sent
+            try:
+                found, _ = apple.lookup_ids(
+                    f,
+                    sorted(todo),
+                    cc,
+                    batch=s.lookup_batch,
+                    purpose=f"lookup_recheck:{cc}",
+                    cacheable=False,
+                )
+            except (BudgetExhausted, HostStopped) as exc:
+                _stop(exc, res, f"lookup recheck {cc}", log)
+                break
+            except Exception as exc:
+                _stop(exc, res, f"lookup recheck {cc}", log)
+                break
+            st["requests"] += f.sent - before
+            rechecked |= set(todo)
+            _record_reads(con, day, f.run_id, cc, f"recheck{attempt}", found)
+            reads = {
+                a: [
+                    x
+                    for x in con.execute(
+                        "SELECT rating_count FROM raw_mr_lookup_read WHERE snapshot_date = ? "
+                        "AND country = ? AND app_id = ? ORDER BY ts, source",
+                        [day, cc, a],
+                    ).fetchall()
+                ]
+                for a in todo
+            }
+            changed = {a: [r[0] for r in v] for a, v in reads.items() if len({r[0] for r in v}) > 1}
+            if changed:
+                f.annotate_last(
+                    "rating counts differ between reads: "
+                    + json.dumps(changed, separators=(",", ":"))
+                )
+            still = _suspects(con, day, cc)
+            # a disagreement is settled by one more read (the maximum wins); a zero or a drop
+            # gets the second recheck too
+            todo = {a: w for a, w in still.items() if a in todo and w != "reads_differ"}
+        con.execute(
+            """
+            UPDATE raw_mr_app AS a SET rating_count = m.hi
+            FROM (SELECT app_id, MAX(rating_count) AS hi FROM raw_mr_lookup_read
+                  WHERE snapshot_date = ? AND country = ? GROUP BY 1) AS m
+            WHERE a.snapshot_date = ? AND a.store = 'apple' AND a.country = ?
+              AND a.source = 'lookup' AND a.app_id = m.app_id AND m.hi IS NOT NULL
+              AND (a.rating_count IS NULL OR a.rating_count < m.hi)
+            """,
+            [day, cc, day, cc],
+        )
+        final = _suspects(con, day, cc)
+        # settled: re-read, and now either clean or only a disagreement resolved by the maximum
+        st["settled"] = sum(1 for a in rechecked if final.get(a) in (None, "reads_differ"))
+    if summary:
+        res.counts["lookup_recheck"] = summary
+        log(f"    radar: rating rechecks {summary}")
 
 
 def _publishers(con, f: Fetcher, s: RadarSettings, day, res: RadarResult, log) -> None:
@@ -356,6 +483,7 @@ def _publishers(con, f: Fetcher, s: RadarSettings, day, res: RadarResult, log) -
         rows = [apple.app_row(a, day, cc, "publisher") for a in apps]
         for r in rows:
             r["developer_id"] = p["id"]
+        _record_reads(con, day, f.run_id, cc, "publisher", apps)
         store.replace(
             con,
             "raw_mr_app",

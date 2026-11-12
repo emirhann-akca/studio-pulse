@@ -43,7 +43,17 @@ CREATE TABLE IF NOT EXISTS raw_mr_profile (
 
 CREATE TABLE IF NOT EXISTS raw_mr_request (
   run_id VARCHAR, ts TIMESTAMP, snapshot_date DATE, host VARCHAR, path VARCHAR,
-  purpose VARCHAR, status INTEGER, bytes BIGINT, cached BOOLEAN, ms DOUBLE, error VARCHAR
+  purpose VARCHAR, status INTEGER, bytes BIGINT, cached BOOLEAN, ms DOUBLE, error VARCHAR,
+  note VARCHAR
+);
+ALTER TABLE raw_mr_request ADD COLUMN IF NOT EXISTS note VARCHAR;
+
+-- Every Apple rating-count read of a day (batched Lookup, rechecks, publisher catalogue).
+-- Single reads are not reliable (Apple answers from caches of different ages: UnGodly read
+-- 0 then 130 within minutes, Foodie Pop! 1,846 vs 1,760); raw_mr_app keeps the maximum.
+CREATE TABLE IF NOT EXISTS raw_mr_lookup_read (
+  snapshot_date DATE, run_id VARCHAR, ts TIMESTAMP, country VARCHAR, app_id VARCHAR,
+  source VARCHAR, rating_count BIGINT
 );
 
 -- Scoring parameters (key -> number) and settings (key -> text) of the latest run.

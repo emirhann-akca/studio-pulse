@@ -11,6 +11,9 @@ radar-specific entry kinds:
   from recorded google-play-scraper `app()` output (`synth_play_page`). The page carries the
   fields at the positions google-play-scraper 1.2.7 reads, so the real parser runs on it.
 
+- `"sequence": ["a.json", "b.json"]` answers successive matching requests with successive
+  recorded answers (Apple's Lookup gave UnGodly 0 ratings, then 130, minutes apart).
+
 Any request without a recorded answer raises ReplayError: a replay never reaches the network.
 """
 
@@ -85,6 +88,10 @@ def synth_play_page(fields: dict[str, Any]) -> str:
 
 
 class RadarReplayAdapter(ReplayAdapter):
+    def __init__(self, root: str | Path, entries: list[dict[str, Any]] | None = None) -> None:
+        super().__init__(root, entries)
+        self._served: dict[int, int] = {}
+
     def _pool(self, entry: dict[str, Any]) -> list[dict[str, Any]]:
         doc = json.loads((self.root / entry["pool"]).read_text(encoding="utf-8"))
         return list(doc.get("results") or [])
@@ -92,6 +99,21 @@ class RadarReplayAdapter(ReplayAdapter):
     def send(self, request: PreparedRequest, **kwargs: Any) -> Response:
         parts = urlsplit(request.url or "")
         query = dict(parse_qsl(parts.query, keep_blank_values=True))
+        for i, e in enumerate(self.entries):
+            if "sequence" not in e or e["path"] != parts.path:
+                continue
+            if any(query.get(k) != str(v) for k, v in (e.get("query") or {}).items()):
+                continue
+            # recorded answers in the order they came: the nth matching request gets the
+            # nth file, the last one repeats
+            seen = self._served.get(i, 0)
+            self._served[i] = seen + 1
+            doc = json.loads(
+                (self.root / e["sequence"][min(seen, len(e["sequence"]) - 1)]).read_text(
+                    encoding="utf-8"
+                )
+            )
+            return self._respond(request, doc)
         for e in self.entries:
             if "pool" not in e or e["path"] != parts.path:
                 continue
@@ -152,9 +174,9 @@ class RadarReplayAdapter(ReplayAdapter):
 
 
 class RadarReplaySession(ReplaySession):
-    def __init__(self, root: str | Path) -> None:
+    def __init__(self, root: str | Path, entries: list[dict[str, Any]] | None = None) -> None:
         super(ReplaySession, self).__init__()
-        self.adapter = RadarReplayAdapter(root)
+        self.adapter = RadarReplayAdapter(root, entries)
         self.mount("https://", self.adapter)
         self.mount("http://", self.adapter)
 

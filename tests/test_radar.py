@@ -287,6 +287,97 @@ def test_batched_lookup_wins_over_the_publisher_catalogue(replay_run):
     assert res["radar_lookup_disagreement"].severity == "warn"
 
 
+def test_a_transient_zero_rating_count_is_rechecked_and_the_maximum_kept(tmp_path):
+    # Recorded: Apple's US Lookup gave UnGodly 0 ratings, then 130, within the same day.
+    from studio_pulse.radar.replay import RadarReplaySession
+
+    entries = [
+        {
+            "path": "/us/rss/topfreeapplications/limit=100/genre=6014/json",
+            "file": "apple/rss_us_topfree_6014.json",
+        },
+        {
+            "path": "/lookup",
+            "query": {"country": "us"},
+            "sequence": ["apple/lookup_ungodly_us_0.json", "apple/lookup_ungodly_us_130.json"],
+        },
+    ]
+    cfg = config_from_dict(
+        {
+            "apps": [{"id": "x"}],
+            "warehouse": "w.duckdb",
+            "state_dir": "state",
+            "as_of": "2026-11-12",
+            "radar": {
+                "countries": ["us"],
+                "charts": [{"chart": "topfreeapplications", "genre": "6014"}],
+                "play": {"enabled": False},
+                "out_dir": "out",
+            },
+        },
+        base_dir=tmp_path,
+    )
+    res = radar_run.run_radar(
+        cfg,
+        session=RadarReplaySession(FIX, entries),
+        use_llm=False,
+        sleep=lambda s: None,
+        log=lambda m: None,
+    )
+    assert res.counts["lookup_recheck"]["us"] == {"suspects": 1, "requests": 1, "settled": 1}
+    con = warehouse.connect(cfg.warehouse, read_only=True)
+    try:
+        reads = con.execute(
+            "SELECT source, rating_count FROM raw_mr_lookup_read WHERE app_id = "
+            "'6740617332' ORDER BY ts, source"
+        ).fetchall()
+        stored = con.execute(
+            "SELECT rating_count FROM raw_mr_app WHERE app_id = '6740617332' AND source = 'lookup'"
+        ).fetchall()
+        rv = con.execute(
+            "SELECT rating_count, rv, rv_method, rating_reset FROM stg_mr_rating_daily "
+            "WHERE app_id = '6740617332'"
+        ).fetchall()
+        note = con.execute(
+            "SELECT purpose, note FROM raw_mr_request WHERE note IS NOT NULL"
+        ).fetchall()
+        checks = {c.name: c.status for c in radar_run.run_checks(con, DAY)}
+    finally:
+        con.close()
+    assert reads == [("batch", 0), ("recheck1", 130)]
+    assert stored == [(130,)] and rv == [(130, 130.0, "lifetime", False)]
+    assert note == [
+        ("lookup_recheck:us", 'rating counts differ between reads: {"6740617332":[0,130]}')
+    ]
+    assert checks["radar_lookup_disagreement"] == "fail"  # a warning, shown in the digest
+    md = Path(res.files["tr"]).read_text(encoding="utf-8")
+    assert "UnGodly" in md and "Puan sayısı ABD: 130" in md
+
+
+def test_a_one_day_drop_is_not_a_reset_until_it_persists(rcon):
+    con = rcon
+    days = {
+        D - dt.timedelta(days=4): 500,
+        D - dt.timedelta(days=3): 500,
+        D: 0,
+        D + dt.timedelta(days=1): 0,
+    }
+    for d, n in days.items():
+        _chart(con, d, "us", {"Z1": 10})
+        _app(con, d, "us", "Z1", D - dt.timedelta(days=200), n)
+    radar_run.run_models(con)
+    rows = dict(
+        (r[0], r[1:])
+        for r in con.execute(
+            "SELECT snapshot_date, rating_reset, rating_drop_unconfirmed, rv, rv_method "
+            "FROM stg_mr_rating_daily WHERE app_id = 'Z1'"
+        ).fetchall()
+    )
+    assert rows[D] == (False, True, None, "unconfirmed_drop")  # one transient zero: no reset
+    assert rows[D + dt.timedelta(days=1)] == (True, False, None, "reset")  # seen twice: reset
+    assert rows[D - dt.timedelta(days=3)][3] == "lifetime"
+
+
 def test_no_personal_data_is_stored(replay_run):
     _, con = replay_run
     cols = [r[0].lower() for r in con.execute("DESCRIBE raw_mr_app").fetchall()]

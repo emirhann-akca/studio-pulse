@@ -107,6 +107,7 @@ T = {
         "lifetime": "çıkıştan beri ortalama",
         "window": "{d} günlük fark",
         "reset": "puan sıfırlanmış, hız hesaplanmadı",
+        "unconfirmed": "tek günlük düşüş, doğrulanmadı; hız hesaplanmadı",
         "play": "Play",
         "play_text": "{bucket} kovası, {real} kurulum (Play sayfa alanı; belgelenmemiş), Play çıkışı {rel}",
         "play_vel": "≈{v} kurulum/gün ({m})",
@@ -182,6 +183,7 @@ T = {
         "lifetime": "average since release",
         "window": "{d}-day difference",
         "reset": "ratings were reset, no velocity",
+        "unconfirmed": "one-day drop, not confirmed; no velocity",
         "play": "Play",
         "play_text": "{bucket} bucket, {real} installs (Play page field; undocumented), Play release {rel}",
         "play_vel": "≈{v} installs/day ({m})",
@@ -715,6 +717,8 @@ def _render_item(it: dict[str, Any], lang: str, n: int) -> list[str]:
     for r in it["ratings"][:4]:
         if r["reset"]:
             how = t["reset"]
+        elif r["method"] == "unconfirmed_drop":
+            how = t["unconfirmed"]
         elif r["per_day"] is None:
             how = ""
         else:

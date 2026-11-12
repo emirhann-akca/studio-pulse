@@ -1,0 +1,39 @@
+{
+"resultCount": 1,
+"results": [
+{
+"wrapperType": "software",
+"kind": "software",
+"trackId": 6740617332,
+"trackName": "UnGodly",
+"bundleId": "com.azragames.ungodly",
+"sellerName": "Azra Games Inc",
+"artistId": 1677823985,
+"artistName": "Azra Games",
+"releaseDate": "2026-11-11T08:00:00Z",
+"currentVersionReleaseDate": "2026-11-11T08:00:00Z",
+"version": "1.0",
+"primaryGenreName": "Games",
+"primaryGenreId": 6014,
+"genres": [
+"Games",
+"Entertainment",
+"Action",
+"Roleplaying"
+],
+"genreIds": [
+"6014",
+"6016",
+"7001",
+"7014"
+],
+"userRatingCount": 0,
+"averageUserRating": 0,
+"userRatingCountForCurrentVersion": 0,
+"price": 0.0,
+"currency": "USD",
+"trackViewUrl": "https://apps.apple.com/us/app/ungodly/id6740617332",
+"description": "The world is broken and The Devouring consumes what remains. Only the Primals, heroes forged through trauma and bound by elemental power, can push back the Void.\n\nUnGodly is a dark fantasy action RPG built around real-time combat, meaningful daily progression, and character bonds that shape both power and story.\n\nFEATURES\n\nBrutal Real-Time Combat\nNo idle autoplay. Dodge, swap, and strike with precision. Chain ultimates and elemental combos in fast, heavy battles where every decision matters.\n\nCollect and Evolve Primals\nRecruit powerful heroes, each with unique combat roles, elemental abilities, and personal histories. Upgrade skills, awaken new talents, and refine gear to build the team that fits your strategy.\n\nBuild and Customize Your Team\nExperiment with elemental synergies, role combinations, and ability builds to counter different enemies and boss encounters. Depth rewards mastery.\n\nA Mature Dark Fantasy Narrative\nExplore Dunmiir, a world scarred by greed, cults, and collapse. Experience cinematic story missions and character arcs shaped by loss, loyalty, and ambition.\n\nA Daily Dark Adventure\nShort, meaningful sessions built around quests, bosses, and evolving corruption event"
+}
+]
+}

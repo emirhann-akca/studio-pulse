@@ -130,14 +130,18 @@ class Fetcher:
         error: str | None = None,
     ) -> None:
         parts = urlsplit(url)
+        ts = dt.datetime.now(dt.UTC).replace(tzinfo=None, microsecond=0)
+        path = parts.path + (f"?{parts.query}" if parts.query else "")
+        self._last_row = (ts, path)
         self.con.execute(
-            "INSERT INTO raw_mr_request VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO raw_mr_request (run_id, ts, snapshot_date, host, path, purpose, status, "
+            "bytes, cached, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 self.run_id,
-                dt.datetime.now(dt.UTC).replace(tzinfo=None, microsecond=0),
+                ts,
                 self.day,
                 parts.hostname,
-                parts.path + (f"?{parts.query}" if parts.query else ""),
+                path,
                 purpose,
                 status,
                 size,
@@ -145,6 +149,16 @@ class Fetcher:
                 round(ms, 1),
                 error,
             ],
+        )
+
+    def annotate_last(self, note: str) -> None:
+        """Attach a note (for example a disagreement between reads) to the last ledger row."""
+        if getattr(self, "_last_row", None) is None:
+            return
+        ts, path = self._last_row
+        self.con.execute(
+            "UPDATE raw_mr_request SET note = ? WHERE run_id = ? AND ts = ? AND path = ?",
+            [note[:2000], self.run_id, ts, path],
         )
 
     def _cache_path(self, url: str) -> Path | None:

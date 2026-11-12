@@ -14,6 +14,7 @@ experiment (29 live requests, no login), minimised for tests. CI never calls a s
 | `apple/lookup_pool_tr.json` | the same ids with `country=tr` | same |
 | `apple/lookup_publisher_abi_us.json` | `lookup?id=1743349083&entity=software&country=us&limit=200` | no descriptions |
 | `play/*.json` | google-play-scraper 1.2.7 `app(id, lang="en", country="us")` output for 7 packages | fields the radar reads; description cut; `developerEmail` replaced by a synthetic `contact@example.invalid` (the personal-data test checks it is never stored) |
+| `apple/lookup_ungodly_us_0.json`, `apple/lookup_ungodly_us_130.json` | UnGodly (6740617332) in the US Lookup: 0 ratings at ~13:49 UTC (the research run) and 130 at ~14:58 UTC (studio-pulse's first live radar run), the same day | one app each; replayed as a sequence for the recheck test |
 | `robots/play_robots.txt` | `play.google.com/robots.txt` | excerpt with the rules the radar depends on |
 
 `replay.json` maps requests to these files (`pool` entries answer any batch of Lookup ids

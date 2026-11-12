@@ -201,14 +201,26 @@ def _software(doc: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def lookup_ids(
-    f: Fetcher, ids: list[str], cc: str, *, batch: int = 100
+    f: Fetcher,
+    ids: list[str],
+    cc: str,
+    *,
+    batch: int = 100,
+    purpose: str | None = None,
+    cacheable: bool = True,
 ) -> tuple[list[dict[str, Any]], list[str]]:
-    """Lookup in batches; returns (software results, ids Apple did not return)."""
+    """Lookup in batches; returns (software results, ids Apple did not return).
+
+    A recheck passes cacheable=False: it must reach Apple again, not the day cache."""
     out: list[dict[str, Any]] = []
     uniq = list(dict.fromkeys(str(i) for i in ids))
     for i in range(0, len(uniq), batch):
         chunk = uniq[i : i + batch]
-        res = f.get(lookup_url(id=",".join(chunk), country=cc.lower()), f"lookup:{cc}")
+        res = f.get(
+            lookup_url(id=",".join(chunk), country=cc.lower()),
+            purpose or f"lookup:{cc}",
+            cacheable=cacheable,
+        )
         if res.status != 200:
             raise RuntimeError(f"lookup answered {res.status}")
         out += _software(res.json())

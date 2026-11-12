@@ -82,14 +82,22 @@ checks:
 
   - name: radar_lookup_disagreement
     type: sql
-    description: The batched Lookup and a publisher-catalogue Lookup of the same day disagree by more than 2% on a rating count (Apple answers from caches of different ages; the batched one is used).
+    description: Reads of one app's rating count on the newest day disagree (batched Lookup, rechecks, publisher catalogue; Apple answers from caches of different ages). The maximum read is used; the reads are in raw_mr_lookup_read and the recheck's ledger note.
     sql: >-
-      SELECT a.country, a.app_id, a.rating_count AS batched, b.rating_count AS publisher
-      FROM raw_mr_app AS a JOIN raw_mr_app AS b
-        ON b.snapshot_date = a.snapshot_date AND b.country = a.country AND b.app_id = a.app_id
-      WHERE a.store = 'apple' AND b.store = 'apple' AND a.source = 'lookup' AND b.source = 'publisher'
-        AND a.snapshot_date = (SELECT MAX(snapshot_date) FROM raw_mr_app WHERE source = 'lookup')
-        AND abs(a.rating_count - b.rating_count) > 0.02 * GREATEST(a.rating_count, 1)
+      SELECT country, app_id, list(rating_count ORDER BY ts, source) AS reads,
+             list(source ORDER BY ts, source) AS sources
+      FROM raw_mr_lookup_read
+      WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM raw_mr_lookup_read)
+      GROUP BY 1, 2
+      HAVING COUNT(DISTINCT rating_count) > 1
+          OR (COUNT(*) FILTER (WHERE rating_count IS NULL) > 0 AND COUNT(rating_count) > 0)
+
+  - name: radar_rating_drop_unconfirmed
+    type: sql
+    description: A rating count fell below the previous window on one day only; it is not treated as a reset (and gives no velocity) until a second snapshot confirms it.
+    sql: >-
+      SELECT country, app_id, base_count, prev_count, rating_count FROM stg_mr_rating_daily
+      WHERE rating_drop_unconfirmed AND snapshot_date = (SELECT MAX(snapshot_date) FROM stg_mr_rating_daily)
 
   - name: radar_rating_resets
     type: sql

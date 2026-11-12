@@ -19,7 +19,7 @@ install` makes it daily; its data-quality checks are stored with the studio's ow
 | Source | What | Volume per day (8 countries x 5 lists) | Status |
 |---|---|---|---|
 | Apple legacy RSS `itunes.apple.com/{cc}/rss/{chart}/limit={<=100}/genre={id}/json` | top free / grossing lists per genre (6014 Games, 7012 Puzzle, 7003 Casual, 7015 Simulation ...) | 40 | undocumented; the new RSS v2 has no games list (its games endpoint answers 404), so the legacy one is the only Apple list with genres. `newfreeapplications` ignores `limit` and `genre`: extra rows and non-games are kept raw but not scored |
-| iTunes Lookup `itunes.apple.com/lookup?id=a,b,...&country=cc` | release date, rating count per storefront, description, genres | ~16 (100 ids per request) | documented, ~20 calls/minute; answers are cached by Apple for up to 24 h |
+| iTunes Lookup `itunes.apple.com/lookup?id=a,b,...&country=cc` | release date, rating count per storefront, description, genres | ~16 (100 ids per request) + rechecks | documented, ~20 calls/minute; answers come from Apple caches of different ages (see below) |
 | Lookup `?id={artistId}&entity=software` | a watched publisher's whole catalogue | weekly | |
 | Google Play `play.google.com/store/apps/details?id=...` | install bucket, `realInstalls` (undocumented page field), Play tags, ads/IAP flags, description | <= 200 | robots.txt allows this path and nothing else the radar uses |
 
@@ -39,6 +39,24 @@ Polite fetching (`radar/http.py`), enforced in code and tested:
 Store text, screenshots and anything derived from them stay local: the radar refuses an
 `out_dir` inside `docs/demo` (the public demo), and the dashboard never shows radar data.
 
+## Unreliable single reads: rechecks and the maximum
+
+One Lookup answer is not a measurement. On 12 Nov 2026 Apple's US Lookup gave UnGodly 0
+ratings and, minutes later, 130 (four single calls and a batched one agreed on 130), and
+Foodie Pop! 1,846 in a batched Lookup but 1,760 in the publisher catalogue the same hour.
+So every rating-count read of the day is kept in `raw_mr_lookup_read` (`batch`, `recheck1`,
+`recheck2`, `publisher`), and after the batched Lookup and the publisher catalogue:
+
+- an app whose count is 0 or missing, lower than its previous snapshot, or different between
+  today's reads is re-queried (batched, through the same polite fetcher and budget, never from
+  the day cache): a disagreement once, a zero or a drop up to twice;
+- `raw_mr_app` keeps the maximum read of the day (counts only grow within a version);
+- the recheck's ledger row (`raw_mr_request.note`) lists the reads that differed, and the
+  `radar_lookup_disagreement` warning shows them in the digest;
+- a count below the window's base is a rating reset only when the previous snapshot was lower
+  too (it persisted across runs); a one-day drop is `unconfirmed_drop` (warning
+  `radar_rating_drop_unconfirmed`). Neither feeds the velocity score.
+
 ## Tables and models
 
 Raw (`radar/schema.sql`): `raw_mr_chart` (one row per day, country, list and rank),
@@ -51,7 +69,7 @@ Raw (`radar/schema.sql`): `raw_mr_chart` (one row per day, country, list and ran
 |---|---|---|
 | `stg_mr_chart` | day x list x rank | ranks within the requested length; games lists keep only games |
 | `stg_mr_list_days` | day x list | which list was observed (a missing day is unknown, not empty) |
-| `stg_mr_rating_daily` | day x storefront x app | rating count and ratings/day over the latest earlier snapshot 3-7 days back; a drop is a `rating_reset` (velocity NULL); no history: lifetime average, labelled |
+| `stg_mr_rating_daily` | day x storefront x app | the day's maximum read and ratings/day over the latest earlier snapshot 3-7 days back; a drop is a `rating_reset` only when it persisted to a second snapshot, else `unconfirmed_drop` (velocity NULL either way); no history: lifetime average, labelled |
 | `stg_mr_install_daily` | day x Play package | bucket, `realInstalls`, installs/day (same window, else since the Play release), bucket change |
 | `fct_mr_breakout_daily` | day x charted app | every component, the score, the gates and the class |
 | `fct_mr_app_tags` | app x claim | the profile used: newest LLM profile, else keyword profile; store-derived monetisation |
@@ -194,5 +212,5 @@ Written to `out_dir` and, when set, to `radar.creative_forge_library`. creative-
 Rank unique per list and day and app id present (error); robots compliance of every Play
 request and the 200-a-day Play budget (error); a stale snapshot, a frozen feed timestamp
 (36 h), a feed over its limit or with non-games in a games list, missing countries, short
-lists, Lookup coverage below 90 %, rating resets, `realInstalls >= minInstalls` and Play field
-fill below 95 % (warnings).
+lists, Lookup coverage below 90 %, disagreeing Lookup reads, unconfirmed drops, confirmed
+rating resets, `realInstalls >= minInstalls` and Play field fill below 95 % (warnings).
