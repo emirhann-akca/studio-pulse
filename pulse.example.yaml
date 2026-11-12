@@ -4,6 +4,10 @@
 #  - AdMob uses ADC with the admob.readonly scope, or $PULSE_ADMOB_ACCESS_TOKEN;
 #  - Slack / SMTP settings come from environment variables (see README).
 # Any value can reference an environment variable: ${NAME} or ${NAME:-default}.
+# The desktop icon and scheduled runs start without your shell's variables: put
+# them (PULSE_LLM_PROJECT, PULSE_READ_KEY, ...) as NAME=VALUE lines in a private
+# file (chmod 600) and name it here; the shell's own values still win.
+# env_file: [private.env]
 
 title: Studio Pulse
 warehouse: local/pulse.duckdb      # DuckDB file (gitignored)

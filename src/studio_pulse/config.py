@@ -159,9 +159,33 @@ def find_config(explicit: str | Path | None = None) -> Path:
     )
 
 
+def load_env_files(spec: Any, base_dir: Path) -> list[Path]:
+    """`env_file:` (a path or a list, relative to the config): NAME=VALUE lines into the
+    environment, without overriding what is already set. For launches without a shell
+    (the desktop icon, a scheduled run): project ids and keys stay in a private file
+    instead of the config. Blank lines and `#` comments are skipped."""
+    loaded = []
+    for item in spec if isinstance(spec, list) else [spec]:
+        f = (base_dir / str(item)).expanduser()
+        if not f.is_file():
+            continue
+        for line in f.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            name, value = line.split("=", 1)
+            name = name.strip().removeprefix("export ").strip()
+            if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+                os.environ.setdefault(name, value.strip().strip('"').strip("'"))
+        loaded.append(f)
+    return loaded
+
+
 def load_config(path: str | Path | None = None) -> Config:
     p = find_config(path)
     data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    if data.get("env_file"):
+        load_env_files(data["env_file"], p.parent)
     cfg = config_from_dict(data, base_dir=p.parent, path=p)
     if data.get("collector"):  # SDK apps the collector registered appear without a config edit
         from .collector.hooks import add_registry_apps
