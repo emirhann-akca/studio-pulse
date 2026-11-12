@@ -64,9 +64,11 @@ model (`Build.MODEL` / `utsname.machine`), RAM, device tier, locale, time zone.
 
 **Install store.** Android (`StudioPulsePlugin.kt`): `getInstallSourceInfo(pkg).installingPackageName`
 on API 30+, `getInstallerPackageName` before, mapped like the Unity SDK. iOS
-(`StudioPulsePlugin.swift`): `AppTransaction.shared.environment` on iOS 16+, waited for at
-most 1.5 s inside `init`, else the receipt file name (`sandboxReceipt` → `testflight`);
-the simulator reports `simulator`. **Exit reason**: Android 11+
+(`StudioPulsePlugin.swift`): `init` never waits for StoreKit: it starts with the receipt
+file name (`sandboxReceipt` → `testflight`, else `app_store`; the simulator reports
+`simulator`) and asks `AppTransaction.shared.environment` (iOS 16+) in the background;
+when it answers (at most 10 s), later events carry it (`production` → `app_store`,
+`sandbox` → `testflight`, `xcode` → `sideload`). **Exit reason**: Android 11+
 `getHistoricalProcessExitReasons`; elsewhere the `unclean` / `crash` rules of the core.
 **Restores**: the no-backup directory on Android, `isExcludedFromBackup` on the iOS marker.
 
@@ -108,11 +110,17 @@ dart run tool/e2e_driver.dart http://127.0.0.1:8787 sp_pub_local /tmp/pulse-e2e 
 
 ## Not verified on a device
 
-Built and unit-tested, not run on hardware: a Flutter app depending on the package
+**Simulator smoke test (12 Nov 2026):** the example app on an iPhone 17 simulator (iOS
+26.0.1) against a local `pulse collect`: the Swift channel answered version, build, OS
+and RAM, `install_store` was `simulator`; launch, Home (background, which flushed),
+reopen (`pulse_foreground` in the same session with `fg_ms` continuing, a partial
+`pulse_perf` window) and Home again arrived as seq 1-7 with nothing quarantined.
+
+Not run on hardware: a Flutter app depending on the package
 was built on this Mac as a debug APK (Kotlin channel compiled with AGP 8.11 /
 Kotlin 2.2) and as an iOS simulator app (Swift channel compiled by Xcode 26.6; the
 `studio_pulse_privacy.bundle` with the manifest is inside `studio_pulse.framework`).
 Still to smoke-test on devices: the Kotlin channel on Android 9 / 11 / 14 (installer,
 exit reasons, no-backup directory), the Swift channel on iOS 15 / 17 (TestFlight
-`sandbox`, App Store `production`, the 1.5 s AppTransaction wait), and lifecycle
+`sandbox`, App Store `production`, the background AppTransaction answer), and lifecycle
 callbacks on real devices. Flutter web is not supported (dart:io).

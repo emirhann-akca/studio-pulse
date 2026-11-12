@@ -65,6 +65,12 @@ class StudioPulse {
       );
       final core = PulseCore(writeKey, endpoint, opts, device, env)..start();
       _core = core;
+      if (Platform.isIOS) {
+        // AppTransaction may need the network: never hold app start for it
+        unawaited(_channel.invokeMethod<String>('appTransaction').then((env) {
+          if (env != null) core.setInstallSource(PulseInstallStores.fromIos(env), null);
+        }, onError: (Object _) {}));
+      }
       _lifecycle = AppLifecycleListener(
         onStateChange: _onState,
         onExitRequested: () async {
