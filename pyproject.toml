@@ -92,6 +92,8 @@ pulse = "studio_pulse.cli:main"
 [project.gui-scripts]
 # Windowless launcher for scheduled runs: no console window flashes on Windows.
 pulse-bg = "studio_pulse.background:gui_main"
+# The desktop app (Desktop / Start menu / Applications icon): opens the UI in its own window.
+studio-pulse = "studio_pulse.desktop:gui_main"
 
 [project.urls]
 Homepage = "https://github.com/emirhann-akca/studio-pulse"

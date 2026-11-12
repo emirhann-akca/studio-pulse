@@ -16,6 +16,7 @@
 #                  APIs); add "forecast" or "stores"; "none" for none
 #   PULSE_PYTHON   Python version for the tool, default 3.13 (uv downloads it if missing)
 #   PULSE_DEMO=1   build the demo dashboard afterwards (in PULSE_DEMO_DIR, default ~/studio-pulse-demo)
+#   PULSE_NO_SHORTCUT=1   do not add ~/Applications/Studio Pulse.app (macOS) or the app-menu entry (Linux)
 #   UV_NO_MODIFY_PATH=1   leave shell profiles alone
 set -eu
 
@@ -83,6 +84,15 @@ main() {
     fi
     "$BIN/pulse" doctor || die "pulse doctor reported a problem (see above)"
 
+    LAUNCHER=""
+    if [ "${PULSE_NO_SHORTCUT:-0}" != "1" ]; then
+        if "$BIN/pulse" app --install-shortcut; then
+            LAUNCHER=1
+        else
+            say "could not add the app launcher; 'pulse app' opens the same window"
+        fi
+    fi
+
     if [ "${PULSE_DEMO:-0}" = "1" ]; then
         DEMO="${PULSE_DEMO_DIR:-$HOME/studio-pulse-demo}"
         mkdir -p "$DEMO"
@@ -93,7 +103,13 @@ main() {
         *":$BIN:"*) ;;
         *) say "open a new terminal so that 'pulse' is on your PATH ($BIN)" ;;
     esac
-    say "done. Next: pulse demo --open    (or: pulse serve --config <your pulse.local.yaml>)"
+    if [ -n "$LAUNCHER" ] && [ "$(uname -s)" = "Darwin" ]; then
+        say "done. Open 'Studio Pulse' from Launchpad, Spotlight or ~/Applications (or run: pulse app)"
+    elif [ -n "$LAUNCHER" ]; then
+        say "done. Open 'Studio Pulse' from your applications menu (or run: pulse app)"
+    else
+        say "done. Next: pulse app    (or: pulse serve --config <your pulse.local.yaml>)"
+    fi
 }
 
 main "$@"

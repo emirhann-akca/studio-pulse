@@ -85,7 +85,7 @@ store reviews included).
   `/ask` in the local UI): deterministic statistics find and explain the
   changes, every number in a sentence is formatted by code and checked against
   its evidence, and a language model may only rephrase (see below).
-- 651 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
+- 665 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
   macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -108,11 +108,28 @@ is published at the moment, so that download answers 404 and they install the
 main-branch archive instead (uv builds it), printing which source they used.
 Extras `gcp,ua` (BigQuery / Cloud Storage, ad-network APIs) are included;
 `PULSE_EXTRAS=gcp,ua,forecast,stores` adds statsforecast and App Store Connect
-key signing. They finish with `pulse doctor`. From a clone instead:
-`uv tool install .`, or pip as below. CI runs these two lines verbatim on
-Windows PowerShell 5.1, macOS and Ubuntu, and forces the 404 fallback once.
+key signing. They finish with `pulse doctor` and add an app launcher. From a
+clone instead: `uv tool install .`, or pip as below. CI runs these two lines
+verbatim on Windows PowerShell 5.1, macOS and Ubuntu, and forces the 404
+fallback once.
+
+**Open it like an app.** The installers add **Studio Pulse** to the Start menu
+and the Desktop (Windows), to `~/Applications` (macOS: Launchpad and Spotlight
+find it) or to the applications menu (Linux); `PULSE_NO_SHORTCUT=1` skips that,
+`pulse app --install-shortcut` / `--uninstall-shortcut` add or remove it later.
+A double-click starts the local server on a free port and opens the UI in a
+window of its own (Edge, Chrome, Brave or Chromium in app mode: no tabs, no
+address bar; the default browser otherwise). The first launch builds demo data
+for three fictional apps behind a "getting ready" page; `pulse app --config
+pulse.local.yaml` switches to your own data and the icon remembers it. A second
+double-click opens a window on the running server instead of starting another,
+and closing the last window stops the server (about 20 seconds later; the
+window's pages tell it they are leaving). Output goes to
+`<state dir>/logs/app.log`; `pulse app --check` starts, loads the pages and
+stops, which is what CI runs from the installed launcher on all three systems.
 
 ```bash
+pulse app                   # the same window from a terminal
 pulse demo --open           # synthetic data for 3 apps -> dashboard in the browser
 pulse serve --config .pulse-demo/pulse.yaml   # local UI on http://127.0.0.1:8765
 ```
@@ -155,6 +172,7 @@ interval says to keep running.
 | `pulse schedule status` / `run-now --wait 600` / `remove` | registration, last result and last refresh; start it now; unregister |
 | `pulse check` | the 51 checks in [`checks.yaml`](checks.yaml): keys, nulls, accepted values, ranges, per-source freshness, volume drop vs the trailing median, referential, reconciliations (DAU <= WAU <= MAU, retention in [0, 1], crash counts within their denominators, GA4 vs AdMob ad revenue, UA spend converted to USD, one spend row per network/day/ad, experiment sample ratio). Error-level failures fail the run, are stored in the warehouse, shown on the dashboard and notified |
 | `pulse experiment` | A/B test results from the warehouse (`--sql` prints the BigQuery aggregate query, `--input arms.csv` analyses totals from anywhere); exit 3 on a sample ratio mismatch |
+| `pulse app` | the desktop app: the local UI in its own window, one server per user, stops when the last window closes; `--install-shortcut`, `--uninstall-shortcut`, `--check`, `--config` (remembered) |
 | `pulse serve` | local UI on 127.0.0.1: dashboard, refresh health (heartbeat, recent runs, check results, source freshness, schedule state), alerts, and a run-now button. It opens the warehouse read-only per request and serves the last good snapshot while a refresh is writing |
 | `pulse collect` | the SDK collector on 127.0.0.1:8787 (`setup-geoip`, `purge`); `pulse simulate` plays three fictional games against it, `pulse apps refresh` runs live detection ([docs/COLLECTOR.md](docs/COLLECTOR.md)) |
 | `pulse radar run` / `show` | the market radar (also part of `pulse run` with `radar.enabled`); `--replay DIR` answers every request from recorded responses |
@@ -409,7 +427,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 651 tests (1 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 665 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 

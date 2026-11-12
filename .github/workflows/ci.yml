@@ -221,6 +221,42 @@ jobs:
           Set-Content -Path oneliner.cmd -Value $line -Encoding Ascii
           & $env:PY .github\scripts\annotate.py "README one-liner, install.ps1 (Windows PowerShell 5.1)" cmd /c oneliner.cmd
           exit $LASTEXITCODE
+      # The installer added the launcher people double-click; run exactly what it points at
+      # (the windowless studio-pulse program) in --check mode: a first launch builds the demo
+      # behind the "preparing" page, serves the UI and stops (no window on a runner).
+      - name: Desktop launcher (Start menu / Desktop, ~/Applications, app menu) and its first launch
+        shell: pwsh
+        run: |
+          $annotate = Join-Path $env:GITHUB_WORKSPACE '.github/scripts/annotate.py'
+          function Fail([string]$msg) { "::error title=desktop launcher (${{ matrix.os }})::$msg"; exit 1 }
+          $env:PULSE_HOME = Join-Path $env:RUNNER_TEMP ('app home ' + [char]0x00E7 + [char]0x0131)
+          if ($IsWindows) {
+            $shell = New-Object -ComObject WScript.Shell
+            $target = $null
+            foreach ($folder in 'Desktop', 'Programs') {
+              $lnk = Join-Path ([Environment]::GetFolderPath($folder)) 'Studio Pulse.lnk'
+              if (-not (Test-Path -LiteralPath $lnk)) { Fail "missing $lnk" }
+              $target = $shell.CreateShortcut($lnk).TargetPath
+              if (-not $target.EndsWith('studio-pulse.exe') -or -not (Test-Path -LiteralPath $target)) { Fail "$lnk points at '$target'" }
+            }
+            $p = Start-Process -FilePath $target -ArgumentList '--check' -Wait -PassThru
+            $code = $p.ExitCode
+          } elseif ($IsMacOS) {
+            $app = Join-Path $HOME 'Applications/Studio Pulse.app'
+            $target = Join-Path $app 'Contents/MacOS/studio-pulse'
+            if (-not (Test-Path -LiteralPath $target)) { Fail "missing $target" }
+            & plutil -lint (Join-Path $app 'Contents/Info.plist'); if ($LASTEXITCODE) { Fail 'Info.plist is not valid' }
+            & $target --check; $code = $LASTEXITCODE
+          } else {
+            $entry = Join-Path $HOME '.local/share/applications/studio-pulse.desktop'
+            if (-not (Test-Path -LiteralPath $entry)) { Fail "missing $entry" }
+            $exec = (Select-String -LiteralPath $entry -Pattern '^Exec="(.+)"$').Matches[0].Groups[1].Value
+            & $exec --check; $code = $LASTEXITCODE
+          }
+          $log = Join-Path $env:PULSE_HOME 'logs/app.log'
+          if (Test-Path -LiteralPath $log) { Get-Content -LiteralPath $log -Tail 25 }
+          if ($code -ne 0) { Fail "the launcher's first launch (--check) exited $code" }
+          "::notice title=desktop launcher (${{ matrix.os }})::launcher present; first launch built the demo, served the UI with the heartbeat and stopped"
       - name: Doctor, demo, checks and UI in a folder with Turkish characters
         shell: pwsh
         run: |

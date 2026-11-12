@@ -641,8 +641,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # SDK collector, app registry and simulator (src/studio_pulse/collector, simulate)
     from .collector.cli import register as register_collector
+    from .desktop import add_parser as add_app_parser  # pulse app: the desktop window
     from .simulate.cli import register as register_simulate
 
+    add_app_parser(sub)
     register_collector(sub, with_config)
     register_simulate(sub, with_config)
 

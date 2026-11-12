@@ -13,6 +13,7 @@
 #   PULSE_EXTRAS   extras to install, default "gcp,ua"; add "forecast" or "stores"; "none" for none
 #   PULSE_PYTHON   Python version for the tool, default 3.13
 #   PULSE_DEMO=1   build the demo dashboard afterwards (in PULSE_DEMO_DIR, default %USERPROFILE%\studio-pulse-demo)
+#   PULSE_NO_SHORTCUT=1   do not add the "Studio Pulse" Desktop and Start menu shortcuts
 #   UV_NO_MODIFY_PATH=1   leave the user PATH alone
 #
 # Rules for an irm | iex script: ASCII only, everything inside one scriptblock (nothing leaks into
@@ -117,6 +118,16 @@
     }
     Invoke-Native (Join-Path $bin 'pulse.exe') @('doctor')
 
+    $launcher = $false
+    if ($env:PULSE_NO_SHORTCUT -ne '1') {
+        try {
+            Invoke-Native (Join-Path $bin 'pulse.exe') @('app', '--install-shortcut')
+            $launcher = $true
+        } catch {
+            Write-Host "pulse-install: could not add the Desktop / Start menu shortcut ($_); 'pulse app' opens the same window"
+        }
+    }
+
     if ($env:PULSE_DEMO -eq '1') {
         $demo = if ($env:PULSE_DEMO_DIR) { $env:PULSE_DEMO_DIR } else { Join-Path $env:USERPROFILE 'studio-pulse-demo' }
         New-Item -ItemType Directory -Force -Path $demo | Out-Null
@@ -124,5 +135,9 @@
         try { Invoke-Native (Join-Path $bin 'pulse.exe') @('demo', '--scale', '0.3') } finally { Pop-Location }
         Write-Host "pulse-install: demo dashboard: $demo\demo-site\index.html"
     }
-    Write-Host 'pulse-install: done. Open a NEW terminal, then run: pulse demo --open'
+    if ($launcher) {
+        Write-Host "pulse-install: done. Open 'Studio Pulse' from the Start menu or the Desktop (or, in a NEW terminal: pulse app)"
+    } else {
+        Write-Host 'pulse-install: done. Open a NEW terminal, then run: pulse app'
+    }
 }

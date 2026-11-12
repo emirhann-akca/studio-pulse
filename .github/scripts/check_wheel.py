@@ -14,6 +14,9 @@ NEED = [
     "studio_pulse/serve/static/htmx.min.js",
     "studio_pulse/serve/static/htmx.LICENSE",
     "studio_pulse/serve/templates/base.html",
+    "studio_pulse/desktop_assets/studio-pulse.ico",  # Windows shortcut icon
+    "studio_pulse/desktop_assets/studio-pulse.icns",  # macOS app bundle icon
+    "studio_pulse/desktop_assets/studio-pulse.png",  # Linux .desktop icon
     "studio_pulse/serve/templates/live.html",
     "studio_pulse/contract/pulse_v2.json",  # the collector validates with it
     "studio_pulse/_models/stg_pulse_events.sql",
