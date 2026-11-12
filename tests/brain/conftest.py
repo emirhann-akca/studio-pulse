@@ -59,13 +59,33 @@ def demo_report(brain_demo):
         con.close()
 
 
+LOCAL = ("127.0.0.1", "localhost", "::1")
+
+
 @pytest.fixture()
 def no_network(monkeypatch):
-    """Any socket connection attempt fails the test (the brain never talks to a network)."""
+    """A connection to anything but this machine fails the test (the brain never calls out).
+
+    Loopback stays open: on Windows, asyncio's self-pipe (socket.socketpair) is a
+    loopback connect, and the TestClient's event loop needs it.
+    """
     import socket
 
-    def refuse(*_a, **_k):
-        raise AssertionError("network access attempted")
+    real_connect = socket.socket.connect
+    real_create = socket.create_connection
 
-    monkeypatch.setattr(socket.socket, "connect", refuse)
-    monkeypatch.setattr(socket, "create_connection", refuse)
+    def host_of(address):
+        return address[0] if isinstance(address, tuple) else str(address)
+
+    def connect(self, address, *a, **k):
+        if host_of(address) in LOCAL:
+            return real_connect(self, address, *a, **k)
+        raise AssertionError(f"network access attempted: {address!r}")
+
+    def create_connection(address, *a, **k):
+        if host_of(address) in LOCAL:
+            return real_create(address, *a, **k)
+        raise AssertionError(f"network access attempted: {address!r}")
+
+    monkeypatch.setattr(socket.socket, "connect", connect)
+    monkeypatch.setattr(socket, "create_connection", create_connection)
