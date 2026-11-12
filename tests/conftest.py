@@ -139,6 +139,10 @@ class DemoBuild:
                 for key in ("path", "response_file", "replay"):
                     if key in src:
                         src[key] = str((self.work / src[key]).resolve())
+        if (data.get("collector") or {}).get("data_dir"):  # the SDK games' collector store
+            data["collector"]["data_dir"] = str(
+                (self.work / data["collector"]["data_dir"]).resolve()
+            )
         path = dest / "pulse.yaml"
         path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
         return load_config(path)

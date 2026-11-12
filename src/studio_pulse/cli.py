@@ -634,6 +634,13 @@ def build_parser() -> argparse.ArgumentParser:
     dr = with_config(sub.add_parser("doctor", help="check this machine and the config"))
     dr.add_argument("--json", action="store_true", help="machine-readable output")
     dr.set_defaults(func=cmd_doctor)
+
+    # SDK collector, app registry and simulator (src/studio_pulse/collector, simulate)
+    from .collector.cli import register as register_collector
+    from .simulate.cli import register as register_simulate
+
+    register_collector(sub, with_config)
+    register_simulate(sub, with_config)
     return p
 
 

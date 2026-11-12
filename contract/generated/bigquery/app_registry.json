@@ -1,0 +1,72 @@
+[
+  {
+    "name": "app_id",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "platform",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "display_name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "genre",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "status",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "first_seen",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "last_seen",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "first_version",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "last_version",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "status_changed_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "store_listed",
+    "type": "BOOL",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "store_version",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "store_url",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "store_checked_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  }
+]

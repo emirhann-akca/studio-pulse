@@ -126,6 +126,7 @@ def create_app(
     launcher: Callable[[Config], int] | None = None,
     allowed_hosts: set[str] | None = None,
     schedule_name: str = schedule.DEFAULT_NAME,
+    live_fetcher: Callable[[], dict[str, Any]] | None = None,
 ) -> FastAPI:
     token = token or secrets.token_urlsafe(24)
     launch = launcher or default_launcher
@@ -268,6 +269,13 @@ def create_app(
             "This page updates when it finishes.</p>",
             202,
         )
+
+    # SDK pages (Canlı / Live, levels and heatmaps): src/studio_pulse/collector/web.py
+    from ..collector.web import register as register_live
+
+    templates.env.globals["nav_extra"] = register_live(
+        app, templates, cfg, context=context, open_db=open_db, rows=_rows, fetch_live=live_fetcher
+    )
 
     @app.get("/api/status")
     def api_status() -> JSONResponse:

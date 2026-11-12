@@ -51,6 +51,10 @@ gcp = [
 ua = ["dlt>=1.32,<2"]
 # App Store Connect API keys (ES256 JWT) for customer reviews.
 stores = ["pyjwt[crypto]>=2.8"]
+# Collector cloud mode (Cloud Run): BigQuery Storage Write API sink + registry MERGE.
+cloud = ["google-cloud-bigquery-storage>=2.30", "google-cloud-bigquery>=3.20"]
+# Collector country lookup from DB-IP Lite (`pulse collect setup-geoip`).
+geoip = ["maxminddb>=2.5"]
 # Seasonality-aware alert bands with Nixtla statsforecast (AutoETS); without it
 # forecast_band uses a same-weekday median +- MAD band.
 forecast = ["statsforecast>=2.0"]
@@ -68,6 +72,9 @@ dev = [
   # reference implementations the statistics are checked against (tests only)
   "scipy>=1.11",
   "statsmodels>=0.14",
+  "jsonschema>=4.20",  # the generated batch JSON Schema is checked against the validator
+  "google-cloud-bigquery-storage>=2.30",  # collector cloud sink (fake client in tests)
+  "maxminddb>=2.5",
 ]
 
 [project.scripts]
@@ -91,7 +98,7 @@ packages = ["src/studio_pulse"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "src", "models", "tests", "docs/*.md", "alerts.yaml", "checks.yaml", "pulse.example.yaml",
+  "src", "models", "tests", "contract", "deploy", "docs/*.md", "alerts.yaml", "checks.yaml", "pulse.example.yaml",
   "install.sh", "install.ps1", "README.md", "LICENSE",
 ]
 

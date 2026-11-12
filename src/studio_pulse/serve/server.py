@@ -94,6 +94,7 @@ def _self_check(server: uvicorn.Server, sock: socket.socket, base: str, cfg: Con
         ("", "Run refresh now"),
         ("health", "Data quality"),
         ("alerts", "History"),
+        ("live", "Canlı / Live"),
         ("api/status", '"version"'),
         ("static/htmx.min.js", "htmx"),
     ]

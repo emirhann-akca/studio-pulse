@@ -14,6 +14,9 @@ NEED = [
     "studio_pulse/serve/static/htmx.min.js",
     "studio_pulse/serve/static/htmx.LICENSE",
     "studio_pulse/serve/templates/base.html",
+    "studio_pulse/serve/templates/live.html",
+    "studio_pulse/contract/pulse_v2.json",  # the collector validates with it
+    "studio_pulse/_models/stg_pulse_events.sql",
 ]
 
 

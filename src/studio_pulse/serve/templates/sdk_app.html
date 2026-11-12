@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ app_name }} · levels{% endblock %}
+{% block body %}
+<p class="note" style="margin-top:12px"><a href="/live">&larr; Canlı / Live</a></p>
+<h2>{{ app_name }} <span class="note">({{ app_id }})</span>
+{% for r in registry %} <span class="pill {{ 'ok' if r.status == 'live' else ('warn' if r.status == 'testing' else 'none') }}">{{ r.platform }}: {{ r.status }}</span>{% endfor %}</h2>
+{% if not funnel %}
+<p class="note">No level events in the warehouse for this app yet. Levels appear after the next refresh (<code>pulse run</code>) once the game sends <code>level_start</code> / <code>level_complete</code> / <code>level_fail</code>.</p>
+{% else %}
+<div class="grid2">{{ fail_chart|safe }}{{ heat_html|safe }}</div>
+{% if hot_levels %}<p class="note" style="margin-top:8px">Heatmap level:
+{% for lv in hot_levels %} <a href="?level={{ lv }}"{% if lv == level %} aria-current="true" style="font-weight:700"{% endif %}>{{ lv }}</a>{% endfor %} (levels with the most deaths first)</p>{% endif %}
+<h2>Level funnel</h2>
+<div class="card"><div class="tbl-wrap" style="max-height:480px">{{ funnel_table|safe }}</div></div>
+{% endif %}
+{% if settings %}
+<h2>Settings players turn off</h2>
+<div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Setting</th><th>Players</th><th>Turned off</th><th>Share</th><th>In first session</th><th>Median session</th></tr></thead><tbody>
+{% for s in settings %}<tr><td class="l">{{ s.setting }}</td><td>{{ s.players }}</td><td>{{ s.turned_off_players }}</td><td>{{ fmt_pct(s.off_share) }}</td><td>{{ fmt_pct(s.off_in_first_session) }}</td><td>{{ s.median_session_at_off if s.median_session_at_off is not none else '–' }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
+{% if dq %}
+<h2>Data quality</h2>
+<p class="note">{{ dq.events }} events from {{ dq.installs }} installs · sequence loss {{ fmt_pct(dq.seq_loss_rate) }} · duplicates {{ fmt_pct(dq.duplicate_rate) }} · quarantined {{ fmt_pct(dq.quarantine_rate) }} · clock skew p95 {{ (dq.skew_p95_ms or 0)|round|int }} ms</p>
+{% endif %}
+{% endblock %}

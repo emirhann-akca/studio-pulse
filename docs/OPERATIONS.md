@@ -206,3 +206,13 @@ y_sum, y_sumsq, x_sum, x_sumsq, xy_sum`).
   OneDrive-synced folders for the warehouse: sync clients lock open files.
 - Line endings: `.gitattributes` keeps every text file LF in a Windows
   checkout, so models and fixtures are byte-identical to the other platforms.
+
+## The SDK collector
+
+`pulse collect` is a long-running process, unlike the daily `pulse run`: start
+it at login (a LaunchAgent / Task Scheduler "at logon" task, or a terminal) or
+run it on Cloud Run ([deploy/cloudrun/README.md](../deploy/cloudrun/README.md)).
+`pulse run` loads what it stored, removes deleted installs from its segments and
+adds new games from its registry; `pulse apps refresh` (daily is enough) moves
+games from testing to live after the store check. Everything else, including
+files, keys and the HTTP API: [COLLECTOR.md](COLLECTOR.md).

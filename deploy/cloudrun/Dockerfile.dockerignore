@@ -1,0 +1,12 @@
+local/
+.venv/
+venv/
+docs/demo/
+demo-site/
+.pulse-demo/
+.pulse-cache/
+tests/
+flutter/
+unity/
+**/__pycache__/
+*.duckdb

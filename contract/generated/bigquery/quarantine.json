@@ -1,0 +1,48 @@
+[
+  {
+    "name": "received_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "reason",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "app_id",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "platform",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "install_id",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "event_id",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "raw",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "The event (or batch head) as received, truncated to 8 KB"
+  },
+  {
+    "name": "key_id",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  }
+]

@@ -1,0 +1,40 @@
+{
+ "_comment": "Recorded 12 Nov 2026 (4 requests, 3+ s apart): iTunes Lookup by bundleId for a published game and for a made-up id; Google Play details pages for a published game and a made-up package. Bodies trimmed to the fields the checker reads.",
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/lookup",
+   "query": {
+    "bundleId": "com.supercell.magic"
+   },
+   "file": "itunes_listed.json"
+  },
+  {
+   "method": "GET",
+   "path": "/lookup",
+   "query": {
+    "bundleId": "com.example.studiopulse.notarealapp"
+   },
+   "file": "itunes_unlisted.json"
+  },
+  {
+   "method": "GET",
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.supercell.clashofclans"
+   },
+   "file": "play_listed.html",
+   "content_type": "text/html; charset=utf-8"
+  },
+  {
+   "method": "GET",
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.example.studiopulse.notarealapp"
+   },
+   "status": 404,
+   "file": "play_unlisted.html",
+   "content_type": "text/html; charset=utf-8"
+  }
+ ]
+}

@@ -130,3 +130,35 @@ checks:
   - {name: perf_window_volume, type: row_count_drop, table: raw_perf_windows, max_drop_pct: 60, min_baseline: 20}
   - {name: load_event_volume, type: row_count_drop, table: raw_load_times, max_drop_pct: 60, min_baseline: 20}
   - {name: admob_impression_volume, type: row_count_drop, table: raw_admob_daily, measure: SUM(impressions), max_drop_pct: 60, min_baseline: 100, severity: warn}
+
+  # -- Studio Pulse SDK (pulse_sdk sources, collector): docs/COLLECTOR.md
+  - {name: sdk_events_unique, type: unique, table: stg_pulse_events, columns: [app_id, install_id, event_id]}
+  - {name: sdk_level_funnel_unique, type: unique, table: fct_sdk_level_funnel, columns: [app_id, level]}
+  - name: sdk_install_store_values
+    type: accepted_values
+    table: raw_pulse_events
+    column: install_store
+    values: [google_play, app_store, testflight, amazon, samsung, huawei, xiaomi, sideload, simulator, editor, unknown]
+  - name: sdk_seq_loss_below_2pct
+    type: expression
+    table: fct_sdk_data_quality
+    description: Fewer than 2% of the sequence numbers SDK installs generated are missing (events lost between the device and the collector). Judged from 2,000 expected events up (below that one lost batch of 20 events is already 1%).
+    condition: "seq_loss_rate IS NULL OR seq_expected < 2000 OR seq_loss_rate < 0.02"
+  - name: sdk_duplicates_below_1pct
+    type: expression
+    table: fct_sdk_data_quality
+    severity: warn
+    description: The collector drops repeated events; under 1% may still reach the warehouse (a crash between its write and its dedupe index).
+    condition: "duplicate_rate IS NULL OR duplicate_rate < 0.01"
+  - name: sdk_clock_skew_share
+    type: expression
+    table: fct_sdk_data_quality
+    severity: warn
+    description: Under 10% of SDK events come from a device clock more than 10 minutes off (they are corrected, but many mean broken clocks or an SDK sending a wrong sent_at). Judged from 1,000 events up.
+    condition: "skewed_share IS NULL OR events < 1000 OR skewed_share < 0.1"
+  - name: sdk_quarantine_below_1pct
+    type: expression
+    table: fct_sdk_data_quality
+    severity: warn
+    description: Under 1% of SDK events fail the contract (the reasons are in raw_pulse_quarantine).
+    condition: "quarantine_rate IS NULL OR quarantine_rate < 0.01"

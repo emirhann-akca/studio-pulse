@@ -1,0 +1,185 @@
+[
+  {
+    "name": "event_id",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "seq",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "name",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "ts",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "Server-corrected time: received_at - (sent_at - ts_client)"
+  },
+  {
+    "name": "ts_client",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE",
+    "description": "Device clock as sent"
+  },
+  {
+    "name": "sent_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "received_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "skew_ms",
+    "type": "INT64",
+    "mode": "NULLABLE",
+    "description": "received_at - sent_at (device clock error plus transit)"
+  },
+  {
+    "name": "late",
+    "type": "BOOL",
+    "mode": "NULLABLE",
+    "description": "ts older than late_after_ms when received"
+  },
+  {
+    "name": "sid",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "snum",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "fg_ms",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "uid",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "params",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Event parameters as a JSON object (text, so every sink can write it)"
+  },
+  {
+    "name": "app_id",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "platform",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "app_version",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "build",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "build_env",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "install_id",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "install_store",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "installer_raw",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "sdk",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "engine",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "os",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "device_model",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "device_tier",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "ram_mb",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "locale",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "tz_offset_min",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "consent",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "child",
+    "type": "BOOL",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "country",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "ISO 3166-1 alpha-2 from the request IP (IP discarded) or unknown"
+  },
+  {
+    "name": "key_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Which write key (hash prefix), for rotation"
+  },
+  {
+    "name": "schema",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Contract version the SDK sent (1 for upgraded v1 lines)"
+  }
+]

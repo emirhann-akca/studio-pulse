@@ -15,6 +15,7 @@ dl.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;margin:0}
 dl.kv dt{opacity:.7}dl.kv dd{margin:0}
 </style>
 <script src="/static/htmx.min.js"></script>
+{% block head %}{% endblock %}
 </head>
 <body hx-headers='{"X-Pulse-Token": "{{ token }}"}'>
 <div class="wrap">
@@ -31,6 +32,7 @@ dl.kv dt{opacity:.7}dl.kv dd{margin:0}
   <a href="/dashboard/experiments.html">Experiments</a>
   <a href="/health"{% if page == 'health' %} aria-current="page"{% endif %}>Refresh &amp; data health</a>
   <a href="/alerts"{% if page == 'alerts' %} aria-current="page"{% endif %}>Alerts</a>
+  {% for href, label, key in nav_extra|default([]) %}<a href="{{ href }}"{% if page == key %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
 </nav>
 {% if source == 'snapshot' %}<div class="banner" role="note">Showing the snapshot of the last good refresh. <span>A refresh is writing the warehouse right now; live data returns when it finishes.</span></div>{% endif %}
 {% if source == 'none' %}<div class="banner" role="note">No warehouse yet. <span>Run a refresh (button below or <code>pulse run</code>) to load data.</span></div>{% endif %}

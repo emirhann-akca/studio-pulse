@@ -1,0 +1,1598 @@
+{
+ "contract": "pulse",
+ "version": "2.0",
+ "batch_version": 2,
+ "limits": {
+  "batch_max_events": 500,
+  "batch_max_bytes": 1048576,
+  "event_max_bytes": 8192,
+  "name_max_len": 40,
+  "max_params": 25,
+  "string_max_len": 100,
+  "future_tolerance_ms": 3600000,
+  "late_after_ms": 2592000000,
+  "min_ts_ms": 1577836800000,
+  "session_timeout_ms": 1800000,
+  "session_max_ms": 86400000,
+  "errors_per_launch": 10,
+  "flush_events": 20,
+  "flush_interval_ms": 30000,
+  "heartbeat_ms": 60000,
+  "queue_max_events": 10000,
+  "queue_max_bytes": 5242880,
+  "retry_min_ms": 2000,
+  "retry_max_ms": 60000,
+  "raw_retention_days": 396,
+  "deletion_max_days": 90
+ },
+ "names": {
+  "pattern": "^[a-z][a-z0-9_]{0,39}$",
+  "sdk_prefix": "pulse_",
+  "reserved_prefixes": [
+   "firebase_",
+   "google_",
+   "ga_",
+   "dynamic_link_",
+   "notification_"
+  ],
+  "reserved_names": [
+   "ad_activeview",
+   "ad_click",
+   "ad_exposure",
+   "ad_query",
+   "ad_reward",
+   "adunit_exposure",
+   "app_background",
+   "app_clear_data",
+   "app_exception",
+   "app_remove",
+   "app_store_refund",
+   "app_store_subscription_cancel",
+   "app_store_subscription_convert",
+   "app_store_subscription_renew",
+   "app_update",
+   "app_upgrade",
+   "error",
+   "first_open",
+   "first_visit",
+   "os_update",
+   "session_start",
+   "session_start_with_rollout",
+   "user_engagement"
+  ]
+ },
+ "enums": {
+  "platform": [
+   "android",
+   "ios",
+   "editor",
+   "windows",
+   "macos",
+   "linux",
+   "webgl"
+  ],
+  "build_env": [
+   "release",
+   "debug",
+   "editor"
+  ],
+  "install_store": [
+   "google_play",
+   "app_store",
+   "testflight",
+   "amazon",
+   "samsung",
+   "huawei",
+   "xiaomi",
+   "sideload",
+   "simulator",
+   "editor",
+   "unknown"
+  ],
+  "consent": [
+   "granted",
+   "denied",
+   "not_required",
+   "unknown"
+  ],
+  "device_tier": [
+   "low",
+   "mid",
+   "high",
+   "unknown"
+  ],
+  "exit_reason": [
+   "crash",
+   "crash_native",
+   "anr",
+   "low_memory",
+   "user",
+   "unclean",
+   "unknown"
+  ],
+  "quit_reason": [
+   "menu",
+   "restart",
+   "background_timeout"
+  ],
+  "setting": [
+   "music",
+   "sfx",
+   "haptics",
+   "notifications",
+   "language",
+   "quality"
+  ],
+  "ad_action": [
+   "request",
+   "fill",
+   "show",
+   "click",
+   "reward",
+   "fail"
+  ],
+  "pos_space": [
+   "norm",
+   "world"
+  ],
+  "registry_status": [
+   "new",
+   "testing",
+   "live"
+  ]
+ },
+ "production_stores": [
+  "google_play",
+  "app_store",
+  "amazon",
+  "samsung",
+  "huawei",
+  "xiaomi"
+ ],
+ "batch": {
+  "v": {
+   "type": "int",
+   "required": true,
+   "nullable": false,
+   "doc": "Envelope version, always 2"
+  },
+  "schema": {
+   "type": "string",
+   "required": true,
+   "max_len": 16,
+   "nullable": false,
+   "doc": "Contract version the SDK was built with"
+  },
+  "sent_at": {
+   "type": "int",
+   "required": true,
+   "nullable": false,
+   "doc": "Device clock when the request was sent, ms since epoch"
+  },
+  "ctx": {
+   "type": "object",
+   "required": true,
+   "nullable": false,
+   "doc": "Context shared by every event of the batch"
+  },
+  "events": {
+   "type": "array",
+   "required": true,
+   "nullable": false,
+   "doc": "1-500 events"
+  }
+ },
+ "ctx": {
+  "app_id": {
+   "type": "string",
+   "required": true,
+   "max_len": 150,
+   "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,149}$",
+   "nullable": false,
+   "doc": "Bundle id / package name"
+  },
+  "platform": {
+   "type": "string",
+   "required": true,
+   "enum": "platform",
+   "nullable": false
+  },
+  "app_version": {
+   "type": "string",
+   "required": true,
+   "max_len": 50,
+   "nullable": false
+  },
+  "install_id": {
+   "type": "string",
+   "required": true,
+   "format": "uuid",
+   "nullable": false,
+   "doc": "Random UUIDv4 per install; never a device or ad id"
+  },
+  "build": {
+   "type": "string",
+   "required": false,
+   "max_len": 50,
+   "nullable": false,
+   "doc": "Build number"
+  },
+  "build_env": {
+   "type": "string",
+   "required": false,
+   "enum": "build_env",
+   "nullable": false,
+   "doc": "release, debug or editor"
+  },
+  "install_store": {
+   "type": "string",
+   "required": false,
+   "enum": "install_store",
+   "nullable": false,
+   "doc": "Where the install came from (Android installer, iOS AppTransaction.environment)"
+  },
+  "installer_raw": {
+   "type": "string",
+   "required": false,
+   "max_len": 100,
+   "nullable": true,
+   "doc": "Installer package as reported, for anything the enum does not cover"
+  },
+  "app_name": {
+   "type": "string",
+   "required": false,
+   "max_len": 100,
+   "nullable": false,
+   "doc": "Display name; the registry uses it for new apps"
+  },
+  "sdk": {
+   "type": "string",
+   "required": true,
+   "max_len": 50,
+   "nullable": false,
+   "doc": "unity/2.0.0, flutter/2.0.0 ..."
+  },
+  "engine": {
+   "type": "string",
+   "required": false,
+   "max_len": 50,
+   "nullable": false
+  },
+  "os": {
+   "type": "string",
+   "required": false,
+   "max_len": 50,
+   "nullable": false
+  },
+  "device_model": {
+   "type": "string",
+   "required": false,
+   "max_len": 100,
+   "nullable": false
+  },
+  "device_tier": {
+   "type": "string",
+   "required": false,
+   "enum": "device_tier",
+   "nullable": false
+  },
+  "ram_mb": {
+   "type": "int",
+   "required": false,
+   "min": 0,
+   "nullable": false
+  },
+  "locale": {
+   "type": "string",
+   "required": false,
+   "max_len": 35,
+   "nullable": false
+  },
+  "tz_offset_min": {
+   "type": "int",
+   "required": false,
+   "min": -900,
+   "max": 900,
+   "nullable": false
+  },
+  "consent": {
+   "type": "string",
+   "required": false,
+   "enum": "consent",
+   "nullable": false,
+   "doc": "denied: the collector stores nothing from this batch"
+  },
+  "child": {
+   "type": "bool",
+   "required": false,
+   "nullable": false,
+   "doc": "Child-directed mode: uid and free-text params are stripped"
+  }
+ },
+ "event": {
+  "id": {
+   "type": "string",
+   "required": true,
+   "format": "uuid",
+   "nullable": false,
+   "doc": "UUIDv7 made on the device; dedupe key"
+  },
+  "seq": {
+   "type": "int",
+   "required": true,
+   "min": 0,
+   "nullable": false,
+   "doc": "Per-install counter persisted on disk; gaps = loss, (install_id, seq) = dedupe key"
+  },
+  "name": {
+   "type": "string",
+   "required": true,
+   "max_len": 100,
+   "nullable": false,
+   "doc": "Event name (rules above)"
+  },
+  "ts": {
+   "type": "int",
+   "required": true,
+   "nullable": false,
+   "doc": "Device clock, ms since epoch"
+  },
+  "sid": {
+   "type": "string",
+   "required": true,
+   "format": "uuid",
+   "nullable": false,
+   "doc": "Session id"
+  },
+  "snum": {
+   "type": "int",
+   "required": false,
+   "min": 1,
+   "nullable": false,
+   "doc": "Session number of this install, from 1"
+  },
+  "fg_ms": {
+   "type": "int",
+   "required": false,
+   "min": 0,
+   "nullable": false,
+   "doc": "Foreground time in this session so far, ms"
+  },
+  "uid": {
+   "type": "string",
+   "required": false,
+   "max_len": 100,
+   "nullable": true,
+   "doc": "Optional game account id (never e-mail); null in child mode"
+  },
+  "p": {
+   "type": "object",
+   "required": false,
+   "nullable": false,
+   "doc": "Parameters (event catalog below)"
+  }
+ },
+ "events": {
+  "pulse_install": {
+   "category": "automatic",
+   "doc": "First launch of a new install_id (or an Android backup restore).",
+   "firebase": true,
+   "params": {
+    "install_store": {
+     "type": "string",
+     "required": true,
+     "enum": "install_store",
+     "nullable": false
+    },
+    "installer_raw": {
+     "type": "string",
+     "required": true,
+     "max_len": 100,
+     "nullable": true
+    },
+    "restored": {
+     "type": "bool",
+     "required": true,
+     "nullable": false,
+     "doc": "install_id came back from an Android backup"
+    }
+   }
+  },
+  "pulse_session_start": {
+   "category": "automatic",
+   "doc": "Cold start, or foreground after more than session_timeout_ms in the background.",
+   "firebase": true,
+   "params": {
+    "cold": {
+     "type": "bool",
+     "required": true,
+     "nullable": false
+    },
+    "since_last_s": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false,
+     "doc": "Seconds since the previous session ended"
+    }
+   }
+  },
+  "pulse_foreground": {
+   "category": "automatic",
+   "doc": "App came to the foreground.",
+   "firebase": true,
+   "params": {
+    "fg_ms": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    }
+   }
+  },
+  "pulse_background": {
+   "category": "automatic",
+   "doc": "App went to the background; triggers a flush.",
+   "firebase": true,
+   "params": {
+    "fg_ms": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    }
+   }
+  },
+  "pulse_heartbeat": {
+   "category": "automatic",
+   "doc": "Every 60 s in the foreground, only if nothing else was sent in that minute.",
+   "firebase": true,
+   "params": {
+    "fg_ms": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    }
+   }
+  },
+  "pulse_app_update": {
+   "category": "automatic",
+   "doc": "app_version differs from the last launch.",
+   "firebase": true,
+   "params": {
+    "from_version": {
+     "type": "string",
+     "required": true,
+     "max_len": 50,
+     "nullable": false
+    }
+   }
+  },
+  "pulse_error": {
+   "category": "automatic",
+   "doc": "Managed exception (Unity log hook, Flutter error hooks); at most errors_per_launch unique fingerprints per launch.",
+   "firebase": true,
+   "params": {
+    "type": {
+     "type": "string",
+     "required": true,
+     "max_len": 100,
+     "nullable": false
+    },
+    "msg": {
+     "type": "string",
+     "required": false,
+     "max_len": 256,
+     "nullable": false,
+     "free_text": true,
+     "doc": "Scrubbed message (paths and numbers removed)"
+    },
+    "frame": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false,
+     "doc": "Top stack frame"
+    },
+    "fp": {
+     "type": "string",
+     "required": true,
+     "max_len": 20,
+     "nullable": false,
+     "doc": "64-bit fingerprint, hex"
+    },
+    "fatal": {
+     "type": "bool",
+     "required": true,
+     "nullable": false
+    }
+   }
+  },
+  "pulse_exit": {
+   "category": "automatic",
+   "doc": "Sent at the next launch with the reason the previous process ended.",
+   "firebase": true,
+   "params": {
+    "reason": {
+     "type": "string",
+     "required": true,
+     "enum": "exit_reason",
+     "nullable": false
+    },
+    "prev_sid": {
+     "type": "string",
+     "required": false,
+     "max_len": 36,
+     "nullable": false
+    },
+    "prev_version": {
+     "type": "string",
+     "required": false,
+     "max_len": 50,
+     "nullable": false
+    },
+    "rss_kb": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    }
+   }
+  },
+  "pulse_consent": {
+   "category": "automatic",
+   "doc": "Consent state changed.",
+   "firebase": true,
+   "params": {
+    "state": {
+     "type": "string",
+     "required": true,
+     "enum": "consent",
+     "nullable": false
+    }
+   }
+  },
+  "pulse_perf": {
+   "category": "automatic",
+   "doc": "One frame-time window (contract v1, unchanged; see docs/EVENTS.md).",
+   "firebase": true,
+   "params": {
+    "pulse_v": {
+     "type": "int",
+     "required": false,
+     "nullable": false
+    },
+    "tier": {
+     "type": "string",
+     "required": false,
+     "enum": "device_tier",
+     "nullable": false
+    },
+    "scene": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    },
+    "window_s": {
+     "type": "double",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "frames": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "ft_src": {
+     "type": "string",
+     "required": false,
+     "max_len": 20,
+     "nullable": false
+    },
+    "ft_p50_ms": {
+     "type": "double",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "ft_p95_ms": {
+     "type": "double",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "ft_max_ms": {
+     "type": "double",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "slow_frames": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "janky_frames": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "cpu_main_p95_ms": {
+     "type": "double",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "gpu_p95_ms": {
+     "type": "double",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "mem_src": {
+     "type": "string",
+     "required": false,
+     "max_len": 20,
+     "nullable": false
+    },
+    "mem_alloc_mb": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "mem_reserved_mb": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "gc_reserved_mb": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "sys_used_mb": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    },
+    "sys_mem_mb": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    }
+   }
+  },
+  "pulse_load": {
+   "category": "automatic",
+   "doc": "A cold start or scene load (contract v1, unchanged).",
+   "firebase": true,
+   "params": {
+    "pulse_v": {
+     "type": "int",
+     "required": false,
+     "nullable": false
+    },
+    "tier": {
+     "type": "string",
+     "required": false,
+     "enum": "device_tier",
+     "nullable": false
+    },
+    "kind": {
+     "type": "string",
+     "required": true,
+     "max_len": 20,
+     "nullable": false
+    },
+    "scene": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    },
+    "duration_ms": {
+     "type": "double",
+     "required": true,
+     "min": 0,
+     "nullable": false
+    }
+   }
+  },
+  "level_start": {
+   "category": "game",
+   "doc": "A level attempt begins.",
+   "firebase": true,
+   "params": {
+    "level": {
+     "type": "int",
+     "required": true,
+     "min": 0,
+     "nullable": false
+    },
+    "level_name": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false,
+     "free_text": true
+    },
+    "world": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    },
+    "attempt": {
+     "type": "int",
+     "required": false,
+     "min": 1,
+     "nullable": false
+    },
+    "mode": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    }
+   }
+  },
+  "level_complete": {
+   "category": "game",
+   "doc": "The level was won.",
+   "firebase": true,
+   "params": {
+    "level": {
+     "type": "int",
+     "required": true,
+     "min": 0,
+     "nullable": false
+    },
+    "attempt": {
+     "type": "int",
+     "required": true,
+     "min": 1,
+     "nullable": false
+    },
+    "duration_ms": {
+     "type": "int",
+     "required": true,
+     "min": 0,
+     "nullable": false
+    },
+    "score": {
+     "type": "int",
+     "required": false,
+     "nullable": false
+    },
+    "stars": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "max": 5,
+     "nullable": false
+    },
+    "moves_left": {
+     "type": "int",
+     "required": false,
+     "nullable": false
+    }
+   }
+  },
+  "level_fail": {
+   "category": "game",
+   "doc": "The level was lost; pos_x/pos_y feed the death heatmap.",
+   "firebase": true,
+   "params": {
+    "level": {
+     "type": "int",
+     "required": true,
+     "min": 0,
+     "nullable": false
+    },
+    "attempt": {
+     "type": "int",
+     "required": true,
+     "min": 1,
+     "nullable": false
+    },
+    "duration_ms": {
+     "type": "int",
+     "required": true,
+     "min": 0,
+     "nullable": false
+    },
+    "reason": {
+     "type": "string",
+     "required": true,
+     "max_len": 40,
+     "nullable": false,
+     "doc": "Short static code: out_of_moves, out_of_time, hit_spike ..."
+    },
+    "progress": {
+     "type": "double",
+     "required": false,
+     "min": 0,
+     "max": 1,
+     "nullable": false,
+     "doc": "Share of the level done, 0-1"
+    },
+    "pos_x": {
+     "type": "double",
+     "required": false,
+     "nullable": false
+    },
+    "pos_y": {
+     "type": "double",
+     "required": false,
+     "nullable": false
+    },
+    "pos_space": {
+     "type": "string",
+     "required": false,
+     "enum": "pos_space",
+     "nullable": false,
+     "doc": "norm (0-1 of the level bounds, default) or world units"
+    },
+    "score": {
+     "type": "int",
+     "required": false,
+     "nullable": false
+    }
+   }
+  },
+  "level_quit": {
+   "category": "game",
+   "doc": "The player left a level without winning or losing.",
+   "firebase": true,
+   "params": {
+    "level": {
+     "type": "int",
+     "required": true,
+     "min": 0,
+     "nullable": false
+    },
+    "attempt": {
+     "type": "int",
+     "required": true,
+     "min": 1,
+     "nullable": false
+    },
+    "duration_ms": {
+     "type": "int",
+     "required": true,
+     "min": 0,
+     "nullable": false
+    },
+    "reason": {
+     "type": "string",
+     "required": true,
+     "enum": "quit_reason",
+     "nullable": false
+    },
+    "progress": {
+     "type": "double",
+     "required": false,
+     "min": 0,
+     "max": 1,
+     "nullable": false
+    },
+    "pos_x": {
+     "type": "double",
+     "required": false,
+     "nullable": false
+    },
+    "pos_y": {
+     "type": "double",
+     "required": false,
+     "nullable": false
+    },
+    "pos_space": {
+     "type": "string",
+     "required": false,
+     "enum": "pos_space",
+     "nullable": false
+    }
+   }
+  },
+  "tutorial_begin": {
+   "category": "game",
+   "doc": "Tutorial started (GA4 recommended name).",
+   "firebase": true,
+   "params": {
+    "tutorial": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false,
+     "doc": "Which tutorial, when there are several"
+    }
+   }
+  },
+  "tutorial_step": {
+   "category": "game",
+   "doc": "A tutorial step was shown.",
+   "firebase": true,
+   "params": {
+    "step": {
+     "type": "int",
+     "required": true,
+     "min": 0,
+     "nullable": false
+    },
+    "step_name": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false,
+     "free_text": true
+    },
+    "tutorial": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    }
+   }
+  },
+  "tutorial_complete": {
+   "category": "game",
+   "doc": "Tutorial finished (GA4 recommended name).",
+   "firebase": true,
+   "params": {
+    "tutorial": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    }
+   }
+  },
+  "setting_change": {
+   "category": "game",
+   "doc": "A setting changed; one event with setting=..., not music_off.",
+   "firebase": true,
+   "params": {
+    "setting": {
+     "type": "string",
+     "required": true,
+     "enum": "setting",
+     "nullable": false
+    },
+    "from": {
+     "type": "string",
+     "required": false,
+     "max_len": 20,
+     "nullable": false,
+     "doc": "Previous value: on/off, a language code, a quality level"
+    },
+    "to": {
+     "type": "string",
+     "required": true,
+     "max_len": 20,
+     "nullable": false
+    }
+   }
+  },
+  "earn_virtual_currency": {
+   "category": "game",
+   "doc": "Soft currency earned (GA4 recommended name).",
+   "firebase": true,
+   "params": {
+    "virtual_currency_name": {
+     "type": "string",
+     "required": true,
+     "max_len": 40,
+     "nullable": false
+    },
+    "value": {
+     "type": "double",
+     "required": true,
+     "nullable": false
+    },
+    "item_name": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    },
+    "level": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    }
+   }
+  },
+  "spend_virtual_currency": {
+   "category": "game",
+   "doc": "Soft currency spent (GA4 recommended name).",
+   "firebase": true,
+   "params": {
+    "virtual_currency_name": {
+     "type": "string",
+     "required": true,
+     "max_len": 40,
+     "nullable": false
+    },
+    "value": {
+     "type": "double",
+     "required": true,
+     "nullable": false
+    },
+    "item_name": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    },
+    "level": {
+     "type": "int",
+     "required": false,
+     "min": 0,
+     "nullable": false
+    }
+   }
+  },
+  "purchase": {
+   "category": "game",
+   "doc": "Real-money purchase. Not forwarded to Firebase (GA4 logs in_app_purchase itself).",
+   "firebase": false,
+   "params": {
+    "transaction_id": {
+     "type": "string",
+     "required": true,
+     "max_len": 100,
+     "nullable": false
+    },
+    "product_id": {
+     "type": "string",
+     "required": true,
+     "max_len": 100,
+     "nullable": false
+    },
+    "price_micros": {
+     "type": "int",
+     "required": true,
+     "min": 0,
+     "nullable": false,
+     "doc": "Price paid in micros of currency"
+    },
+    "currency": {
+     "type": "string",
+     "required": true,
+     "max_len": 3,
+     "nullable": false,
+     "doc": "ISO 4217"
+    },
+    "is_restore": {
+     "type": "bool",
+     "required": false,
+     "nullable": false
+    },
+    "is_sandbox": {
+     "type": "bool",
+     "required": false,
+     "nullable": false
+    }
+   }
+  },
+  "ad_impression": {
+   "category": "game",
+   "doc": "Impression-level ad revenue (Firebase ad revenue parameters).",
+   "firebase": true,
+   "params": {
+    "ad_platform": {
+     "type": "string",
+     "required": true,
+     "max_len": 40,
+     "nullable": false
+    },
+    "ad_format": {
+     "type": "string",
+     "required": true,
+     "max_len": 40,
+     "nullable": false
+    },
+    "value": {
+     "type": "double",
+     "required": true,
+     "min": 0,
+     "nullable": false,
+     "doc": "Revenue in currency, dot decimal"
+    },
+    "currency": {
+     "type": "string",
+     "required": true,
+     "max_len": 3,
+     "nullable": false
+    },
+    "ad_source": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    },
+    "ad_unit_name": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    },
+    "placement": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    },
+    "precision": {
+     "type": "string",
+     "required": false,
+     "max_len": 20,
+     "nullable": false
+    }
+   }
+  },
+  "ad_event": {
+   "category": "game",
+   "doc": "Ad lifecycle step.",
+   "firebase": true,
+   "params": {
+    "action": {
+     "type": "string",
+     "required": true,
+     "enum": "ad_action",
+     "nullable": false
+    },
+    "ad_format": {
+     "type": "string",
+     "required": true,
+     "max_len": 40,
+     "nullable": false
+    },
+    "placement": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    },
+    "error_code": {
+     "type": "string",
+     "required": false,
+     "max_len": 40,
+     "nullable": false
+    }
+   }
+  },
+  "screen_view": {
+   "category": "app",
+   "doc": "A screen was shown (GA4 parameter names).",
+   "firebase": true,
+   "params": {
+    "screen_name": {
+     "type": "string",
+     "required": true,
+     "max_len": 100,
+     "nullable": false
+    },
+    "screen_class": {
+     "type": "string",
+     "required": false,
+     "max_len": 100,
+     "nullable": false
+    }
+   }
+  }
+ },
+ "storage": {
+  "events": {
+   "doc": "One row per accepted event. Partition by DATE(received_at), cluster by app_id, name.",
+   "columns": [
+    {
+     "name": "event_id",
+     "type": "STRING",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "seq",
+     "type": "INT64",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "name",
+     "type": "STRING",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "ts",
+     "type": "TIMESTAMP",
+     "mode": "REQUIRED",
+     "doc": "Server-corrected time: received_at - (sent_at - ts_client)"
+    },
+    {
+     "name": "ts_client",
+     "type": "TIMESTAMP",
+     "mode": "NULLABLE",
+     "doc": "Device clock as sent"
+    },
+    {
+     "name": "sent_at",
+     "type": "TIMESTAMP",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "received_at",
+     "type": "TIMESTAMP",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "skew_ms",
+     "type": "INT64",
+     "mode": "NULLABLE",
+     "doc": "received_at - sent_at (device clock error plus transit)"
+    },
+    {
+     "name": "late",
+     "type": "BOOL",
+     "mode": "NULLABLE",
+     "doc": "ts older than late_after_ms when received"
+    },
+    {
+     "name": "sid",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "snum",
+     "type": "INT64",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "fg_ms",
+     "type": "INT64",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "uid",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "params",
+     "type": "STRING",
+     "mode": "NULLABLE",
+     "doc": "Event parameters as a JSON object (text, so every sink can write it)"
+    },
+    {
+     "name": "app_id",
+     "type": "STRING",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "platform",
+     "type": "STRING",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "app_version",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "build",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "build_env",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "install_id",
+     "type": "STRING",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "install_store",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "installer_raw",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "sdk",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "engine",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "os",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "device_model",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "device_tier",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "ram_mb",
+     "type": "INT64",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "locale",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "tz_offset_min",
+     "type": "INT64",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "consent",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "child",
+     "type": "BOOL",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "country",
+     "type": "STRING",
+     "mode": "NULLABLE",
+     "doc": "ISO 3166-1 alpha-2 from the request IP (IP discarded) or unknown"
+    },
+    {
+     "name": "key_id",
+     "type": "STRING",
+     "mode": "NULLABLE",
+     "doc": "Which write key (hash prefix), for rotation"
+    },
+    {
+     "name": "schema",
+     "type": "STRING",
+     "mode": "NULLABLE",
+     "doc": "Contract version the SDK sent (1 for upgraded v1 lines)"
+    }
+   ]
+  },
+  "quarantine": {
+   "doc": "Events and batches that failed validation, with the reason; counted by the data-quality checks.",
+   "columns": [
+    {
+     "name": "received_at",
+     "type": "TIMESTAMP",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "reason",
+     "type": "STRING",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "app_id",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "platform",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "install_id",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "event_id",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "name",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "raw",
+     "type": "STRING",
+     "mode": "NULLABLE",
+     "doc": "The event (or batch head) as received, truncated to 8 KB"
+    },
+    {
+     "name": "key_id",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    }
+   ]
+  },
+  "app_registry": {
+   "doc": "One row per (app_id, platform), created by the first event; status new -> testing -> live.",
+   "columns": [
+    {
+     "name": "app_id",
+     "type": "STRING",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "platform",
+     "type": "STRING",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "display_name",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "genre",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "status",
+     "type": "STRING",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "first_seen",
+     "type": "TIMESTAMP",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "last_seen",
+     "type": "TIMESTAMP",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "first_version",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "last_version",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "status_changed_at",
+     "type": "TIMESTAMP",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "store_listed",
+     "type": "BOOL",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "store_version",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "store_url",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "store_checked_at",
+     "type": "TIMESTAMP",
+     "mode": "NULLABLE"
+    }
+   ]
+  },
+  "deletion_requests": {
+   "doc": "Deletion requests by install_id (POST /v2/delete); executed by the next run, within deletion_max_days.",
+   "columns": [
+    {
+     "name": "install_id",
+     "type": "STRING",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "app_id",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "requested_at",
+     "type": "TIMESTAMP",
+     "mode": "REQUIRED"
+    },
+    {
+     "name": "reason",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "status",
+     "type": "STRING",
+     "mode": "NULLABLE"
+    },
+    {
+     "name": "done_at",
+     "type": "TIMESTAMP",
+     "mode": "NULLABLE"
+    }
+   ]
+  }
+ },
+ "privacy": [
+  {
+   "data": "Product interaction",
+   "apple": "NSPrivacyCollectedDataTypeProductInteraction",
+   "play": "App activity: App interactions",
+   "from": "sessions, level_*, tutorial_*, setting_change, screen_view, earn/spend_virtual_currency, ad_event, custom events"
+  },
+  {
+   "data": "Crash data",
+   "apple": "NSPrivacyCollectedDataTypeCrashData",
+   "play": "App info and performance: Crash logs",
+   "from": "pulse_error, pulse_exit"
+  },
+  {
+   "data": "Performance data",
+   "apple": "NSPrivacyCollectedDataTypePerformanceData",
+   "play": "App info and performance: Diagnostics",
+   "from": "pulse_perf, pulse_load"
+  },
+  {
+   "data": "Other diagnostic data",
+   "apple": "NSPrivacyCollectedDataTypeOtherDiagnosticData",
+   "play": "App info and performance: Diagnostics",
+   "from": "ctx: os, device_model, device_tier, ram_mb, sdk, engine"
+  },
+  {
+   "data": "Device ID",
+   "apple": "NSPrivacyCollectedDataTypeDeviceID",
+   "play": "Device or other IDs",
+   "from": "ctx.install_id (random UUID per install; no IDFA, AAID, IDFV or Android ID)"
+  },
+  {
+   "data": "User ID",
+   "apple": "NSPrivacyCollectedDataTypeUserID",
+   "play": "Personal info: User IDs",
+   "from": "event uid, only when the game sets an account id (never in child mode)"
+  },
+  {
+   "data": "Purchase history",
+   "apple": "NSPrivacyCollectedDataTypePurchaseHistory",
+   "play": "Financial info: Purchase history",
+   "from": "purchase"
+  },
+  {
+   "data": "Coarse location",
+   "apple": "NSPrivacyCollectedDataTypeCoarseLocation",
+   "play": "Location: Approximate location",
+   "from": "country derived from the request IP by the collector; the IP is never stored"
+  }
+ ]
+}

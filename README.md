@@ -17,10 +17,11 @@ store reviews included).
 
 [![Portfolio page of the demo dashboard](docs/img/dashboard.png)](https://emirhann-akca.github.io/studio-pulse/)
 
-- **16 source connectors -> 34 SQL models + 2 statistics steps -> 51
+- **17 source connectors -> 53 SQL models + 2 statistics steps -> 58
   data-quality checks -> 11 alert rules -> static HTML.** `pulse demo`
   generates export-shaped files and recorded API responses and runs them
-  through the real connectors in about 20 seconds.
+  through the real connectors, and plays three SDK games through a real
+  collector over HTTP, in about 40 seconds.
 - **UA economics**: Meta, Google Ads and TikTok spend through
   [dlt](https://github.com/dlt-hub/dlt)'s REST client, any other network from
   its CSV export; cohort ROAS D0/D7/D30, CPI, pooled ROAS curve and payback day
@@ -50,6 +51,15 @@ store reviews included).
 - **Retention against public benchmarks**: game pages place D1/D7/D30 in the
   GameAnalytics 2026 brackets (16,262 mobile games). The demo is calibrated to
   them: the good puzzle game sits at D1 38% / D7 9% / D30 3%.
+- **Own SDK collector, live view and zero-setup registry** (`pulse collect`):
+  one YAML event contract generates the Python, C#, Dart, JSON Schema and
+  BigQuery definitions; the collector validates, dedupes, corrects device
+  clocks, derives the country without storing the IP and fsyncs before it
+  answers; a new game registers itself on its first event and moves new ->
+  testing -> live (production installs plus a public store listing); `pulse
+  serve` shows who is playing right now. Details in
+  [docs/COLLECTOR.md](docs/COLLECTOR.md), [docs/CONTRACT.md](docs/CONTRACT.md),
+  [docs/PRIVACY.md](docs/PRIVACY.md).
 - **Unity and Flutter packages** on one event contract: Unity's
   `ProfilerRecorder` / FrameTimingManager counters and Flutter's
   `addTimingsCallback` (build / raster p95, janky frames, RSS, cold start),
@@ -57,7 +67,7 @@ store reviews included).
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.
-- 351 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
+- 452 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
   macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -100,7 +110,7 @@ python3 -m venv .venv
 One demo app ships a bad release in its last four days. The run ends with:
 
 ```
-Data quality: 51/51 checks passed, 0 error(s), 0 warning(s).
+Data quality: 58/58 checks passed, 0 error(s), 0 warning(s).
 4 alert(s):
   [CRITICAL] quartz_merge  crash_free_users_low      2026-10-31  crash_free_users 98.46% is below 99.00%
   [WARNING ] quartz_merge  d1_retention_drop         2026-10-30  d1_retention 17.03% is down 36.3% vs the trailing 14-day mean 26.76% (limit 20%) (z=-4.2, n=364)
@@ -127,6 +137,7 @@ interval says to keep running.
 | `pulse check` | the 51 checks in [`checks.yaml`](checks.yaml): keys, nulls, accepted values, ranges, per-source freshness, volume drop vs the trailing median, referential, reconciliations (DAU <= WAU <= MAU, retention in [0, 1], crash counts within their denominators, GA4 vs AdMob ad revenue, UA spend converted to USD, one spend row per network/day/ad, experiment sample ratio). Error-level failures fail the run, are stored in the warehouse, shown on the dashboard and notified |
 | `pulse experiment` | A/B test results from the warehouse (`--sql` prints the BigQuery aggregate query, `--input arms.csv` analyses totals from anywhere); exit 3 on a sample ratio mismatch |
 | `pulse serve` | local UI on 127.0.0.1: dashboard, refresh health (heartbeat, recent runs, check results, source freshness, schedule state), alerts, and a run-now button. It opens the warehouse read-only per request and serves the last good snapshot while a refresh is writing |
+| `pulse collect` | the SDK collector on 127.0.0.1:8787 (`setup-geoip`, `purge`); `pulse simulate` plays three fictional games against it, `pulse apps refresh` runs live detection ([docs/COLLECTOR.md](docs/COLLECTOR.md)) |
 | `pulse doctor [--json]` | Python, time zones, DuckDB, config, writable folders, Google credentials (present or not, never their contents), schedule state |
 
 Details, file locations and Windows notes: [docs/OPERATIONS.md](docs/OPERATIONS.md).
@@ -316,7 +327,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 351 tests (1 Windows-only, 1 needs the forecast extra), ~70 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 452 tests (1 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 

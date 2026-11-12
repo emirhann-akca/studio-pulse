@@ -396,3 +396,55 @@ widened to at least +-MAPE, and never below the observed day-7 value. On the
 demo: games backtest at 2.5-4% (log curve); the subscription app at about 35%,
 because trial conversions on day 7 and renewals from day 37 make a stepped
 curve that neither shape follows (a Shifted-BG subscription model is the v2).
+
+## SDK apps (Studio Pulse SDK, collector)
+
+Apps that send the SDK's events ([CONTRACT.md](CONTRACT.md), [COLLECTOR.md](COLLECTOR.md))
+get the same metrics as GA4 apps: `stg_sdk_active_users` and `stg_sdk_cohort_days`
+have the GA4 shapes and are unioned into `stg_active_users` / `stg_cohort_days`, so
+every formula above applies unchanged. What differs is where the inputs come from:
+
+| Metric | SDK definition |
+|---|---|
+| User | an install (`install_id`, random per install); production builds only (`build_env = release`, not editor or simulator) |
+| Day | the event's skew-corrected time (`ts = received_at - (sent_at - ts_client)`) in the app's time zone |
+| DAU / WAU / MAU | distinct installs with any event that day / in the 7 / 30 days up to it, per platform (summed for the app) |
+| New users, install cohort | installs whose `pulse_install` happened that day; installs older than the loaded window have no cohort (they would look new on the window's first day) |
+| Session | one `sid` (the SDK starts a new one after 30 minutes in the background), split again where 30 minutes pass without an event |
+| Session length | the session's foreground time (`fg_ms`, the SDK's clock), capped at 24 h; without `fg_ms`, first-to-last event |
+| Crashed session / user | the next launch's `pulse_exit` with reason `crash`, `crash_native` or `anr` for that session, or a fatal `pulse_error` in it; crash-free = 1 - crashed / total as above |
+| IAP revenue | `purchase` events, one per `transaction_id`, `price_micros / 1e6` x the config's `fx_rates` (USD per unit); sandbox purchases and restores count 0 |
+| Ad revenue | `ad_impression.value` x `fx_rates` for its currency |
+| Payers | installs with a purchase that has revenue that day |
+
+Level funnel (`fct_sdk_level_funnel`, production builds):
+
+- `fail_rate` = fails / (completes + fails); `attempts_per_completion` = starts / completes;
+- `avg_attempts_to_win` = mean of each player's `attempt` on their first `level_complete`;
+- `quit_inferred` = sessions whose last level event is a `level_start` with no outcome
+  (the app was killed or left mid-level);
+- `players_reached` = installs whose highest started level is at least this one;
+  `churned_here` = churned installs (no event in the 7 days before the app's newest
+  day) whose highest started level is this one: the level they quit at;
+  `churn_rate` = churned_here / players_reached.
+- The existing `fct_level_funnel` (GA4 definitions above) includes SDK apps through
+  `stg_level_daily` / `stg_level_max`.
+
+Death heatmap (`fct_sdk_fail_heatmap`): `level_fail` and `level_quit` positions per
+level on a 10 x 10 grid. `pos_space = norm` positions are fractions of the level
+(0-1); `world` positions are scaled by the level's observed min and max first.
+
+Settings (`fct_sdk_settings`): `off_share` = installs that set a setting to `off`
+(`off`, `0`, `false`, `mute`) / installs with any event; `off_in_first_session` = the
+share of them who did it in session 1; `fct_sdk_settings_when` buckets by session
+number (1, 2, 3-5, 6-10, 11+).
+
+Errors: `errors_per_session` = `pulse_error` events / sessions; per fingerprint in
+`fct_sdk_errors`.
+
+Data quality (`fct_sdk_data_quality`, all builds): `duplicate_rate` = raw rows the
+warehouse dedupe removed / raw rows; `seq_loss_rate` = 1 - received / expected
+sequence numbers, per install between its lowest and highest `seq` in the window
+(contract v2 rows only; a trailing gap is not visible until a later event arrives);
+`skewed_share` = events whose device clock was more than 10 minutes off;
+`quarantine_rate` = quarantined / (stored + quarantined) events.

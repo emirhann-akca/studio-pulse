@@ -188,3 +188,22 @@ def test_fingerprint_compare_reports_identical_runs_and_tolerated_tables(tmp_pat
     assert mod.main(tmp_path) == 0
     out = capsys.readouterr().out
     assert "1 identical" in out and "fct_ltv_curve (max rel" in out and "::error" not in out
+
+
+def test_ci_regenerates_the_contract_and_smokes_the_collector():
+    jobs = _wf("ci.yml")["jobs"]
+    lint = " ".join(s.get("run", "") for s in jobs["lint"]["steps"])
+    assert "studio_pulse.contract.generate" in lint and "git diff --exit-code" in lint
+    smoke = jobs["collector-smoke"]
+    assert set(smoke["strategy"]["matrix"]["os"]) == {"windows-latest", "macos-latest"}
+    run = " ".join(s.get("run", "") for s in smoke["steps"])
+    for needle in (
+        "collect",
+        "simulate",
+        "--verify",
+        "/live",
+        "demo.lanternleap",
+        "serve --config",
+        "--check",
+    ):
+        assert needle in run, needle

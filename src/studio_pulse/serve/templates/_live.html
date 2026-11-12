@@ -1,0 +1,31 @@
+<div id="live" hx-get="/fragments/live" hx-trigger="every 5s" hx-swap="outerHTML">
+{% if error or not snap %}
+<div class="banner" role="status">Collector not reachable at {{ collector_url }} ({{ error }}). <span>Start it with <code>pulse collect</code>; this page retries every 5 seconds.</span></div>
+{% else %}
+{% for n in snap.new_apps %}<div class="banner newapp" role="status">New app registered: {{ n.name }} <span>({{ n.app_id }}, {{ n.platform }}) · first event {{ n.ago }} · no config edit needed</span></div>{% endfor %}
+<div class="tiles">
+  <div class="tile"><div class="label">Active now (5 min)</div><div class="value" id="live-total">{{ snap.total_active }}</div><div class="delta">{{ snap.apps|length }} app(s) · {{ snap.at }}</div></div>
+  <div class="tile"><div class="label">Events this minute</div><div class="value">{{ snap.events_last_min }}</div><div class="delta">all apps</div></div>
+  <div class="tile"><div class="label">Accepted since start</div><div class="value">{{ snap.collector.accepted }}</div><div class="delta">{{ snap.collector.duplicates }} duplicates · {{ snap.collector.quarantined }} quarantined</div></div>
+  <div class="tile"><div class="label">Collector</div><div class="value" style="font-size:16px">{{ snap.collector.mode }}</div><div class="delta">{{ collector_url }}</div></div>
+</div>
+<div class="live-grid">
+{% for a in snap.apps %}
+  <section class="live-card" aria-label="{{ a.name }}">
+    <h3>{{ a.name }} <span class="badge {{ a.status }}">{{ a.status }}</span></h3>
+    <div class="sub">{{ a.app_id }} · {{ a.genre or 'app' }} · last event {{ a.seen }}</div>
+    <div class="row"><div><div class="big" data-app="{{ a.app_id }}">{{ a.active }}</div><div class="sub">active installs</div></div>{{ a.spark|safe }}</div>
+    {% if a.by %}
+    <table><thead><tr><th class="l">Platform</th><th class="l">Store</th><th class="l">Country</th><th class="l">Build</th><th>Active</th></tr></thead><tbody>
+    {% for b in a.by[:8] %}<tr><td class="l">{{ b.platform }}</td><td class="l">{{ b.store }}</td><td class="l">{{ b.country }}</td><td class="l">{{ b.build_env }}</td><td>{{ b.active }}</td></tr>{% endfor %}
+    {% if a.by|length > 8 %}<tr><td class="l" colspan="5">+ {{ a.by|length - 8 }} more</td></tr>{% endif %}
+    </tbody></table>
+    {% else %}<p class="note" style="margin:8px 0 0">Nobody in the last 5 minutes.</p>{% endif %}
+    <p class="note" style="margin:8px 0 0"><a href="/live/apps/{{ a.config_id }}">Levels, death heatmap, settings</a></p>
+  </section>
+{% else %}
+  <p class="note">No app has sent anything yet. Point an SDK (or <code>pulse simulate</code>) at the collector.</p>
+{% endfor %}
+</div>
+{% endif %}
+</div>

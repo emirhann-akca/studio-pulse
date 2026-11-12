@@ -186,6 +186,8 @@ def line_chart(
         pad = (hi - lo) * 0.08
         floor = 0.0 if min(vals) >= 0 else -math.inf
         lo, hi = max(floor, lo - pad), hi + pad
+    elif not zero:  # a flat series (e.g. 100% crash-free every day): a band below it
+        lo -= abs(lo) * 0.1 or 1.0
     if cap is not None:
         hi = min(hi, cap)
     ticks = nice_ticks(lo, hi)

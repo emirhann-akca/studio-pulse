@@ -32,9 +32,15 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
-      - run: python -m pip install "ruff>=0.5"
+      - run: python -m pip install "ruff>=0.5" "pyyaml>=6"
       - run: ruff check --output-format=github .
       - run: python .github/scripts/annotate.py "ruff format --check" ruff format --check .
+      # Event contract v2: every generated file (Python, C#, Dart, JSON Schema, BigQuery,
+      # privacy manifest, docs/CONTRACT.md) must equal what contract/pulse_v2.yaml generates.
+      - name: Contract outputs are regenerated (no diff)
+        run: |
+          PYTHONPATH=src python .github/scripts/annotate.py "contract generate" python -m studio_pulse.contract.generate
+          python .github/scripts/annotate.py "contract outputs differ from contract/pulse_v2.yaml (run: python -m studio_pulse.contract.generate)" git diff --exit-code
 
   tests:
     name: tests (${{ matrix.os }}, py${{ matrix.python }})
@@ -71,6 +77,79 @@ jobs:
         with:
           name: fingerprint-${{ matrix.os }}-py${{ matrix.python }}
           path: fingerprint/
+          retention-days: 7
+
+  collector-smoke:
+    # A real `pulse collect` process, `pulse simulate` posting over HTTP for a minute,
+    # /live checked against what was sent, then `pulse run` (while the collector is
+    # still writing) and the UI check, on Windows and macOS.
+    name: collector + simulator smoke (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install
+        run: python .github/scripts/annotate.py "pip install (${{ matrix.os }})" python -m pip install -e ".[dev]"
+      - name: Collector, simulator, /live, refresh and UI
+        shell: pwsh
+        run: |
+          $annotate = Join-Path $env:GITHUB_WORKSPACE '.github/scripts/annotate.py'
+          function Run([string]$title) {
+            & python $annotate "$title (${{ matrix.os }})" @args
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+          $work = Join-Path $env:RUNNER_TEMP ('collector ' + [char]0x015E + [char]0x0131 + 'k')
+          $out = Join-Path $env:GITHUB_WORKSPACE 'smoke-out'
+          New-Item -ItemType Directory -Force $work, $out | Out-Null
+          Set-Location -LiteralPath $work
+          $today = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
+          @(
+            'title: CI collector smoke'
+            'warehouse: wh.duckdb'
+            'site_dir: site'
+            'lookback_days: 7'
+            "end_date: '$today'"
+            "as_of: '$today'"
+            'fx_rates: {USD: 1.0, EUR: 1.08, GBP: 1.27, BRL: 0.18, INR: 0.012, TRY: 0.029, MXN: 0.055, JPY: 0.0066, IDR: 0.000063}'
+            'collector:'
+            '  data_dir: collector'
+            '  url: http://127.0.0.1:8787'
+          ) | Set-Content -Encoding utf8 pulse.yaml
+          $col = Start-Process -FilePath python -ArgumentList @('-X', 'warn_default_encoding', '-W', 'error::EncodingWarning', '-m', 'studio_pulse.cli', 'collect', '--config', 'pulse.yaml', '--port', '8787', '--country-header', 'CF-IPCountry') -PassThru -RedirectStandardOutput (Join-Path $out 'collect.out') -RedirectStandardError (Join-Path $out 'collect.err')
+          $up = $false
+          for ($i = 0; $i -lt 60 -and -not $up; $i++) {
+            try { $up = (Invoke-RestMethod http://127.0.0.1:8787/healthz).ok } catch { Start-Sleep -Seconds 1 }
+          }
+          if (-not $up) { Get-Content (Join-Path $out 'collect.err'); "::error title=collector smoke (${{ matrix.os }})::pulse collect did not answer /healthz"; exit 1 }
+          Run 'pulse simulate --verify' python -m studio_pulse.cli simulate --config pulse.yaml --backfill-days 3 --scale 0.3 --duration 60 --players 24 --pace 0.05 --ramp 10 --new-game-after 20 --verify --report (Join-Path $out 'sim.json')
+          $sim = Get-Content -Raw (Join-Path $out 'sim.json') | ConvertFrom-Json
+          $live = Invoke-RestMethod http://127.0.0.1:8787/live
+          $new = @($live.apps | Where-Object { $_.app_id -eq 'demo.lanternleap' })
+          if ($new.Count -ne 1 -or -not $sim.verify.ok -or -not $sim.accepted_matches) {
+            "::error title=collector smoke (${{ matrix.os }})::/live or the counts do not match what the simulator sent: $($sim.verify | ConvertTo-Json -Depth 5 -Compress)"
+            exit 1
+          }
+          Run 'pulse apps list' python -m studio_pulse.cli apps list --config pulse.yaml
+          Run 'pulse run while the collector writes' python -X warn_default_encoding -W error::EncodingWarning -m studio_pulse.cli run --config pulse.yaml
+          Run 'pulse serve --check' python -m studio_pulse.cli serve --config pulse.yaml --check
+          Stop-Process -Id $col.Id
+          $apps = ($live.apps | ForEach-Object { "$($_.app_id)=$($_.active)" }) -join ', '
+          "::notice title=collector smoke (${{ matrix.os }})::sent $($sim.sent.events) events ($($sim.sent.resent_events) re-sent, $($sim.sent.invalid) invalid); collector accepted $($sim.collector_accepted); /live active: $apps; new app registered: demo.lanternleap"
+          exit 0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: collector-smoke-${{ matrix.os }}
+          path: smoke-out/
+          if-no-files-found: ignore
           retention-days: 7
 
   cross-os-hash:

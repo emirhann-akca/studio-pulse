@@ -29,6 +29,7 @@ SOURCE_TYPES = (
     "play_console",
     "app_store",
     "unity_jsonl",
+    "pulse_sdk",
     *ua_pkg.SOURCE_TYPES,
     "play_reviews",
     "app_store_reviews",
@@ -252,6 +253,10 @@ def _ingest_source(
             sku=src.get("sku"),
             log=log,
         )
+    if kind == "pulse_sdk":
+        from .collector.hooks import ingest_pulse_sdk
+
+        return ingest_pulse_sdk(con, cfg, app, name, src, start, end, log)
     if kind == "unity_jsonl":
         return unity_jsonl.ingest(
             con,

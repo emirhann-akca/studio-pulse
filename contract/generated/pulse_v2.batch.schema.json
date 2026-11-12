@@ -1,0 +1,1581 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/emirhann-akca/studio-pulse/blob/main/contract/generated/pulse_v2.batch.schema.json",
+  "title": "Studio Pulse batch v2 (contract 2.0)",
+  "description": "GENERATED from contract/pulse_v2.yaml by `python -m studio_pulse.contract.generate`. Do not edit. Events also must be at most 8192 bytes as compact JSON and the body at most 1048576 bytes; those limits are checked by the collector.",
+  "type": "object",
+  "required": [
+    "v",
+    "schema",
+    "sent_at",
+    "ctx",
+    "events"
+  ],
+  "properties": {
+    "v": {
+      "const": 2
+    },
+    "schema": {
+      "type": "string",
+      "maxLength": 16,
+      "description": "Contract version the SDK was built with"
+    },
+    "sent_at": {
+      "type": "integer",
+      "description": "Device clock when the request was sent, ms since epoch"
+    },
+    "ctx": {
+      "$ref": "#/$defs/ctx"
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    }
+  },
+  "$defs": {
+    "scalar": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 100
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ctx": {
+      "type": "object",
+      "required": [
+        "app_id",
+        "platform",
+        "app_version",
+        "install_id",
+        "sdk"
+      ],
+      "properties": {
+        "app_id": {
+          "type": "string",
+          "maxLength": 150,
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,149}$",
+          "description": "Bundle id / package name"
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios",
+            "editor",
+            "windows",
+            "macos",
+            "linux",
+            "webgl"
+          ]
+        },
+        "app_version": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "install_id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+          "description": "Random UUIDv4 per install; never a device or ad id"
+        },
+        "build": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Build number"
+        },
+        "build_env": {
+          "type": "string",
+          "enum": [
+            "release",
+            "debug",
+            "editor"
+          ],
+          "description": "release, debug or editor"
+        },
+        "install_store": {
+          "type": "string",
+          "enum": [
+            "google_play",
+            "app_store",
+            "testflight",
+            "amazon",
+            "samsung",
+            "huawei",
+            "xiaomi",
+            "sideload",
+            "simulator",
+            "editor",
+            "unknown"
+          ],
+          "description": "Where the install came from (Android installer, iOS AppTransaction.environment)"
+        },
+        "installer_raw": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100,
+          "description": "Installer package as reported, for anything the enum does not cover"
+        },
+        "app_name": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Display name; the registry uses it for new apps"
+        },
+        "sdk": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "unity/2.0.0, flutter/2.0.0 ..."
+        },
+        "engine": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "os": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "device_model": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "device_tier": {
+          "type": "string",
+          "enum": [
+            "low",
+            "mid",
+            "high",
+            "unknown"
+          ]
+        },
+        "ram_mb": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "locale": {
+          "type": "string",
+          "maxLength": 35
+        },
+        "tz_offset_min": {
+          "type": "integer",
+          "minimum": -900,
+          "maximum": 900
+        },
+        "consent": {
+          "type": "string",
+          "enum": [
+            "granted",
+            "denied",
+            "not_required",
+            "unknown"
+          ],
+          "description": "denied: the collector stores nothing from this batch"
+        },
+        "child": {
+          "type": "boolean",
+          "description": "Child-directed mode: uid and free-text params are stripped"
+        }
+      },
+      "additionalProperties": true
+    },
+    "params": {
+      "type": "object",
+      "maxProperties": 25,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{0,39}$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      }
+    },
+    "p_pulse_install": {
+      "type": "object",
+      "required": [
+        "install_store",
+        "installer_raw",
+        "restored"
+      ],
+      "properties": {
+        "install_store": {
+          "type": "string",
+          "enum": [
+            "google_play",
+            "app_store",
+            "testflight",
+            "amazon",
+            "samsung",
+            "huawei",
+            "xiaomi",
+            "sideload",
+            "simulator",
+            "editor",
+            "unknown"
+          ]
+        },
+        "installer_raw": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100
+        },
+        "restored": {
+          "type": "boolean",
+          "description": "install_id came back from an Android backup"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_pulse_session_start": {
+      "type": "object",
+      "required": [
+        "cold"
+      ],
+      "properties": {
+        "cold": {
+          "type": "boolean"
+        },
+        "since_last_s": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Seconds since the previous session ended"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_pulse_foreground": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "fg_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_pulse_background": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "fg_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_pulse_heartbeat": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "fg_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_pulse_app_update": {
+      "type": "object",
+      "required": [
+        "from_version"
+      ],
+      "properties": {
+        "from_version": {
+          "type": "string",
+          "maxLength": 50
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_pulse_error": {
+      "type": "object",
+      "required": [
+        "type",
+        "fp",
+        "fatal"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "msg": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Scrubbed message (paths and numbers removed)"
+        },
+        "frame": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Top stack frame"
+        },
+        "fp": {
+          "type": "string",
+          "maxLength": 20,
+          "description": "64-bit fingerprint, hex"
+        },
+        "fatal": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_pulse_exit": {
+      "type": "object",
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "enum": [
+            "crash",
+            "crash_native",
+            "anr",
+            "low_memory",
+            "user",
+            "unclean",
+            "unknown"
+          ]
+        },
+        "prev_sid": {
+          "type": "string",
+          "maxLength": 36
+        },
+        "prev_version": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "rss_kb": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_pulse_consent": {
+      "type": "object",
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "granted",
+            "denied",
+            "not_required",
+            "unknown"
+          ]
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_pulse_perf": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "pulse_v": {
+          "type": "integer"
+        },
+        "tier": {
+          "type": "string",
+          "enum": [
+            "low",
+            "mid",
+            "high",
+            "unknown"
+          ]
+        },
+        "scene": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "window_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ft_src": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "ft_p50_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ft_p95_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ft_max_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "slow_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "janky_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cpu_main_p95_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "gpu_p95_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "mem_src": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "mem_alloc_mb": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mem_reserved_mb": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gc_reserved_mb": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sys_used_mb": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sys_mem_mb": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_pulse_load": {
+      "type": "object",
+      "required": [
+        "kind",
+        "duration_ms"
+      ],
+      "properties": {
+        "pulse_v": {
+          "type": "integer"
+        },
+        "tier": {
+          "type": "string",
+          "enum": [
+            "low",
+            "mid",
+            "high",
+            "unknown"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "scene": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "duration_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_level_start": {
+      "type": "object",
+      "required": [
+        "level"
+      ],
+      "properties": {
+        "level": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "level_name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "world": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mode": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_level_complete": {
+      "type": "object",
+      "required": [
+        "level",
+        "attempt",
+        "duration_ms"
+      ],
+      "properties": {
+        "level": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "score": {
+          "type": "integer"
+        },
+        "stars": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "moves_left": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_level_fail": {
+      "type": "object",
+      "required": [
+        "level",
+        "attempt",
+        "duration_ms",
+        "reason"
+      ],
+      "properties": {
+        "level": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Short static code: out_of_moves, out_of_time, hit_spike ..."
+        },
+        "progress": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Share of the level done, 0-1"
+        },
+        "pos_x": {
+          "type": "number"
+        },
+        "pos_y": {
+          "type": "number"
+        },
+        "pos_space": {
+          "type": "string",
+          "enum": [
+            "norm",
+            "world"
+          ],
+          "description": "norm (0-1 of the level bounds, default) or world units"
+        },
+        "score": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_level_quit": {
+      "type": "object",
+      "required": [
+        "level",
+        "attempt",
+        "duration_ms",
+        "reason"
+      ],
+      "properties": {
+        "level": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "menu",
+            "restart",
+            "background_timeout"
+          ]
+        },
+        "progress": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pos_x": {
+          "type": "number"
+        },
+        "pos_y": {
+          "type": "number"
+        },
+        "pos_space": {
+          "type": "string",
+          "enum": [
+            "norm",
+            "world"
+          ]
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_tutorial_begin": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "tutorial": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Which tutorial, when there are several"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_tutorial_step": {
+      "type": "object",
+      "required": [
+        "step"
+      ],
+      "properties": {
+        "step": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "step_name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "tutorial": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_tutorial_complete": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "tutorial": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_setting_change": {
+      "type": "object",
+      "required": [
+        "setting",
+        "to"
+      ],
+      "properties": {
+        "setting": {
+          "type": "string",
+          "enum": [
+            "music",
+            "sfx",
+            "haptics",
+            "notifications",
+            "language",
+            "quality"
+          ]
+        },
+        "from": {
+          "type": "string",
+          "maxLength": 20,
+          "description": "Previous value: on/off, a language code, a quality level"
+        },
+        "to": {
+          "type": "string",
+          "maxLength": 20
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_earn_virtual_currency": {
+      "type": "object",
+      "required": [
+        "virtual_currency_name",
+        "value"
+      ],
+      "properties": {
+        "virtual_currency_name": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "value": {
+          "type": "number"
+        },
+        "item_name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_spend_virtual_currency": {
+      "type": "object",
+      "required": [
+        "virtual_currency_name",
+        "value"
+      ],
+      "properties": {
+        "virtual_currency_name": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "value": {
+          "type": "number"
+        },
+        "item_name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_purchase": {
+      "type": "object",
+      "required": [
+        "transaction_id",
+        "product_id",
+        "price_micros",
+        "currency"
+      ],
+      "properties": {
+        "transaction_id": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "product_id": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "price_micros": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Price paid in micros of currency"
+        },
+        "currency": {
+          "type": "string",
+          "maxLength": 3,
+          "description": "ISO 4217"
+        },
+        "is_restore": {
+          "type": "boolean"
+        },
+        "is_sandbox": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_ad_impression": {
+      "type": "object",
+      "required": [
+        "ad_platform",
+        "ad_format",
+        "value",
+        "currency"
+      ],
+      "properties": {
+        "ad_platform": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "ad_format": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Revenue in currency, dot decimal"
+        },
+        "currency": {
+          "type": "string",
+          "maxLength": 3
+        },
+        "ad_source": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "ad_unit_name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "placement": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "precision": {
+          "type": "string",
+          "maxLength": 20
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_ad_event": {
+      "type": "object",
+      "required": [
+        "action",
+        "ad_format"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "request",
+            "fill",
+            "show",
+            "click",
+            "reward",
+            "fail"
+          ]
+        },
+        "ad_format": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "placement": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "error_code": {
+          "type": "string",
+          "maxLength": 40
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "p_screen_view": {
+      "type": "object",
+      "required": [
+        "screen_name"
+      ],
+      "properties": {
+        "screen_name": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "screen_class": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "id",
+        "seq",
+        "name",
+        "ts",
+        "sid"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+          "description": "UUIDv7 made on the device; dedupe key"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Per-install counter persisted on disk; gaps = loss, (install_id, seq) = dedupe key"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,39}$",
+          "not": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ad_activeview",
+                  "ad_click",
+                  "ad_exposure",
+                  "ad_query",
+                  "ad_reward",
+                  "adunit_exposure",
+                  "app_background",
+                  "app_clear_data",
+                  "app_exception",
+                  "app_remove",
+                  "app_store_refund",
+                  "app_store_subscription_cancel",
+                  "app_store_subscription_convert",
+                  "app_store_subscription_renew",
+                  "app_update",
+                  "app_upgrade",
+                  "error",
+                  "first_open",
+                  "first_visit",
+                  "os_update",
+                  "session_start",
+                  "session_start_with_rollout",
+                  "user_engagement"
+                ]
+              },
+              {
+                "pattern": "^(firebase_|google_|ga_|dynamic_link_|notification_)"
+              }
+            ]
+          }
+        },
+        "ts": {
+          "type": "integer",
+          "description": "Device clock, ms since epoch"
+        },
+        "sid": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+          "description": "Session id"
+        },
+        "snum": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Session number of this install, from 1"
+        },
+        "fg_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Foreground time in this session so far, ms"
+        },
+        "uid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100,
+          "description": "Optional game account id (never e-mail); null in child mode"
+        },
+        "p": {
+          "$ref": "#/$defs/params"
+        }
+      },
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_install"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_install"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_session_start"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_session_start"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_foreground"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_foreground"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_background"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_background"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_heartbeat"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_heartbeat"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_app_update"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_app_update"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_error"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_error"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_exit"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_exit"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_consent"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_consent"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_perf"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_perf"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "pulse_load"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_pulse_load"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "level_start"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_level_start"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "level_complete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_level_complete"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "level_fail"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_level_fail"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "level_quit"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_level_quit"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "tutorial_begin"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_tutorial_begin"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "tutorial_step"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_tutorial_step"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "tutorial_complete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_tutorial_complete"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "setting_change"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_setting_change"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "earn_virtual_currency"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_earn_virtual_currency"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "spend_virtual_currency"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_spend_virtual_currency"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "purchase"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_purchase"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "ad_impression"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_ad_impression"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "ad_event"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_ad_event"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "screen_view"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_screen_view"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "pattern": "^pulse_"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "name": {
+                "enum": [
+                  "pulse_install",
+                  "pulse_session_start",
+                  "pulse_foreground",
+                  "pulse_background",
+                  "pulse_heartbeat",
+                  "pulse_app_update",
+                  "pulse_error",
+                  "pulse_exit",
+                  "pulse_consent",
+                  "pulse_perf",
+                  "pulse_load"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

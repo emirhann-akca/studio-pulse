@@ -25,8 +25,11 @@ def test_demo_builds_every_page(demo):
     site, _ = demo
     pages = sorted(p.relative_to(site).as_posix() for p in site.rglob("*.html"))
     assert pages == [
+        "apps/demo_lanternleap.html",  # SDK games: registered themselves through the collector
+        "apps/demo_tidyhabit.html",
         "apps/mossy_match.html",
         "apps/pacer_pal.html",
+        "apps/pebble_pop.html",  # SDK game declared in pulse.yaml
         "apps/quartz_merge.html",
         "experiments.html",
         "index.html",
@@ -82,6 +85,7 @@ def test_demo_pipeline_loaded_all_sources(demo):
         "play_console",
         "app_store",
         "unity_jsonl",
+        "pulse_sdk",
     } <= sources
     # The incremental RevenueCat export re-delivers rows; the model keeps one version.
     raw, deduped, multi = con.execute(
@@ -92,7 +96,9 @@ def test_demo_pipeline_loaded_all_sources(demo):
     apps = {
         r[0] for r in con.execute("SELECT app_id FROM fct_app_summary WHERE dau_7d > 0").fetchall()
     }
-    assert apps == {"mossy_match", "pacer_pal", "quartz_merge"}
+    assert apps == {
+        "mossy_match", "pacer_pal", "quartz_merge", "pebble_pop", "demo_tidyhabit", "demo_lanternleap",
+    }  # fmt: skip
     tiers = {
         r[0]
         for r in con.execute(

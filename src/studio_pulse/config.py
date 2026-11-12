@@ -162,13 +162,18 @@ def find_config(explicit: str | Path | None = None) -> Path:
 def load_config(path: str | Path | None = None) -> Config:
     p = find_config(path)
     data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
-    return config_from_dict(data, base_dir=p.parent, path=p)
+    cfg = config_from_dict(data, base_dir=p.parent, path=p)
+    if data.get("collector"):  # SDK apps the collector registered appear without a config edit
+        from .collector.hooks import add_registry_apps
+
+        add_registry_apps(cfg)
+    return cfg
 
 
 def config_from_dict(data: dict[str, Any], base_dir: Path, path: Path | None = None) -> Config:
     data = _expand_env(data)
     apps_raw = data.get("apps") or []
-    if not apps_raw:
+    if not apps_raw and not data.get("collector"):
         raise ConfigError("config has no apps")
     apps = []
     seen = set()

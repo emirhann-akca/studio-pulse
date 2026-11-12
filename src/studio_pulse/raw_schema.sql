@@ -401,3 +401,77 @@ CREATE TABLE IF NOT EXISTS meta_alert_events (
     threshold         DOUBLE,
     message           VARCHAR
 );
+
+-- Studio Pulse SDK events (contract v2) loaded from the collector by the
+-- pulse_sdk source (collector/ingest.py). One row per accepted event; date is
+-- the event's day in the app's time zone, ts the collector's skew-corrected
+-- time. No IP and no account id (uid) reach the warehouse.
+CREATE TABLE IF NOT EXISTS raw_pulse_events (
+    app_id            VARCHAR NOT NULL,
+    bundle_id         VARCHAR,
+    platform          VARCHAR,
+    date              DATE NOT NULL,
+    event_id          VARCHAR,
+    seq               BIGINT,
+    name              VARCHAR,
+    ts                TIMESTAMP,
+    ts_client         TIMESTAMP,
+    received_at       TIMESTAMP,
+    skew_ms           BIGINT,
+    late              BOOLEAN,
+    sid               VARCHAR,
+    snum              BIGINT,
+    fg_ms             BIGINT,
+    params            JSON,
+    app_version       VARCHAR,
+    build             VARCHAR,
+    build_env         VARCHAR,
+    install_id        VARCHAR,
+    install_store     VARCHAR,
+    country           VARCHAR,
+    device_tier       VARCHAR,
+    os                VARCHAR,
+    device_model      VARCHAR,
+    sdk               VARCHAR,
+    engine            VARCHAR,
+    locale            VARCHAR,
+    consent           VARCHAR,
+    child             BOOLEAN,
+    schema            VARCHAR,
+    _source           VARCHAR NOT NULL,
+    _loaded_at        TIMESTAMP
+);
+
+-- Events the collector quarantined, counted per day, reason and event name.
+CREATE TABLE IF NOT EXISTS raw_pulse_quarantine (
+    app_id            VARCHAR NOT NULL,
+    bundle_id         VARCHAR,
+    platform          VARCHAR,
+    date              DATE,
+    reason            VARCHAR,
+    name              VARCHAR,
+    events            BIGINT,
+    _source           VARCHAR NOT NULL,
+    _loaded_at        TIMESTAMP
+);
+
+-- The collector's app registry (status new / testing / live, store listing).
+CREATE TABLE IF NOT EXISTS raw_pulse_app_registry (
+    app_id            VARCHAR NOT NULL,
+    bundle_id         VARCHAR,
+    platform          VARCHAR,
+    display_name      VARCHAR,
+    genre             VARCHAR,
+    status            VARCHAR,
+    first_seen        TIMESTAMP,
+    last_seen         TIMESTAMP,
+    first_version     VARCHAR,
+    last_version      VARCHAR,
+    status_changed_at TIMESTAMP,
+    store_listed      BOOLEAN,
+    store_version     VARCHAR,
+    store_url         VARCHAR,
+    store_checked_at  TIMESTAMP,
+    _source           VARCHAR NOT NULL,
+    _loaded_at        TIMESTAMP
+);

@@ -1,4 +1,5 @@
--- Level funnel for puzzle games.
+-- Level funnel for puzzle games (GA4 and SDK apps; SDK details incl. quits,
+-- attempts and death heatmaps are in fct_sdk_level_funnel / fct_sdk_fail_heatmap).
 --   starts / completes / fails   event counts over the loaded window
 --   win_rate                     completes / (completes + fails)
 --   attempts_per_completion      starts / completes
@@ -11,13 +12,13 @@ WITH ev AS (
            SUM(CASE WHEN action = 'start' THEN events ELSE 0 END) AS starts,
            SUM(CASE WHEN action = 'complete' THEN events ELSE 0 END) AS completes,
            SUM(CASE WHEN action = 'fail' THEN events ELSE 0 END) AS fails
-    FROM raw_level_daily
+    FROM stg_level_daily
     WHERE level IS NOT NULL
     GROUP BY 1, 2
 ),
 mx AS (
     SELECT app_id, level, users_max_here, users_churned, as_of_date, churn_window_days
-    FROM raw_level_max
+    FROM stg_level_max
     WHERE level IS NOT NULL
     QUALIFY row_number() OVER (PARTITION BY app_id, level ORDER BY _loaded_at DESC) = 1
 ),
