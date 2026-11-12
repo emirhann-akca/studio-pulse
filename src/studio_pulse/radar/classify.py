@@ -106,7 +106,8 @@ def store_fields(
     out: dict[str, str] = {}
     row = con.execute(
         "SELECT name, description, genres FROM raw_mr_app WHERE store = 'apple' AND app_id = ? "
-        "ORDER BY snapshot_date DESC, (country = ?) DESC, fetched_at DESC LIMIT 1",
+        "ORDER BY snapshot_date DESC, CASE country WHEN ? THEN 0 WHEN 'us' THEN 1 WHEN 'gb' THEN 2 "
+        "ELSE 3 END, country LIMIT 1",
         [app_id, primary_country],
     ).fetchone()
     if row:
@@ -275,6 +276,12 @@ def monetization_rows(con: duckdb.DuckDBPyConnection, app_id: str) -> list[dict[
     ]
 
 
+def _with_marker(claims: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """An LLM profile always has a row, so "the model found no mechanic" is kept and wins over
+    the keyword guess instead of disappearing."""
+    return [{"dimension": "classified", "value": "llm", "field": None, "quote": None}, *claims]
+
+
 def _profile_rows(
     app_key: str,
     profile_id: str,
@@ -370,12 +377,23 @@ def classify_apps(
             continue
         sha = input_sha(fields)
         app_key = f"apple:{app_id}"
+        pid = f"llm:{app_key}:{sha[:16]}:{model}"
         hit = con.execute(
-            "SELECT 1 FROM raw_mr_llm WHERE app_key = ? AND input_sha256 = ? AND prompt_version = ? "
-            "AND model = ? AND valid LIMIT 1",
+            "SELECT output FROM raw_mr_llm WHERE app_key = ? AND input_sha256 = ? AND prompt_version = ? "
+            "AND model = ? AND valid ORDER BY analyzed_at DESC LIMIT 1",
             [app_key, sha, PROMPT_VERSION, model],
         ).fetchone()
         if hit:
+            # no new call: the stored answer is verified again (the verifier is deterministic and
+            # may have changed) and its profile rows rewritten
+            accepted, _ = verify(json.loads(hit[0] or "{}"), fields, tax)
+            store.replace(
+                con,
+                "raw_mr_profile",
+                "profile_id = ?",
+                [pid],
+                _profile_rows(app_key, pid, "llm", sha, _with_marker(accepted), store.utcnow()),
+            )
             stats["reused"] += 1
             continue
         images = images_for(app_id) if images_for else []
@@ -397,13 +415,12 @@ def classify_apps(
             continue
         accepted, rejected = verify(res.data or {}, fields, tax)
         now = store.utcnow()
-        pid = f"llm:{app_key}:{sha[:16]}:{model}"
         store.replace(
             con,
             "raw_mr_profile",
             "profile_id = ?",
             [pid],
-            _profile_rows(app_key, pid, "llm", sha, accepted, now),
+            _profile_rows(app_key, pid, "llm", sha, _with_marker(accepted), now),
         )
         store.insert(
             con,

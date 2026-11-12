@@ -34,7 +34,7 @@ from .robots import Robots
 
 USER_AGENT = f"studio-pulse-radar/{__version__} (low-volume daily market snapshot)"
 ROBOTS_TOKEN = "studio-pulse-radar"
-ALWAYS_REFUSED = {"play.google.com": ("/_/", "/store/search", "/store/getreviews")}
+ALWAYS_REFUSED = {"play.google.com": ("/_", "/store/search", "/store/getreviews")}
 
 
 class BudgetExhausted(RuntimeError):

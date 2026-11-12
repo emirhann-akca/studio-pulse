@@ -263,6 +263,30 @@ def test_police_chief_age_comes_from_the_earliest_storefront_release(replay_run)
     assert age == (DAY - lookup_date).days and cls is None  # not a new game anywhere
 
 
+def test_batched_lookup_wins_over_the_publisher_catalogue(replay_run):
+    # Same storefront, same day, two Apple answers: the recorded batched Lookup says 1,824 US
+    # ratings for Foodie Pop!, the publisher catalogue 1,760 (Apple's cache). The batched one
+    # is used whatever the fetch order, and the disagreement is reported.
+    _, con = replay_run
+    both = dict(
+        con.execute(
+            "SELECT source, rating_count FROM raw_mr_app WHERE app_id = '6811006356' "
+            "AND country = 'us' AND store = 'apple'"
+        ).fetchall()
+    )
+    assert both == {"lookup": 1824, "publisher": 1760}
+    used = con.execute(
+        "SELECT rating_count FROM stg_mr_rating_daily WHERE app_id = '6811006356' "
+        "AND country = 'us'"
+    ).fetchall()
+    assert used == [(1824,)]
+    from studio_pulse.radar.run import run_checks
+
+    res = {c.name: c for c in run_checks(con, DAY)}
+    assert res["radar_lookup_disagreement"].status == "fail"
+    assert res["radar_lookup_disagreement"].severity == "warn"
+
+
 def test_no_personal_data_is_stored(replay_run):
     _, con = replay_run
     cols = [r[0].lower() for r in con.execute("DESCRIBE raw_mr_app").fetchall()]
@@ -676,6 +700,17 @@ def test_grounding_drops_unquoted_numeric_and_unknown_claims(classified):
         )
     finally:
         con.close()
+    con = warehouse.connect(cfg.warehouse, read_only=True)
+    try:
+        # the model found no mechanic for SCRAM: its LLM profile (a marker row) wins over the
+        # keyword guess ("runner"), so the guess is not presented as the classification
+        scram = con.execute(
+            "SELECT DISTINCT source, dimension FROM fct_mr_app_tags WHERE app_key = "
+            "'apple:6817314923' AND source <> 'store'"
+        ).fetchall()
+    finally:
+        con.close()
+    assert scram == [("llm", "classified")]
     kept = {(d, v) for d, v, _ in rows}
     assert ("mechanic_primary", "goods-sort") in kept  # (iv) a valid claim passes
     assert ("mechanic", "cooking-sim") in kept and ("twist", "order-fulfil") in kept

@@ -14,6 +14,11 @@ NEED = [
     "studio_pulse/serve/static/htmx.min.js",
     "studio_pulse/serve/static/htmx.LICENSE",
     "studio_pulse/serve/templates/base.html",
+    "studio_pulse/serve/templates/radar.html",
+    "studio_pulse/radar/schema.sql",
+    "studio_pulse/radar/models/fct_mr_breakout_daily.sql",
+    "studio_pulse/radar/taxonomy.yaml",
+    "studio_pulse/radar/checks.yaml",
 ]
 
 

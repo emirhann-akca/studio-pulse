@@ -80,6 +80,17 @@ checks:
       FROM c LEFT JOIN a USING (country, app_id) GROUP BY 1
       HAVING COUNT(a.app_id) < 0.9 * COUNT(*)
 
+  - name: radar_lookup_disagreement
+    type: sql
+    description: The batched Lookup and a publisher-catalogue Lookup of the same day disagree by more than 2% on a rating count (Apple answers from caches of different ages; the batched one is used).
+    sql: >-
+      SELECT a.country, a.app_id, a.rating_count AS batched, b.rating_count AS publisher
+      FROM raw_mr_app AS a JOIN raw_mr_app AS b
+        ON b.snapshot_date = a.snapshot_date AND b.country = a.country AND b.app_id = a.app_id
+      WHERE a.store = 'apple' AND b.store = 'apple' AND a.source = 'lookup' AND b.source = 'publisher'
+        AND a.snapshot_date = (SELECT MAX(snapshot_date) FROM raw_mr_app WHERE source = 'lookup')
+        AND abs(a.rating_count - b.rating_count) > 0.02 * GREATEST(a.rating_count, 1)
+
   - name: radar_rating_resets
     type: sql
     description: Apps whose storefront rating count dropped (developer reset); their velocity is not used.

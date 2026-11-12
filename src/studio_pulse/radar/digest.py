@@ -94,6 +94,7 @@ T = {
         "watch": "İzlemeye değer",
         "late_riser": "Geç yükselenler (60-120 gün)",
         "none": "Bugün bu sınıfta oyun yok.",
+        "shown": "Bu sınıfta {total} oyun var; puanı en yüksek {n} tanesi aşağıda (tamamı ambarda, fct_mr_breakout_daily).",
         "score": "Kural puanı M",
         "parts": "hız {v} · tırmanış {c} · sıra {r} · yayılım {s} · yeni {n}",
         "lists": "Liste",
@@ -111,7 +112,18 @@ T = {
         "play_vel": "≈{v} kurulum/gün ({m})",
         "no_play": "Play eşlemesi yok",
         "estimate": "Tahmini iOS günlük kurulum ({c})",
-        "est_method": "puan hızı ÷ Play puan/kurulum oranı %{lo}–%{hi}, n={n}",
+        "est_method": "puan hızı ÷ Play puan/kurulum oranı %{lo}–%{hi} ({rng}), n={n}",
+        "rng_iqr": "çeyrekler arası",
+        "rng_minmax": "en düşük–en yüksek",
+        "src_llm": "LLM, alıntıyla doğrulandı",
+        "src_keyword": "anahtar kelime eşleşmesi",
+        "dims": {
+            "mechanic": "ek mekanik",
+            "twist": "bükülme",
+            "theme": "tema",
+            "meta": "meta",
+            "monetization_feature": "para özelliği",
+        },
         "what": "Ne",
         "unknown_mech": "mekanik metinden çıkarılamadı",
         "mono": "para modeli",
@@ -124,10 +136,10 @@ T = {
         "trend_row": "{m}: %{share} ({apps} oyun, {days} gün)",
         "trend_hit": "{c}: {m} payı %{share}, önceki 4 hafta ortalaması %{prev}, z={z} ({apps} oyun)",
         "trend_none": "Bu hafta trend eşiğini geçen mekanik yok.",
-        "coverage": "Etiket kapsamı: listedeki satırların %{v}'i bir profile sahip (anahtar kelime ya da LLM).",
+        "coverage": "Profili olan liste satırı oranı (anahtar kelime ya da LLM): %{v}.",
         "ideas": "Bize ne öğretir / ne yapabiliriz (ÇIKARIM)",
         "idea": (
-            "{name}: {mech} çekirdeği{twist}{theme}. Ne yapabiliriz: creative-forge'da "
+            "{name}: {mech} çekirdeği ({src}){twist}{theme}. Ne yapabiliriz: creative-forge'da "
             "mechanic_shown={forge}, kanca {hooks} ile bir kreatif testi (kanıt: {ev})."
         ),
         "idea_count": "Bugünkü adaylarda en sık birincil mekanik: {m} ({n} oyun, GÖZLEM).",
@@ -157,6 +169,7 @@ T = {
         "watch": "Worth watching",
         "late_riser": "Late risers (60-120 days)",
         "none": "No game in this class today.",
+        "shown": "{total} games in this class; the {n} with the highest score are below (all in the warehouse, fct_mr_breakout_daily).",
         "score": "Rule score M",
         "parts": "velocity {v} · climb {c} · rank {r} · spread {s} · new {n}",
         "lists": "Charts",
@@ -174,7 +187,18 @@ T = {
         "play_vel": "≈{v} installs/day ({m})",
         "no_play": "no Play mapping",
         "estimate": "Estimated iOS daily installs ({c})",
-        "est_method": "rating velocity ÷ Play ratings-per-install {lo}%–{hi}%, n={n}",
+        "est_method": "rating velocity ÷ Play ratings-per-install {lo}%–{hi}% ({rng}), n={n}",
+        "rng_iqr": "interquartile",
+        "rng_minmax": "min–max",
+        "src_llm": "LLM, verified quote",
+        "src_keyword": "keyword match",
+        "dims": {
+            "mechanic": "secondary mechanic",
+            "twist": "twist",
+            "theme": "theme",
+            "meta": "meta",
+            "monetization_feature": "monetisation feature",
+        },
         "what": "What",
         "unknown_mech": "mechanic not stated in the text",
         "mono": "monetisation",
@@ -190,7 +214,7 @@ T = {
         "coverage": "Tag coverage: {v}% of chart rows have a profile (keyword or LLM).",
         "ideas": "What it teaches us / what we can do (INFERENCE)",
         "idea": (
-            "{name}: {mech} core{twist}{theme}. What we can do: a creative test in "
+            "{name}: {mech} core ({src}){twist}{theme}. What we can do: a creative test in "
             "creative-forge with mechanic_shown={forge} and hooks {hooks} (evidence: {ev})."
         ),
         "idea_count": "Most frequent primary mechanic among today's candidates: {m} ({n} games, OBSERVED).",
@@ -335,14 +359,19 @@ def build_facts(
         "AND radar_class IS NOT NULL ORDER BY momentum DESC, app_id",
         [day],
     )
+    # Play ratings per install over the day's Play pages: the interquartile range when there are
+    # at least 8 pages (the extremes span two orders of magnitude), else min-max
     ratio = _rows(
         con,
-        "SELECT COUNT(*) AS n, MIN(play_ratings / real_installs::DOUBLE) AS lo, "
-        "MAX(play_ratings / real_installs::DOUBLE) AS hi FROM stg_mr_install_daily "
-        "WHERE snapshot_date = ? AND play_ratings > 0 AND real_installs > 0",
+        "WITH r AS (SELECT play_ratings / real_installs::DOUBLE AS x FROM stg_mr_install_daily "
+        "WHERE snapshot_date = ? AND play_ratings > 0 AND real_installs > 0) "
+        "SELECT COUNT(*) AS n, MIN(x) AS mn, MAX(x) AS mx, quantile_cont(x, 0.25) AS q1, "
+        "quantile_cont(x, 0.75) AS q3 FROM r",
         [day],
     )
-    r0 = ratio[0] if ratio else {"n": 0, "lo": None, "hi": None}
+    r0 = ratio[0] if ratio else {"n": 0}
+    iqr = (r0.get("n") or 0) >= 8
+    r0["lo"], r0["hi"] = (r0.get("q1"), r0.get("q3")) if iqr else (r0.get("mn"), r0.get("mx"))
     out_items = []
     limits = {"breakout": 10, "watch": 10, "late_riser": 5}
     seen: dict[str, int] = {}
@@ -385,11 +414,13 @@ def build_facts(
             est = estimate(
                 it["rv_max"] / r0["hi"],
                 it["rv_max"] / r0["lo"],
-                "apple_rating_velocity / play_ratings_per_install",
+                "apple_rating_velocity / play_ratings_per_install"
+                + (" (interquartile)" if iqr else " (min-max)"),
                 int(r0["n"]),
                 country=it["rv_country"],
                 ratio_low=r0["lo"],
                 ratio_high=r0["hi"],
+                ratio_range="iqr" if iqr else "minmax",
             )
         out_items.append(
             {
@@ -508,6 +539,7 @@ def build_facts(
         "as_of": day.isoformat(),
         "countries": s.countries,
         "items": out_items,
+        "class_counts": {k: {"value": v, "basis": "observed"} for k, v in sorted(seen.items())},
         "trends": trends,
         "publisher_releases": [
             {
@@ -545,6 +577,7 @@ def ideas(items: list[dict[str, Any]], tax: Taxonomy) -> list[dict[str, Any]]:
                 "mechanic": m,
                 "quote": prim["quote"],
                 "field": prim["field"],
+                "source": it["profile"]["source"],
                 "twists": [c["value"] for c in _all(it["profile"], "twist")],
                 "themes": [c["value"] for c in _all(it["profile"], "theme")],
                 "forge_mechanic": tax.forge(m),
@@ -602,6 +635,9 @@ def render(facts: dict[str, Any], lang: str, narration: str | None = None) -> st
         group = [i for i in facts["items"] if i["class"] == cls]
         if not group:
             L += [t["none"], ""]
+        total = ((facts.get("class_counts") or {}).get(cls) or {}).get("value", len(group))
+        if total > len(group):
+            L += [t["shown"].format(n=len(group), total=total), ""]
         for n, it in enumerate(group, start=1):
             L += _render_item(it, lang, n)
     L += _render_trends(facts, lang)
@@ -631,6 +667,7 @@ def render(facts: dict[str, Any], lang: str, narration: str | None = None) -> st
             + t["idea"].format(
                 name=idea["name"],
                 mech=idea["mechanic"],
+                src=t["src_llm"] if idea.get("source") == "llm" else t["src_keyword"],
                 twist=twist,
                 theme=theme,
                 forge=idea["forge_mechanic"],
@@ -716,7 +753,8 @@ def _render_item(it: dict[str, Any], lang: str, n: int) -> list[str]:
             raise LabelError("refusing to render an estimate without a range")
         lo_pct = fmt(e["ratio_low"] * 100, lang, 2)
         hi_pct = fmt(e["ratio_high"] * 100, lang, 2)
-        meth = t["est_method"].format(lo=lo_pct, hi=hi_pct, n=e["n"])
+        rng = t["rng_iqr"] if e.get("ratio_range") == "iqr" else t["rng_minmax"]
+        meth = t["est_method"].format(lo=lo_pct, hi=hi_pct, rng=rng, n=e["n"])
         L.append(
             f"- {t['estimate'].format(c=_country(lang, e['country']))}: "
             f"{fmt_compact(e['low'], lang)}–{fmt_compact(e['high'], lang)} "
@@ -731,7 +769,7 @@ def _render_item(it: dict[str, Any], lang: str, n: int) -> list[str]:
         bits.append(t["unknown_mech"])
     for dim in ("mechanic", "twist", "theme", "meta", "monetization_feature"):
         for cl in _all(prof, dim):
-            bits.append(f'{dim} {cl["value"]} ("{cl["quote"]}"; {cl["field"]})')
+            bits.append(f'{t["dims"][dim]} {cl["value"]} ("{cl["quote"]}"; {cl["field"]})')
     for cl in prof["claims"]:
         if cl["dimension"].startswith("visual_"):
             bits.append(f"{cl['dimension'][7:]} {cl['value']} ({t['visual']}, {cl['field']})")

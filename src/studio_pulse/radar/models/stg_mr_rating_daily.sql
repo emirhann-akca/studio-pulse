@@ -2,12 +2,16 @@
 -- Window: the latest earlier snapshot taken 3 to 7 days before (3 days when the radar runs
 -- daily); a drop in the count is a rating reset: flagged, velocity NULL (never negative).
 -- No earlier snapshot: lifetime average since release, labelled 'lifetime'.
+-- The batched id Lookup is the primary source; a publisher-catalogue Lookup of the same day
+-- can answer from an older Apple cache (Foodie Pop!, 12 Nov 2026: 1,846 vs 1,760 in the US),
+-- so it only fills apps the batched Lookup did not return (radar_lookup_disagreement warns).
 WITH a AS (
   SELECT snapshot_date, country, app_id, rating_count, release_date
   FROM raw_mr_app
   WHERE store = 'apple' AND rating_count IS NOT NULL
   QUALIFY ROW_NUMBER() OVER (
-    PARTITION BY snapshot_date, country, app_id ORDER BY fetched_at DESC
+    PARTITION BY snapshot_date, country, app_id
+    ORDER BY CASE source WHEN 'lookup' THEN 0 ELSE 1 END, fetched_at DESC
   ) = 1
 ), w AS (
   SELECT a.*, b.snapshot_date AS base_date, b.rating_count AS base_count

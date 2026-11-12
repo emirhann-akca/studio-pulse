@@ -156,7 +156,8 @@ def run_radar(
             r[0]
             for r in con.execute(
                 "SELECT app_id FROM fct_mr_breakout_daily WHERE snapshot_date = ? AND "
-                "(radar_class IS NOT NULL OR age_days <= ?) ORDER BY momentum DESC, app_id LIMIT ?",
+                "(radar_class IS NOT NULL OR age_days <= ?) "
+                "ORDER BY radar_class IS NULL, momentum DESC, app_id LIMIT ?",
                 [day, s.params["age_max"], s.llm_max_apps],
             ).fetchall()
         ]

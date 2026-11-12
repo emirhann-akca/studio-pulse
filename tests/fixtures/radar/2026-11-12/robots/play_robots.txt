@@ -1,11 +1,14 @@
-# Excerpt of https://play.google.com/robots.txt as read on 12 Nov 2026 (the rules the radar
-# depends on; the live file has more groups and Allow lines for other paths).
-User-agent: *
-Disallow: /_/
+# Excerpt of https://play.google.com/robots.txt as read on 12 Nov 2026 (one `User-Agent: *`
+# group, 107 lines live): the Disallow rules the radar depends on, copied verbatim. No rule
+# matches /store/apps/details, so details pages are allowed.
+User-Agent: *
+Allow: /store/devices
+Allow: /about
+Disallow: /store/apps/datasafety*
+Disallow: /store/people/details
+Disallow: /_
 Disallow: /store/search
 Disallow: /store/getreviews
-Disallow: /store/apps/datasafety*
 Disallow: /store/apps/collection/p3_details_*
 Disallow: /work/search
-Allow: /store/apps/details
 Sitemap: https://play.google.com/sitemaps/sitemaps-index-0.xml

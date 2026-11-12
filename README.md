@@ -54,10 +54,24 @@ store reviews included).
   `ProfilerRecorder` / FrameTimingManager counters and Flutter's
   `addTimingsCallback` (build / raster p95, janky frames, RSS, cold start),
   zero per-frame allocations, and every event says which API produced its numbers.
+- **Market radar** ([docs/RADAR.md](docs/RADAR.md)): a daily scan of Apple's
+  game charts and iTunes Lookup plus Google Play details pages (robots.txt
+  checked in code, 3 s apart, at most 200 a day) scores new games with a
+  rule-based breakout score, tests weekly mechanic share shifts, classifies
+  games from their store text with an LLM whose every claim must quote that
+  text, and writes a Turkish and English digest in which every number is
+  labelled observed, store-reported or estimate (a range). It runs inside
+  `pulse run`, shows on a local `pulse serve` page and feeds
+  [creative-forge](https://github.com/emirhann-akca/creative-forge)'s idea
+  library through `market_trends.yaml`. Store data never goes to the public demo.
+- **Shared LLM layer** (`studio_pulse.llm`): Gemini on Vertex AI, any
+  OpenAI-compatible server (llama-server with a local LoRA), Anthropic Claude
+  or a fake; content-hash cache, per-run budget cap, token/cost ledger, schema
+  validation with one repair, retries, secrets kept out of logs.
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.
-- 351 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
+- 393 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
   macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -127,6 +141,7 @@ interval says to keep running.
 | `pulse check` | the 51 checks in [`checks.yaml`](checks.yaml): keys, nulls, accepted values, ranges, per-source freshness, volume drop vs the trailing median, referential, reconciliations (DAU <= WAU <= MAU, retention in [0, 1], crash counts within their denominators, GA4 vs AdMob ad revenue, UA spend converted to USD, one spend row per network/day/ad, experiment sample ratio). Error-level failures fail the run, are stored in the warehouse, shown on the dashboard and notified |
 | `pulse experiment` | A/B test results from the warehouse (`--sql` prints the BigQuery aggregate query, `--input arms.csv` analyses totals from anywhere); exit 3 on a sample ratio mismatch |
 | `pulse serve` | local UI on 127.0.0.1: dashboard, refresh health (heartbeat, recent runs, check results, source freshness, schedule state), alerts, and a run-now button. It opens the warehouse read-only per request and serves the last good snapshot while a refresh is writing |
+| `pulse radar run` / `show` | the market radar (also part of `pulse run` with `radar.enabled`); `--replay DIR` answers every request from recorded responses |
 | `pulse doctor [--json]` | Python, time zones, DuckDB, config, writable folders, Google credentials (present or not, never their contents), schedule state |
 
 Details, file locations and Windows notes: [docs/OPERATIONS.md](docs/OPERATIONS.md).
@@ -316,7 +331,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 351 tests (1 Windows-only, 1 needs the forecast extra), ~70 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 393 tests (1 Windows-only, 1 needs the forecast extra), ~90 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 
