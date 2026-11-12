@@ -94,6 +94,23 @@ def test_live_mode_matches_the_collector_live_view(tmp_path):
     assert v["collector"]["accepted"] == rep.sent.events - rep.sent.invalid
 
 
+def test_verify_names_the_dimension_that_differs(tmp_path):
+    """A collector without the simulator's country header: counts match, countries do not."""
+    s = CollectorSettings(data_dir=tmp_path / "c")  # no country header
+    with running_collector(s) as (url, _col):
+        poster = Poster(url, DEFAULT_LOCAL_KEY, country_header="X-Country")
+        rep = live(poster, duration_s=2, players=6, games=GAMES[:1], new_game_after_s=None,
+                   pace=0.02, first_within_s=0.5, log=lambda m: None)  # fmt: skip
+        v = verify_live(url, rep)
+    assert not v["ok"]
+    row = v["apps"][0]
+    assert row["match"] and not row["breakdown_match"]
+    assert row["dims_off"] == ["country"]
+    cells = [line for line in row["by_diff"] if not line.startswith("... ")]
+    assert cells and all(": live " in line for line in cells)
+    assert any("/unknown/" in line and "sent 0" in line for line in cells)
+
+
 def test_expected_live_marks_installs_on_the_window_edge_as_ambiguous():
     rep = Report()
     key = ("android", "google_play", "TR", "release")

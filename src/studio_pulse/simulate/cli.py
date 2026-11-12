@@ -75,6 +75,17 @@ def cmd_simulate(args: argparse.Namespace) -> int:
                     f"  {row['app_id']:<22} /live {row['live']:>4}  sent {row['expected']!s:>8}  "
                     f"{'ok' if row['match'] and row['breakdown_match'] else 'MISMATCH'}"
                 )
+                if not row["match"]:
+                    print(f"    active installs: /live {row['live']}, sent {row['expected']}")
+                if not row["breakdown_match"]:
+                    print(f"    breakdown differs in: {', '.join(row['dims_off']) or '?'}")
+                    for line in row["by_diff"]:
+                        print(f"      {line}")
+                    if "country" in row["dims_off"]:
+                        print(
+                            "    hint: the collector's --country-header must match the "
+                            f"simulator's ({args.country_header})"
+                        )
             new = sorted({a["app_id"] for a in v["new_apps"]})  # one row per platform on /live
             print(f"new apps on /live: {new}")
     sent = {

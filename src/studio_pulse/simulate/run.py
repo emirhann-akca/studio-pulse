@@ -373,6 +373,34 @@ def expected_live(
     return {"sure": dict(sure), "maybe": dict(maybe), "by": {a: dict(v) for a, v in by.items()}}
 
 
+LIVE_DIMS = ("platform", "store", "country", "build_env")  # the key of /live's `by` rows
+
+
+def dims_off(got: dict[tuple, int], want: dict[tuple, int]) -> list[str]:
+    """The /live dimensions whose totals differ from what was sent (e.g. ["country"])."""
+    off = []
+    for i, dim in enumerate(LIVE_DIMS):
+        g: defaultdict[Any, int] = defaultdict(int)
+        w: defaultdict[Any, int] = defaultdict(int)
+        for k, v in got.items():
+            g[k[i]] += v
+        for k, v in want.items():
+            w[k[i]] += v
+        if {k: v for k, v in g.items() if v} != {k: v for k, v in w.items() if v}:
+            off.append(dim)
+    return off
+
+
+def by_diff(got: dict[tuple, int], want: dict[tuple, int], limit: int = 4) -> list[str]:
+    """Breakdown cells that differ, as "android/google_play/TR/release: live 3, sent 4"."""
+    rows = [
+        f"{'/'.join(str(x) for x in k)}: live {got.get(k, 0)}, sent {want.get(k, 0)}"
+        for k in sorted(set(got) | set(want), key=lambda k: tuple(str(x) for x in k))
+        if got.get(k, 0) != want.get(k, 0)
+    ]
+    return rows[:limit] + ([f"... {len(rows) - limit} more"] if len(rows) > limit else [])
+
+
 def verify_live(url: str, report: Report, *, read_key: str | None = None) -> dict[str, Any]:
     """GET /live and compare it with what this simulator sent. Returns a result dict."""
     headers = {"X-Pulse-Read-Key": read_key} if read_key else {}
@@ -390,9 +418,12 @@ def verify_live(url: str, report: Report, *, read_key: str | None = None) -> dic
             (b["platform"], b["store"], b["country"], b["build_env"]): b["active"]
             for b in (got or {}).get("by", [])
         }
-        by_match = got_by == exp["by"].get(app, {}) if not exp["maybe"].get(app) else True
+        want_by = exp["by"].get(app, {})
+        by_match = got_by == want_by if not exp["maybe"].get(app) else True
         ok &= match and by_match
         rows.append({"app_id": app, "live": active, "expected": lo if lo == hi else [lo, hi],
-                     "breakdown_match": by_match, "match": match})  # fmt: skip
+                     "breakdown_match": by_match, "match": match,
+                     "dims_off": [] if by_match else dims_off(got_by, want_by),
+                     "by_diff": [] if by_match else by_diff(got_by, want_by)})  # fmt: skip
     return {"ok": ok, "now_ms": snap["now_ms"], "apps": rows, "new_apps": snap.get("new_apps", []),
             "collector": snap.get("collector", {})}  # fmt: skip
