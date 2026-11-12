@@ -104,3 +104,30 @@ def test_ask_is_scoped_to_the_app_and_needs_the_token(client):
         headers={"X-Pulse-Token": "t"},
     )
     assert r.status_code == 200 and "mossy_match" in r.text
+
+
+def test_an_sdk_only_app_without_data_is_awaiting_its_sdk(demo_build, tmp_path):
+    """13 Nov 2026: Acorn Mart (SDK source only, no build ships it yet) showed a GA4 badge."""
+    import dataclasses
+
+    import duckdb
+
+    cfg = demo_build.copy(tmp_path)
+    from studio_pulse import cli
+
+    assert cli.main(["run", "-c", str(cfg.path)]) == 0
+    base = next(a for a in cfg.apps if a.id == "pebble_pop")
+    waiting = dataclasses.replace(
+        base, id="next_game", name="Next Game", sources={"pulse_sdk": {"bundle_ids": ["x.next"]}}
+    )
+    cfg.apps.append(waiting)
+    con = duckdb.connect(str(cfg.warehouse))
+    con.execute(
+        "INSERT INTO meta_apps (app_id, name, genre, platforms, is_demo, timezone) "
+        "VALUES ('next_game', 'Next Game', 'puzzle', 'ANDROID', true, 'UTC')"
+    )
+    con.close()
+    c = TestClient(create_app(cfg, token="t", live_fetcher=lambda: SNAP), base_url=HOST)
+    page = c.get("/studio/next_game").text
+    assert 'class="st waiting">SDK bekleniyor<' in page
+    assert re.search(r"Mossy Match</span>\s*<span class=\"st ga4\">GA4<", page)

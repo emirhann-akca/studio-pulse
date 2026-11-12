@@ -28,7 +28,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
-STATUS_ORDER = {"live": 0, "testing": 1, "new": 2, "ga4": 3}
+STATUS_ORDER = {"live": 0, "testing": 1, "new": 2, "ga4": 3, "waiting": 4}
 
 T: dict[str, dict[str, str]] = {
     "tr": {
@@ -44,6 +44,7 @@ T: dict[str, dict[str, str]] = {
         "testing": "test",
         "new": "yeni",
         "ga4": "GA4",
+        "waiting": "SDK bekleniyor",
         "now": "şu an",
         "players_now": "Şu an oynayan",
         "dau7": "Günlük aktif (7 gün ort.)",
@@ -91,6 +92,7 @@ T: dict[str, dict[str, str]] = {
         "testing": "testing",
         "new": "new",
         "ga4": "GA4",
+        "waiting": "awaiting SDK",
         "now": "now",
         "players_now": "Playing now",
         "dau7": "Daily active (7-day avg)",
@@ -195,12 +197,15 @@ def register(
         meta = rows(con, "SELECT app_id, name, genre, platforms FROM meta_apps ORDER BY app_id")
         reg = rows(con, "SELECT app_id, platform, status FROM fct_sdk_apps")
         out: dict[str, dict[str, Any]] = {}
+        # a configured app with only an SDK source and no SDK data yet is waiting, not GA4
+        kinds = {a.id: {k.split("@", 1)[0] for k in a.sources} for a in cfg.apps}
         for m in meta:
+            k = kinds.get(m["app_id"], set())
             out[m["app_id"]] = {
                 "id": m["app_id"],
                 "name": m["name"] or m["app_id"],
                 "genre": m["genre"],
-                "status": "ga4",
+                "status": "waiting" if k and k <= {"pulse_sdk"} else "ga4",
                 "now": None,
                 "arrived": False,
             }
