@@ -118,6 +118,11 @@ not called); until then, and before iOS 16, the receipt file name decides
   (`Device.SetNoBackupFlag`). Install id present but marker missing → a restored copy:
   `pulse_install` with `restored = true` under a **new** id (two phones must never share
   an id and a `seq` space). The restored queue is deleted (the original device sends it).
+- **One process per data directory**: the queue assumes it is the only writer. On
+  Windows a queue file another process is writing cannot even be read, so two copies of
+  a desktop game running at once from the same `persistentDataPath` are not supported
+  (CI runs the kill tests on Windows by closing the dead process's file first, as the OS
+  does).
 
 ## Privacy
 
