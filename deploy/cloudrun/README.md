@@ -19,6 +19,22 @@ public write keys the SDK carries, comma separated; two during a rotation) and
 `pulse-read-key` (for `/live`). The keys never go into the image, the command
 line or this repository.
 
+## One command: bootstrap.sh
+
+```bash
+APPS="puzzle fitness" sh deploy/cloudrun/bootstrap.sh my-project --plan   # what would run
+APPS="puzzle fitness" sh deploy/cloudrun/bootstrap.sh my-project          # do it
+```
+
+It enables the APIs, makes one public write key per app plus the `/live` read
+key on your machine (once; `<state dir>/collector.env`, mode 600, never
+printed), stores them in Secret Manager, exports `main` with `git archive` (so
+untracked files such as local warehouses never reach Cloud Build), runs
+`deploy.sh --apply` from that export and writes the service URL next to the
+keys. It changes IAM and opens a public endpoint in the project, so run it
+yourself. After it: send one batch from a development build and check the rows
+in `pulse_raw.events` (the BigQuery sink is tested with fake clients only).
+
 ## What the plan creates
 
 | Step | Resource |
