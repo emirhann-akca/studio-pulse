@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:studio_pulse_perf/studio_pulse_perf.dart';
+import 'package:studio_pulse/studio_pulse_perf.dart';
 
 void main() {
   test('percentiles interpolate between closest ranks (quantile_cont)', () {

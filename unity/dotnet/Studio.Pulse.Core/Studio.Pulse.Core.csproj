@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The UnityEngine-free core of the Unity package (unity/com.studio.pulse/Runtime/Core),
+       built as a plain netstandard2.1 library so it is tested without Unity. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>Studio.Pulse.Core</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../com.studio.pulse/Runtime/Core/**/*.cs" />
+  </ItemGroup>
+</Project>

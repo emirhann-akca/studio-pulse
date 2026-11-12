@@ -3,7 +3,7 @@
 This module is the single Python source of truth for the event and parameter
 names documented in docs/EVENTS.md. The Unity package declares the same names
 in unity/com.studio.pulse/Runtime/PulseSchema.cs and the Flutter package in
-flutter/studio_pulse_perf/lib/src/schema.dart; tests/test_event_schema.py and
+flutter/studio_pulse/lib/src/schema.dart; tests/test_event_schema.py and
 tests/test_flutter_package.py fail if they drift apart.
 """
 

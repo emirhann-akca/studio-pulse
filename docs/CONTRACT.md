@@ -10,8 +10,8 @@ uses, and CI fails when a regenerated file differs from the committed one:
 |---|---|
 | `src/studio_pulse/contract/pulse_v2.json` | collector validation (shipped in the wheel) |
 | `src/studio_pulse/contract/generated.py` | Python code (`from studio_pulse.contract import generated as C`) |
-| `unity/com.studio.pulse/Runtime/PulseContract.g.cs` | Unity SDK (`Studio.Pulse.PulseContract`) |
-| `flutter/studio_pulse_perf/lib/src/contract.g.dart` | Flutter SDK (`PulseEvents`, `PulseParams` ...) |
+| `unity/com.studio.pulse/Runtime/Core/PulseContract.g.cs` | Unity SDK (`Studio.Pulse.PulseContract`) |
+| `flutter/studio_pulse/lib/src/contract.g.dart` | Flutter SDK (`PulseEvents`, `PulseParams` ...) |
 | `contract/generated/pulse_v2.batch.schema.json` | JSON Schema of a batch (any language) |
 | `contract/generated/bigquery/events.json` | BigQuery `pulse_raw.events` |
 | `contract/generated/bigquery/quarantine.json` | BigQuery `pulse_raw.quarantine` |

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:ui' show FrameTiming;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:studio_pulse_perf/studio_pulse_perf.dart';
+import 'package:studio_pulse/studio_pulse_perf.dart';
 
 /// 1800 synthetic frames (30 s at 60 Hz): totals 16.0-17.8 ms in 0.2 ms steps
 /// (i % 10), every 300th frame 40 ms. Build = 0.4 x total, raster = 0.5 x total.

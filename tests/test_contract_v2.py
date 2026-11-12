@@ -36,7 +36,7 @@ def test_check_mode_reports_a_stale_output(tmp_path):
         (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / rel).write_bytes((ROOT / rel).read_bytes())
     assert G.main(["--check", "--root", str(tmp_path)]) == 0
-    dart = tmp_path / "flutter/studio_pulse_perf/lib/src/contract.g.dart"
+    dart = tmp_path / "flutter/studio_pulse/lib/src/contract.g.dart"
     dart.write_text(dart.read_text(encoding="utf-8") + "// edited\n", encoding="utf-8")
     assert G.main(["--check", "--root", str(tmp_path)]) == 1
     assert G.main(["--root", str(tmp_path)]) == 0
@@ -86,8 +86,8 @@ def test_v1_perf_and_load_params_are_unchanged():
 
 
 def _cs_and_dart() -> tuple[str, str]:
-    cs = (ROOT / "unity/com.studio.pulse/Runtime/PulseContract.g.cs").read_text(encoding="utf-8")
-    dart = (ROOT / "flutter/studio_pulse_perf/lib/src/contract.g.dart").read_text(encoding="utf-8")
+    cs = (ROOT / "unity/com.studio.pulse/Runtime/Core/PulseContract.g.cs").read_text(encoding="utf-8")
+    dart = (ROOT / "flutter/studio_pulse/lib/src/contract.g.dart").read_text(encoding="utf-8")
     return cs, dart
 
 

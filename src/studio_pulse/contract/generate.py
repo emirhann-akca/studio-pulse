@@ -684,8 +684,8 @@ def render_spec_json(spec: dict[str, Any]) -> str:
 OUTPUTS: dict[str, tuple[str, Callable[[dict[str, Any]], str]]] = {
     "src/studio_pulse/contract/pulse_v2.json": ("collector validation (shipped in the wheel)", render_spec_json),
     "src/studio_pulse/contract/generated.py": ("Python code (`from studio_pulse.contract import generated as C`)", render_python),
-    "unity/com.studio.pulse/Runtime/PulseContract.g.cs": ("Unity SDK (`Studio.Pulse.PulseContract`)", render_csharp),
-    "flutter/studio_pulse_perf/lib/src/contract.g.dart": ("Flutter SDK (`PulseEvents`, `PulseParams` ...)", render_dart),
+    "unity/com.studio.pulse/Runtime/Core/PulseContract.g.cs": ("Unity SDK (`Studio.Pulse.PulseContract`)", render_csharp),
+    "flutter/studio_pulse/lib/src/contract.g.dart": ("Flutter SDK (`PulseEvents`, `PulseParams` ...)", render_dart),
     "contract/generated/pulse_v2.batch.schema.json": ("JSON Schema of a batch (any language)", render_json_schema),
     "contract/generated/bigquery/events.json": ("BigQuery `pulse_raw.events`", lambda s: render_bigquery(s, "events")),
     "contract/generated/bigquery/quarantine.json": ("BigQuery `pulse_raw.quarantine`", lambda s: render_bigquery(s, "quarantine")),

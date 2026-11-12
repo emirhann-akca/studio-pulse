@@ -263,7 +263,7 @@ account instead; this repository schedules nothing.
 
 ## Flutter package
 
-[`flutter/studio_pulse_perf`](flutter/studio_pulse_perf): the same
+[`flutter/studio_pulse`](flutter/studio_pulse): the same
 `pulse_perf` / `pulse_load` events from a Flutter app. Frame build and raster
 times from `SchedulerBinding.addTimingsCallback` (p50 / p95 / max, frames over
 33.3 ms and over the display's frame budget), cold start to the first

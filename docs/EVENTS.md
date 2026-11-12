@@ -2,19 +2,19 @@
 
 This is the contract between the game client and the warehouse. The Unity
 package (`unity/com.studio.pulse`) and the Flutter package
-(`flutter/studio_pulse_perf`) emit exactly these events; the Python connectors
+(`flutter/studio_pulse`) emit exactly these events; the Python connectors
 read exactly these names. The constants live in three places that tests keep
 in sync:
 
 - C#: `unity/com.studio.pulse/Runtime/PulseSchema.cs`
-- Dart: `flutter/studio_pulse_perf/lib/src/schema.dart`
+- Dart: `flutter/studio_pulse/lib/src/schema.dart`
 - Python: `src/studio_pulse/events.py`
 
 `tests/test_event_schema.py` fails if C# and Python drift apart, and also
 parses a sample produced by running the package's serializer under Mono
 (`tests/fixtures/unity/csharp_sample.jsonl`). `tests/test_flutter_package.py`
 does the same for Dart: the constants, and the JSON lines that the package's
-own `flutter test` writes (`flutter/studio_pulse_perf/test/golden/pulse_sample.jsonl`).
+own `flutter test` writes (`flutter/studio_pulse/test/golden/pulse_sample.jsonl`).
 
 ## Transports
 
@@ -91,7 +91,7 @@ window. Per frame the sampler does up to three `ProfilerRecorder.LastValue`
 reads and three stores into preallocated rings, nothing that allocates (the
 compiled IL of `PerfSampler.Tick` has no `newobj`, `newarr` or `box`).
 
-## Flutter package (`flutter/studio_pulse_perf`)
+## Flutter package (`flutter/studio_pulse`)
 
 The same `pulse_perf` / `pulse_load` events from a Flutter app, for the
 camera-heavy fitness app as much as for games:

@@ -33,3 +33,11 @@ unity/**/*.meta
 
 # pulse state (run lock, heartbeat, snapshot, logs)
 pulse-state/
+
+# SDK builds
+unity/dotnet/bin-mono/
+unity/dotnet/**/bin/
+unity/dotnet/**/obj/
+flutter/**/.dart_tool/
+flutter/**/build/
+flutter/**/pubspec.lock

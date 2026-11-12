@@ -3,7 +3,7 @@
 # `python -m studio_pulse.contract.generate` writes, from this file:
 #   src/studio_pulse/contract/generated.py                  Python constants + the spec the collector validates with
 #   unity/com.studio.pulse/Runtime/PulseContract.g.cs       C# constants for the Unity SDK (pure C#, no UnityEngine)
-#   flutter/studio_pulse_perf/lib/src/contract.g.dart       Dart constants for the Flutter SDK
+#   flutter/studio_pulse/lib/src/contract.g.dart       Dart constants for the Flutter SDK
 #   contract/generated/pulse_v2.batch.schema.json           JSON Schema of a POST /v2/batch body
 #   contract/generated/bigquery/*.json                      BigQuery table schemas (events, quarantine, registry, deletions)
 #   docs/CONTRACT.md                                        the tables below as documentation
