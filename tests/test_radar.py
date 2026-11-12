@@ -1010,6 +1010,16 @@ def test_market_trends_yaml_matches_creative_forge(classified):
     goods = next(e for e in doc["lessons"] if e["mechanic"] == "goods-sort")
     assert goods["mechanic_shown"] == "goods-sort" and "Foodie Pop!" in goods["text"]
     assert "[observed]" in goods["text"] and "[store-reported]" in goods["text"]
+    # creative-forge must be able to tell a model-checked tag from a keyword guess
+    for e in doc["lessons"]:
+        if e["signal"] != "daily_breakout":
+            continue
+        assert e["tags"] in ("llm", "keyword", "mixed")
+        if e["tags"] != "llm":
+            assert "keyword guess" in e["text"]
+        if e["tags"] == "keyword":
+            assert e["title"].endswith("(keyword tags only)")
+    assert goods["tags"] == "llm" and "LLM, quote checked" in goods["text"]
     tax = load()
     for m in tax.values("mechanics"):
         assert tax.forge(m) in FORGE_MECHANICS

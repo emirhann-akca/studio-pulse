@@ -48,6 +48,11 @@ def _first(prof: dict[str, Any], dim: str) -> dict[str, Any] | None:
     return next((c for c in prof["claims"] if c["dimension"] == dim), None)
 
 
+def _src(item: dict[str, Any]) -> str:
+    """ "llm" when a model's quote-checked profile assigned the mechanic, else "keyword"."""
+    return "llm" if item["profile"].get("source") == "llm" else "keyword"
+
+
 def build(facts: dict[str, Any], tax: Taxonomy) -> dict[str, Any]:
     day = facts["as_of"]
     groups: dict[str, list[dict[str, Any]]] = {}
@@ -75,19 +80,32 @@ def build(facts: dict[str, Any], tax: Taxonomy) -> dict[str, Any]:
             )
             if i.get("play") and i["play"].get("bucket"):
                 bit += f"; Google Play {i['play']['bucket']} installs [store-reported]"
+            how = "LLM, quote checked" if _src(i) == "llm" else "keyword guess"
             if q and q.get("quote"):
-                bit += f'; store text says "{q["quote"]}"'
+                bit += f'; mechanic: {how}, store text says "{q["quote"]}"'
+            else:
+                bit += f"; mechanic: {how}"
             parts.append(bit + ")")
         n = len(items)
+        srcs = {_src(i) for i in items}
+        tags = "llm" if srcs == {"llm"} else "keyword" if "llm" not in srcs else "mixed"
+        caveat = {
+            "llm": "",
+            "mixed": "Some mechanic tags are keyword guesses, not checked by a model. ",
+            "keyword": "Every mechanic tag here is a keyword guess from store text, not checked by "
+            "a model: treat the grouping as a lead to verify. ",
+        }[tags]
         lessons.append(
             {
                 "id": f"MT-{day}-{mech}",
-                "title": f"Market radar {day}: {mech} is rising ({n} new game{'s' if n != 1 else ''})",
+                "title": f"Market radar {day}: {mech} is rising ({n} new game{'s' if n != 1 else ''})"
+                + (" (keyword tags only)" if tags == "keyword" else ""),
                 "text": (
                     f"Market signal from public store charts on {day}: new games with {mech} as the "
                     f"primary mechanic are rising: "
                     + "; ".join(parts)
                     + ". "
+                    + caveat
                     + (f"Twists seen in their store text: {', '.join(twists)}. " if twists else "")
                     + (f"Themes: {', '.join(themes)}. " if themes else "")
                     + f"Suggested hooks (inference, not data): {', '.join(tax.hooks(mech))}. "
@@ -105,7 +123,11 @@ def build(facts: dict[str, Any], tax: Taxonomy) -> dict[str, Any]:
                 ],
                 "evidence": [e for i in items for e in i["evidence"][:3]],
                 "signal": "daily_breakout",
+                "tags": tags,  # llm | keyword | mixed: how the mechanic was assigned
                 "basis": {
+                    "mechanic": {"llm": "llm_quote", "keyword": "keyword_guess", "mixed": "mixed"}[
+                        tags
+                    ],
                     "ranks": "observed",
                     "ratings": "observed",
                     "installs": "store_reported",

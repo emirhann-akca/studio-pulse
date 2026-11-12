@@ -203,6 +203,7 @@ Written to `out_dir` and, when set, to `radar.creative_forge_library`. creative-
 | `lessons[].mechanic` / `mechanic_shown` / `gamerefinery` | strings | radar value / creative-forge tag value / GameRefinery subgenre |
 | `lessons[].themes`, `twists`, `hooks` | lists | hooks are a suggestion (inference) from the taxonomy |
 | `lessons[].apps[]` | `{app_key, name, class}` | |
+| `lessons[].tags` | `llm` / `keyword` / `mixed` | how the mechanic was assigned: an LLM claim with a quote checked against the store text, or a keyword guess; the text says so per game, and a keyword-only lesson's title ends "(keyword tags only)" |
 | `lessons[].evidence` | list | `rss:{cc}:{chart}:{genre}#{rank}@{day}`, `lookup:{cc}:{id}@{day}`, `play:{package}@{day}`, `trend:{cc}:{mechanic}@{week}` |
 | `lessons[].signal` | `daily_breakout` or `weekly_trend` | |
 | `lessons[].basis` | map | label of each kind of number in `text` |
