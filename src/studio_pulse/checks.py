@@ -14,7 +14,10 @@ passes when that query returns none. Types:
                     sparse                       max_lag_days, never loaded, or whose newest
                                                  data date is more than max_lag_days before
                                                  as_of. Sources in `sparse` (Crashlytics: no
-                                                 crash, no row) are judged by load time only
+                                                 crash, no row) are judged by load time only;
+                    awaiting_first_data          sources of these kinds that have never had a
+                                                 dated row are not judged yet (an SDK that no
+                                                 build ships); once data arrives they are
   row_count_drop    date_column, measure,        the newest day's measure (default COUNT(*)) per
                     group_by, window_days,       group is more than max_drop_pct below the median
                     max_drop_pct, min_baseline   of the previous window_days days
@@ -91,6 +94,8 @@ class Check:
     max_lag_days: int = 3
     overrides: dict[str, int] = field(default_factory=dict)
     sparse: list[str] = field(default_factory=list)
+    # kinds whose source may legitimately have no rows yet (an SDK not in any build yet)
+    awaiting_first_data: list[str] = field(default_factory=list)
     severity: str = "error"
     description: str = ""
     optional: bool = False
@@ -248,7 +253,7 @@ WHERE b.points >= ? AND b.baseline > 0 AND b.baseline >= ?
             lag_case = "?"
         for k, v in self.overrides.items():
             params += [k, int(v)]
-        params += [int(self.max_lag_days), as_of, list(self.sparse)]
+        params += [int(self.max_lag_days), as_of, list(self.sparse), list(self.awaiting_first_data)]
         sql = f"""
 WITH {expected_cte},
 latest AS (
@@ -262,7 +267,8 @@ loaded AS (
 j AS (
     SELECT e.app_id, e.source, e.kind, l.data_through, l.last_loaded_at,
            {lag_case} AS max_lag_days, CAST(? AS DATE) AS as_of,
-           list_contains(CAST(? AS VARCHAR[]), e.kind) AS sparse
+           list_contains(CAST(? AS VARCHAR[]), e.kind) AS sparse,
+           list_contains(CAST(? AS VARCHAR[]), e.kind) AS awaiting
     FROM expected e LEFT JOIN loaded l ON l.app_id = e.app_id AND l.source = e.source
     WHERE e.app_id IS NOT NULL
 ),
@@ -274,6 +280,7 @@ judged AS (
                 WHEN date_diff('day', CAST(last_loaded_at AS DATE), as_of) > max_lag_days
                     THEN 'not loaded recently'
                 WHEN sparse THEN NULL
+                WHEN data_through IS NULL AND awaiting THEN NULL
                 WHEN data_through IS NULL THEN 'loaded, but no dated rows'
                 WHEN date_diff('day', data_through, as_of) > max_lag_days THEN 'stale'
            END AS problem

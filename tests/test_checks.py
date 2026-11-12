@@ -92,6 +92,25 @@ def test_never_loaded_source_fails_freshness(demo_build, tmp_path):
     assert r.status == "fail" and "pacer_pal/revenuecat never loaded" in r.message
 
 
+def test_sdk_source_waiting_for_its_first_event_is_not_stale(demo_build, tmp_path):
+    """13 Nov 2026, first real run: an app whose SDK no build ships yet failed freshness."""
+    cfg = demo_build.copy(tmp_path)
+    _mutate(
+        cfg,
+        "UPDATE meta_loads SET max_date = NULL, min_date = NULL, rows_loaded = 0 "
+        "WHERE app_id = 'pebble_pop' AND source = 'pulse_sdk'",
+    )
+    assert "source_freshness" not in _failed(_run(cfg))
+    # a GA4 source with no dated rows is still a problem
+    _mutate(
+        cfg,
+        "UPDATE meta_loads SET max_date = NULL WHERE app_id = 'mossy_match' AND source = 'ga4_files'",
+    )
+    r = _run(cfg)["source_freshness"]
+    assert r.status == "fail" and "mossy_match/ga4_files loaded, but no dated rows" in r.message
+    assert "pebble_pop" not in r.message
+
+
 def test_seventy_percent_row_drop_fails(demo_build, tmp_path):
     cfg = demo_build.copy(tmp_path)
     con = duckdb.connect(str(cfg.warehouse))

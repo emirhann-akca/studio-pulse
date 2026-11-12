@@ -55,7 +55,9 @@ def _first_by(d: Dialect, expr: str, order: str) -> str:
 
 def _tier_case(tier_by_model: dict[str, list[str]] | None) -> str:
     if not tier_by_model:
-        return "NULL"
+        return (
+            "CAST(NULL AS STRING)"  # a bare NULL is INT64 in BigQuery (COALESCE with STRING fails)
+        )
     whens = []
     for tier, models in tier_by_model.items():
         if tier not in _TIERS:

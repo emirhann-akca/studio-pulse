@@ -21,6 +21,9 @@ checks:
     # A paused campaign or a day without reviews is not a broken source either.
     sparse: [crashlytics_bigquery, crashlytics_files, revenuecat, app_store, play_reviews, app_store_reviews,
              ua_csv, meta_ads, google_ads, tiktok_ads]
+    # An app whose SDK no build ships yet has no SDK rows at all: that is waiting, not stale.
+    # Once its first event arrives, a silent SDK source is judged like any other.
+    awaiting_first_data: [pulse_sdk]
 
   # -- keys: a loader must never duplicate rows; models must have one row per key
   - {name: raw_active_users_unique, type: unique, table: raw_ga4_active_users, columns: [app_id, _source, platform, date]}

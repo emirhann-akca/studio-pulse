@@ -244,3 +244,25 @@ def test_sdk_installs_fill_the_same_cells(tmp_path):
     assert not any("network" in g for g, _, _ in got)  # the SDK does not know the campaign
     n_b = con.execute(f"SELECT COUNT(*) FROM ({sql}) WHERE app_id = 'sdk_b'").fetchone()[0]
     assert n_b == 0
+
+
+def test_bigquery_sql_has_no_untyped_null():
+    """A bare NULL is INT64 in BigQuery: COALESCE(string, NULL-column, 'x') then fails
+    (13 Nov 2026, first real run). DuckDB accepts it, so check the text of every query."""
+    import re
+
+    o = ga4.GA4Options()
+    o.cohort_opts = {"segments": ["plan"]}
+    q = ga4.GA4Queries(BigQueryDialect("proj", "ds"), D0, D0 + dt.timedelta(days=30), o)
+    bare = re.compile(r"(?<!IS )(?<!IS NOT )(?<!CAST\()\bNULL\b(?! AS )")
+    checked = 0
+    for name in [n for n in dir(q) if not n.startswith("_") and callable(getattr(q, n))]:
+        try:
+            sql = getattr(q, name)()
+        except (TypeError, ValueError):
+            continue
+        if isinstance(sql, str):
+            checked += 1
+            assert not [ln for ln in sql.splitlines() if bare.search(ln)], name
+    assert checked >= 8
+    assert cd._tier_case(None) == "CAST(NULL AS STRING)"
