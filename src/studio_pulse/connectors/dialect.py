@@ -81,6 +81,10 @@ class Dialect:
     def ts_lit(self, d: dt.date) -> str:
         return f"TIMESTAMP '{d.isoformat()} 00:00:00'"
 
+    def epoch_ms(self, expr: str) -> str:
+        """A TIMESTAMP as milliseconds since 1970 (the collector's local store unit)."""
+        return f"epoch_ms({expr})"
+
     def date_spine(self, start: dt.date, end: dt.date) -> str:
         """A SELECT producing one row per date in [start, end] in column `day`."""
         raise NotImplementedError
@@ -107,6 +111,9 @@ class BigQueryDialect(Dialect):
 
     def table(self, name: str) -> str:
         return f"`{self.project}.{self.dataset}.{check_ident(name, 'table')}`"
+
+    def epoch_ms(self, expr: str) -> str:
+        return f"UNIX_MILLIS({expr})"
 
     def event_date(self) -> str:
         return "PARSE_DATE('%Y%m%d', event_date)"

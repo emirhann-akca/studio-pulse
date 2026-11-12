@@ -256,7 +256,10 @@ def _ingest_source(
     if kind == "pulse_sdk":
         from .collector.hooks import ingest_pulse_sdk
 
-        return ingest_pulse_sdk(con, cfg, app, name, src, start, end, log)
+        return ingest_pulse_sdk(
+            con, cfg, app, name, src, start, end, log,
+            dry_run=dry_run, bq_client=bq_client, bq_stats=bq_stats,
+        )  # fmt: skip
     if kind == "unity_jsonl":
         return unity_jsonl.ingest(
             con,

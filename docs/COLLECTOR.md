@@ -223,6 +223,26 @@ the cost table: [deploy/cloudrun/README.md](../deploy/cloudrun/README.md).
 Roughly $0 a month at 1 M events and $2 now to $12 after a year at 100 M
 events, mostly BigQuery storage.
 
+The warehouse reads the SDK events from those tables, not from a local
+folder, once the collector block names them:
+
+```yaml
+collector:
+  url: https://pulse-collector-xxxx.run.app   # pulse serve / Studio read /live here
+  read_key: ${PULSE_READ_KEY}
+  bigquery: {project: my-project, dataset: pulse_raw}   # pulse_sdk sources load from here
+```
+
+Each run selects the lookback window from `events` and `quarantine` (the
+`received_at` bound prunes the daily partitions; timestamps come back as epoch
+milliseconds, the local store's unit), leaves out installs with a
+`deletion_requests` row, and reads the registry from `app_registry`; dry-run
+first and capped by `max_bytes_billed`, like every BigQuery query here. A test
+loads the same simulated sessions both ways (local NDJSON and BigQuery-shaped
+tables) and requires identical `raw_pulse_events` and registry rows. Apps the
+config does not list are not added from the cloud registry yet: name them under
+`apps:` with their `pulse_sdk.bundle_ids`.
+
 ## Security
 
 - Body caps: 1 MiB raw and inflated, 500 events, 8 KB per event; JSON parsed

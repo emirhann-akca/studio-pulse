@@ -173,28 +173,107 @@ def _stage(
     return n
 
 
+def bigquery_sql(dialect: Any, table: str, start: dt.date, end: dt.date) -> str:
+    """The window of one collector table in BigQuery (cloud mode), in the local store's shape.
+
+    TIMESTAMP columns come back as epoch milliseconds, like the NDJSON segments. The
+    events table is partitioned by DATE(received_at): the received_at bound prunes it
+    (an event is never received before it happened). Installs with a deletion request
+    are left out, as `_stage` does for the local store.
+    """
+    cols = spec()["storage"][table]["columns"]
+    sel = ", ".join(
+        f"{dialect.epoch_ms(c['name'])} AS {c['name']}" if c["type"] == "TIMESTAMP" else c["name"]
+        for c in cols
+    )
+    ts_col = "ts" if table == "events" else "received_at"
+    lo, hi = (
+        dialect.ts_lit(start - dt.timedelta(days=1)),
+        dialect.ts_lit(end + dt.timedelta(days=2)),
+    )
+    deleted = dialect.table("deletion_requests")
+    return (
+        f"SELECT {sel} FROM {dialect.table(table)} "
+        f"WHERE received_at >= {lo} AND {ts_col} >= {lo} AND {ts_col} < {hi} "
+        f"AND (install_id IS NULL OR install_id NOT IN "
+        f"(SELECT install_id FROM {deleted} WHERE install_id IS NOT NULL))"
+    )
+
+
+REGISTRY_MS = {"first_seen": "first_seen_ms", "last_seen": "last_seen_ms",
+               "status_changed_at": "status_changed_ms", "store_checked_at": "store_checked_ms"}  # fmt: skip
+
+
+def bigquery_registry_sql(dialect: Any) -> str:
+    """The cloud collector's app_registry in the local registry's shape (times in ms)."""
+    cols = spec()["storage"]["app_registry"]["columns"]
+    sel = ", ".join(
+        f"{dialect.epoch_ms(c['name'])} AS {REGISTRY_MS.get(c['name'], c['name'])}"
+        if c["type"] == "TIMESTAMP" else c["name"]
+        for c in cols
+    )  # fmt: skip
+    return f"SELECT {sel} FROM {dialect.table('app_registry')} ORDER BY app_id, platform"
+
+
+def stage_rows(con: duckdb.DuckDBPyConnection, tag: str, tables: dict[str, Any]) -> int:
+    """TEMP stage tables from Arrow tables (BigQuery results), typed like `_stage`'s."""
+    n = 0
+    for table in ("events", "quarantine"):
+        name = f"pulse_stage_{table}_{tag}"
+        cols = _columns(table)
+        con.execute(f"DROP TABLE IF EXISTS {name}")
+        con.execute(
+            f"CREATE TEMP TABLE {name} (" + ", ".join(f'"{c}" {t}' for c, t in cols.items()) + ")"
+        )
+        data = tables.get(table)
+        if data is not None and data.num_rows:
+            con.register("pulse_stage_src", data)
+            try:
+                con.execute(
+                    f"INSERT INTO {name} SELECT "
+                    + ", ".join(f'CAST("{c}" AS {t})' for c, t in cols.items())
+                    + " FROM pulse_stage_src"
+                )
+            finally:
+                con.unregister("pulse_stage_src")
+        if table == "events":
+            n = con.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0]
+    return n
+
+
 def ingest(
     con: duckdb.DuckDBPyConnection,
     *,
     app_id: str,
     source: str,
-    data_dir: Path,
+    data_dir: Path | None,
     bundle_ids: list[str],
     timezone: str,
     start: dt.date,
     end: dt.date,
     log: Any = print,
+    stage: Any = None,
+    stage_key: str | None = None,
+    registry: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    data_dir = Path(data_dir)
-    key = f"{data_dir.resolve()}|{start}|{end}"
+    """Load one app's window. `stage(con, tag)` (cloud mode) fills the stage tables
+    instead of the local NDJSON store; `stage_key` names that source for the tag."""
+    if stage is None:
+        data_dir = Path(data_dir)  # type: ignore[arg-type]
+        key = f"{data_dir.resolve()}|{start}|{end}"
+    else:
+        key = f"{stage_key}|{start}|{end}"
     tag = hashlib.sha1(key.encode("utf-8")).hexdigest()[:10]  # noqa: S324 (a name, not security)
-    if _purged.get(key, -1e9) < time.monotonic() - 60:  # once per run per collector folder
-        purge(data_dir, log=log)
+    if stage is None and _purged.get(key, -1e9) < time.monotonic() - 60:  # once per run per folder
+        purge(data_dir, log=log)  # type: ignore[arg-type]
         _purged[key] = time.monotonic()
     try:
         con.execute(f"SELECT 1 FROM pulse_stage_events_{tag} LIMIT 0")
     except duckdb.Error:
-        _stage(con, data_dir, start, end, tag)
+        if stage is None:
+            _stage(con, data_dir, start, end, tag)  # type: ignore[arg-type]
+        else:
+            stage(con, tag)
     now = utcnow()
     local_date = "CAST(timezone(?, epoch_ms({c})::TIMESTAMPTZ) AS DATE)"
     con.execute("BEGIN TRANSACTION")
@@ -229,7 +308,9 @@ SELECT * FROM (
         )
         from .registry import read_registry
 
-        reg = [r for r in read_registry(data_dir) if r["app_id"] in bundle_ids]
+        if registry is None:
+            registry = read_registry(data_dir) if data_dir is not None else []
+        reg = [r for r in registry if r["app_id"] in bundle_ids]
         for r in reg:
             con.execute(
                 "INSERT INTO raw_pulse_app_registry BY NAME SELECT ? AS app_id, ? AS bundle_id, "
