@@ -552,7 +552,8 @@ def linux_entry(apps_dir: Path, program: Path, png: Path) -> Path:
     path.write_text(
         "[Desktop Entry]\nType=Application\n"
         f"Name={APP_NAME}\nComment=App portfolio data, live players, insights and market radar\n"
-        f'Exec="{program}"\nIcon={png}\nTerminal=false\nCategories=Development;Office;\n',
+        f'Exec="{program.as_posix()}"\nIcon={png.as_posix()}\nTerminal=false\n'
+        "Categories=Development;Office;\n",
         encoding="utf-8",
     )
     path.chmod(0o755)
@@ -591,8 +592,10 @@ def _windows_dirs() -> list[Path]:
     for folder in ("Desktop", "Programs"):
         res = subprocess.run(  # noqa: S603
             ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+             # UTF-8 out: a Turkish Windows' Desktop is ...\\Masaüstü (often under OneDrive)
+             "[Console]::OutputEncoding = [Text.Encoding]::UTF8; "
              f"[Environment]::GetFolderPath('{folder}')"],
-            capture_output=True, text=True, check=False,
+            capture_output=True, encoding="utf-8", errors="replace", check=False,
         )  # fmt: skip
         p = res.stdout.strip()
         if p:

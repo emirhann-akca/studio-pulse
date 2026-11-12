@@ -83,7 +83,7 @@ def _tracked_files() -> list[Path]:
     return [ROOT / p for p in out.decode("utf-8").split("\0") if p]
 
 
-BINARY = {".png", ".parquet", ".duckdb", ".gz", ".whl"}
+BINARY = {".png", ".parquet", ".duckdb", ".gz", ".whl", ".ico", ".icns"}
 
 
 def test_checkout_has_lf_utf8_text_on_every_os():
