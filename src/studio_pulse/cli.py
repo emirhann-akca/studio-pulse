@@ -631,6 +631,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sv.set_defaults(func=cmd_serve)
 
+    from .radar.cli import add_parser as add_radar_parser
+
+    add_radar_parser(sub, with_config)
+
     dr = with_config(sub.add_parser("doctor", help="check this machine and the config"))
     dr.add_argument("--json", action="store_true", help="machine-readable output")
     dr.set_defaults(func=cmd_doctor)

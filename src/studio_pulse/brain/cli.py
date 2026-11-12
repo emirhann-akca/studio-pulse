@@ -36,7 +36,7 @@ def cmd_insights(args: argparse.Namespace) -> int:
             evidence.store(con, rep.insights, rep.as_of)
     finally:
         con.close()
-    client = llm.client_from_config((cfg.raw or {}).get("brain"))
+    client = llm.client_for(cfg)
     if args.json:
         out = []
         for ins in rep.insights[: args.top or None]:
@@ -71,7 +71,7 @@ def cmd_ask(args: argparse.Namespace) -> int:
     if not path.exists():
         print("no warehouse yet: run `pulse run` (or `pulse demo`) first", file=sys.stderr)
         return 2
-    client = llm.client_from_config((cfg.raw or {}).get("brain"))
+    client = llm.client_for(cfg)
     a = answer(str(path), " ".join(args.question), lang=args.lang, client=client, as_of=cfg.as_of)
     if args.json:
         print(json.dumps({k: v for k, v in a.__dict__.items() if k != "evidence"}

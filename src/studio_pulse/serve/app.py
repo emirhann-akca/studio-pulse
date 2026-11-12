@@ -301,4 +301,8 @@ def create_app(
     from ..brain.web import register as register_brain  # /insights and /ask
 
     register_brain(app, cfg, templates, context=context, hosts=hosts)
+
+    from ..radar.page import register as register_radar
+
+    register_radar(app, cfg, templates, context)
     return app

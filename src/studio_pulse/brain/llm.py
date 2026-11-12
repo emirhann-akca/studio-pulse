@@ -1,9 +1,22 @@
 """The brain's narrow view of a language model, and the deterministic fake.
 
-INTEGRATION POINT (B6/B7). The provider layer lives in `studio_pulse.llm`
-(fake / OpenAI-compatible local server / Vertex Gemini / Anthropic) and is
-built on another branch. After merging, adapt it here: `client_from_config`
-should return an object with `name` and `generate(LLMRequest) -> LLMReply`.
+Providers come from the shared layer `studio_pulse.llm` (Vertex Gemini, an
+OpenAI-compatible local server such as llama-server with a LoRA, Anthropic,
+fake), wrapped by `SharedLLM` so the brain keeps its narrow request/reply
+types; the shared client adds the content-hash cache, the token/cost ledger,
+the per-run budget and schema validation with one repair. `client_for(cfg)`
+reads the config:
+
+    llm:                     # shared with the market radar
+      provider: gemini
+      model: gemini-3.5-flash-lite
+    brain:
+      provider: shared       # none (default: templates only) | fake | shared
+                             # | gemini | openai | anthropic
+      budget_usd: 0.25       # per run (default 0.50); other keys override llm:
+
+The brain stays off until `brain.provider` asks for a model; then the
+environment (PULSE_LLM_*) wins over the files, as everywhere in the layer.
 Nothing else in the brain imports a provider SDK.
 
 What a model may do here, and nothing more:
@@ -26,6 +39,7 @@ import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
 PURPOSES = ("restyle", "route", "sql")
@@ -72,6 +86,7 @@ SYSTEM_ROUTE = (
 )
 SYSTEM_SQL = (
     "Write one DuckDB SELECT over the listed tables and columns that answers the question. "
+    "Every table has an app_id column holding one of the ids in `apps`: filter on it directly. "
     'Read only; no other statements. Answer as JSON {"sql": "..."} or {"sql": null}.'
 )
 
@@ -140,18 +155,105 @@ def _json_or_none(text: str) -> dict[str, Any] | None:
     return v if isinstance(v, dict) else None
 
 
-def client_from_config(settings: dict[str, Any] | None) -> LLMClient | None:
+# Structured output per purpose: the provider is asked for it and the shared
+# client validates it (one repair); the callers check every field again.
+SCHEMAS: dict[str, dict[str, Any]] = {
+    "restyle": {
+        "type": "object",
+        "properties": {"text": {"type": "string", "minLength": 1}},
+        "required": ["text"],
+        "additionalProperties": False,
+    },
+    "route": {
+        "type": "object",
+        "properties": {
+            "metric": {"type": ["string", "null"]},
+            "app": {"type": ["string", "null"]},
+            "by": {"type": ["string", "null"]},
+            "days": {"type": ["integer", "null"]},
+        },
+        "required": ["metric", "app", "by", "days"],
+        "additionalProperties": False,
+    },
+    "sql": {
+        "type": "object",
+        "properties": {"sql": {"type": ["string", "null"]}},
+        "required": ["sql"],
+        "additionalProperties": False,
+    },
+}
+DEFAULT_BUDGET_USD = 0.50
+_OFF = (None, "none", "template", "templates")
+_SHARED = ("shared", "gemini", "openai", "anthropic")
+
+
+class SharedLLM:
+    """The brain's LLMClient on top of `studio_pulse.llm.LLMClient`."""
+
+    def __init__(self, client: Any):
+        self.client = client
+        self.name = f"{client.provider.name}:{client.provider.model}"
+
+    def generate(self, req: LLMRequest) -> LLMReply:
+        from .. import llm as shared
+
+        res = self.client.generate(
+            shared.LLMRequest(
+                prompt=req.user,
+                system=req.system,
+                schema=req.json_schema or SCHEMAS.get(req.purpose),
+                temperature=req.temperature,
+                max_output_tokens=req.max_tokens,
+                purpose=f"brain.{req.purpose}",
+            )
+        )
+        data = res.data if isinstance(res.data, dict) else _json_or_none(res.text)
+        return LLMReply(
+            text=res.text,
+            data=data,
+            usage={"input_tokens": res.input_tokens, "output_tokens": res.output_tokens},
+        )
+
+
+def client_from_config(
+    settings: dict[str, Any] | None,
+    *,
+    shared_block: dict[str, Any] | None = None,
+    state_dir: str | Path | None = None,
+    env: dict[str, str] | None = None,
+    provider_obj: Any = None,  # a studio_pulse.llm Provider (tests)
+) -> LLMClient | None:
     """The configured client, or None (templates only, the default).
 
-    `brain: {provider: fake}` gives the FakeLLM (demos, tests). Other
-    providers are B6: wire `studio_pulse.llm` here after the merge.
+    `brain: {provider: fake}` gives the FakeLLM (demos, tests). `shared` uses
+    the `llm:` block as is; a provider name uses it with the brain's keys on
+    top. Raises studio_pulse.llm.LLMConfigError for a bad setting.
     """
-    provider = (settings or {}).get("provider", "none")
-    if provider in (None, "none", "template", "templates"):
+    block = dict(settings or {})
+    provider = block.get("provider", "none")
+    if provider in _OFF:
         return None
     if provider == "fake":
         return FakeLLM()
-    raise NotImplementedError(
-        f"brain provider {provider!r}: connect studio_pulse.llm in brain/llm.py "
-        "(client_from_config) - B6 integration point"
+    if provider not in _SHARED:
+        raise ValueError(f"brain provider must be none, fake or one of {', '.join(_SHARED)}")
+    from .. import llm as shared
+
+    merged = {**(shared_block or {}), **{k: v for k, v in block.items() if k != "provider"}}
+    if provider != "shared":
+        merged["provider"] = provider
+    merged.setdefault("budget_usd", DEFAULT_BUDGET_USD)
+    s = shared.settings(merged, env=env)
+    if provider_obj is None and s["provider"] == "fake":
+        return FakeLLM()
+    base = Path(state_dir) if state_dir else Path.cwd() / "pulse-state"
+    client = shared.client_from_settings(s, state_dir=base / "brain", provider=provider_obj)
+    return SharedLLM(client) if client is not None else None
+
+
+def client_for(cfg: Any) -> LLMClient | None:
+    """`client_from_config` for a loaded Config (brain: and llm: blocks, state_dir)."""
+    raw = getattr(cfg, "raw", None) or {}
+    return client_from_config(
+        raw.get("brain"), shared_block=raw.get("llm"), state_dir=getattr(cfg, "state_dir", None)
     )

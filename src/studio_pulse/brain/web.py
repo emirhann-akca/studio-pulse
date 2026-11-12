@@ -25,6 +25,7 @@ from starlette.concurrency import run_in_threadpool
 
 from .. import runstate
 from ..config import Config
+from ..llm.base import LLMError
 from . import evidence as evidence_mod
 from . import fmt, llm, narrate
 from .executor import LockedSession
@@ -91,8 +92,8 @@ def db_path(cfg: Config) -> Path | None:
 
 def _client(cfg: Config) -> llm.LLMClient | None:
     try:
-        return llm.client_from_config((cfg.raw or {}).get("brain"))
-    except NotImplementedError:
+        return llm.client_for(cfg)
+    except (ValueError, LLMError):  # a bad provider setting: the page falls back to templates
         return None
 
 

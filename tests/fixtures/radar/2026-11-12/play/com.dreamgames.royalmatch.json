@@ -1,0 +1,62 @@
+{
+ "appId": "com.dreamgames.royalmatch",
+ "title": "Royal Match",
+ "description": "Welcome to Royal Match, the king of puzzle games! Swipe colors, solve match-3 puzzles and help King Robert decorate his castle. An exciting adventure is calling you!\r\n\r\nWe have thousands of challenging match-3 levels for you to play in the Royal Arena! On this fun journey, you will solve exciting puzzles, receive coins for unlocking new areas, decorate King Robert’s castle and get extra boosters to continue your saga. Also you can compete with millions of players in events such as King's Cup, Sky Race, Team Battle, Lightning Rush and claim exciting rewards for your achievements. Fun and challenge never ends and you will never have a dull moment in Royal Match.\r\n \r\nAnd BOOM! It is 100% ad free and no wifi needed - internet free.\r\n \r\nJump into the adventure and play now! We have lots of sweet puzzles to enjoy. Each new episode comes with free coins, helpful boosters, surprising awards, challenging tasks and wonderful areas.\r\n \r\n- A unique match 3 gameplay and fun levels for both masters and new match 3 players!\r\n- Unlock and blast powerful boosters!\r\n- Collect loads of coins and special treasures in bonus levels!\r\n- Watch out for obstacles on the road such as birds, boxes, potions, c",
+ "summary": "Decorate King Robert's Castle by solving puzzles along the way!",
+ "installs": "100,000,000+",
+ "minInstalls": 100000000,
+ "realInstalls": 385318456,
+ "score": 4.6351666,
+ "ratings": 11016335,
+ "offersIAP": true,
+ "inAppProductPrice": "$0.99 - $99.99 per item",
+ "developer": "Dream Games, Ltd.",
+ "developerEmail": "contact@example.invalid",
+ "genre": "Puzzle",
+ "genreId": "GAME_PUZZLE",
+ "categories": [
+  {
+   "name": "Puzzle",
+   "id": "GAME_PUZZLE"
+  },
+  {
+   "name": "Match 3",
+   "id": null
+  },
+  {
+   "name": "Match 3 adventure",
+   "id": null
+  },
+  {
+   "name": "Casual",
+   "id": "GAME_CASUAL"
+  },
+  {
+   "name": "Single player",
+   "id": null
+  },
+  {
+   "name": "Stylized",
+   "id": null
+  },
+  {
+   "name": "Miscellaneous",
+   "id": null
+  },
+  {
+   "name": "Puzzles",
+   "id": null
+  },
+  {
+   "name": "History",
+   "id": null
+  },
+  {
+   "name": "Offline",
+   "id": null
+  }
+ ],
+ "containsAds": false,
+ "released": "Feb 25, 2021",
+ "version": "39933"
+}

@@ -32,7 +32,9 @@ from . import guard
 DEFAULT_TIMEOUT_S = 10.0
 
 # Tables a question may read: aggregates only. raw_* (loader input), stg_store_reviews
-# (review text, untrusted and personal), meta_loads/meta_run (bookkeeping) are not.
+# (review text, untrusted and personal), meta_loads/meta_run (bookkeeping) are not;
+# nor are the per-install SDK tables (stg_pulse_events, stg_sdk_installs, ...) or
+# fct_sdk_errors, whose stack frames and messages are free text from the app.
 ALLOWED_TABLES = (
     "fct_app_daily", "fct_app_summary", "fct_retention", "fct_retention_summary",
     "fct_cohort_ltv", "fct_ltv_curve", "fct_level_funnel", "fct_perf_daily",
@@ -42,6 +44,11 @@ ALLOWED_TABLES = (
     "fct_rating_by_version", "fct_android_vitals_daily", "fct_source_freshness",
     "fct_experiment_arms", "fct_experiment_tests", "fct_pltv_summary", "fct_pltv_curve",
     "stg_cohort_days", "stg_cohort_dims", "stg_segment_retention", "meta_apps",
+    # studio SDK aggregates (collector): apps and store status, level funnel with quits,
+    # where players fail, settings turned off, purchases, ad revenue, crash-free sessions
+    "fct_sdk_apps", "fct_sdk_level_funnel", "fct_sdk_fail_heatmap", "fct_sdk_settings",
+    "fct_sdk_settings_when", "fct_sdk_purchases", "fct_sdk_ad_revenue_daily",
+    "fct_sdk_errors_daily", "fct_sdk_data_quality",
 )  # fmt: skip
 
 

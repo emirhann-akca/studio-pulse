@@ -1,0 +1,2809 @@
+{
+"feed": {
+"updated": {
+"label": "2026-11-12T05:45:33-07:00"
+},
+"entry": [
+{
+"im:name": {
+"label": "MONOPOLY GO!"
+},
+"im:artist": {
+"label": "Scopely, Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/scopely-inc/id305003647"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1621328561",
+"im:bundleId": "com.scopely.monopolygo"
+}
+},
+"im:releaseDate": {
+"label": "2023-04-11T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Gossip Harbor®: Merge & Story"
+},
+"im:artist": {
+"label": "Microfun Limited",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/microfun-limited/id1650531996"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1623318294",
+"im:bundleId": "com.mergegame.icookie"
+}
+},
+"im:releaseDate": {
+"label": "2022-07-07T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Roblox"
+},
+"im:artist": {
+"label": "Roblox Corporation",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/roblox-corporation/id431946155"
+}
+},
+"id": {
+"attributes": {
+"im:id": "431946152",
+"im:bundleId": "com.roblox.robloxmobile"
+}
+},
+"im:releaseDate": {
+"label": "2011-05-26T13:51:47-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Royal Match"
+},
+"im:artist": {
+"label": "Dream Games",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/dream-games/id1482155846"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1482155847",
+"im:bundleId": "com.dreamgames.royalmatch"
+}
+},
+"im:releaseDate": {
+"label": "2021-02-25T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Candy Crush Saga"
+},
+"im:artist": {
+"label": "King",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/king/id526656015"
+}
+},
+"id": {
+"attributes": {
+"im:id": "553834731",
+"im:bundleId": "com.midasplayer.apps.candycrushsaga"
+}
+},
+"im:releaseDate": {
+"label": "2012-11-14T06:41:32-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Pokémon GO"
+},
+"im:artist": {
+"label": "Scopely Explore, Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/scopely-explore-inc/id1037205060"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1094591345",
+"im:bundleId": "com.nianticlabs.pokemongo"
+}
+},
+"im:releaseDate": {
+"label": "2016-07-06T17:39:49-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Royal Kingdom"
+},
+"im:artist": {
+"label": "Dream Games",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/dream-games/id1482155846"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1606549505",
+"im:bundleId": "com.dreamgames.royalkingdom"
+}
+},
+"im:releaseDate": {
+"label": "2024-11-21T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Total Battle: War Strategy"
+},
+"im:artist": {
+"label": "Scorewarrior",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/scorewarrior/id1274132544"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1274132545",
+"im:bundleId": "com.totalbattle"
+}
+},
+"im:releaseDate": {
+"label": "2018-10-20T08:45:58-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Kingshot"
+},
+"im:artist": {
+"label": "Century Games Pte. Ltd.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/century-games-pte-ltd/id1540548141"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6739554056",
+"im:bundleId": "com.run.tower.defense"
+}
+},
+"im:releaseDate": {
+"label": "2025-02-22T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Honkai: Star Rail"
+},
+"im:artist": {
+"label": "COGNOSPHERE PTE. LTD.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/cognosphere-pte-ltd/id1599719156"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1599719154",
+"im:bundleId": "com.HoYoverse.hkrpgoversea"
+}
+},
+"im:releaseDate": {
+"label": "2023-04-22T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Call of Duty®: Mobile"
+},
+"im:artist": {
+"label": "Activision Publishing, Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/activision-publishing-inc/id285005466"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1287282214",
+"im:bundleId": "com.activision.callofduty.shooter"
+}
+},
+"im:releaseDate": {
+"label": "2019-09-30T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Whiteout Survival"
+},
+"im:artist": {
+"label": "Century Games Pte. Ltd.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/century-games-pte-ltd/id1540548141"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6443575749",
+"im:bundleId": "com.gof.global"
+}
+},
+"im:releaseDate": {
+"label": "2023-02-12T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Last Z: Survival Shooter"
+},
+"im:artist": {
+"label": "Omnilojo Pte Ltd",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/omnilojo-pte-ltd/id1838371095"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6503272652",
+"im:bundleId": "com.readygo.barrel.ios"
+}
+},
+"im:releaseDate": {
+"label": "2025-04-24T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Free Fire x NARUTO SHIPPUDEN"
+},
+"im:artist": {
+"label": "GARENA INTERNATIONAL I PRIVATE LIMITED",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/garena-international-i-private-limited/id1335627134"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1300146617",
+"im:bundleId": "com.dts.freefireth"
+}
+},
+"im:releaseDate": {
+"label": "2017-12-07T19:42:29-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Township"
+},
+"im:artist": {
+"label": "Playrix",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/playrix/id1162116447"
+}
+},
+"id": {
+"attributes": {
+"im:id": "638689075",
+"im:bundleId": "com.playrix.township-ios"
+}
+},
+"im:releaseDate": {
+"label": "2013-10-23T18:11:48-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Toon Blast"
+},
+"im:artist": {
+"label": "Peak Games",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/peak-games/id476160947"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1176027022",
+"im:bundleId": "net.peakgames.toonblast"
+}
+},
+"im:releaseDate": {
+"label": "2017-08-15T01:15:03-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Gardenscapes"
+},
+"im:artist": {
+"label": "Playrix",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/playrix/id1162116447"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1105855019",
+"im:bundleId": "com.playrix.gardenscapes-m3-ios"
+}
+},
+"im:releaseDate": {
+"label": "2016-08-24T21:13:46-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Tasty Travels: Merge Game"
+},
+"im:artist": {
+"label": "Century Games Pte. Ltd.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/century-games-pte-ltd/id1540548141"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6471045672",
+"im:bundleId": "com.fatmerge.global"
+}
+},
+"im:releaseDate": {
+"label": "2024-04-11T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Match Factory!"
+},
+"im:artist": {
+"label": "Peak Games",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/peak-games/id476160947"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6449094229",
+"im:bundleId": "net.peakgames.match"
+}
+},
+"im:releaseDate": {
+"label": "2023-11-01T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Last War:Survival"
+},
+"im:artist": {
+"label": "FUNFLY PTE. LTD.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/funfly-pte-ltd/id1748704065"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6448786147",
+"im:bundleId": "com.lastwar.ios"
+}
+},
+"im:releaseDate": {
+"label": "2023-08-02T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Colony Flow!"
+},
+"im:artist": {
+"label": "ABI GLOBAL LTD.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/abi-global-ltd/id1743349083"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6779167923",
+"im:bundleId": "com.abi.colony.flow"
+}
+},
+"im:releaseDate": {
+"label": "2026-06-13T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "EA SPORTS FC Soccer Mobile 27"
+},
+"im:artist": {
+"label": "Electronic Arts",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/electronic-arts/id284800461"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1094930513",
+"im:bundleId": "com.ea.ios.fifamobile"
+}
+},
+"im:releaseDate": {
+"label": "2016-10-11T01:25:15-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Fishdom"
+},
+"im:artist": {
+"label": "Playrix",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/playrix/id1162116447"
+}
+},
+"id": {
+"attributes": {
+"im:id": "664575829",
+"im:bundleId": "com.playrix.fishdom-freeplay"
+}
+},
+"im:releaseDate": {
+"label": "2015-12-09T19:20:41-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Block Out! - Color Sort Puzzle"
+},
+"im:artist": {
+"label": "Grand Games A.Ş.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/grand-games-a-%C5%9F/id1742757639"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6752672568",
+"im:bundleId": "com.grandgames.catblockjam"
+}
+},
+"im:releaseDate": {
+"label": "2025-10-31T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Bus Traffic Fever!"
+},
+"im:artist": {
+"label": "GOODROID,Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/goodroid-inc/id951688937"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6759763476",
+"im:bundleId": "jp.co.goodroid.hyper.busflow"
+}
+},
+"im:releaseDate": {
+"label": "2026-03-13T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "eFootball™"
+},
+"im:artist": {
+"label": "KONAMI",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/konami/id299580230"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1117270703",
+"im:bundleId": "jp.konami.pesactionmobile"
+}
+},
+"im:releaseDate": {
+"label": "2017-05-23T20:14:53-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Pixel Flow!"
+},
+"im:artist": {
+"label": "Loom Games Oyun Yazilim ve Pazarlama Anonim Sirketi",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/loom-games-oyun-yazilim-ve-pazarlama-anonim-sirketi/id1833998834"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6751056652",
+"im:bundleId": "com.loomgames.pixelflow"
+}
+},
+"im:releaseDate": {
+"label": "2025-08-17T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Homescapes"
+},
+"im:artist": {
+"label": "Playrix",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/playrix/id1162116447"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1195621598",
+"im:bundleId": "com.playrix.gardenscapes-sweethome"
+}
+},
+"im:releaseDate": {
+"label": "2017-09-19T03:45:36-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Coin Master"
+},
+"im:artist": {
+"label": "Moon Active",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/moon-active/id470556954"
+}
+},
+"id": {
+"attributes": {
+"im:id": "406889139",
+"im:bundleId": "com.mobile-softing.coinmaster"
+}
+},
+"im:releaseDate": {
+"label": "2010-12-11T11:19:07-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Jelly Busters: Puzzle Game"
+},
+"im:artist": {
+"label": "Moon Active",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/moon-active/id470556954"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6756058501",
+"im:bundleId": "com.moonactive.jellybusters"
+}
+},
+"im:releaseDate": {
+"label": "2026-01-26T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Lightning Link Casino Slots"
+},
+"im:artist": {
+"label": "Product Madness",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/product-madness/id525894639"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1243005112",
+"im:bundleId": "com.productmadness.lightninglink"
+}
+},
+"im:releaseDate": {
+"label": "2018-05-22T12:03:04-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Clash of Clans"
+},
+"im:artist": {
+"label": "Supercell",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/supercell/id488106216"
+}
+},
+"id": {
+"attributes": {
+"im:id": "529479190",
+"im:bundleId": "com.supercell.magic"
+}
+},
+"im:releaseDate": {
+"label": "2012-08-02T01:24:58-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Screwdom"
+},
+"im:artist": {
+"label": "Zego Global Pte Ltd",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/zego-global-pte-ltd/id1637372610"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6740043080",
+"im:bundleId": "com.dino.screwdom"
+}
+},
+"im:releaseDate": {
+"label": "2025-01-02T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Disney Solitaire"
+},
+"im:artist": {
+"label": "SuperPlay",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/superplay/id1484468650"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6475757306",
+"im:bundleId": "com.superplaystudios.disneysolitairedreams"
+}
+},
+"im:releaseDate": {
+"label": "2025-04-17T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Magic Sort!"
+},
+"im:artist": {
+"label": "Grand Games A.Ş.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/grand-games-a-%C5%9F/id1742757639"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6499209744",
+"im:bundleId": "com.grandgames.magicsort"
+}
+},
+"im:releaseDate": {
+"label": "2024-05-28T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Cashman Casino Slots Games"
+},
+"im:artist": {
+"label": "Product Madness",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/product-madness/id525894639"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1123582513",
+"im:bundleId": "com.productmadness.mrcashmancasino"
+}
+},
+"im:releaseDate": {
+"label": "2017-07-14T11:24:56-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "DRAGON BALL Z DOKKAN BATTLE"
+},
+"im:artist": {
+"label": "Bandai Namco Entertainment Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/bandai-namco-entertainment-inc/id352305770"
+}
+},
+"id": {
+"attributes": {
+"im:id": "951627425",
+"im:bundleId": "jp.co.bandainamcogames.BNGI0221"
+}
+},
+"im:releaseDate": {
+"label": "2015-07-15T19:59:25-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Yarn Loop: Knit Puzzle"
+},
+"im:artist": {
+"label": "Combo Games",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/combo-games/id1641699177"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6755183085",
+"im:bundleId": "com.combo.yarnflow"
+}
+},
+"im:releaseDate": {
+"label": "2025-11-21T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Jackpot Party - Casino Slots"
+},
+"im:artist": {
+"label": "Phantom EFX, Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/phantom-efx-inc/id310624343"
+}
+},
+"id": {
+"attributes": {
+"im:id": "575980917",
+"im:bundleId": "com.williamsinteractive.jackpotparty"
+}
+},
+"im:releaseDate": {
+"label": "2012-12-12T15:33:11-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Merge Cooking®"
+},
+"im:artist": {
+"label": "Happibits",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/happibits/id1597889315"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1643509748",
+"im:bundleId": "com.merge.cooking.theme.restaurant.food"
+}
+},
+"im:releaseDate": {
+"label": "2022-09-19T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "NYT Games: Wordle & Crossword"
+},
+"im:artist": {
+"label": "The New York Times Company",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/the-new-york-times-company/id284862086"
+}
+},
+"id": {
+"attributes": {
+"im:id": "307569751",
+"im:bundleId": "com.magmic.NYTCrosswords09"
+}
+},
+"im:releaseDate": {
+"label": "2009-03-26T19:01:58-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Top Lords"
+},
+"im:artist": {
+"label": "GAME SPARK PTE. LTD.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/game-spark-pte-ltd/id1896512523"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6767834940",
+"im:bundleId": "com.topking.ios"
+}
+},
+"im:releaseDate": {
+"label": "2026-05-31T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Solitaire Associations Journey"
+},
+"im:artist": {
+"label": "Hitapps Games LTD",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/hitapps-games-ltd/id1648314473"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6748950306",
+"im:bundleId": "com.hitappsgames.wordsolitaire"
+}
+},
+"im:releaseDate": {
+"label": "2025-09-11T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Limbus Company"
+},
+"im:artist": {
+"label": "Project Moon Co., Ltd.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/project-moon-co-ltd/id1618925701"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6444112366",
+"im:bundleId": "com.ProjectMoon.LimbusCompany"
+}
+},
+"im:releaseDate": {
+"label": "2023-02-27T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Sand Blocks: Drop Puzzle"
+},
+"im:artist": {
+"label": "Rollic Games",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/rollic-games/id1452111779"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6757140488",
+"im:bundleId": "com.uncosoft.wordpuzzle"
+}
+},
+"im:releaseDate": {
+"label": "2026-02-05T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Pokémon TCG Pocket"
+},
+"im:artist": {
+"label": "The Pokemon Company",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/the-pokemon-company/id446737235"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6479970832",
+"im:bundleId": "jp.pokemon.pokemontcgp"
+}
+},
+"im:releaseDate": {
+"label": "2024-10-30T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Evony"
+},
+"im:artist": {
+"label": "TOP GAMES INC.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/top-games-inc/id1050386041"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1098157959",
+"im:bundleId": "com.topgamesinc.evony"
+}
+},
+"im:releaseDate": {
+"label": "2016-04-26T19:06:23-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Dark War:Survival"
+},
+"im:artist": {
+"label": "Omnilojo Pte Ltd",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/omnilojo-pte-ltd/id1838371095"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6670441558",
+"im:bundleId": "com.readygo.dark.nbios"
+}
+},
+"im:releaseDate": {
+"label": "2024-09-11T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Flambé®: Merge and Cook"
+},
+"im:artist": {
+"label": "Microfun Limited",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/microfun-limited/id1650531996"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6618142292",
+"im:bundleId": "com.mf.cola"
+}
+},
+"im:releaseDate": {
+"label": "2025-05-08T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Travel Town - Merge Adventure"
+},
+"im:artist": {
+"label": "Moon Active",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/moon-active/id470556954"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1521236603",
+"im:bundleId": "io.randomco.travel"
+}
+},
+"im:releaseDate": {
+"label": "2021-02-12T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Color Block Jam"
+},
+"im:artist": {
+"label": "Rollic Games",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/rollic-games/id1452111779"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6504332779",
+"im:bundleId": "com.GybeGames.ColorBlockJam"
+}
+},
+"im:releaseDate": {
+"label": "2024-06-28T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Candy Crush Soda Saga"
+},
+"im:artist": {
+"label": "King",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/king/id526656015"
+}
+},
+"id": {
+"attributes": {
+"im:id": "850417475",
+"im:bundleId": "com.midasplayer.apps.candycrushsodasaga"
+}
+},
+"im:releaseDate": {
+"label": "2014-11-11T01:57:44-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Dice Dreams™"
+},
+"im:artist": {
+"label": "SuperPlay",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/superplay/id1484468650"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1484468651",
+"im:bundleId": "com.superplaystudios.dicedreams"
+}
+},
+"im:releaseDate": {
+"label": "2020-02-05T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "All in Hole: Black Hole Games"
+},
+"im:artist": {
+"label": "HOMA GAMES",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/homa-games/id1508492426"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6503284107",
+"im:bundleId": "com.homagames.studio.allinhole"
+}
+},
+"im:releaseDate": {
+"label": "2024-06-07T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Clash Royale"
+},
+"im:artist": {
+"label": "Supercell",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/supercell/id488106216"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1053012308",
+"im:bundleId": "com.supercell.scroll"
+}
+},
+"im:releaseDate": {
+"label": "2016-03-01T23:25:45-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Mystery Town: Merge Games"
+},
+"im:artist": {
+"label": "Cedar Games Studio",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/cedar-games-studio/id1748999078"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6503603603",
+"im:bundleId": "com.cedargames.mysterytown"
+}
+},
+"im:releaseDate": {
+"label": "2024-10-18T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Last Asylum: Plague"
+},
+"im:artist": {
+"label": "WISENESS GAME ONLINE INTERNATIONAL LTD",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/wiseness-game-online-international-ltd/id1091188713"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6756989323",
+"im:bundleId": "com.phs.global.ios"
+}
+},
+"im:releaseDate": {
+"label": "2026-02-11T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Quick Hit Casino - Vegas Slots"
+},
+"im:artist": {
+"label": "Appchi Media Ltd",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/appchi-media-ltd/id486692023"
+}
+},
+"id": {
+"attributes": {
+"im:id": "945621521",
+"im:bundleId": "com.ballytechnologies.quickhitslots"
+}
+},
+"im:releaseDate": {
+"label": "2015-09-17T21:56:27-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Free Fire MAX x NARUTO"
+},
+"im:artist": {
+"label": "GARENA INTERNATIONAL I PRIVATE LIMITED",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/garena-international-i-private-limited/id1335627134"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1480516829",
+"im:bundleId": "com.dts.freefiremax"
+}
+},
+"im:releaseDate": {
+"label": "2021-09-27T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Food Hunt: Pixel Puzzle"
+},
+"im:artist": {
+"label": "FUNFINITY PTE. LTD",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/funfinity-pte-ltd/id1637603996"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6769314786",
+"im:bundleId": "com.vigafun.funfinity.foodhunt"
+}
+},
+"im:releaseDate": {
+"label": "2026-05-14T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Lordrush"
+},
+"im:artist": {
+"label": "Century Games Innovation Pte. Ltd.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/century-games-innovation-pte-ltd/id1876134518"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6759788962",
+"im:bundleId": "com.s01.global"
+}
+},
+"im:releaseDate": {
+"label": "2026-07-19T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Fortnite"
+},
+"im:artist": {
+"label": "Epic Games Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/epic-games-inc/id1738110841"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6483539426",
+"im:bundleId": "com.epicgames.FortniteGame"
+}
+},
+"im:releaseDate": {
+"label": "2025-05-20T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Puzzles & Survival"
+},
+"im:artist": {
+"label": "BUILDING-BLOCKS NETWORK TECHNOLOGY CO.,LIMITED",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/building-blocks-network-technology-co-limited/id1055231096"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1517980891",
+"im:bundleId": "com.global.ztmslg.ios"
+}
+},
+"im:releaseDate": {
+"label": "2020-08-21T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Sword x Staff"
+},
+"im:artist": {
+"label": "Boltray Games",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/boltray-games/id1676220745"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6751270546",
+"im:bundleId": "com.zjcs.ios.us"
+}
+},
+"im:releaseDate": {
+"label": "2026-05-19T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Seaside Escape®: Merge & Story"
+},
+"im:artist": {
+"label": "Microfun Limited",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/microfun-limited/id1650531996"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6443755785",
+"im:bundleId": "com.mf.cupcake"
+}
+},
+"im:releaseDate": {
+"label": "2022-11-24T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Toy Blast"
+},
+"im:artist": {
+"label": "Peak Games",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/peak-games/id476160947"
+}
+},
+"id": {
+"attributes": {
+"im:id": "890378044",
+"im:bundleId": "net.peakgames.amy"
+}
+},
+"im:releaseDate": {
+"label": "2015-01-06T08:16:02-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Merge Mansion: Mystery Story"
+},
+"im:artist": {
+"label": "Metacore Games Oy",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/metacore-games-oy/id974585521"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1484442152",
+"im:bundleId": "com.everywear.game5"
+}
+},
+"im:releaseDate": {
+"label": "2020-09-16T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Chess.com - Play and Learn"
+},
+"im:artist": {
+"label": "Chess.com",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/chess-com/id329218552"
+}
+},
+"id": {
+"attributes": {
+"im:id": "329218549",
+"im:bundleId": "com.chess.iphone"
+}
+},
+"im:releaseDate": {
+"label": "2009-10-28T20:18:55-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Hotel Legacy: Merge Game"
+},
+"im:artist": {
+"label": "Century Games Innovation Pte. Ltd.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/century-games-innovation-pte-ltd/id1876134518"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6752886832",
+"im:bundleId": "com.fatr.global"
+}
+},
+"im:releaseDate": {
+"label": "2026-01-14T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Wuthering Waves"
+},
+"im:artist": {
+"label": "KURO GAMES",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/kuro-games/id1723145160"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6475033368",
+"im:bundleId": "com.kurogame.wutheringwaves.global"
+}
+},
+"im:releaseDate": {
+"label": "2024-05-21T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Big Fish Casino: Slots Games"
+},
+"im:artist": {
+"label": "Product Madness",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/product-madness/id525894639"
+}
+},
+"id": {
+"attributes": {
+"im:id": "538212549",
+"im:bundleId": "com.bigfishgames.bfcasinouniversalfreemium"
+}
+},
+"im:releaseDate": {
+"label": "2012-08-15T18:34:42-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Matching Story - Merge & Match"
+},
+"im:artist": {
+"label": "VERTEX GAMES PTE. LTD.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/vertex-games-pte-ltd/id1652468982"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1558803930",
+"im:bundleId": "matching.story"
+}
+},
+"im:releaseDate": {
+"label": "2023-11-08T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Foodstars: Merge & Cook"
+},
+"im:artist": {
+"label": "Happibits",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/happibits/id1597889315"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6753862216",
+"im:bundleId": "com.merge.game.foodstars"
+}
+},
+"im:releaseDate": {
+"label": "2025-12-11T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "GODDESS OF VICTORY: NIKKE"
+},
+"im:artist": {
+"label": "Level Infinite",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/level-infinite/id1190539723"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1585915174",
+"im:bundleId": "com.proximabeta.nikke"
+}
+},
+"im:releaseDate": {
+"label": "2022-11-02T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Sunday City: Life Simulator"
+},
+"im:artist": {
+"label": "Kefir",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/kefir/id1646459921"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6450834358",
+"im:bundleId": "adventure.party.real.life"
+}
+},
+"im:releaseDate": {
+"label": "2025-11-05T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Bingo Blitz™ - BINGO Games"
+},
+"im:artist": {
+"label": "Playtika Santa Monica, LLC",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/playtika-santa-monica-llc/id504720043"
+}
+},
+"id": {
+"attributes": {
+"im:id": "529996768",
+"im:bundleId": "com.buffalo-studios.newflashbingo"
+}
+},
+"im:releaseDate": {
+"label": "2012-08-08T21:32:19-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "OneState RP: Role Play Online"
+},
+"im:artist": {
+"label": "CHILLBASE LTD",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/chillbase-ltd/id1558423384"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1597760047",
+"im:bundleId": "com.Chillgaming.oneState"
+}
+},
+"im:releaseDate": {
+"label": "2022-04-30T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Age of Origins:Tower Defense"
+},
+"im:artist": {
+"label": "Hong Kong Ke Mo software Co., Limited",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/hong-kong-ke-mo-software-co-limited/id1603183695"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1376515087",
+"im:bundleId": "com.camelgames.aoz"
+}
+},
+"im:releaseDate": {
+"label": "2018-10-25T05:18:48-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Top Force: Commander"
+},
+"im:artist": {
+"label": "Century Games Innovation Pte. Ltd.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/century-games-innovation-pte-ltd/id1876134518"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6761893238",
+"im:bundleId": "com.project.idle.cd"
+}
+},
+"im:releaseDate": {
+"label": "2026-06-08T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Bingo Voyage: Live Bingo Games"
+},
+"im:artist": {
+"label": "VERTEX GAMES PTE. LTD.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/vertex-games-pte-ltd/id1652468982"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6615077767",
+"im:bundleId": "com.vertexgame.bingo.voyage"
+}
+},
+"im:releaseDate": {
+"label": "2024-10-23T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Hole Stars: Puzzle Game"
+},
+"im:artist": {
+"label": "Moon Active",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/moon-active/id470556954"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6747028173",
+"im:bundleId": "com.moonactive.holestars"
+}
+},
+"im:releaseDate": {
+"label": "2025-09-14T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Rise of Kingdoms"
+},
+"im:artist": {
+"label": "Lilith Games",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/lilith-games/id982119759"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1354260888",
+"im:bundleId": "com.lilithgame.roc.ios"
+}
+},
+"im:releaseDate": {
+"label": "2018-09-20T12:16:15-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Cube Land Puzzle Game"
+},
+"im:artist": {
+"label": "Rotatelab",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/rotatelab/id1531290269"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6757154335",
+"im:bundleId": "com.rotatelab.cubeblast"
+}
+},
+"im:releaseDate": {
+"label": "2026-01-18T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Mobile Legends: Bang Bang.US"
+},
+"im:artist": {
+"label": "Skystone Games Pte. Ltd.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/skystone-games-pte-ltd/id1811064883"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6741568655",
+"im:bundleId": "com.mobile.legends.usa"
+}
+},
+"im:releaseDate": {
+"label": "2025-04-01T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Maze Out! - Tap Puzzle"
+},
+"im:artist": {
+"label": "Grand Games A.Ş.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/grand-games-a-%C5%9F/id1742757639"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6762192889",
+"im:bundleId": "com.grandgames.arrowjam"
+}
+},
+"im:releaseDate": {
+"label": "2026-04-27T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Triple Match City"
+},
+"im:artist": {
+"label": "Breeze Games L.L.C-FZ",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/breeze-games-l-l-c-fz/id1827973623"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6450110217",
+"im:bundleId": "com.rc.cityCleaner"
+}
+},
+"im:releaseDate": {
+"label": "2023-10-25T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Z Route: Redemption"
+},
+"im:artist": {
+"label": "BUILDING-BLOCKS NETWORK TECHNOLOGY CO.,LIMITED",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/building-blocks-network-technology-co-limited/id1055231096"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6762268182",
+"im:bundleId": "com.zroute.global.ios"
+}
+},
+"im:releaseDate": {
+"label": "2026-05-12T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Jackpot Go: Slots Casino"
+},
+"im:artist": {
+"label": "WISE WISHES STUDIO LIMITED",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/wise-wishes-studio-limited/id1787086521"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6739792763",
+"im:bundleId": "com.rednetnew.jackpotgoiw"
+}
+},
+"im:releaseDate": {
+"label": "2025-04-02T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Triple Match 3D"
+},
+"im:artist": {
+"label": "Boombox Games LTD",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/boombox-games-ltd/id1529787666"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1607122287",
+"im:bundleId": "net.master.triple.3d.find"
+}
+},
+"im:releaseDate": {
+"label": "2022-04-13T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Heart of Vegas - Casino Slots"
+},
+"im:artist": {
+"label": "Product Madness",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/product-madness/id525894639"
+}
+},
+"id": {
+"attributes": {
+"im:id": "785537179",
+"im:bundleId": "com.productmadness.hovmobile"
+}
+},
+"im:releaseDate": {
+"label": "2014-07-26T13:37:31-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Jam Bus:Sandfall"
+},
+"im:artist": {
+"label": "Nova Games Technology Limited",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/nova-games-technology-limited/id6788663516"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6797530374",
+"im:bundleId": "bus.sand.fall.jam.loop.traffic.flow.ios"
+}
+},
+"im:releaseDate": {
+"label": "2026-09-17T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Hay Day"
+},
+"im:artist": {
+"label": "Supercell",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/supercell/id488106216"
+}
+},
+"id": {
+"attributes": {
+"im:id": "506627515",
+"im:bundleId": "com.supercell.soil"
+}
+},
+"im:releaseDate": {
+"label": "2012-06-21T01:10:22-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Hollywood Merge"
+},
+"im:artist": {
+"label": "VoyagerOne",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/voyagerone/id1839113942"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6755455500",
+"im:bundleId": "com.hollywood.merge"
+}
+},
+"im:releaseDate": {
+"label": "2026-02-27T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "PUBG MOBILE"
+},
+"im:artist": {
+"label": "Tencent Mobile International Limited",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/tencent-mobile-international-limited/id504515421"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1330123889",
+"im:bundleId": "com.tencent.ig"
+}
+},
+"im:releaseDate": {
+"label": "2018-03-19T10:13:23-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "X-Clash: Survival Challenge"
+},
+"im:artist": {
+"label": "9z Games(HK)",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/9z-games-hk/id1605575568"
+}
+},
+"id": {
+"attributes": {
+"im:id": "6744812012",
+"im:bundleId": "com.xman.na"
+}
+},
+"im:releaseDate": {
+"label": "2025-06-24T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "DoubleDown™ Casino Vegas Slots"
+},
+"im:artist": {
+"label": "Double Down Interactive LLC",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/double-down-interactive-llc/id485126027"
+}
+},
+"id": {
+"attributes": {
+"im:id": "485126024",
+"im:bundleId": "com.doubledowninteractive.DDCasino"
+}
+},
+"im:releaseDate": {
+"label": "2012-03-01T11:32:50-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Cash Frenzy™ - Slots Casino"
+},
+"im:artist": {
+"label": "SpinX Games Limited",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/spinx-games-limited/id1545873689"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1404165333",
+"im:bundleId": "slots.secretsauce.casino.games.free.ios"
+}
+},
+"im:releaseDate": {
+"label": "2018-08-16T02:33:26-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "MONOPOLY Slots Casino: Go Spin"
+},
+"im:artist": {
+"label": "Phantom EFX, Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/phantom-efx-inc/id310624343"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1215145992",
+"im:bundleId": "com.scientificgames.monopolyslots"
+}
+},
+"im:releaseDate": {
+"label": "2018-04-21T20:55:57-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "Minecraft: Play with Friends!"
+},
+"im:artist": {
+"label": "Mojang",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/mojang/id479516146"
+}
+},
+"id": {
+"attributes": {
+"im:id": "479516143",
+"im:bundleId": "com.mojang.minecraftpe"
+}
+},
+"im:releaseDate": {
+"label": "2011-11-17T00:00:00-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+},
+{
+"im:name": {
+"label": "DRAGON BALL LEGENDS"
+},
+"im:artist": {
+"label": "Bandai Namco Entertainment Inc.",
+"attributes": {
+"href": "https://apps.apple.com/us/developer/bandai-namco-entertainment-inc/id352305770"
+}
+},
+"id": {
+"attributes": {
+"im:id": "1358222641",
+"im:bundleId": "jp.co.bandainamcoent.BNEI0334"
+}
+},
+"im:releaseDate": {
+"label": "2018-05-31T02:06:23-07:00"
+},
+"category": {
+"attributes": {
+"im:id": "6014",
+"term": "Games",
+"scheme": "https://apps.apple.com/us/genre/ios-games/id6014?uo=2",
+"label": "Games"
+}
+}
+}
+]
+}
+}

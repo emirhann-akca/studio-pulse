@@ -1,0 +1,137 @@
+# Market radar data-quality checks (same engine and keys as checks.yaml). They run after
+# every radar run and, inside `pulse run`, together with the studio's own checks.
+# raw_mr_config holds the run's as_of date and configured countries.
+defaults:
+  severity: warn
+  optional: true
+
+checks:
+  - name: radar_chart_rank_unique
+    type: unique
+    table: raw_mr_chart
+    columns: [snapshot_date, store, country, chart, genre_id, rank]
+    severity: error
+    description: A day's list has each rank once (a re-run replaces the day, never appends).
+
+  - name: radar_chart_app_id_not_null
+    type: not_null
+    table: raw_mr_chart
+    columns: [app_id]
+    severity: error
+
+  - name: radar_source_stale
+    type: sql
+    description: The radar has a snapshot for the as-of date (a broken feed or a skipped run shows here).
+    sql: >-
+      SELECT c.value AS as_of, (SELECT MAX(snapshot_date) FROM raw_mr_chart) AS newest
+      FROM raw_mr_config AS c WHERE c.key = 'as_of'
+      AND COALESCE((SELECT MAX(snapshot_date) FROM raw_mr_chart), DATE '1970-01-01') < CAST(c.value AS DATE)
+
+  - name: radar_feed_not_updated
+    type: sql
+    description: Apple's feed timestamp is within 36 hours of the fetch (the legacy RSS is undocumented and may freeze).
+    sql: >-
+      SELECT DISTINCT country, chart, genre_id, feed_updated, fetched_at
+      FROM raw_mr_chart
+      WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM raw_mr_chart)
+        AND (feed_updated IS NULL OR feed_updated < fetched_at - INTERVAL 36 HOUR)
+
+  - name: radar_feed_over_limit
+    type: sql
+    description: A feed returned more rows than requested (newfreeapplications ignores limit); extra rows are not scored.
+    sql: >-
+      SELECT DISTINCT country, chart, genre_id, requested_limit, n_rows FROM raw_mr_chart
+      WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM raw_mr_chart) AND n_rows > requested_limit
+
+  - name: radar_feed_genre_leak
+    type: sql
+    description: A games list contained non-game apps (the feed ignored its genre); they are not scored.
+    sql: >-
+      SELECT country, chart, genre_id, COUNT(*) AS non_game_rows FROM raw_mr_chart
+      WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM raw_mr_chart)
+        AND (genre_id = '6014' OR genre_id LIKE '7%') AND category_id IS NOT NULL
+        AND category_id <> '6014' AND rank <= requested_limit
+      GROUP BY 1, 2, 3
+
+  - name: radar_missing_countries
+    type: sql
+    description: Every configured country has at least one list on the newest snapshot day.
+    sql: >-
+      SELECT c.value AS country FROM raw_mr_config AS c
+      WHERE c.key = 'country' AND c.value NOT IN (
+        SELECT country FROM raw_mr_chart WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM raw_mr_chart))
+
+  - name: radar_short_lists
+    type: sql
+    description: A list returned fewer rows than requested (Apple sometimes trims a genre list).
+    sql: >-
+      SELECT DISTINCT country, chart, genre_id, requested_limit, n_rows FROM raw_mr_chart
+      WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM raw_mr_chart) AND n_rows < requested_limit
+
+  - name: radar_lookup_coverage
+    type: sql
+    description: At most 10% of charted apps came back without a Lookup row in their storefront.
+    sql: >-
+      WITH c AS (SELECT DISTINCT country, app_id FROM stg_mr_chart
+                 WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM stg_mr_chart)),
+           a AS (SELECT DISTINCT country, app_id FROM raw_mr_app
+                 WHERE store = 'apple' AND snapshot_date = (SELECT MAX(snapshot_date) FROM stg_mr_chart))
+      SELECT c.country, COUNT(*) AS charted, COUNT(a.app_id) AS looked_up
+      FROM c LEFT JOIN a USING (country, app_id) GROUP BY 1
+      HAVING COUNT(a.app_id) < 0.9 * COUNT(*)
+
+  - name: radar_lookup_disagreement
+    type: sql
+    description: Reads of one app's rating count on the newest day disagree (batched Lookup, rechecks, publisher catalogue; Apple answers from caches of different ages). The maximum read is used; the reads are in raw_mr_lookup_read and the recheck's ledger note.
+    sql: >-
+      SELECT country, app_id, list(rating_count ORDER BY ts, source) AS reads,
+             list(source ORDER BY ts, source) AS sources
+      FROM raw_mr_lookup_read
+      WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM raw_mr_lookup_read)
+      GROUP BY 1, 2
+      HAVING COUNT(DISTINCT rating_count) > 1
+          OR (COUNT(*) FILTER (WHERE rating_count IS NULL) > 0 AND COUNT(rating_count) > 0)
+
+  - name: radar_rating_drop_unconfirmed
+    type: sql
+    description: A rating count fell below the previous window on one day only; it is not treated as a reset (and gives no velocity) until a second snapshot confirms it.
+    sql: >-
+      SELECT country, app_id, base_count, prev_count, rating_count FROM stg_mr_rating_daily
+      WHERE rating_drop_unconfirmed AND snapshot_date = (SELECT MAX(snapshot_date) FROM stg_mr_rating_daily)
+
+  - name: radar_rating_resets
+    type: sql
+    description: Apps whose storefront rating count dropped (developer reset); their velocity is not used.
+    sql: >-
+      SELECT country, app_id, base_count, rating_count FROM stg_mr_rating_daily
+      WHERE rating_reset AND snapshot_date = (SELECT MAX(snapshot_date) FROM stg_mr_rating_daily)
+
+  - name: radar_real_installs_ge_min
+    type: expression
+    table: raw_mr_app
+    condition: real_installs IS NULL OR min_installs IS NULL OR real_installs >= min_installs
+    where: store = 'play'
+
+  - name: radar_play_field_fill
+    type: sql
+    description: At least 95% of Play rows of the day have a title and an install bucket (catches a parser break).
+    sql: >-
+      SELECT snapshot_date, COUNT(*) AS n, COUNT(name) AS titled, COUNT(installs_bucket) AS bucketed
+      FROM raw_mr_app WHERE store = 'play' GROUP BY 1
+      HAVING COUNT(installs_bucket) < 0.95 * COUNT(*) OR COUNT(name) < 0.95 * COUNT(*)
+
+  - name: radar_play_robots_paths
+    type: sql
+    severity: error
+    description: Every request to Google Play was robots.txt or an app details page.
+    sql: >-
+      SELECT run_id, path FROM raw_mr_request
+      WHERE host = 'play.google.com' AND path <> '/robots.txt' AND path NOT LIKE '/store/apps/details?%'
+
+  - name: radar_play_daily_budget
+    type: sql
+    severity: error
+    description: At most 200 network requests to Google Play per day.
+    sql: >-
+      SELECT snapshot_date, COUNT(*) AS requests FROM raw_mr_request
+      WHERE host = 'play.google.com' AND NOT cached GROUP BY 1 HAVING COUNT(*) > 200

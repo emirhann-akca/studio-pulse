@@ -179,3 +179,68 @@ def test_segment_retention_by_user_property_with_engagement_strata(tmp_path):
     assert {r["day0_sessions"] for r in strata} == {"1", "3+"}
     assert all(r["users"] >= 50 for r in t)
     assert not any(str(v).startswith("user-") for r in t for v in r.values())
+
+
+def test_sdk_installs_fill_the_same_cells(tmp_path):
+    """stg_cohort_dims on SDK installs: classic day N, 50-install cells, dev builds ignored.
+
+    App sdk_a: 70 Android installs in TR and 50 iOS installs in US on D0; on day
+    1, 35 Android and 10 iOS players come back, on day 7 seven Android players;
+    one more iOS install opens only a debug build on day 1 (not counted). The
+    newest day of the app is D0 + 10, so day 30 is not observed yet. App sdk_b
+    has 49 installs: no cell at all.
+    """
+    from studio_pulse import runner
+
+    models = Path(__file__).resolve().parents[2] / "models"
+    sql = (models / "stg_cohort_dims.sql").read_text(encoding="utf-8")
+    con = duckdb.connect()
+    con.execute(
+        "CREATE TABLE raw_ga4_cohort_dims (app_id VARCHAR, cohort_date DATE, platform VARCHAR, "
+        "country VARCHAR, app_version VARCHAR, network VARCHAR, device_tier VARCHAR, users BIGINT, "
+        "d1_users BIGINT, d7_users BIGINT, d30_users BIGINT, observed_days INTEGER, "
+        "_source VARCHAR, _loaded_at TIMESTAMP)"
+    )
+    con.execute(
+        "CREATE TABLE stg_sdk_installs (app_id VARCHAR, install_id VARCHAR, cohort_date DATE, "
+        "platform VARCHAR, country VARCHAR, first_version VARCHAR, device_tier VARCHAR, "
+        "app_last_date DATE)"
+    )
+    con.execute(
+        "CREATE TABLE stg_pulse_events (app_id VARCHAR, install_id VARCHAR, date DATE, is_prod BOOLEAN)"
+    )
+    last = D0 + dt.timedelta(days=10)
+    installs, events = [], []
+
+    def add(app, n, platform, country, back_d1, back_d7, start=0):
+        for i in range(start, start + n):
+            iid = f"{app}-{platform}-{i}"
+            installs.append((app, iid, D0, platform, country, "2.0.0", "mid", last))
+            events.append((app, iid, D0, True))
+            if i - start < back_d1:
+                events.append((app, iid, D0 + dt.timedelta(days=1), True))
+            if i - start < back_d7:
+                events.append((app, iid, D0 + dt.timedelta(days=7), True))
+
+    add("sdk_a", 70, "ANDROID", "TR", 35, 7)
+    add("sdk_a", 50, "IOS", "US", 10, 0)
+    events.append(("sdk_a", "sdk_a-IOS-49", D0 + dt.timedelta(days=1), False))  # debug build
+    add("sdk_b", 49, "ANDROID", "TR", 49, 49)
+    con.executemany("INSERT INTO stg_sdk_installs VALUES (?, ?, ?, ?, ?, ?, ?, ?)", installs)
+    con.executemany("INSERT INTO stg_pulse_events VALUES (?, ?, ?, ?)", events)
+    assert runner  # the real pipeline orders this model after both inputs (name references)
+    rows = con.execute(
+        f"SELECT grouping_set, platform, country, users, d1_users, d7_users, d30_users "
+        f"FROM ({sql}) WHERE app_id = ? ORDER BY grouping_set, platform, country",
+        ["sdk_a"],
+    ).fetchall()
+    got = {(g, p, c): (u, d1, d7, d30) for g, p, c, u, d1, d7, d30 in rows}
+    assert got[("", None, None)] == (120, 45, 7, None)
+    assert got[("platform", "ANDROID", None)] == (70, 35, 7, None)
+    assert got[("platform", "IOS", None)] == (50, 10, 0, None)
+    assert got[("country", None, "TR")] == (70, 35, 7, None)
+    assert got[("platform,country", "IOS", "US")] == (50, 10, 0, None)
+    assert got[("app_version", None, None)] == (120, 45, 7, None)  # every install on 2.0.0
+    assert not any("network" in g for g, _, _ in got)  # the SDK does not know the campaign
+    n_b = con.execute(f"SELECT COUNT(*) FROM ({sql}) WHERE app_id = 'sdk_b'").fetchone()[0]
+    assert n_b == 0

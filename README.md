@@ -64,6 +64,20 @@ store reviews included).
   `ProfilerRecorder` / FrameTimingManager counters and Flutter's
   `addTimingsCallback` (build / raster p95, janky frames, RSS, cold start),
   zero per-frame allocations, and every event says which API produced its numbers.
+- **Market radar** ([docs/RADAR.md](docs/RADAR.md)): a daily scan of Apple's
+  game charts and iTunes Lookup plus Google Play details pages (robots.txt
+  checked in code, 3 s apart, at most 200 a day) scores new games with a
+  rule-based breakout score, tests weekly mechanic share shifts, classifies
+  games from their store text with an LLM whose every claim must quote that
+  text, and writes a Turkish and English digest in which every number is
+  labelled observed, store-reported or estimate (a range). It runs inside
+  `pulse run`, shows on a local `pulse serve` page and feeds
+  [creative-forge](https://github.com/emirhann-akca/creative-forge)'s idea
+  library through `market_trends.yaml`. Store data never goes to the public demo.
+- **Shared LLM layer** (`studio_pulse.llm`): Gemini on Vertex AI, any
+  OpenAI-compatible server (llama-server with a local LoRA), Anthropic Claude
+  or a fake; content-hash cache, per-run budget cap, token/cost ledger, schema
+  validation with one repair, retries, secrets kept out of logs.
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.
@@ -71,7 +85,7 @@ store reviews included).
   `/ask` in the local UI): deterministic statistics find and explain the
   changes, every number in a sentence is formatted by code and checked against
   its evidence, and a language model may only rephrase (see below).
-- 596 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
+- 651 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
   macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -143,6 +157,7 @@ interval says to keep running.
 | `pulse experiment` | A/B test results from the warehouse (`--sql` prints the BigQuery aggregate query, `--input arms.csv` analyses totals from anywhere); exit 3 on a sample ratio mismatch |
 | `pulse serve` | local UI on 127.0.0.1: dashboard, refresh health (heartbeat, recent runs, check results, source freshness, schedule state), alerts, and a run-now button. It opens the warehouse read-only per request and serves the last good snapshot while a refresh is writing |
 | `pulse collect` | the SDK collector on 127.0.0.1:8787 (`setup-geoip`, `purge`); `pulse simulate` plays three fictional games against it, `pulse apps refresh` runs live detection ([docs/COLLECTOR.md](docs/COLLECTOR.md)) |
+| `pulse radar run` / `show` | the market radar (also part of `pulse run` with `radar.enabled`); `--replay DIR` answers every request from recorded responses |
 | `pulse doctor [--json]` | Python, time zones, DuckDB, config, writable folders, Google credentials (present or not, never their contents), schedule state |
 | `pulse insights [--lang tr]` | the deterministic insight jobs (also run at the end of every refresh, stored in `meta_insights`) |
 | `pulse ask "..." [--lang tr]` | a question in English or Turkish; the answer names its route and shows its SQL and rows |
@@ -187,7 +202,21 @@ phrases - and `src/studio_pulse/brain/` follows it:
   refusal that names what is missing.
 
 The language model is optional and narrow (`brain/llm.py`): tests and CI use
-a deterministic fake, and a provider plugs in behind that interface.
+a deterministic fake; a real one comes from the shared layer (`studio_pulse.llm`)
+and is off until the config asks for it:
+
+```yaml
+llm:                  # shared with the market radar
+  provider: gemini    # or openai (llama-server with a local LoRA), anthropic
+  model: gemini-3.5-flash-lite
+brain:
+  provider: shared    # none (default) | fake | shared | gemini | openai | anthropic
+  budget_usd: 0.25    # per run, default 0.50
+```
+
+Questions can also reach the studio SDK's aggregates (level funnel with quits,
+where players fail, settings turned off, purchases, ad revenue, crash-free
+sessions); per-install tables and app error text stay out of reach.
 
 ## Architecture
 
@@ -370,15 +399,17 @@ Mono to produce the fixtures the Python tests parse.
   (the demo's fitness app backtests at about 35% error, shown on its page).
 - The insight engine explains changes by association in time (a cohort
   split, a release date), never by experiment, and says so in every such
-  sentence; the model-written SQL route and model narration run only against
-  the deterministic fake so far.
+  sentence. With a real model (checked with gemini-3.5-flash-lite on the demo
+  warehouse) routing is still imperfect: a product question can get the total
+  revenue, and "where do players quit" ranks a game's last level first,
+  because players who finish the game also stop there.
 
 ## Development
 
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 596 tests (1 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 651 tests (1 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 

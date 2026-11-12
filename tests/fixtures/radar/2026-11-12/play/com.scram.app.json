@@ -1,0 +1,26 @@
+{
+ "appId": "com.scram.app",
+ "title": "SCRAM: Hide and Seek",
+ "description": "SCRAM is hide and seek for the real world. Split into hunters and runners, start the clock, and play across your street, park, campus or campsite, with your phone keeping score.\r\n\r\nHOW IT WORKS\r\n• Runners get a head start to hide.\r\n• Every few minutes the hunters get a ping: each runner's location pops up on their map, marked with how long ago it was.\r\n• Each team sees its own players live. Between pings the hunters are guessing, and runners never see hunters at all.\r\n• Stray outside the play zone and, after 30 seconds, the hunters can see you live until you're back in.\r\n• Tag someone in person and they tap \"I got tagged\". Last runners standing when time runs out win.\r\n\r\nYOU SET THE RULES\r\nThe host picks the round length, the head start, how often the pings come (or none at all), and the play zone: its size, where it sits, and how often it shrinks. Or switch the zone off and play anywhere. Everyone joins with a six-character game code.\r\n\r\nMADE FOR PLAYING OUTSIDE\r\n• Alerts reach you with your phone locked: pings, the head start ending, the zone shrinking, and tags.\r\n• Radio keeps each team talking without the other team listening.\r\n• Alerts buzz instead of ring, so they won't give ",
+ "summary": "Real-world hide and seek. Runners hide, hunters chase, and pings give you away.",
+ "installs": "50,000+",
+ "minInstalls": 50000,
+ "realInstalls": 69900,
+ "score": null,
+ "ratings": null,
+ "offersIAP": true,
+ "inAppProductPrice": "$4.99 per item",
+ "developer": "Moveera Pty Ltd",
+ "developerEmail": "contact@example.invalid",
+ "genre": "Adventure",
+ "genreId": "GAME_ADVENTURE",
+ "categories": [
+  {
+   "name": "Adventure",
+   "id": "GAME_ADVENTURE"
+  }
+ ],
+ "containsAds": false,
+ "released": "Oct 1, 2026",
+ "version": "1.0.4"
+}

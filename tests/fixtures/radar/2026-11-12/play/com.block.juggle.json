@@ -1,0 +1,50 @@
+{
+ "appId": "com.block.juggle",
+ "title": "Block Blast!",
+ "description": "Welcome to Block Blast, a relaxing block puzzle for fans of puzzle games, offline games, and single-player games!\r\n\r\nPlace colorful blocks on the 8x8 board, clear rows and columns, create combos, and beat your best score. Block Blast combines simple puzzle gameplay with thoughtful strategy, making every round easy to learn, relaxing to play, and rewarding to master.\r\n\r\nWhether you want a quick puzzle or a longer session, Block Blast gives you the fun of puzzle games with the convenience of offline games. Play anytime without WiFi and enjoy smooth single-player gameplay wherever you are.\r\n\r\n🌟 Why You’ll Love Block Blast\r\n\r\n🔸 Relaxing puzzle games\r\nDrag and place blocks, clear complete lines, and keep space open for your next move. If you enjoy puzzle games that are simple, satisfying, and strategic, Block Blast is ready to play.\r\n\r\n🔹 Offline games anywhere\r\nNo connection is required. Enjoy Block Blast at home, while traveling, or during a short break. It is a convenient choice for players who prefer offline games without interruptions.\r\n\r\n🔸 A satisfying single-player puzzle\r\nPlay at your own pace, improve your strategy, and compete with your personal best. Block Blast is designed fo",
+ "summary": "Enjoy relaxing puzzle games and offline games anytime, no WiFi needed!",
+ "installs": "1,000,000,000+",
+ "minInstalls": 1000000000,
+ "realInstalls": 1126067931,
+ "score": 4.846991,
+ "ratings": 5869534,
+ "offersIAP": true,
+ "inAppProductPrice": "$4.99 - $49.99 per item",
+ "developer": "HungryStudio",
+ "developerEmail": "contact@example.invalid",
+ "genre": "Puzzle",
+ "genreId": "GAME_PUZZLE",
+ "categories": [
+  {
+   "name": "Puzzle",
+   "id": "GAME_PUZZLE"
+  },
+  {
+   "name": "Block",
+   "id": null
+  },
+  {
+   "name": "Casual",
+   "id": "GAME_CASUAL"
+  },
+  {
+   "name": "Single player",
+   "id": null
+  },
+  {
+   "name": "Abstract",
+   "id": null
+  },
+  {
+   "name": "Light-hearted",
+   "id": null
+  },
+  {
+   "name": "Offline",
+   "id": null
+  }
+ ],
+ "containsAds": true,
+ "released": "Sep 23, 2022",
+ "version": "10.9.6"
+}

@@ -22,6 +22,11 @@ NEED = [
     "studio_pulse/brain/verified_queries.yaml",
     "studio_pulse/brain/eval/golden.yaml",
     "studio_pulse/brain/templates/insights.html",
+    "studio_pulse/serve/templates/radar.html",
+    "studio_pulse/radar/schema.sql",
+    "studio_pulse/radar/models/fct_mr_breakout_daily.sql",
+    "studio_pulse/radar/taxonomy.yaml",
+    "studio_pulse/radar/checks.yaml",
 ]
 
 

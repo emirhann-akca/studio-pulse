@@ -94,3 +94,21 @@ apps:
           - {event: camera_session_completed, fps_param: median_fps, scene: camera}
       revenuecat:
         path: local/revenuecat/fitness
+
+# Market radar (docs/RADAR.md): daily store charts -> breakouts, mechanic trends, a digest in
+# Turkish and English and market_trends.yaml for creative-forge. Kept local (out_dir).
+# radar:
+#   enabled: true
+#   countries: [us, gb, de, fr, br, tr, jp, kr]
+#   publishers: [{id: "1743349083", name: ABI Global}]
+#   play: {country: us, daily_budget: 200}
+#   llm: {max_apps: 25, narrate: false}
+#   out_dir: local/radar
+#
+# Shared LLM provider (radar classification). Project ids and keys come from the environment:
+# PULSE_LLM_PROJECT (Vertex AI), PULSE_LLM_BASE_URL / PULSE_LLM_API_KEY, ANTHROPIC_API_KEY.
+# llm:
+#   provider: gemini                # gemini | openai | anthropic | fake | none
+#   model: gemini-3.5-flash-lite
+#   location: global
+#   budget_usd: 0.50                # per run

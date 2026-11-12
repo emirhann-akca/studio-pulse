@@ -112,3 +112,29 @@ def test_stale_data_is_refused_with_the_date(wh):
             "What was the payer conversion of mossy_match in the last 7 days?"
         )
     assert a.route == "refused" and a.refusal == "stale" and a.verified and "2026-10-31" in a.text
+
+
+def test_sdk_app_breakdown_refusal_says_the_cells_are_small(wh):
+    """pebble_pop is an SDK game with about 18 installs a day: no cell reaches 50."""
+    with LockedSession.open(wh) as s:
+        a = qa.Router(s, as_of=AS_OF).ask("What is pebble_pop's day-1 retention by platform?")
+        t = qa.Router(s, as_of=AS_OF).ask(
+            "pebble_pop için platforma göre D1 elde tutma nedir?", "tr"
+        )
+    assert a.route == "refused" and a.refusal == "dim_small_sdk" and a.verified
+    assert "SDK data" in a.text and "50 installs" in a.text and "GA4" not in a.text
+    assert t.refusal == "dim_small_sdk" and "SDK verisi" in t.text
+
+
+def test_every_catalog_metric_answers_for_every_app(wh):
+    """No metric/app/dimension combination may crash the router (the level funnel has no dates)."""
+    with LockedSession.open(wh) as s:
+        r = qa.Router(s, as_of=AS_OF)
+        for m in r.catalog.metrics.values():
+            for app in r.apps:
+                for by in ([], list(m.dims[:1])):
+                    a = r._metric_answer("q", "en", m, app, by, None)
+                    assert a.route in ("catalog", "refused"), (m.id, app, by)
+        a = r.ask("What is the level churn rate of quartz_merge by level?")
+    assert a.route == "catalog" and a.matched == "level_churn_rate" and a.verified
+    assert " to " not in a.text.split(":")[0]  # no invented date span

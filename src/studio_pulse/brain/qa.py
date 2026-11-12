@@ -103,6 +103,10 @@ TEXTS: dict[str, dict[str, str]] = {
         "en": "{dimension} comes from the cohort_dims pull, which has no rows for {app} yet; enable it on the GA4 source and refresh.",
         "tr": "{dimension} kırılımı cohort_dims çekmesinden gelir ve {app} için henüz satırı yok; GA4 kaynağında açıp yenileyin.",
     },
+    "dim_small_sdk": {
+        "en": "{app} sends SDK data, but no {dimension} cell has reached {min_n} installs on one day yet, so there is no breakdown to show.",
+        "tr": "{app} SDK verisi gönderiyor ama hiçbir {dimension} hücresi bir günde {min_n} kuruluma ulaşmadı; gösterilecek kırılım yok.",
+    },
     "uncollected": {
         "en": "{dimension} is not collected: no table in the warehouse carries it.",
         "tr": "{dimension} toplanmıyor: ambardaki hiçbir tablo bu boyutu taşımıyor.",
@@ -144,12 +148,12 @@ TEXTS: dict[str, dict[str, str]] = {
         "tr": "Denetlenen sorgu {rows} satır döndürdü.",
     },
     "catalog_one": {
-        "en": "{metric}{label_part}, {first_day} to {last_day}: {value}[[ (n = {n})]], {aggregation_text}.",
-        "tr": "{metric}{label_part}, {first_day} ile {last_day} arası: {value}[[ (n = {n})]], {aggregation_text}.",
+        "en": "{metric}{label_part}[[, {first_day} to {last_day}]]: {value}[[ (n = {n})]], {aggregation_text}.",
+        "tr": "{metric}{label_part}[[, {first_day} ile {last_day} arası]]: {value}[[ (n = {n})]], {aggregation_text}.",
     },
     "catalog_many": {
-        "en": "{metric}, {first_day} to {last_day} ({aggregation_text}): highest {top_label} {top_value}, lowest {bottom_label} {bottom_value}; {rows} rows.",
-        "tr": "{metric}, {first_day} ile {last_day} arası ({aggregation_text}): en yüksek {top_label} {top_value}, en düşük {bottom_label} {bottom_value}; {rows} satır.",
+        "en": "{metric}[[, {first_day} to {last_day}]] ({aggregation_text}): highest {top_label} {top_value}, lowest {bottom_label} {bottom_value}; {rows} rows.",
+        "tr": "{metric}[[, {first_day} ile {last_day} arası]] ({aggregation_text}): en yüksek {top_label} {top_value}, en düşük {bottom_label} {bottom_value}; {rows} satır.",
     },
     "catalog_snapshot": {
         "en": "{metric}{label_part}: {value}[[ (n = {n})]] in the latest snapshot; {rows} rows in the table.",
@@ -531,6 +535,8 @@ class Router:
         valued = [r for r in rows if r[vi] is not None]
         if not valued:
             return self._no_data(ans, metric.id, app)
+        # tables without a date column (the level funnel covers the loaded window) give no span
+        dated = "first_day" in cols and "last_day" in cols
         vunit = metric.unit
         if metric.aggregation == "mean_of_daily" and vunit == "count":
             vunit = "ratio"  # a mean of daily counts keeps its decimals (1.60, not 2)
@@ -545,12 +551,12 @@ class Router:
             key = "catalog_snapshot"
         elif len(valued) == 1:
             r0 = valued[0]
-            facts.update(
-                value=Fact(r0[vi], vunit),
-                label_part=Fact(f" ({label(r0)})", "text"),
-                first_day=Fact(r0[cols.index("first_day")], "date"),
-                last_day=Fact(r0[cols.index("last_day")], "date"),
-            )
+            facts.update(value=Fact(r0[vi], vunit), label_part=Fact(f" ({label(r0)})", "text"))
+            if dated:
+                facts.update(
+                    first_day=Fact(r0[cols.index("first_day")], "date"),
+                    last_day=Fact(r0[cols.index("last_day")], "date"),
+                )
             if ni is not None and r0[ni] is not None:
                 facts["n"] = Fact(r0[ni], "count")
             key = "catalog_one"
@@ -562,9 +568,12 @@ class Router:
                 top_value=Fact(hi[vi], vunit),
                 bottom_label=Fact(label(lo), "text"),
                 bottom_value=Fact(lo[vi], vunit),
-                first_day=Fact(min(r[cols.index("first_day")] for r in valued), "date"),
-                last_day=Fact(max(r[cols.index("last_day")] for r in valued), "date"),
             )
+            if dated:
+                facts.update(
+                    first_day=Fact(min(r[cols.index("first_day")] for r in valued), "date"),
+                    last_day=Fact(max(r[cols.index("last_day")] for r in valued), "date"),
+                )
             key = "catalog_many"
         ev = self._evidence(
             f"catalog:{metric.id}",
@@ -623,6 +632,25 @@ class Router:
                 [app, dim],
             ).rows[0][0]
         )
+        sdk_app = (
+            not has
+            and "fct_sdk_apps" in self.schema
+            and self.s.run_trusted(
+                "SELECT COUNT(*) FROM fct_sdk_apps WHERE app_id = ?", [app]
+            ).rows[0][0]
+        )
+        if sdk_app:  # the SDK carries every dimension; the cells are just too small
+            return self._refuse(
+                q,
+                lang,
+                "dim_small_sdk",
+                {
+                    "dimension": Fact(dname, "text"),
+                    "app": Fact(app, "text"),
+                    "min_n": Fact(50, "count"),
+                },
+                missing=dim,
+            )
         if not has:
             return self._refuse(
                 q,
@@ -708,6 +736,7 @@ class Router:
         assert self.client is not None
         payload = {
             "question": q,
+            "apps": list(self.apps),  # the values of app_id, in every table
             "tables": {t: list(c) for t, c in self.schema.items()},
             "metrics": {
                 m.id: f"{m.model}.{m.value}: {m.definition}" for m in self.catalog.metrics.values()
