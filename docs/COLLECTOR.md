@@ -260,5 +260,7 @@ follows the simulation, so the demo is the same on every OS.
   deployed from this repository.
 - The store checks use recorded responses; the Apple `bundleId` lookup is
   undocumented.
-- The SDKs themselves (Unity, Flutter) are a separate step; the generated
-  constants and the golden batch in `contract/golden/` are their starting point.
+- The SDKs (Unity: [SDK_UNITY.md](SDK_UNITY.md), Flutter: [SDK_FLUTTER.md](SDK_FLUTTER.md))
+  post to a real `pulse collect` in CI and in their own E2E drivers; both write
+  `contract/golden/sdk_conformance.ndjson` byte for byte, and
+  `tests/test_sdk_conformance.py` stores that file through the collector.

@@ -1,5 +1,22 @@
 # Studio Pulse (Unity package)
 
+**Analytics SDK** (event contract v2, full reference in `docs/SDK_UNITY.md`):
+
+```csharp
+[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+static void Boot() => Pulse.Init("sp_pub_...", "https://collector.example.com");
+Pulse.LevelFail(12, "hit_spike", new Vector2(0.42f, 0.77f), progress: 0.8f);
+```
+
+Crash-safe disk queue, batching, gzip, backoff, sessions, install store (Android
+installer through JNI, iOS AppTransaction through `Plugins/iOS`), exit reasons,
+managed errors, level / economy / ad / purchase / settings helpers, consent, opt-out,
+deletion requests, child mode, `PrivacyInfo.xcprivacy`. The core
+(`Runtime/Core`, assembly `Studio.Pulse.Core`) has no UnityEngine reference. The
+perf telemetry below is started by `Pulse.Init` and sent through the same queue.
+
+## Perf telemetry
+
 Client performance telemetry for mobile games, in the event schema the
 [studio-pulse](../../README.md) warehouse reads:
 

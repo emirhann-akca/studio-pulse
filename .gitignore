@@ -28,8 +28,16 @@ service-account*.json
 .idea/
 .vscode/
 
-# Unity package metadata generated on import
-unity/**/*.meta
+# Unity .meta files ARE committed: a package added by git URL is immutable and Unity
+# ignores files without one (unity/tools/unity_meta.py writes and checks them).
 
 # pulse state (run lock, heartbeat, snapshot, logs)
 pulse-state/
+
+# SDK builds
+unity/dotnet/bin-mono/
+unity/dotnet/**/bin/
+unity/dotnet/**/obj/
+flutter/**/.dart_tool/
+flutter/**/build/
+flutter/**/pubspec.lock

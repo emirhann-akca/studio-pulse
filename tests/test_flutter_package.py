@@ -1,6 +1,6 @@
 """The Flutter package and the Python side agree on the event contract.
 
-flutter/studio_pulse_perf/test/golden/pulse_sample.jsonl is written by the
+flutter/studio_pulse/test/golden/pulse_sample.jsonl is written by the
 package's own `flutter test` (pulse_perf_test.dart compares its output with
 it), so the connector here parses real Dart output, as tests/test_event_schema.py
 does for the Unity package's C#.
@@ -19,7 +19,7 @@ from studio_pulse.connectors import ga4, unity_jsonl
 from studio_pulse.connectors.dialect import DuckDBDialect
 from studio_pulse.connectors.executors import DuckDBExecutor
 
-PKG = Path(__file__).parents[1] / "flutter" / "studio_pulse_perf"
+PKG = Path(__file__).parents[1] / "flutter" / "studio_pulse"
 
 
 def dart_constants() -> dict[str, object]:
@@ -111,7 +111,7 @@ def test_events_doc_describes_the_flutter_package():
         "`flutter_ft`",
         "`dart_rss`",
         "addTimingsCallback",
-        "flutter/studio_pulse_perf",
+        "flutter/studio_pulse",
     ):
         assert needle in doc, needle
 

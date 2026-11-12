@@ -1,0 +1,30 @@
+name: studio_pulse
+description: >-
+  Analytics SDK for studio-pulse: crash-safe disk queue, batching, gzip, retries,
+  sessions, install store, game events, errors, consent and opt-out, plus frame-time
+  and start-time telemetry.
+version: 2.0.0
+repository: https://github.com/emirhann-akca/studio-pulse
+issue_tracker: https://github.com/emirhann-akca/studio-pulse/issues
+topics: [analytics, telemetry, games, privacy, performance]
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.studiopulse.studio_pulse
+        pluginClass: StudioPulsePlugin
+      ios:
+        pluginClass: StudioPulsePlugin

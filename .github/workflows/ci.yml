@@ -1,6 +1,6 @@
 # Tests on Windows, macOS (Apple Silicon) and Linux x Python 3.11-3.13, a real
 # user install on each OS through the README's one-liners, the no-release
-# fallback of the installers, the optional forecast extra, the Flutter package,
+# fallback of the installers, the optional forecast extra, the Flutter and Unity SDKs,
 # a real OS schedule round trip, and a check that the demo's model tables agree
 # on every job (text and integers exactly, floats within a relative 1e-9; see
 # .github/scripts/compare_fingerprints.py). Failures are published
@@ -37,6 +37,8 @@ jobs:
       - run: python .github/scripts/annotate.py "ruff format --check" ruff format --check .
       # Event contract v2: every generated file (Python, C#, Dart, JSON Schema, BigQuery,
       # privacy manifest, docs/CONTRACT.md) must equal what contract/pulse_v2.yaml generates.
+      - name: Unity package .meta files are complete
+        run: python .github/scripts/annotate.py "unity .meta files out of date - python unity/tools/unity_meta.py" python unity/tools/unity_meta.py --check
       - name: Contract outputs are regenerated (no diff)
         run: |
           PYTHONPATH=src python .github/scripts/annotate.py "contract generate" python -m studio_pulse.contract.generate
@@ -363,20 +365,119 @@ jobs:
         run: python .github/scripts/annotate.py "forecast tests (${{ matrix.os }})" python -X warn_default_encoding -W error::EncodingWarning -m pytest -p no:cacheprovider -rs tests/test_forecast.py tests/test_alerts.py
 
   flutter-package:
-    name: flutter package (dart analyze, flutter test)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The Flutter SDK (flutter/studio_pulse): analyze, unit + HTTP + conformance tests on
+    # every OS; on Linux also the publish dry run and a Dart CLI session against a real
+    # `pulse collect`, checked through /live.
+    name: flutter SDK (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     defaults:
       run:
-        working-directory: flutter/studio_pulse_perf
+        working-directory: flutter/studio_pulse
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
       - run: flutter pub get
-      - run: python3 ../../.github/scripts/annotate.py "dart analyze" dart analyze
-      - run: python3 ../../.github/scripts/annotate.py "flutter test" flutter test
+      # The dry run checks the package as committed. If the Flutter tool rewrote a
+      # tracked file (seen once: analysis_options.yaml on a newer stable than 3.38.7),
+      # the change is published as a warning with its diff, then reverted.
+      - name: pub publish dry run
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          if [ -n "$(git status --porcelain -- .)" ]; then
+            diff="$(git --no-pager diff -- . | head -40 | python -c 'import sys; print(sys.stdin.read().replace("%", "%25").replace(chr(13), "").replace(chr(10), "%0A"))')"
+            echo "::warning title=flutter pub get changed tracked files (reverted for the dry run)::$diff"
+            git checkout -- .
+          fi
+          python ../../.github/scripts/annotate.py "flutter pub publish --dry-run" flutter pub publish --dry-run
+      - run: python ../../.github/scripts/annotate.py "dart analyze (${{ matrix.os }})" dart analyze
+      - run: python ../../.github/scripts/annotate.py "flutter test (${{ matrix.os }})" flutter test -r expanded
+      - name: Dart SDK session against a real collector
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -e
+          a="python $GITHUB_WORKSPACE/.github/scripts/annotate.py"
+          $a "pip install" python -m pip install -q -e "$GITHUB_WORKSPACE"
+          work="$RUNNER_TEMP/dart-e2e"; mkdir -p "$work"
+          (cd "$work" && python -m studio_pulse.cli collect --data-dir collector --port 8787 > collect.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8787/healthz > /dev/null && break; sleep 1; done
+          $a "Dart e2e driver" dart run tool/e2e_driver.dart http://127.0.0.1:8787 sp_pub_local "$work/device-1" ios app_store
+          $a "Dart e2e driver (second install)" dart run tool/e2e_driver.dart http://127.0.0.1:8787 sp_pub_local "$work/device-2" android google_play
+          live="$(curl -s http://127.0.0.1:8787/live)"
+          echo "$live" | python -c "import json,sys; d=json.load(sys.stdin); a=[x for x in d['apps'] if x['app_id']=='com.studio.e2e.flutter']; c=d['collector']; ok=a and a[0]['active']==2 and c['quarantined']==0; print('::notice title=flutter SDK e2e::/live active installs', a[0]['active'] if a else 0, '; accepted', c['accepted'], '; quarantined', c['quarantined']) if ok else print('::error title=flutter SDK e2e::/live', json.dumps(d)[:900]); sys.exit(0 if ok else 1)"
+
+  unity-sdk:
+    # The Unity SDK's UnityEngine-free core (netstandard2.1) with dotnet test on every OS:
+    # the same [PulseTest] methods unity/dotnet/mono-test.sh runs under Unity's Mono, plus
+    # an end-to-end session against a real `pulse collect` (PULSE_E2E_URL). On macOS also
+    # the privacy manifests (plutil) and the Unity iOS Swift plug-in (swiftc, Swift 5 and 6).
+    name: unity SDK core (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: "10.0.x"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install studio-pulse (for the collector)
+        run: python .github/scripts/annotate.py "pip install (${{ matrix.os }})" python -m pip install -e .
+      - name: Build the core (netstandard2.1, warnings are errors)
+        run: python .github/scripts/annotate.py "dotnet build core (${{ matrix.os }})" dotnet build unity/dotnet/Studio.Pulse.Core -c Release
+      - name: dotnet test with a real collector
+        shell: pwsh
+        run: |
+          $annotate = Join-Path $env:GITHUB_WORKSPACE '.github/scripts/annotate.py'
+          $work = Join-Path $env:RUNNER_TEMP 'unity-e2e'
+          New-Item -ItemType Directory -Force $work | Out-Null
+          $col = Start-Process -FilePath python -ArgumentList @('-m', 'studio_pulse.cli', 'collect', '--data-dir', (Join-Path $work 'collector'), '--port', '8787') -PassThru -RedirectStandardOutput (Join-Path $work 'collect.out') -RedirectStandardError (Join-Path $work 'collect.err')
+          $up = $false
+          for ($i = 0; $i -lt 60 -and -not $up; $i++) {
+            try { $up = (Invoke-RestMethod http://127.0.0.1:8787/healthz).ok } catch { Start-Sleep -Seconds 1 }
+          }
+          if (-not $up) { Get-Content (Join-Path $work 'collect.err'); "::error title=unity SDK (${{ matrix.os }})::pulse collect did not answer /healthz"; exit 1 }
+          $env:PULSE_E2E_URL = 'http://127.0.0.1:8787'
+          & python $annotate "dotnet test (${{ matrix.os }})" dotnet test unity/dotnet/Studio.Pulse.Core.Tests -c Release --logger "console;verbosity=normal"
+          $code = $LASTEXITCODE
+          $live = Invoke-RestMethod http://127.0.0.1:8787/live
+          Stop-Process -Id $col.Id
+          $app = @($live.apps | Where-Object { $_.app_id -eq 'com.studio.e2e.dotnet' })
+          if ($code -eq 0 -and ($app.Count -ne 1 -or $live.collector.quarantined -ne 0)) {
+            "::error title=unity SDK (${{ matrix.os }})::the E2E install is missing from /live or events were quarantined: $($live | ConvertTo-Json -Depth 4 -Compress)"
+            exit 1
+          }
+          if ($code -eq 0) { "::notice title=unity SDK (${{ matrix.os }})::dotnet test passed; /live counts $($app[0].active) install(s) of com.studio.e2e.dotnet; collector accepted $($live.collector.accepted), quarantined $($live.collector.quarantined)" }
+          exit $code
+      - name: Privacy manifests and the iOS Swift plug-in
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          a="python .github/scripts/annotate.py"
+          $a "plutil -lint" plutil -lint contract/generated/PrivacyInfo.xcprivacy unity/com.studio.pulse/Plugins/iOS/PrivacyInfo.xcprivacy flutter/studio_pulse/ios/Resources/PrivacyInfo.xcprivacy
+          for v in 5 6; do
+            $a "swiftc Swift $v (Unity iOS plug-in)" xcrun -sdk iphoneos swiftc -typecheck -warnings-as-errors -swift-version $v -target arm64-apple-ios13.0 unity/com.studio.pulse/Plugins/iOS/StudioPulseInstallSource.swift
+          done
 
   schedule-smoke:
     name: schedule smoke (${{ matrix.os }})

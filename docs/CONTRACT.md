@@ -10,14 +10,16 @@ uses, and CI fails when a regenerated file differs from the committed one:
 |---|---|
 | `src/studio_pulse/contract/pulse_v2.json` | collector validation (shipped in the wheel) |
 | `src/studio_pulse/contract/generated.py` | Python code (`from studio_pulse.contract import generated as C`) |
-| `unity/com.studio.pulse/Runtime/PulseContract.g.cs` | Unity SDK (`Studio.Pulse.PulseContract`) |
-| `flutter/studio_pulse_perf/lib/src/contract.g.dart` | Flutter SDK (`PulseEvents`, `PulseParams` ...) |
+| `unity/com.studio.pulse/Runtime/Core/PulseContract.g.cs` | Unity SDK (`Studio.Pulse.PulseContract`) |
+| `flutter/studio_pulse/lib/src/contract.g.dart` | Flutter SDK (`PulseEvents`, `PulseParams` ...) |
 | `contract/generated/pulse_v2.batch.schema.json` | JSON Schema of a batch (any language) |
 | `contract/generated/bigquery/events.json` | BigQuery `pulse_raw.events` |
 | `contract/generated/bigquery/quarantine.json` | BigQuery `pulse_raw.quarantine` |
 | `contract/generated/bigquery/app_registry.json` | BigQuery `pulse_raw.app_registry` |
 | `contract/generated/bigquery/deletion_requests.json` | BigQuery `pulse_raw.deletion_requests` |
-| `contract/generated/PrivacyInfo.xcprivacy` | iOS plug-in privacy manifest (copy into the plug-in) |
+| `contract/generated/PrivacyInfo.xcprivacy` | iOS privacy manifest (the copies below ship with the SDKs) |
+| `unity/com.studio.pulse/Plugins/iOS/PrivacyInfo.xcprivacy` | Unity SDK iOS plug-in privacy manifest |
+| `flutter/studio_pulse/ios/Resources/PrivacyInfo.xcprivacy` | Flutter SDK iOS plug-in privacy manifest |
 | `docs/CONTRACT.md` | people (this page) |
 
 Contract v1 (`pulse_perf` / `pulse_load` as JSON lines, [EVENTS.md](EVENTS.md)) stays
