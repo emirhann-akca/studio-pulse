@@ -21,6 +21,12 @@ points instead of using only the latest one), min_z (proportion metrics only:
 also require the move to be at least min_z binomial standard errors, see
 _z_score).
 
+Baselines and multi-day values combine points the way the metric catalog
+(brain/metrics.yaml, `alert.baseline`) says: `pooled` weights each day by its
+sample (sum(value x sample) / sum(sample), e.g. retained users / cohort users),
+used where the sample is the ratio's denominator; `mean_of_daily` is the plain
+mean. The brain reads the same field, so both quote the same baseline.
+
 Notifications: always printed; also sent to Slack when
 $PULSE_SLACK_WEBHOOK_URL is set and by e-mail when $PULSE_SMTP_HOST and
 $PULSE_ALERT_EMAIL_TO are set. --dry-run prints what would be sent.
@@ -313,6 +319,15 @@ def _series(
     return out
 
 
+def _combine(points: list[tuple[dt.date, float, float | None]], pooled: bool) -> float:
+    """Pooled (sample-weighted) or plain mean of the points' values."""
+    if pooled:
+        w = sum(p[2] or 0 for p in points)
+        if w > 0 and all(p[2] is not None for p in points):
+            return sum(p[1] * p[2] for p in points) / w
+    return sum(p[1] for p in points) / len(points)
+
+
 def _z_score(value: float, reference: float, n: float) -> float | None:
     """How many binomial standard errors `value` (a share of n) is from `reference`.
 
@@ -326,15 +341,18 @@ def _z_score(value: float, reference: float, n: float) -> float | None:
 
 
 def evaluate(con: duckdb.DuckDBPyConnection, rules: list[Rule]) -> list[Alert]:
+    from .brain.catalog import alert_baseline
+
     alerts: list[Alert] = []
     for rule in rules:
         unit = METRICS[rule.metric].unit
+        pooled = alert_baseline(rule.metric) == "pooled"
         for app_id, pts in _series(con, rule).items():
             pts = [p for p in pts if p[2] is None or p[2] >= rule.min_sample]
             if len(pts) < rule.evaluate_days:
                 continue
             latest = pts[-rule.evaluate_days :]
-            value = sum(p[1] for p in latest) / len(latest)
+            value = _combine(latest, pooled)
             day = latest[-1][0]
             first_eval_day = latest[0][0]
             baseline = None
@@ -373,11 +391,11 @@ def evaluate(con: duckdb.DuckDBPyConnection, rules: list[Rule]) -> list[Alert]:
                 msg = f"{rule.metric} {_fmt(value, unit)} is {rule.condition} {_fmt(thr, unit)}"
             else:
                 lo = first_eval_day - dt.timedelta(days=rule.baseline_days)
-                base_pts = [p[1] for p in pts if lo <= p[0] < first_eval_day]
+                base_pts = [p for p in pts if lo <= p[0] < first_eval_day]
                 need = rule.min_baseline_points or max(3, rule.baseline_days // 2)
                 if len(base_pts) < need:
                     continue
-                baseline = sum(base_pts) / len(base_pts)
+                baseline = _combine(base_pts, pooled)
                 if baseline == 0:
                     continue
                 change = (value - baseline) / abs(baseline)
@@ -390,7 +408,8 @@ def evaluate(con: duckdb.DuckDBPyConnection, rules: list[Rule]) -> list[Alert]:
                     word = "up"
                 msg = (
                     f"{rule.metric} {_fmt(value, unit)} is {word} {abs(change) * 100:.1f}% vs the "
-                    f"trailing {rule.baseline_days}-day mean {_fmt(baseline, unit)} (limit {thr:.0f}%)"
+                    f"trailing {rule.baseline_days}-day {'pooled rate' if pooled else 'mean'} "
+                    f"{_fmt(baseline, unit)} (limit {thr:.0f}%)"
                 )
             if hit and rule.min_z is not None:
                 n = sum(p[2] or 0 for p in latest)

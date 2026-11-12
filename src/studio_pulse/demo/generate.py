@@ -255,7 +255,7 @@ APPS = [
             crash_mult=6.5,
             low_ft_add=6.5,
             mid_ft_add=1.2,
-            d1_mult=0.68,
+            d1_mult=0.55,
         ),
         admob_app_id="ca-app-pub-0000000000000000~1000000003",
         seed=33,
@@ -276,6 +276,7 @@ class User:
     level: int = 1
     sub: dict[str, Any] | None = None
     traffic: tuple[str, str, str] = ("(direct)", "(none)", "(direct)")
+    install_version: str | None = None  # set during an incident window only
 
 
 class EventBuffer:
@@ -389,8 +390,13 @@ class Generator:
             [0.32, 0.45, 0.23] if platform == "ANDROID" else [0.12, 0.48, 0.40],
         )
         engage = r.lognormvariate(0, 0.45)
+        install_version = None
         if a.incident and day_idx >= self.days - a.incident.days_before_end:
-            engage *= a.incident.d1_mult
+            # The bad release causes the D1 drop: only users who install it churn more
+            # (a planted, single-dimension cause for the brain's root-cause tests).
+            install_version = _version_for(a, day_idx, self.days, r)
+            if install_version == a.incident.version:
+                engage *= a.incident.d1_mult
         payer = r.random() < a.payer_rate * (1.6 if country[4] > 1 else 0.7)
         return User(
             uid=f"{r.getrandbits(64):016X}{r.getrandbits(64):016X}",
@@ -401,6 +407,7 @@ class Generator:
             model=r.choice(MODELS[(platform, tier)]),
             engage=engage,
             payer=payer,
+            install_version=install_version,
         )
 
     def _p_active(self, u: User, n: int) -> float:
@@ -428,7 +435,9 @@ class Generator:
 
     def _user_day(self, u: User, di: int, day: dt.date, n: int) -> None:
         a, r = self.app, self.rng
-        version = _version_for(a, di, self.days, r)
+        version = (
+            u.install_version if n == 0 and u.install_version else _version_for(a, di, self.days, r)
+        )
         incident = bool(a.incident and version == a.incident.version)
         base = {
             "event_date": day.strftime("%Y%m%d"),

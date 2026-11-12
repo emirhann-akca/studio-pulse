@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ t.insights }}{% endblock %}
+{% block body %}
+{% include "_brain_style.html" %}
+<div class="brain-head">
+  <h2>{{ t.insights }}</h2>
+  {% if run %}<span class="note">{% if live %}{{ t.live }}{% else %}{{ t.stored }} {{ run.created_at }}{% endif %}{% if run.as_of %} · {{ t.as_of }} {{ run.as_of }}{% endif %}{% if tested %} · {{ tested }} {{ t.tested }}{% endif %}</span>{% endif %}
+  <a class="lang" href="/insights?lang={{ 'en' if lang == 'tr' else 'tr' }}" hreflang="{{ 'en' if lang == 'tr' else 'tr' }}">{{ t.lang_other }}</a>
+</div>
+<p class="note">{{ t.how }}</p>
+{% if blocked %}<div class="banner" role="note">{{ t.blocked }}</div>{% endif %}
+{% if not cards %}<p class="note">{{ t.none }}</p>{% endif %}
+<ol class="insights">
+{% for c in cards %}
+<li class="card insight {{ c.severity }}" id="{{ c.id }}">
+  <div class="ins-top"><span class="pill {{ c.severity }}">{{ c.sev_label }}</span><span>#{{ c.rank }}</span><code>{{ c.kind }}</code>{% if c.app %}<span>{{ c.app }}</span>{% endif %}{% if c.q_text %}<span>{{ c.q_text }}</span>{% endif %}</div>
+  <h3>{{ c.title }}</h3>
+  <p>{{ c.body }}</p>
+  {% if c.caveats %}<ul class="caveats">{% for x in c.caveats %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if c.actions %}<div class="recs"><strong>{{ t.recommend }}</strong><ul>{% for a, ids in c.actions %}<li>{{ a }} <span class="cite">[{{ ids|join(', ') }}]</span></li>{% endfor %}</ul></div>{% endif %}
+  <details class="ev-wrap"><summary>{{ t.evidence }} ({{ c.evidence|length }})</summary>
+  {% for e in c.evidence %}
+    <div class="ev" id="ev-{{ e.id }}">
+      <dl class="kv">
+        <dt>id</dt><dd><code>{{ e.id }}</code></dd>
+        <dt>{{ t.method }}</dt><dd>{{ e.method }}</dd>
+        {% if e.definition %}<dt>{{ t.definition }}</dt><dd>{{ e.definition }}{% if e.aggregation %} ({{ e.aggregation }}){% endif %}</dd>{% endif %}
+        {% if e.n_text %}<dt>n</dt><dd>{{ e.n_text }}</dd>{% endif %}
+        {% if e.ci_text %}<dt>{{ t.interval }}</dt><dd>{{ e.ci_text }}</dd>{% endif %}
+        {% if e.p_text %}<dt>p / q</dt><dd>{{ e.p_text }}</dd>{% endif %}
+      </dl>
+      {% if e.sql %}<details><summary>{{ t.sql }}{% if e.params %} · {{ t.params }}: {{ e.params|join(', ') }}{% endif %}</summary><pre><code>{{ e.sql }}</code></pre></details>{% endif %}
+      {% if e.rows %}<div class="tbl-wrap"><table><thead><tr>{% for col in e.columns %}<th class="l">{{ col }}</th>{% endfor %}</tr></thead><tbody>
+      {% for r in e.rows %}<tr>{% for v in r %}<td class="l">{{ v }}</td>{% endfor %}</tr>{% endfor %}
+      </tbody></table></div>{% if e.more %}<p class="note">+{{ e.more }} {{ t.rows }}</p>{% endif %}{% endif %}
+    </div>
+  {% endfor %}
+  </details>
+</li>
+{% endfor %}
+</ol>
+{% endblock %}

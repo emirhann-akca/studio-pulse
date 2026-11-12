@@ -641,6 +641,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     register_collector(sub, with_config)
     register_simulate(sub, with_config)
+
+    from .brain.cli import add_commands as add_brain_commands  # insights, ask, brain eval
+
+    add_brain_commands(sub, with_config)
     return p
 
 

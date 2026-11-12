@@ -97,6 +97,13 @@ def _self_check(server: uvicorn.Server, sock: socket.socket, base: str, cfg: Con
         ("live", "Canlı / Live"),
         ("api/status", '"version"'),
         ("static/htmx.min.js", "htmx"),
+        ("insights", "Insights"),
+        ("insights?lang=tr", "İçgörüler"),
+        # with data the router must answer from the verified-query library
+        (
+            "ask?lang=tr&q=Veri%20g%C3%BCncel%20mi%3F",
+            "Doğrulanmış sorgu" if Path(cfg.warehouse).exists() else "Sor",
+        ),
     ]
     site = Path(cfg.site_dir)
     if (site / "index.html").exists():
@@ -121,10 +128,13 @@ def _self_check(server: uvicorn.Server, sock: socket.socket, base: str, cfg: Con
         failures += not ok
         ms = (time.perf_counter() - t0) * 1000
         print(f"{'ok  ' if ok else 'FAIL'} GET /{path:<34} {status} {ms:6.0f} ms")
-    status, _ = _get(base + "run", method="POST")
-    ok = status == 403
-    failures += not ok
-    print(f"{'ok  ' if ok else 'FAIL'} POST /run without token          {status} (must be 403)")
+    for post in ("run", "ask"):
+        status, _ = _get(base + post, method="POST")
+        ok = status == 403
+        failures += not ok
+        print(
+            f"{'ok  ' if ok else 'FAIL'} POST /{post:<4} without token          {status} (must be 403)"
+        )
     status, body = _get(base + "api/status")
     try:
         db = json.loads(body).get("database")

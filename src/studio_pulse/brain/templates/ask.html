@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ t.ask }}{% endblock %}
+{% block body %}
+{% include "_brain_style.html" %}
+<div class="brain-head">
+  <h2>{{ t.ask }}</h2>
+  <a class="lang" href="/ask?lang={{ 'en' if lang == 'tr' else 'tr' }}" hreflang="{{ 'en' if lang == 'tr' else 'tr' }}">{{ t.lang_other }}</a>
+</div>
+<form class="ask-form" method="get" action="/ask" hx-post="/ask" hx-target="#answer" hx-swap="innerHTML">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  <input type="text" name="q" value="{{ q }}" maxlength="500" required placeholder="{{ t.placeholder }}" aria-label="{{ t.ask }}">
+  <button type="submit">{{ t.ask_btn }}</button>
+</form>
+<div class="examples" aria-label="{{ t.examples }}">{% for e in examples %}<button type="button" hx-post="/ask" hx-target="#answer" hx-vals='{{ {"q": e, "lang": lang}|tojson }}'>{{ e }}</button>{% endfor %}</div>
+<p class="note">{{ t.how }}</p>
+<div id="answer" aria-live="polite">{% if answer %}{% include "_answer.html" %}{% endif %}</div>
+{% endblock %}

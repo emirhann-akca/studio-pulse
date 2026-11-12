@@ -63,8 +63,11 @@ class GA4Options:
             "level_max",
             "perf",
             "loads",
+            "cohort_dims",
         ]
     )
+    # brain B3/B3b pulls: min_cell_users, segments (GA4 user properties), tier_by_model
+    cohort_opts: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_source(cls, src: dict[str, Any]) -> GA4Options:
@@ -81,6 +84,11 @@ class GA4Options:
                 setattr(o, k, list(src[k]))
         if "churn_window_days" in src:
             o.churn_window_days = int(src["churn_window_days"])
+        from ..brain.cohort_dims import options_from_source
+
+        o.cohort_opts = options_from_source(src)
+        if o.cohort_opts["segments"] and "segment_retention" not in o.queries:
+            o.queries.append("segment_retention")
         for e in o.iap_events + o.ad_events + o.new_user_events:
             check_key(e)
         for i in o.app_info_ids:
@@ -552,6 +560,36 @@ FROM {d.ga4_events()}
 WHERE {self._where(None, f"event_name IN ({sql_list(names)})")}
 """
 
+    def cohort_dims(self) -> str:
+        """Install cohorts x GROUPING SETS of platform/country/version/source/tier (brain B3)."""
+        from ..brain import cohort_dims as cd
+
+        return cd.cohort_dims_sql(
+            self.d,
+            self.start,
+            self.end,
+            where=self._where(None, self._active_filter()),
+            new_user_events=self.o.new_user_events,
+            timezone=self.o.timezone,
+            min_cell_users=self.o.cohort_opts.get("min_cell_users", cd.DEFAULT_MIN_CELL),
+            tier_by_model=self.o.cohort_opts.get("tier_by_model"),
+        )
+
+    def segment_retention(self) -> str:
+        """Install cohorts x day-0 GA4 user property values (brain B3b)."""
+        from ..brain import cohort_dims as cd
+
+        return cd.segment_retention_sql(
+            self.d,
+            self.start,
+            self.end,
+            where=self._where(None, self._active_filter()),
+            properties=self.o.cohort_opts.get("segments") or [],
+            new_user_events=self.o.new_user_events,
+            timezone=self.o.timezone,
+            min_cell_users=self.o.cohort_opts.get("min_cell_users", cd.DEFAULT_MIN_CELL),
+        )
+
     def loads(self) -> str:
         d = self.d
         return f"""
@@ -578,6 +616,8 @@ _TARGETS = {
     "level_max": ("raw_level_max", None),
     "perf": ("raw_perf_windows", "date"),
     "loads": ("raw_load_times", "date"),
+    "cohort_dims": ("raw_ga4_cohort_dims", "cohort_date"),
+    "segment_retention": ("raw_ga4_segment_retention", "cohort_date"),
 }
 
 

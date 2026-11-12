@@ -17,6 +17,11 @@ NEED = [
     "studio_pulse/serve/templates/live.html",
     "studio_pulse/contract/pulse_v2.json",  # the collector validates with it
     "studio_pulse/_models/stg_pulse_events.sql",
+    "studio_pulse/_models/stg_cohort_dims.sql",
+    "studio_pulse/brain/metrics.yaml",
+    "studio_pulse/brain/verified_queries.yaml",
+    "studio_pulse/brain/eval/golden.yaml",
+    "studio_pulse/brain/templates/insights.html",
 ]
 
 

@@ -1,0 +1,288 @@
+# Golden questions for the Q&A router, run against the demo warehouse.
+#
+# Each item: the route it must take, 2-4 phrasings (English and Turkish), and a
+# reference SQL written independently of the router. The router's result set
+# must equal the reference on the `compare` columns: rows in any order, numbers
+# to 4 significant digits (Databricks Genie benchmark scoring).
+#   fake_sql   for route sql: what the FakeLLM proposes (stands in for a model)
+
+items:
+  - id: hardest_levels
+    route: verified_query
+    match: hardest_levels
+    phrasings:
+      - [en, "Which levels are the hardest in quartz_merge?"]
+      - [tr, "quartz_merge en zor seviyeler hangileri?"]
+      - [en, "Where do players fail most in quartz_merge?"]
+    compare: [level, fail_rate]
+    expected_sql: |
+      SELECT level, fails::DOUBLE / (completes + fails) AS fail_rate FROM fct_level_funnel
+      WHERE app_id = 'quartz_merge' AND completes + fails >= 200 ORDER BY fail_rate DESC, level LIMIT 5
+
+  - id: level_7_mossy
+    route: verified_query
+    match: level_stats
+    phrasings:
+      - [en, "What is the fail rate of level 7 in mossy_match?"]
+      - [tr, "mossy_match seviye 7 başarısızlık oranı nedir?"]
+      - [tr, "mossy_match oyununda 7. seviye ne kadar zor?"]
+    compare: [level, fail_rate, churn_rate]
+    expected_sql: |
+      SELECT level, fails::DOUBLE / (completes + fails) AS fail_rate, churn_rate
+      FROM fct_level_funnel WHERE app_id = 'mossy_match' AND level = 7
+
+  - id: level_14_quartz
+    route: verified_query
+    match: level_stats
+    phrasings:
+      - [en, "How hard is level 14 in quartz_merge?"]
+      - [tr, "quartz_merge seviye 14 istatistikleri"]
+    compare: [level, fails, completes]
+    expected_sql: |
+      SELECT level, fails, completes FROM fct_level_funnel WHERE app_id = 'quartz_merge' AND level = 14
+
+  - id: retention_summary_mossy
+    route: verified_query
+    match: retention_summary
+    phrasings:
+      - [en, "What are the D1, D7 and D30 retention of mossy_match?"]
+      - [tr, "mossy_match elde tutma özeti"]
+      - [en, "headline retention of mossy_match"]
+    compare: [day_n, retention]
+    expected_sql: |
+      SELECT day_n, retention FROM fct_retention_summary WHERE app_id = 'mossy_match'
+
+  - id: d1_trend_quartz
+    route: verified_query
+    match: d1_trend
+    phrasings:
+      - [en, "D1 trend for quartz_merge"]
+      - [tr, "quartz_merge son kohortlarda D1 nasıl değişti?"]
+    compare: [cohort_date, retention]
+    expected_sql: |
+      SELECT cohort_date, retention FROM fct_retention
+      WHERE app_id = 'quartz_merge' AND day_n = 1 AND is_complete ORDER BY cohort_date DESC LIMIT 14
+
+  - id: d1_by_version_quartz
+    route: verified_query
+    match: d1_by_version
+    phrasings:
+      - [en, "D1 retention by app version for quartz_merge"]
+      - [tr, "quartz_merge sürüme göre D1 elde tutma"]
+      - [en, "How does D1 differ between versions of quartz_merge?"]
+    compare: [app_version, d1_retention]
+    expected_sql: |
+      SELECT app_version, SUM(d1_users)::DOUBLE / SUM(users) AS d1_retention FROM stg_cohort_dims
+      WHERE app_id = 'quartz_merge' AND grouping_set = 'app_version' AND d1_users IS NOT NULL
+        AND cohort_date > (SELECT MAX(cohort_date) FROM stg_cohort_dims WHERE app_id = 'quartz_merge' AND d1_users IS NOT NULL) - 28
+      GROUP BY 1
+
+  - id: portfolio
+    route: verified_query
+    match: portfolio_week
+    phrasings:
+      - [en, "How did each app do in the last 7 days?"]
+      - [tr, "portföy özeti"]
+      - [en, "weekly summary of all apps"]
+    compare: [app_id, revenue_7d_usd, dau_7d]
+    expected_sql: |
+      SELECT app_id, revenue_7d_usd, dau_7d FROM fct_app_summary
+
+  - id: crash_free
+    route: verified_query
+    match: crash_free_by_app
+    phrasings:
+      - [en, "Which app crashes the most?"]
+      - [tr, "Her uygulamanın çökmesiz oranı nedir?"]
+    compare: [app_id, crash_free_users_7d]
+    expected_sql: |
+      SELECT app_id, crash_free_users_7d FROM fct_app_summary WHERE crash_free_users_7d IS NOT NULL
+
+  - id: perf_versions
+    route: verified_query
+    match: perf_by_version
+    phrasings:
+      - [en, "Did the new version of quartz_merge get slower?"]
+      - [tr, "quartz_merge sürümlere göre kare süresi nasıl?"]
+    compare: [app_version, device_tier, ft_p50_ms]
+    expected_sql: |
+      SELECT app_version, device_tier, ft_p50_ms FROM fct_perf_by_version WHERE app_id = 'quartz_merge'
+
+  - id: low_tier
+    route: verified_query
+    match: low_tier_frame_time
+    phrasings:
+      - [en, "What is the frame time on low-end devices?"]
+      - [tr, "Düşük seviye cihazlarda kare süresi nedir?"]
+    compare: [app_id, ft_p50_ms]
+    expected_sql: |
+      SELECT app_id, ft_p50_ms FROM fct_perf_by_tier WHERE device_tier = 'low'
+
+  - id: best_roas
+    route: verified_query
+    match: ua_best_roas
+    phrasings:
+      - [en, "Which campaign has the best D7 ROAS?"]
+      - [tr, "En iyi D7 ROAS hangi kampanyada?"]
+      - [en, "top campaigns by return on ad spend"]
+    compare: [campaign_name, roas_d7]
+    expected_sql: |
+      SELECT campaign_name, roas_d7 FROM fct_ua_summary
+      WHERE roas_d7 IS NOT NULL AND campaign_key IS NOT NULL ORDER BY roas_d7 DESC LIMIT 10
+
+  - id: spend_network
+    route: verified_query
+    match: ua_spend_by_network
+    phrasings:
+      - [en, "How much did we spend per network in the last 30 days?"]
+      - [tr, "ağlara göre reklam harcaması"]
+    compare: [app_id, network, spend_30d_usd]
+    expected_sql: |
+      SELECT app_id, network, SUM(spend_30d_usd) AS spend_30d_usd FROM fct_ua_summary
+      WHERE campaign_key IS NOT NULL GROUP BY 1, 2
+
+  - id: rating_versions
+    route: verified_query
+    match: rating_by_version
+    phrasings:
+      - [en, "What is the rating by version for quartz_merge?"]
+      - [tr, "quartz_merge hangi sürümün yorumları en kötü?"]
+    compare: [app_version, avg_rating]
+    expected_sql: |
+      SELECT app_version, avg_rating FROM fct_rating_by_version WHERE app_id = 'quartz_merge'
+
+  - id: topics
+    route: verified_query
+    match: review_topics
+    phrasings:
+      - [en, "What do reviews complain about in quartz_merge?"]
+      - [tr, "quartz_merge yorum konuları"]
+    compare: [topic, share_30d]
+    expected_sql: |
+      SELECT topic, share_30d FROM fct_review_topics WHERE app_id = 'quartz_merge'
+
+  - id: experiment
+    route: verified_query
+    match: experiment_result
+    phrasings:
+      - [en, "What is the result of the A/B test?"]
+      - [tr, "A/B testinin sonucu ne?"]
+    compare: [variant, test, estimate, p_value]
+    expected_sql: |
+      SELECT variant, test, estimate, p_value FROM fct_experiment_tests
+
+  - id: ltv
+    route: verified_query
+    match: ltv_d30
+    phrasings:
+      - [en, "What is the D30 LTV of mossy_match?"]
+      - [tr, "mossy_match yaşam boyu değeri"]
+    compare: [day_n, cumulative_arpu_usd]
+    expected_sql: |
+      SELECT day_n, cumulative_arpu_usd FROM fct_ltv_curve WHERE app_id = 'mossy_match' AND day_n <= 30
+      ORDER BY day_n DESC LIMIT 1
+
+  - id: freshness
+    route: verified_query
+    match: data_freshness
+    phrasings:
+      - [en, "Is the data fresh?"]
+      - [tr, "Veri güncel mi?"]
+      - [en, "When was each source last updated?"]
+    compare: [app_id, source, data_through]
+    expected_sql: |
+      SELECT app_id, source, data_through FROM fct_source_freshness
+
+  - id: payer_conversion_7d
+    route: catalog
+    match: payer_conversion
+    phrasings:
+      - [en, "What was the payer conversion of mossy_match in the last 7 days?"]
+      - [tr, "mossy_match son 7 günde ödeyen dönüşümü neydi?"]
+    compare: [value]
+    expected_sql: |
+      SELECT SUM(payers)::DOUBLE / SUM(dau) AS value FROM fct_app_daily
+      WHERE app_id = 'mossy_match' AND payer_conversion IS NOT NULL
+        AND date > (SELECT MAX(date) FROM fct_app_daily WHERE app_id = 'mossy_match') - 7
+
+  - id: dau_14d
+    route: catalog
+    match: dau
+    phrasings:
+      - [en, "average DAU of pacer_pal in the last 14 days"]
+      - [tr, "pacer_pal son 14 günde ortalama DAU neydi?"]
+    compare: [value]
+    expected_sql: |
+      SELECT AVG(dau) AS value FROM fct_app_daily WHERE app_id = 'pacer_pal' AND dau IS NOT NULL
+        AND date > (SELECT MAX(date) FROM fct_app_daily WHERE app_id = 'pacer_pal' AND dau IS NOT NULL) - 14
+
+  - id: ecpm_7d
+    route: catalog
+    match: ecpm_usd
+    phrasings:
+      - [en, "eCPM of quartz_merge last 7 days"]
+      - [tr, "quartz_merge son 7 gün bin gösterim başına gelir"]
+    compare: [value]
+    expected_sql: |
+      SELECT SUM(ecpm_usd * ad_impressions) / SUM(ad_impressions) AS value FROM fct_app_daily
+      WHERE app_id = 'quartz_merge' AND ecpm_usd IS NOT NULL
+        AND date > (SELECT MAX(date) FROM fct_app_daily WHERE app_id = 'quartz_merge') - 7
+
+  - id: d7_mossy
+    route: catalog
+    match: d7_retention
+    phrasings:
+      - [en, "D7 retention of mossy_match"]
+      - [tr, "mossy_match 7. gün elde tutma"]
+    compare: [value]
+    expected_sql: |
+      SELECT SUM(retained_users)::DOUBLE / SUM(cohort_size) AS value FROM fct_retention
+      WHERE app_id = 'mossy_match' AND day_n = 7 AND is_complete
+        AND cohort_date > (SELECT MAX(cohort_date) FROM fct_retention WHERE app_id = 'mossy_match' AND day_n = 7 AND is_complete) - 14
+
+  - id: frame_time_tier
+    route: catalog
+    match: frame_time_p50_ms
+    phrasings:
+      - [en, "median frame time by device tier for quartz_merge last 7 days"]
+      - [tr, "quartz_merge son 7 gün cihaz sınıfına göre medyan kare süresi"]
+    compare: [device_tier, value]
+    expected_sql: |
+      SELECT device_tier, AVG(ft_p50_ms) AS value FROM fct_perf_daily WHERE app_id = 'quartz_merge'
+        AND date > (SELECT MAX(date) FROM fct_perf_daily WHERE app_id = 'quartz_merge') - 7
+      GROUP BY 1
+
+  - id: d1_country
+    route: catalog
+    match: "d1_retention:country"
+    phrasings:
+      - [en, "D1 retention by country for quartz_merge"]
+      - [tr, "quartz_merge ülkeye göre D1 elde tutma"]
+    compare: [country, value]
+    expected_sql: |
+      SELECT country, SUM(d1_users)::DOUBLE / SUM(users) AS value FROM stg_cohort_dims
+      WHERE app_id = 'quartz_merge' AND grouping_set = 'country' AND d1_users IS NOT NULL
+        AND cohort_date > (SELECT MAX(cohort_date) FROM stg_cohort_dims WHERE app_id = 'quartz_merge' AND d1_users IS NOT NULL) - 28
+      GROUP BY 1
+
+  - id: levels_below_half
+    route: sql
+    match: generated
+    phrasings:
+      - [en, "How many levels have a win rate below 50% in quartz_merge?"]
+      - [tr, "quartz_merge oyununda kazanma oranı yüzde 50'nin altında olan kaç seviye var?"]
+    fake_sql: "SELECT COUNT(*) AS levels FROM fct_level_funnel WHERE app_id = 'quartz_merge' AND win_rate < 0.5"
+    compare: [levels]
+    expected_sql: |
+      SELECT COUNT(*) AS levels FROM fct_level_funnel WHERE app_id = 'quartz_merge' AND win_rate < 0.5
+
+  - id: busiest_day
+    route: sql
+    match: generated
+    phrasings:
+      - [en, "On which day did mossy_match have its highest DAU?"]
+      - [tr, "mossy_match en yüksek DAU'yu hangi gün gördü?"]
+    fake_sql: "SELECT date, dau FROM fct_app_daily WHERE app_id = 'mossy_match' ORDER BY dau DESC LIMIT 1"
+    compare: [date, dau]
+    expected_sql: |
+      SELECT date, dau FROM fct_app_daily WHERE app_id = 'mossy_match' ORDER BY dau DESC LIMIT 1

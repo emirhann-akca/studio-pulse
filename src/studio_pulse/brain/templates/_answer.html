@@ -1,0 +1,12 @@
+{% if answer %}
+<div class="card answer">
+  <div class="ins-top"><span class="route {{ answer.route }}">{{ t['route_' ~ answer.route] }}</span>{% if answer.matched %}<code>{{ answer.matched }}</code>{% endif %}{% if answer.missing %}<span>{{ answer.missing }}</span>{% endif %}</div>
+  <p><em>{{ answer.question }}</em></p>
+  <p>{% if answer.verified %}{{ answer.text }}{% else %}{{ t.unverified }}{% endif %}</p>
+  {% if answer.sql %}<details{% if answer.route == 'sql' %} open{% endif %}><summary>{{ t.sql }}{% if answer.params %} · {{ t.params }}: {{ answer.params|join(', ') }}{% endif %}</summary><pre><code>{{ answer.sql }}</code></pre></details>{% endif %}
+  {% if answer.rows %}<div class="tbl-wrap"><table><thead><tr>{% for col in answer.columns %}<th class="l">{{ col }}</th>{% endfor %}</tr></thead><tbody>
+  {% for r in answer.cells() %}<tr>{% for v in r %}<td class="l">{{ v }}</td>{% endfor %}</tr>{% endfor %}
+  </tbody></table></div>{% if answer.truncated %}<p class="note">{{ t.truncated }}</p>{% endif %}{% endif %}
+  {% if answer.evidence %}<p class="note">{{ t.evidence }}: <code>{{ answer.evidence.id }}</code> · {{ answer.evidence.method }}</p>{% endif %}
+</div>
+{% endif %}

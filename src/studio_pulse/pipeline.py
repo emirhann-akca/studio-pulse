@@ -513,6 +513,9 @@ def run_all(
             if send_notifications:
                 to_send = fired + checks_mod.as_alerts(check_results, as_of)
                 alerts_mod.notify(to_send, title=cfg.title, dry_run=dry_run_notify, log=log)
+            from .brain.insights import refresh as refresh_insights  # never fails the run
+
+            n_insights = refresh_insights(con, as_of=as_of, rules=rules, log=log)
             out = site_dir or cfg.site_dir
             pages = (
                 _build(con, cfg, out, alerts=fired, rules=rules, checks=check_results)
@@ -531,6 +534,7 @@ def run_all(
             check_warnings=summary["warnings"],
             ingest_errors=len(report.errors),
             pages=len(pages),
+            insights=n_insights,
         )
         problems = []
         if report.errors:
