@@ -371,8 +371,8 @@ jobs:
         shell: bash
         run: |
           set -e
-          a="python ../../.github/scripts/annotate.py"
-          (cd ../.. && $a "pip install" python -m pip install -q -e .)
+          a="python $GITHUB_WORKSPACE/.github/scripts/annotate.py"
+          $a "pip install" python -m pip install -q -e "$GITHUB_WORKSPACE"
           work="$RUNNER_TEMP/dart-e2e"; mkdir -p "$work"
           (cd "$work" && python -m studio_pulse.cli collect --data-dir collector --port 8787 > collect.log 2>&1 &)
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:8787/healthz > /dev/null && break; sleep 1; done
