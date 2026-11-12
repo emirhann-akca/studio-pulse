@@ -75,7 +75,8 @@ def cmd_simulate(args: argparse.Namespace) -> int:
                     f"  {row['app_id']:<22} /live {row['live']:>4}  sent {row['expected']!s:>8}  "
                     f"{'ok' if row['match'] and row['breakdown_match'] else 'MISMATCH'}"
                 )
-            print(f"new apps on /live: {[a['app_id'] for a in v['new_apps']]}")
+            new = sorted({a["app_id"] for a in v["new_apps"]})  # one row per platform on /live
+            print(f"new apps on /live: {new}")
     sent = {
         k: sum(getattr(r.sent, k) for _, r in reports)
         for k in ("batches", "events", "lost_batches", "lost_events", "resent_batches", "resent_events", "invalid")
