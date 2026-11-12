@@ -28,5 +28,5 @@ for defines in "UNITY_STANDALONE_OSX" "UNITY_ANDROID" "UNITY_IOS" "UNITY_EDITOR;
   echo "compiled Studio.Pulse ($defines)"
 done
 "$mono" "$csc" -nologo -nostdlib -noconfig -t:library -langversion:9 -warnaserror -out:"$out/QuickStart.dll" \
-  -r:"$ns" -r:"$out/Studio.Pulse.Core.dll" -r:"$out/Studio.Pulse.dll" "${refs[@]}" "$pkg/Samples~/QuickStart/PulseQuickStart.cs"
+  -r:"$ns" -r:"$out/Studio.Pulse.Core.dll" -r:"$out/Studio.Pulse.dll" "${refs[@]}" "$pkg"/Samples~/QuickStart/*.cs
 echo "compiled Samples~/QuickStart"
