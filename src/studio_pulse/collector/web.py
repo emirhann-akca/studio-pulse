@@ -118,6 +118,9 @@ def register(
         snap["at"] = dt.datetime.fromtimestamp(now / 1000, dt.UTC).strftime("%H:%M:%S UTC")
         return {"snap": snap, "error": None, "collector_url": url}
 
+    app.state.live_data = live_data  # the Studio sidebar reads the same snapshot
+    app.state.bundle_to_app = bundle_to_app
+
     @app.get("/live", response_class=HTMLResponse)
     def live_page(request: Request):
         return templates.TemplateResponse(

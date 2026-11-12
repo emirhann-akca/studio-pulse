@@ -1,0 +1,27 @@
+{% set palette = ['#3a2c8c', '#0e7490', '#b45309', '#be185d', '#047857', '#6d28d9', '#1d4ed8', '#b91c1c'] %}
+<h2>{{ t.apps }}</h2>
+{% for a in apps %}
+  <a class="app-link" href="/studio/{{ a.id }}?lang={{ lang }}"{% if a.id == chosen %} aria-current="page"{% endif %}>
+    <span class="ic" style="background:{{ palette[loop.index0 % palette|length] }}" aria-hidden="true">{{ a.name[:1]|upper }}</span>
+    <span class="nm">{{ a.name }}</span>
+    {% if a.now %}<span class="now" title="{{ t.players_now }}"><span class="dot" aria-hidden="true"></span> {{ a.now }}</span>{% endif %}
+    <span class="st {{ a.status }}">{{ t[a.status] }}</span>
+  </a>
+{% endfor %}
+{% if arrived %}
+<h2>{{ t.new_section }}</h2>
+{% for a in arrived %}
+  <a class="app-link" href="/studio/{{ a.id }}?lang={{ lang }}"{% if a.id == chosen %} aria-current="page"{% endif %}>
+    <span class="ic" style="background:{{ palette[(loop.index0 + 3) % palette|length] }}" aria-hidden="true">{{ a.name[:1]|upper }}</span>
+    <span class="nm">{{ a.name }}</span>
+    {% if a.now %}<span class="now" title="{{ t.players_now }}"><span class="dot" aria-hidden="true"></span> {{ a.now }}</span>{% endif %}
+    <span class="st {{ a.status }}">{{ t[a.status] }}</span>
+  </a>
+{% endfor %}
+{% endif %}
+<h2>{{ t.tools }}</h2>
+<a class="tool-link" href="/radar">{{ t.radar }}<small>US · TR · GB · DE</small></a>
+{% if forge_url %}<a class="tool-link" href="{{ forge_url }}" rel="noopener">{{ t.ads }}</a>{% else %}<span class="tool-link" title="{{ t.ads_off }}">{{ t.ads }}<small>{{ t.ads_off }}</small></span>{% endif %}
+<a class="tool-link" href="/live">Canlı / Live</a>
+<a class="tool-link" href="/health">{{ t.health }}</a>
+<a class="tool-link" href="/alerts">{{ t.alerts }}</a>

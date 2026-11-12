@@ -305,4 +305,8 @@ def create_app(
     from ..radar.page import register as register_radar
 
     register_radar(app, cfg, templates, context)
+
+    from .studio import register as register_studio  # /studio: the one-window app view
+
+    register_studio(app, cfg, templates, context=context, open_db=open_db, rows=_rows, hosts=hosts)
     return app

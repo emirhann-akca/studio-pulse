@@ -81,6 +81,8 @@ def test_heartbeat_adds_its_script_to_full_pages_only():
     assert beat.pinged and beat.last_ping == 130.0
     now[0] = 140.0
     assert c.post("/__app/bye").status_code == 200 and beat.bye_at == 140.0
+    # a ping in the same clock tick (Windows: ~16 ms) still cancels the goodbye: order decides
+    assert c.get("/__app/ping").status_code == 200 and beat.bye_at is None
 
 
 # -- config and state ---------------------------------------------------------------------
@@ -141,7 +143,7 @@ def test_closing_the_last_page_stops_the_server_and_the_window(tmp_path):
     t, rc = _run_in_thread(config=str(minimal_config(tmp_path)), state=state, launch=win,
                            bye_grace_s=0.5, tick_s=0.05, log=lambda m: None)  # fmt: skip
     url = _wait_url(state)
-    assert win.urls == [url]
+    assert win.urls == [url + "studio"]
     assert _get(url) == 200 and _get(url + "__app/ping") == 200
     urllib.request.urlopen(urllib.request.Request(url + "__app/bye", method="POST"), timeout=5)  # noqa: S310
     t.join(15)
@@ -171,7 +173,7 @@ def test_a_second_launch_opens_a_window_on_the_running_server(tmp_path):
     url = _wait_url(state)
     assert desktop.running_url(state) == url
     assert desktop.run(None, state=state, launch=second, log=lambda m: None) == 0
-    assert second.urls == [url]  # no second server
+    assert second.urls == [url + "studio"]  # no second server
     for p in second.procs:
         p.kill()
     t.join(20)

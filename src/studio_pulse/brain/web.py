@@ -202,6 +202,9 @@ def register(
             "source": source,
         }
 
+    app.state.brain_insights = load_insights  # the Studio's per-app AI panel
+    app.state.brain_templates = templates
+
     @app.get("/insights", response_class=HTMLResponse)
     def insights_page(request: Request, lang: str | None = None):
         lg = _lang(lang)
@@ -228,6 +231,8 @@ def register(
             return None
         with LockedSession.open(path) as s:
             return Router(s, client=_client(cfg), as_of=cfg.as_of).ask(question, lang)
+
+    app.state.brain_answer = answer
 
     @app.get("/ask", response_class=HTMLResponse)
     def ask_page(request: Request, lang: str | None = None, q: str | None = None):

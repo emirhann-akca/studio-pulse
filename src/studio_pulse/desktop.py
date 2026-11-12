@@ -237,7 +237,9 @@ class Heartbeat:
             return
         path = scope.get("path", "")
         if path == "/__app/ping":
-            self.last_ping, self.pinged = self.clock(), True
+            # a ping after a goodbye means another window or the next page is there; by order,
+            # not by time (Windows' monotonic clock ticks every ~16 ms)
+            self.last_ping, self.pinged, self.bye_at = self.clock(), True, None
             await self._plain(send, 200, b"ok", b"text/plain")
             return
         if path == "/__app/bye":
@@ -373,7 +375,7 @@ def run(
         if url:
             log(f"{APP_NAME} is already running at {url}; opening a window on it")
             if open_window:
-                launch(url)
+                launch(url + "studio")
             return 0
     cfg_path = pick_config(config, state)
     switch = Switch(_preparing_app)
@@ -407,7 +409,7 @@ def run(
             ready.set()
 
     threading.Thread(target=prepare, daemon=True).start()
-    proc = launch(running.url) if open_window else None
+    proc = launch(running.url + "studio") if open_window else None  # the one-window app view
     try:
         if not open_window:  # serve until Ctrl+C
             ready.wait()
@@ -426,7 +428,7 @@ def run(
                 # the dedicated window process ended: its window was closed
                 if now - beat.last_ping > PING_EVERY_S * 2:
                     break
-            if beat.bye_at is not None and beat.last_ping < beat.bye_at:
+            if beat.bye_at is not None:  # a page left and no page has pinged since
                 if now - beat.bye_at > bye_grace_s:  # the last page left and none came back
                     break
             if now - beat.last_ping > gone_after_s:
@@ -478,6 +480,7 @@ def check(config: str | None = None, *, state: Path | None = None, scale: float 
         switch.app = _ui_app(path)
         failures = 0
         for page, needle in (("healthz", b'"ok":true'), ("", b"Run refresh now"), ("insights", b"Insights"),
+                             ("studio", b"Studio Pulse"),
                              ("__app/heartbeat.js", b"__app/ping")):  # fmt: skip
             code, body = _get(running.url + page, timeout=30)
             ok = code == 200 and needle in body

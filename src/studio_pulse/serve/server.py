@@ -98,6 +98,7 @@ def _self_check(server: uvicorn.Server, sock: socket.socket, base: str, cfg: Con
         ("api/status", '"version"'),
         ("static/htmx.min.js", "htmx"),
         ("insights", "Insights"),
+        ("studio", "Studio Pulse"),
         ("insights?lang=tr", "İçgörüler"),
         # with data the router must answer from the verified-query library
         (
