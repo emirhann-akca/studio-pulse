@@ -1,12 +1,24 @@
-# studio_pulse_perf
+# studio_pulse
 
-Flutter performance telemetry on the studio-pulse event contract
-(`docs/EVENTS.md` in the repository root): one `pulse_perf` event per 30 s
-window and a `pulse_load` cold start, to Firebase Analytics (then the GA4
-BigQuery export) or JSON lines.
+The studio-pulse analytics SDK for Flutter apps (event contract v2): a crash-safe
+on-disk queue, batching, gzip, retries with backoff, sessions, install store, level /
+economy / ad / purchase / settings events, managed errors, consent and opt-out.
+Full reference: `docs/SDK_FLUTTER.md` in the repository.
 
 ```dart
-import 'package:studio_pulse_perf/studio_pulse_perf.dart';
+WidgetsFlutterBinding.ensureInitialized();
+await StudioPulse.init(writeKey: 'sp_pub_...', endpoint: 'https://collector.example.com');
+StudioPulse.levelFail(12, 'hit_spike', x: 0.42, y: 0.77, progress: 0.8);
+```
+
+## Perf telemetry
+
+The package also carries the frame-time, start-time and memory telemetry that was
+`studio_pulse_perf` (`StudioPulse.init` starts it and sends its events through the SDK
+queue; it can still be used on its own with Firebase or JSON-lines sinks):
+
+```dart
+import 'package:studio_pulse/studio_pulse_perf.dart';
 
 final perfStart = PulsePerf.markProcessStart();
 
@@ -30,5 +42,5 @@ exposes no GPU time), peak resident memory (`sys_used_mb`), device tier.
 mixed with Unity's numbers. The timings callback stores integers in
 preallocated typed lists; it creates nothing per frame.
 
-Checks: `dart analyze` and `flutter test` (8 tests; the golden JSON in
+Checks: `dart analyze` and `flutter test` (42 tests, of which 8 for perf; the golden JSON in
 `test/golden/` is also parsed by the Python connector's tests).

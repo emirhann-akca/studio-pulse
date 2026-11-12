@@ -142,6 +142,10 @@ def normalize(raw: dict[str, Any]) -> dict[str, Any]:
         "privacy": [
             {k: str(item[k]) for k in ("data", "apple", "play", "from")} for item in raw["privacy"]
         ],
+        "privacy_api": [
+            {"category": str(item["category"]), "reasons": [str(r) for r in item["reasons"]]}
+            for item in raw.get("privacy_api") or []
+        ],
     }
 
 
@@ -651,9 +655,9 @@ def render_xcprivacy(spec: dict[str, Any]) -> str:
 
     No tracking, no tracking domains; every type linked to the user (Apple treats
     pseudonymous analytics as linked unless strong protections exist) and used for
-    Analytics and App Functionality. No required-reason API is declared: the
-    plug-in itself uses none (Unity declares PlayerPrefs / UserDefaults for the
-    engine); add them here if the native code starts using one.
+    Analytics and App Functionality. Required-reason APIs from `privacy_api`: the
+    SDK's queue reads its own file sizes (file timestamp category, C617.1); it
+    uses no UserDefaults / PlayerPrefs (Unity declares those for the engine).
     """
     import plistlib
 
@@ -672,7 +676,13 @@ def render_xcprivacy(spec: dict[str, Any]) -> str:
             }
             for p in spec["privacy"]
         ],
-        "NSPrivacyAccessedAPITypes": [],
+        "NSPrivacyAccessedAPITypes": [
+            {
+                "NSPrivacyAccessedAPIType": a["category"],
+                "NSPrivacyAccessedAPITypeReasons": a["reasons"],
+            }
+            for a in spec.get("privacy_api", [])
+        ],
     }
     return plistlib.dumps(manifest, sort_keys=False).decode("utf-8")
 
@@ -691,7 +701,9 @@ OUTPUTS: dict[str, tuple[str, Callable[[dict[str, Any]], str]]] = {
     "contract/generated/bigquery/quarantine.json": ("BigQuery `pulse_raw.quarantine`", lambda s: render_bigquery(s, "quarantine")),
     "contract/generated/bigquery/app_registry.json": ("BigQuery `pulse_raw.app_registry`", lambda s: render_bigquery(s, "app_registry")),
     "contract/generated/bigquery/deletion_requests.json": ("BigQuery `pulse_raw.deletion_requests`", lambda s: render_bigquery(s, "deletion_requests")),
-    "contract/generated/PrivacyInfo.xcprivacy": ("iOS plug-in privacy manifest (copy into the plug-in)", render_xcprivacy),
+    "contract/generated/PrivacyInfo.xcprivacy": ("iOS privacy manifest (the copies below ship with the SDKs)", render_xcprivacy),
+    "unity/com.studio.pulse/Plugins/iOS/PrivacyInfo.xcprivacy": ("Unity SDK iOS plug-in privacy manifest", render_xcprivacy),
+    "flutter/studio_pulse/ios/Resources/PrivacyInfo.xcprivacy": ("Flutter SDK iOS plug-in privacy manifest", render_xcprivacy),
     "docs/CONTRACT.md": ("people (this page)", render_docs),
 }  # fmt: skip
 

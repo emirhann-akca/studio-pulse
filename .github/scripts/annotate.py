@@ -9,6 +9,8 @@ every step that can fail goes through this wrapper:
 from __future__ import annotations
 
 import collections
+import os
+import shutil
 import subprocess
 import sys
 
@@ -26,6 +28,10 @@ def main() -> int:
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(errors="backslashreplace")
     tail: collections.deque[str] = collections.deque(maxlen=30)
+    # Windows: flutter and dart are .bat files, which CreateProcess finds only by full path
+    found = shutil.which(cmd[0]) if cmd else None
+    if found and os.name == "nt":
+        cmd = [found, *cmd[1:]]
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except OSError as exc:

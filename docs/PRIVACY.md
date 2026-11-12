@@ -16,12 +16,16 @@ device model and tier, RAM), a random install id, an optional game account id
 (`uid`, never in child mode), purchase history, and the country derived from
 the request address.
 
-`contract/generated/PrivacyInfo.xcprivacy` is the privacy manifest for the
-SDK's iOS plug-in, generated from the same list: no tracking, no tracking
-domains, every type "linked" (Apple treats data as linked unless strong
-protections are in place, and personal data under privacy laws counts as
-linked), purposes Analytics and App Functionality, no required-reason API (the
-plug-in uses none; Unity declares its own, e.g. `CA92.1` for PlayerPrefs).
+`contract/generated/PrivacyInfo.xcprivacy` is the privacy manifest of the
+SDKs' iOS plug-ins, generated from the same list and copied by the generator into
+`unity/com.studio.pulse/Plugins/iOS/` and `flutter/studio_pulse/ios/Resources/`:
+no tracking, no tracking domains, every type "linked" (Apple treats data as
+linked unless strong protections are in place, and personal data under privacy
+laws counts as linked), purposes Analytics and App Functionality, and one
+required-reason API: file timestamps with `C617.1`, because the event queue
+reads the size of its own files in the app container. The SDKs use no
+UserDefaults / PlayerPrefs (Unity declares its own, e.g. `CA92.1` for
+PlayerPrefs).
 `plutil -lint` passes on it (the test runs it on macOS). A third-party SDK
 needs its own manifest when it collects data; since 1 May 2024 App Store
 Connect rejects required-reason APIs without declared reasons.
@@ -50,14 +54,20 @@ Connect rejects required-reason APIs without declared reasons.
 | Raw events kept at most 13 months, aggregates kept | local: `pulse run` / `pulse collect purge` delete segment days older than 396 days; BigQuery: 396-day partition expiration in `deploy/cloudrun/deploy.sh` |
 | Deletion endpoint and process, executed within 90 days at most | `POST /v2/delete`: refused from that moment, gone from the warehouse at the next run, removed from segments by the first run after two hours, request marked done; well inside 90 days if `pulse run` runs daily |
 | Consent / opt-out | collector stores nothing from `consent: denied` batches and refuses deleted installs; SDK side below |
-| `PrivacyInfo.xcprivacy` in the iOS plug-in, linted | generated in `contract/generated/`; the plug-in itself is the SDK step |
+| `PrivacyInfo.xcprivacy` in the iOS plug-in, linted | generated from the contract into both SDKs' iOS plug-ins; `plutil -lint` in the tests and on the macOS CI runner |
 | Data safety form and App Store privacy labels per game | mapping table in CONTRACT.md; filling the forms per game is manual |
 | Privacy policy text: purpose, recipients (Google Cloud), transfer abroad, rights, opt-out | **legal review needed** |
 | KVKK transfer-abroad mechanism (standard contract + notification, or region choice) | **legal review needed** |
 | Kids games: child mode on, no ad SDKs outside Families-certified ones | `ctx.child` handled by the collector; SDK and ad stack per game |
 | Consent default per market (EU/UK opt-in vs CNIL-style opt-out, Turkey) | **legal review needed** |
 
-## What the SDK must expose (for the SDK step)
+## What the SDKs expose
+
+Implemented in both SDKs ([SDK_UNITY.md](SDK_UNITY.md#privacy),
+[SDK_FLUTTER.md](SDK_FLUTTER.md)) as specified below; tested: consent required
+writes nothing to disk or network before consent, opt-out wipes the queue and
+keeps only the flag across restarts, a deletion request is retried until the
+collector answers and the id rotates, child mode strips `uid` and free text.
 
 | API | Behaviour |
 |---|---|

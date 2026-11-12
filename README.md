@@ -60,15 +60,22 @@ store reviews included).
   serve` shows who is playing right now. Details in
   [docs/COLLECTOR.md](docs/COLLECTOR.md), [docs/CONTRACT.md](docs/CONTRACT.md),
   [docs/PRIVACY.md](docs/PRIVACY.md).
-- **Unity and Flutter packages** on one event contract: Unity's
-  `ProfilerRecorder` / FrameTimingManager counters and Flutter's
-  `addTimingsCallback` (build / raster p95, janky frames, RSS, cold start),
-  zero per-frame allocations, and every event says which API produced its numbers.
+- **Own analytics SDKs for Unity games and Flutter apps** on the same contract:
+  `Pulse.Init(key, url)` / `StudioPulse.init(...)`, then one line per level start,
+  fail (with the death position), setting change, purchase or ad impression.
+  Crash-safe disk queue, batching, gzip, backoff, the collector's status codes,
+  UUIDv7 ids and a persisted sequence, 30-minute sessions, install store (Android
+  installer, iOS AppTransaction), exit reasons, scrubbed errors, consent / opt-out
+  / deletion / child mode, iOS privacy manifests; both SDKs write byte-identical
+  batches for one scripted session ([docs/SDK_UNITY.md](docs/SDK_UNITY.md),
+  [docs/SDK_FLUTTER.md](docs/SDK_FLUTTER.md)). Perf telemetry (Unity's
+  `ProfilerRecorder` / FrameTimingManager counters, Flutter's
+  `addTimingsCallback`) goes through the same queue.
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.
-- 452 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
-  macOS and Linux x Python 3.11-3.13.
+- 471 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
+  dart analyze; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install
 
@@ -261,9 +268,12 @@ which also picks up events GA4 adds to a day late.
 is a disabled template for running it from a private repository with a service
 account instead; this repository schedules nothing.
 
-## Flutter package
+## Flutter SDK
 
-[`flutter/studio_pulse`](flutter/studio_pulse): the same
+[`flutter/studio_pulse`](flutter/studio_pulse): the analytics SDK for Flutter
+apps ([docs/SDK_FLUTTER.md](docs/SDK_FLUTTER.md)), a pure-Dart core plus lifecycle
+and error hooks and a small Kotlin / Swift channel, no third-party dependency. It
+also carries the perf telemetry: the same
 `pulse_perf` / `pulse_load` events from a Flutter app. Frame build and raster
 times from `SchedulerBinding.addTimingsCallback` (p50 / p95 / max, frames over
 33.3 ms and over the display's frame budget), cold start to the first
@@ -273,9 +283,12 @@ lines. The per-frame callback stores integers in preallocated typed lists.
 `dart analyze` and `flutter test` run in CI; the JSON its tests write is parsed
 by the Python connector (`tests/test_flutter_package.py`).
 
-## Unity package
+## Unity SDK
 
-[`unity/com.studio.pulse`](unity/com.studio.pulse): one `pulse_perf` event per
+[`unity/com.studio.pulse`](unity/com.studio.pulse): the analytics SDK for Unity
+games ([docs/SDK_UNITY.md](docs/SDK_UNITY.md)), a UnityEngine-free netstandard2.1
+core (tested with `dotnet test` on three OSes and under Unity's Mono) plus a thin
+adapter. Its perf telemetry: one `pulse_perf` event per
 30 s window (frame time p50/p95/max, frames over 33.3 ms, CPU main-thread and
 GPU p95, reserved / GC / OS-view memory), `pulse_load` events for cold start
 and scene loads, device tiers from `SystemInfo`, and sinks for JSON lines /

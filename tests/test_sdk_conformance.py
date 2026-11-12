@@ -137,7 +137,11 @@ def test_goldens_are_stored_once_by_the_real_collector(collector):
     rows = [r for r in stored_rows(data_dir) if r["install_id"] == install]
     assert sorted(r["seq"] for r in rows) == list(range(1, 32))
     by_name = {r["name"]: r for r in rows}
-    assert json.loads(by_name["setting_change"]["params"]) == {"setting": "music", "from": "on", "to": "off"}
+    assert json.loads(by_name["setting_change"]["params"]) == {
+        "setting": "music",
+        "from": "on",
+        "to": "off",
+    }
     assert json.loads(by_name["purchase"]["params"])["price_micros"] == 49_990_000
     assert json.loads(by_name["ad_impression"]["params"])["value"] == 0.0123
     booster = json.loads(by_name["booster_used"]["params"])

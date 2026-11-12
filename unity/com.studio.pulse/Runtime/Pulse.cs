@@ -26,17 +26,21 @@ namespace Studio.Pulse
     }
 
     /// <summary>
-    /// Entry point. Call once at startup, e.g. from a bootstrap MonoBehaviour:
+    /// Entry point.
+    ///
+    /// Analytics SDK (event contract v2, docs/SDK_UNITY.md), one line at startup:
     /// <code>
-    /// Pulse.Initialize(new PulseConfig(),
-    ///     new JsonLinesSink(JsonLinesSink.DefaultFilePath())
-    /// #if PULSE_FIREBASE
-    ///     , new FirebaseAnalyticsSink()
-    /// #endif
-    /// );
+    /// Pulse.Init("sp_pub_...", "https://collector.example.com");
+    /// Pulse.LevelStart(12);
+    /// Pulse.LevelFail(12, "out_of_moves", new Vector2(0.4f, 0.7f), progress: 0.8f);
+    /// </code>
+    /// Init also starts the perf sampler (pulse_perf / pulse_load) and sends its events
+    /// through the same queue. The perf-only API of contract v1 still works:
+    /// <code>
+    /// Pulse.Initialize(new PulseConfig(), new JsonLinesSink(JsonLinesSink.DefaultFilePath()));
     /// </code>
     /// </summary>
-    public static class Pulse
+    public static partial class Pulse
     {
         static PulseRuntime _runtime;
         static readonly List<PulseEvent> Queue = new List<PulseEvent>(32);
@@ -48,7 +52,11 @@ namespace Studio.Pulse
 
         public static void Initialize(PulseConfig config, params IPulseSink[] sinks)
         {
-            if (IsInitialized) return;
+            if (IsInitialized)
+            {
+                if (sinks != null) Sinks.AddRange(sinks);
+                return;
+            }
             Config = config ?? new PulseConfig();
             Sinks.Clear();
             if (sinks != null) Sinks.AddRange(sinks);
@@ -79,8 +87,15 @@ namespace Studio.Pulse
             if (e != null) Queue.Add(e);
         }
 
-        /// <summary>Hand all queued events to the sinks now.</summary>
+        /// <summary>Hands queued perf events to the sinks and sends the SDK queue now (subject to backoff).</summary>
         public static void Flush()
+        {
+            FlushSinks();
+            if (_core != null) _core.Flush();
+        }
+
+        /// <summary>Queued perf events to the sinks (the SDK sink records them; the SDK sends on its own triggers).</summary>
+        internal static void FlushSinks()
         {
             if (Queue.Count > 0)
             {
@@ -113,6 +128,26 @@ namespace Studio.Pulse
                 case RuntimePlatform.LinuxEditor: return "EDITOR";
                 default: return p.ToString().ToUpperInvariant();
             }
+        }
+
+        internal static void OnFrame()
+        {
+            if (_transport != null) _transport.RunDeferred();
+            if (_core == null) return;
+            _core.Tick();
+            PollAppTransaction();
+        }
+
+        internal static void OnPause(bool paused)
+        {
+            if (_core == null) return;
+            if (paused) _core.OnBackground();
+            else _core.OnForeground();
+        }
+
+        internal static void OnQuit()
+        {
+            if (_core != null) _core.OnQuit();
         }
     }
 
@@ -149,8 +184,9 @@ namespace Studio.Pulse
             if (Time.unscaledTime >= _nextFlush)
             {
                 _nextFlush = Time.unscaledTime + _config.flushIntervalSeconds;
-                Pulse.Flush();
+                Pulse.FlushSinks();
             }
+            Pulse.OnFrame();
         }
 
         void OnApplicationPause(bool paused)
@@ -158,18 +194,20 @@ namespace Studio.Pulse
             if (paused)
             {
                 if (_sampler != null) Pulse.Enqueue(_sampler.CloseWindow());
-                Pulse.Flush();
+                Pulse.FlushSinks();
             }
             else if (_sampler != null)
             {
                 _sampler.SkipNextFrame();
             }
+            Pulse.OnPause(paused);
         }
 
         void OnApplicationQuit()
         {
             if (_sampler != null) Pulse.Enqueue(_sampler.CloseWindow());
-            Pulse.Flush();
+            Pulse.FlushSinks();
+            Pulse.OnQuit();
         }
 
         void OnDestroy()

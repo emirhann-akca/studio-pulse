@@ -1,11 +1,12 @@
-name: studio_pulse_perf
+name: studio_pulse
 description: >-
-  Frame-time, start-time and memory telemetry for Flutter apps, emitting the
-  studio-pulse event contract (pulse_perf / pulse_load) to Firebase Analytics
-  or JSON lines.
-version: 0.1.0
-publish_to: none
+  Analytics SDK for studio-pulse: crash-safe disk queue, batching, gzip, retries,
+  sessions, install store, game events, errors, consent and opt-out, plus frame-time
+  and start-time telemetry.
+version: 2.0.0
 repository: https://github.com/emirhann-akca/studio-pulse
+issue_tracker: https://github.com/emirhann-akca/studio-pulse/issues
+topics: [analytics, telemetry, games, privacy, performance]
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -18,3 +19,12 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.studiopulse.studio_pulse
+        pluginClass: StudioPulsePlugin
+      ios:
+        pluginClass: StudioPulsePlugin

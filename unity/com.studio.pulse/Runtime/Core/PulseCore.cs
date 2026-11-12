@@ -1417,6 +1417,26 @@ namespace Studio.Pulse
             WriteMarker();
         }
 
+        /// <summary>
+        /// The install source learned after start (iOS AppTransaction answers asynchronously).
+        /// Events from now on carry it; already queued events keep the old context.
+        /// </summary>
+        public void SetInstallSource(string installStore, string installerRaw)
+        {
+            lock (_gate)
+            {
+                try
+                {
+                    if (Array.IndexOf(PulseContract.InstallStore.All, installStore) < 0) return;
+                    if (_dev.InstallStore == installStore && _dev.InstallerRaw == installerRaw) return;
+                    _dev.InstallStore = installStore;
+                    _dev.InstallerRaw = installerRaw;
+                    if (_state != null && _state.InstallId != null) BuildCtx();
+                }
+                catch (Exception ex) { Warn("SetInstallSource: " + ex.Message); }
+            }
+        }
+
         /// <summary>The pseudonymous install id (for support requests), or null before consent / after opt-out.</summary>
         public string GetInstallId()
         {

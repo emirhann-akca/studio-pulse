@@ -91,7 +91,7 @@ window. Per frame the sampler does up to three `ProfilerRecorder.LastValue`
 reads and three stores into preallocated rings, nothing that allocates (the
 compiled IL of `PerfSampler.Tick` has no `newobj`, `newarr` or `box`).
 
-## Flutter package (`flutter/studio_pulse`)
+## Flutter package (`flutter/studio_pulse`, perf part of the Flutter SDK)
 
 The same `pulse_perf` / `pulse_load` events from a Flutter app, for the
 camera-heavy fitness app as much as for games:

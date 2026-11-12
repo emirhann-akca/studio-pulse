@@ -2,10 +2,11 @@
 #
 # `python -m studio_pulse.contract.generate` writes, from this file:
 #   src/studio_pulse/contract/generated.py                  Python constants + the spec the collector validates with
-#   unity/com.studio.pulse/Runtime/PulseContract.g.cs       C# constants for the Unity SDK (pure C#, no UnityEngine)
-#   flutter/studio_pulse/lib/src/contract.g.dart       Dart constants for the Flutter SDK
+#   unity/com.studio.pulse/Runtime/Core/PulseContract.g.cs  C# constants for the Unity SDK (pure C#, no UnityEngine)
+#   flutter/studio_pulse/lib/src/contract.g.dart            Dart constants for the Flutter SDK
 #   contract/generated/pulse_v2.batch.schema.json           JSON Schema of a POST /v2/batch body
 #   contract/generated/bigquery/*.json                      BigQuery table schemas (events, quarantine, registry, deletions)
+#   PrivacyInfo.xcprivacy (contract/generated, the Unity and Flutter iOS plug-ins)
 #   docs/CONTRACT.md                                        the tables below as documentation
 # CI regenerates and fails on any diff (`--check`). Edit this file, never the outputs.
 #
@@ -367,6 +368,14 @@ privacy:
     apple: NSPrivacyCollectedDataTypeCoarseLocation
     play: "Location: Approximate location"
     from: "country derived from the request IP by the collector; the IP is never stored"
+
+# Required-reason APIs the SDK's own code uses (Apple privacy manifest,
+# NSPrivacyAccessedAPITypes). The event queue reads the size of its own files in the
+# app container (C#: FileInfo / FileStream.Length, Dart: File.length, both stat()).
+# The SDK uses no UserDefaults / PlayerPrefs, disk-space or boot-time API of its own.
+privacy_api:
+  - category: NSPrivacyAccessedAPICategoryFileTimestamp
+    reasons: [C617.1]
 
 # What the collector stores per event (NDJSON in local mode, BigQuery in cloud
 # mode). TIMESTAMP columns are ms integers in NDJSON.

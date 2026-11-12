@@ -1,7 +1,9 @@
 {
     "name": "Studio.Pulse",
     "rootNamespace": "Studio.Pulse",
-    "references": [],
+    "references": [
+        "Studio.Pulse.Core"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

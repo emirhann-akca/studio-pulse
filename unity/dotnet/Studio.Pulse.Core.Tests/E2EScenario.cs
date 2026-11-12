@@ -121,6 +121,37 @@ namespace Studio.Pulse.Tests
             };
         }
 
+        /// <summary>
+        /// Records and sends without pause until the process is killed (the kill test:
+        /// `kill -9` this, then run the normal scenario on the same data directory).
+        /// </summary>
+        public static void Soak(string url, string key, string dataDir, int maxMs)
+        {
+            var env = new PulseEnvironment
+            {
+                DataDirectory = dataDir,
+                Clock = new SystemClock(),
+                Random = new CryptoRandom(),
+                Transport = new HttpClientTransport(TimeSpan.FromSeconds(10)),
+            };
+            var dev = new PulseDevice
+            {
+                AppId = "com.studio.e2e.kill", Platform = "android", AppVersion = "1.0.0", BuildEnv = "release",
+                InstallStore = "google_play", InstallerRaw = "com.android.vending", Sdk = "unity/" + PulseCore.Version,
+            };
+            var core = new PulseCore(key, url, new PulseOptions { FlushEvents = 5 }, dev, env);
+            core.Start();
+            var sw = Stopwatch.StartNew();
+            for (int i = 0; sw.ElapsedMilliseconds < maxMs; i++)
+            {
+                core.LevelStart(i % 50 + 1);
+                core.LevelFail(i % 50 + 1, "hit_spike", 0.5, 0.5, 0.5);
+                core.Tick();
+                if (i % 7 == 0) Console.Out.Flush();
+                Thread.Sleep(2);
+            }
+        }
+
         public static string Get(string url)
         {
             using (var c = new HttpClient { Timeout = TimeSpan.FromSeconds(10) })

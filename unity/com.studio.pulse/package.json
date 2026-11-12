@@ -1,15 +1,23 @@
 {
   "name": "com.studio.pulse",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "displayName": "Studio Pulse",
-  "description": "Low-overhead client performance telemetry for mobile games: frame time percentiles, slow frames, memory, cold start and scene load times, sent as JSON lines or Firebase Analytics events in the studio-pulse event schema.",
+  "description": "Game analytics SDK for the studio-pulse collector (event contract v2): crash-safe disk queue, batching, gzip, retries with backoff, sessions, install store, level / economy / ad / purchase / settings events, managed errors, consent and opt-out, plus frame-time, memory and load-time telemetry. Pure C# core, thin Unity adapter.",
   "unity": "2021.3",
   "license": "MIT",
   "author": {
     "name": "Emirhan Akça"
   },
-  "keywords": ["analytics", "performance", "telemetry", "profiling", "firebase"],
+  "keywords": ["analytics", "telemetry", "games", "performance", "privacy", "firebase"],
   "dependencies": {
-    "com.unity.modules.unitywebrequest": "1.0.0"
-  }
+    "com.unity.modules.unitywebrequest": "1.0.0",
+    "com.unity.modules.androidjni": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Quick Start",
+      "description": "Pulse.Init at startup and level, fail position and setting events from game code.",
+      "path": "Samples~/QuickStart"
+    }
+  ]
 }

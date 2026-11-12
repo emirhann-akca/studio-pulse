@@ -86,7 +86,9 @@ def test_v1_perf_and_load_params_are_unchanged():
 
 
 def _cs_and_dart() -> tuple[str, str]:
-    cs = (ROOT / "unity/com.studio.pulse/Runtime/Core/PulseContract.g.cs").read_text(encoding="utf-8")
+    cs = (ROOT / "unity/com.studio.pulse/Runtime/Core/PulseContract.g.cs").read_text(
+        encoding="utf-8"
+    )
     dart = (ROOT / "flutter/studio_pulse/lib/src/contract.g.dart").read_text(encoding="utf-8")
     return cs, dart
 
