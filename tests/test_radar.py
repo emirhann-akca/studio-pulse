@@ -323,6 +323,31 @@ def test_unrecorded_request_fails_loudly(tmp_path):
         ReplaySession(FIX, entries=[]).get("https://itunes.apple.com/lookup?id=1")
 
 
+def test_lookup_by_bundle_id_and_batches(rcon):
+    from studio_pulse.radar import apple
+    from studio_pulse.radar.replay import RadarReplaySession
+
+    clk = FakeClock()
+    f = Fetcher(
+        rcon, DAY, session=RadarReplaySession(FIX), run_id="b", clock=clk.clock, sleep=clk.sleep
+    )
+    royal = apple.lookup_bundle(f, "com.dreamgames.royalmatch", "us")
+    assert royal["trackName"].startswith("Royal Match") and royal["userRatingCount"] > 1_000_000
+    assert apple.lookup_bundle(f, "com.example.missing", "us") is None
+    found, missing = apple.lookup_ids(f, ["6811006356", "6757350661", "1"], "us", batch=2)
+    assert [str(x["trackId"]) for x in found] == ["6811006356", "6757350661"] and missing == ["1"]
+    urls = [
+        r[0]
+        for r in rcon.execute(
+            "SELECT path FROM raw_mr_request WHERE path LIKE '/lookup?id=%' ORDER BY ts, path"
+        ).fetchall()
+    ]
+    assert len(urls) == 2 and all(
+        len(u.split("id=")[1].split("&")[0].split(",")) <= 2 for u in urls
+    )
+    assert clk.slept == [3.0, 3.0, 3.0]  # four Apple requests, spaced
+
+
 def test_play_page_contract_with_the_pinned_parser():
     from studio_pulse.radar import play
 
