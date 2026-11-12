@@ -634,6 +634,10 @@ def build_parser() -> argparse.ArgumentParser:
     dr = with_config(sub.add_parser("doctor", help="check this machine and the config"))
     dr.add_argument("--json", action="store_true", help="machine-readable output")
     dr.set_defaults(func=cmd_doctor)
+
+    from .brain.cli import add_commands as add_brain_commands  # insights, ask, brain eval
+
+    add_brain_commands(sub, with_config)
     return p
 
 

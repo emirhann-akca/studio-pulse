@@ -401,3 +401,40 @@ CREATE TABLE IF NOT EXISTS meta_alert_events (
     threshold         DOUBLE,
     message           VARCHAR
 );
+
+-- Dimensional install cohorts (brain B3, `cohort_dims`): GROUPING SETS over
+-- platform, country, app version, first-touch source and device tier (the
+-- total, each dimension, each pair); NULL = rolled up. Cells below the
+-- source's min_cell_users (default 50) day-0 users are never returned.
+CREATE TABLE IF NOT EXISTS raw_ga4_cohort_dims (
+    app_id            VARCHAR NOT NULL,
+    cohort_date       DATE NOT NULL,
+    platform          VARCHAR,
+    country           VARCHAR,
+    app_version       VARCHAR,
+    network           VARCHAR,
+    device_tier       VARCHAR,
+    users             BIGINT,
+    d1_users          BIGINT,
+    d7_users          BIGINT,
+    d30_users         BIGINT,
+    observed_days     INTEGER,
+    _source           VARCHAR NOT NULL,
+    _loaded_at        TIMESTAMP
+);
+
+-- Install cohorts by the day-0 value of GA4 user properties (brain B3b,
+-- `segment_retention`), with and without a day-0 sessions stratum.
+CREATE TABLE IF NOT EXISTS raw_ga4_segment_retention (
+    app_id            VARCHAR NOT NULL,
+    cohort_date       DATE NOT NULL,
+    property          VARCHAR NOT NULL,
+    value             VARCHAR,
+    day0_sessions     VARCHAR,   -- NULL = all users of the value
+    users             BIGINT,
+    d1_users          BIGINT,
+    d7_users          BIGINT,
+    observed_days     INTEGER,
+    _source           VARCHAR NOT NULL,
+    _loaded_at        TIMESTAMP
+);

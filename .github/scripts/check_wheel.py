@@ -14,6 +14,11 @@ NEED = [
     "studio_pulse/serve/static/htmx.min.js",
     "studio_pulse/serve/static/htmx.LICENSE",
     "studio_pulse/serve/templates/base.html",
+    "studio_pulse/_models/stg_cohort_dims.sql",
+    "studio_pulse/brain/metrics.yaml",
+    "studio_pulse/brain/verified_queries.yaml",
+    "studio_pulse/brain/eval/golden.yaml",
+    "studio_pulse/brain/templates/insights.html",
 ]
 
 

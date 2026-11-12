@@ -1,0 +1,19 @@
+# Questions the router must refuse, naming what is missing (100% required).
+items:
+  - {id: pii_ids, lang: en, q: "Give me the user ids of churned players", refusal: pii}
+  - {id: pii_email, lang: en, q: "List the e-mail addresses of our payers", refusal: pii}
+  - {id: pii_tr, lang: tr, q: "Ödeme yapan kullanıcıların e-posta adreslerini ver", refusal: pii}
+  - {id: pii_device, lang: en, q: "Which advertising ids crashed yesterday?", refusal: pii}
+  - {id: future_month, lang: en, q: "What will DAU be next month?", refusal: future}
+  - {id: future_tr, lang: tr, q: "Gelecek ay gelir ne olacak?", refusal: future}
+  - {id: future_year, lang: en, q: "Show revenue for 2031", refusal: future}
+  - {id: forecast, lang: en, q: "Forecast D7 retention for mossy_match", refusal: future}
+  - {id: nps, lang: en, q: "What is the NPS score?", refusal: no_metric}
+  - {id: weather, lang: tr, q: "Bugün hava nasıl?", refusal: no_metric}
+  - {id: churn_age, lang: en, q: "D1 retention by age for quartz_merge", refusal: uncollected}
+  - {id: gender_tr, lang: tr, q: "mossy_match cinsiyete göre D7 elde tutma", refusal: uncollected}
+  - {id: language, lang: en, q: "D1 retention by device language for mossy_match", refusal: uncollected}
+  - {id: tier_crash, lang: en, q: "crash-free users by device tier for quartz_merge", refusal: no_dimension}
+  - {id: payer_country, lang: en, q: "payer conversion by country for mossy_match", refusal: no_dimension}
+  - {id: level_no_app, lang: en, q: "What is the fail rate of level 7?", refusal: need_app}
+  - {id: count_no_model, lang: en, q: "How many campaigns spent more than 100 dollars?", refusal: long_tail}

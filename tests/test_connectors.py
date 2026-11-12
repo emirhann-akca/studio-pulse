@@ -174,7 +174,7 @@ def test_ga4_outputs_carry_no_user_ids(tmp_path):
     q = ga4.GA4Queries(DuckDBDialect(), D0, D0 + dt.timedelta(days=2), ga4.GA4Options())
     for name in [*ga4.GA4Options().queries, "campaign_cohorts"]:
         t = ex.run(name, getattr(q, name)())
-        assert t.num_rows > 0 or name in ("levels", "level_max", "loads"), name
+        assert t.num_rows > 0 or name in ("levels", "level_max", "loads", "cohort_dims"), name
         assert not {"user_pseudo_id", "u", "user_id"} & set(t.column_names), name
         for col in t.columns:
             assert "user-aaa" not in [str(v) for v in col.to_pylist()], name

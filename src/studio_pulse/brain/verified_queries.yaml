@@ -1,0 +1,293 @@
+# Verified query library (Snowflake VQR / Genie "trusted assets" pattern).
+#
+# Each entry is a question the owner checked by hand: phrasings in English and
+# Turkish, the SQL (parameters bound, never pasted), the units of the result
+# columns and a short answer template. The router tries these first; an answer
+# from here is labelled "verified query".
+#
+#   params    app (an app id), level (an integer), days (an integer, default 7)
+#   must      groups of words; at least one word of every group must occur
+#   answer    slots: {app}, {rows} (row count), {first.<column>} (first row) and the
+#             entry's consts ({window} ...): every number in the text is a slot
+
+queries:
+  - id: hardest_levels
+    phrasings:
+      en: ["Which levels are the hardest in {app}?", "hardest levels of {app}", "Where do players fail most in {app}?"]
+      tr: ["{app} en zor seviyeler hangileri?", "{app} oyununda oyuncular en çok nerede başarısız oluyor?", "{app} için en zor bölümler"]
+    must: [[hardest, hard, difficult, fail, zor, zorlu, basarisiz]]
+    params: [app]
+    sql: |
+      SELECT level, completes + fails AS attempts,
+             CAST(fails AS DOUBLE) / NULLIF(completes + fails, 0) AS fail_rate, churn_rate
+      FROM fct_level_funnel
+      WHERE app_id = $app AND completes + fails >= 200
+      ORDER BY fail_rate DESC, level
+      LIMIT 5
+    units: {level: id, attempts: count, fail_rate: pct, churn_rate: pct}
+    answer:
+      en: "The hardest level of {app} is level {first.level}: fail rate {first.fail_rate} over {first.attempts} attempts, churn there {first.churn_rate}."
+      tr: "{app} oyununun en zor seviyesi {first.level}: {first.attempts} denemede başarısızlık oranı {first.fail_rate}, orada bırakma {first.churn_rate}."
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: level_stats
+    phrasings:
+      en: ["What is the fail rate of level {level} in {app}?", "level {level} stats for {app}", "How hard is level {level} in {app}?"]
+      tr: ["{app} seviye {level} başarısızlık oranı nedir?", "{app} oyununda {level}. seviye ne kadar zor?", "{app} seviye {level} istatistikleri"]
+    must: [[level, seviye, bolum]]
+    params: [app, level]
+    sql: |
+      SELECT level, starts, completes, fails,
+             CAST(fails AS DOUBLE) / NULLIF(completes + fails, 0) AS fail_rate,
+             attempts_per_completion, users_reached, churn_rate
+      FROM fct_level_funnel WHERE app_id = $app AND level = $level
+    units: {level: id, starts: count, completes: count, fails: count, fail_rate: pct, attempts_per_completion: ratio, users_reached: count, churn_rate: pct}
+    answer:
+      en: "Level {first.level} of {app}: fail rate {first.fail_rate} ({first.fails} fails, {first.completes} completes), {first.attempts_per_completion} attempts per completion, churn {first.churn_rate} of {first.users_reached} players reaching it."
+      tr: "{app} seviye {first.level}: başarısızlık oranı {first.fail_rate} ({first.fails} başarısızlık, {first.completes} tamamlama), tamamlama başına {first.attempts_per_completion} deneme, ulaşan {first.users_reached} oyuncunun {first.churn_rate} kadarı burada bırakıyor."
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: retention_summary
+    phrasings:
+      en: ["What are the D1, D7 and D30 retention of {app}?", "retention summary for {app}", "headline retention of {app}"]
+      tr: ["{app} D1, D7 ve D30 elde tutma değerleri nedir?", "{app} elde tutma özeti", "{app} tutunma oranları"]
+    must: [[summary, headline, ozet, oranlari, degerleri, d30]]
+    params: [app]
+    sql: |
+      SELECT day_n, retention, cohort_users, cohorts
+      FROM fct_retention_summary WHERE app_id = $app ORDER BY day_n
+    units: {day_n: id, retention: pct, cohort_users: count, cohorts: count}
+    answer:
+      en: "{app}: D{first.day_n} retention {first.retention} over {first.cohorts} complete cohorts ({first.cohort_users} users, pooled); the table lists the other days."
+      tr: "{app}: {first.cohorts} tamamlanmış kohortta D{first.day_n} elde tutma {first.retention} ({first.cohort_users} kullanıcı, havuzlanmış); diğer günler tabloda."
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: d1_by_version
+    phrasings:
+      en: ["D1 retention by app version for {app}", "How does D1 differ between versions of {app}?", "retention per release for {app}"]
+      tr: ["{app} sürüme göre D1 elde tutma", "{app} sürümler arasında D1 farkı nedir?", "{app} her sürümün tutunması"]
+    must: [[version, versions, release, surum, surume, surumler, surumun]]
+    params: [app]
+    sql: |
+      SELECT app_version, SUM(users) AS users, SUM(d1_users) AS retained,
+             CAST(SUM(d1_users) AS DOUBLE) / NULLIF(SUM(users), 0) AS d1_retention
+      FROM stg_cohort_dims
+      WHERE app_id = $app AND grouping_set = 'app_version' AND d1_users IS NOT NULL
+        AND cohort_date > (SELECT MAX(cohort_date) FROM stg_cohort_dims WHERE app_id = $app AND d1_users IS NOT NULL) - 28
+      GROUP BY 1 ORDER BY users DESC
+    units: {app_version: version, users: count, retained: count, d1_retention: pct}
+    answer:
+      en: "Over the last {window} complete cohorts of {app}, version {first.app_version} has the most installs ({first.users}) and D1 {first.d1_retention}; {rows} versions in the table (cells under {min_cell} users are not pulled)."
+      tr: "{app} son {window} tamamlanmış kohortunda en çok kurulum {first.app_version} sürümünde ({first.users}), D1 {first.d1_retention}; tabloda {rows} sürüm var ({min_cell} kullanıcının altındaki hücreler çekilmez)."
+    consts: {window: [28, id], min_cell: [50, count]}
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: d1_trend
+    phrasings:
+      en: ["How did D1 retention change over the last cohorts of {app}?", "D1 trend for {app}", "daily D1 retention of {app}"]
+      tr: ["{app} son kohortlarda D1 nasıl değişti?", "{app} D1 eğilimi", "{app} günlük D1 elde tutma"]
+    must: [[trend, change, changed, daily, egilimi, degisti, gunluk], [d1]]
+    params: [app]
+    sql: |
+      SELECT cohort_date, cohort_size, retained_users, retention
+      FROM fct_retention
+      WHERE app_id = $app AND day_n = 1 AND is_complete
+      ORDER BY cohort_date DESC LIMIT 14
+    units: {cohort_date: date, cohort_size: count, retained_users: count, retention: pct}
+    answer:
+      en: "Newest complete D1 cohort of {app} ({first.cohort_date}): {first.retention} of {first.cohort_size} users; the table has the last {rows} cohorts."
+      tr: "{app} en yeni tamamlanmış D1 kohortu ({first.cohort_date}): {first.cohort_size} kullanıcının {first.retention} kadarı; tabloda son {rows} kohort var."
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: portfolio_week
+    phrasings:
+      en: ["How did each app do in the last 7 days?", "portfolio overview", "weekly summary of all apps"]
+      tr: ["Uygulamalar son 7 günde nasıldı?", "portföy özeti", "tüm uygulamaların haftalık özeti"]
+    must: [[portfolio, overview, each, all, portfoy, tum, uygulamalar, summary]]
+    params: []
+    sql: |
+      SELECT app_id, dau_7d, dau_change, new_users_7d, revenue_7d_usd, arpdau_7d, crash_free_users_7d, d1_retention
+      FROM fct_app_summary ORDER BY revenue_7d_usd DESC NULLS LAST, app_id
+    units: {app_id: text, dau_7d: count, dau_change: pct, new_users_7d: count, revenue_7d_usd: usd, arpdau_7d: usd, crash_free_users_7d: pct, d1_retention: pct}
+    answer:
+      en: "{rows} apps. Highest {window}-day revenue: {first.app_id} with {first.revenue_7d_usd} (average DAU {first.dau_7d}, ARPDAU {first.arpdau_7d}, crash-free users {first.crash_free_users_7d})."
+      tr: "{rows} uygulama. Son {window} günde en yüksek gelir: {first.app_id}, {first.revenue_7d_usd} (ortalama DAU {first.dau_7d}, ARPDAU {first.arpdau_7d}, çökmesiz kullanıcı {first.crash_free_users_7d})."
+    consts: {window: [7, id]}
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: crash_free_by_app
+    phrasings:
+      en: ["What is the crash-free rate of each app?", "Which app crashes the most?", "stability per app"]
+      tr: ["Her uygulamanın çökmesiz oranı nedir?", "En çok hangi uygulama çöküyor?", "uygulamalara göre kararlılık"]
+    must: [[crash, crashes, crash-free, stability, cokmesiz, cokuyor, kararlilik, cokme]]
+    params: []
+    sql: |
+      SELECT app_id, crash_free_users_7d, crash_free_sessions_7d, dau_7d
+      FROM fct_app_summary WHERE crash_free_users_7d IS NOT NULL
+      ORDER BY crash_free_users_7d, app_id
+    units: {app_id: text, crash_free_users_7d: pct, crash_free_sessions_7d: pct, dau_7d: count}
+    answer:
+      en: "Least stable over the last {window} days: {first.app_id} with {first.crash_free_users_7d} crash-free users ({first.crash_free_sessions_7d} of sessions)."
+      tr: "Son {window} günde en az kararlı: {first.app_id}, çökmesiz kullanıcı {first.crash_free_users_7d} (oturumların {first.crash_free_sessions_7d} kadarı)."
+    consts: {window: [7, id]}
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: perf_by_version
+    phrasings:
+      en: ["How does frame time compare across versions of {app}?", "frame time per version for {app}", "Did the new version of {app} get slower?"]
+      tr: ["{app} sürümlere göre kare süresi nasıl?", "{app} yeni sürüm yavaşladı mı?", "{app} sürüm başına kare süresi"]
+    must: [[frame, fps, slower, slow, kare, yavasladi, yavas], [version, versions, surum, surumlere, surumu]]
+    params: [app]
+    sql: |
+      SELECT app_version, device_tier, first_seen, windows, ft_p50_ms, ft_p95_ms, gpu_p95_ms
+      FROM fct_perf_by_version WHERE app_id = $app
+      ORDER BY first_seen DESC, ft_p50_ms DESC
+    units: {app_version: version, device_tier: text, first_seen: date, windows: count, ft_p50_ms: ms, ft_p95_ms: ms, gpu_p95_ms: ms}
+    answer:
+      en: "Newest version of {app} is {first.app_version} (first seen {first.first_seen}); its slowest tier, {first.device_tier}, has a median frame time of {first.ft_p50_ms} over {first.windows} windows. {rows} version-tier rows in the table."
+      tr: "{app} en yeni sürümü {first.app_version} (ilk görülme {first.first_seen}); en yavaş sınıfı {first.device_tier}, {first.windows} pencerede medyan kare süresi {first.ft_p50_ms}. Tabloda {rows} sürüm-sınıf satırı var."
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: low_tier_frame_time
+    phrasings:
+      en: ["What is the frame time on low-end devices?", "low tier frame time per app", "How smooth is the game on cheap phones?"]
+      tr: ["Düşük seviye cihazlarda kare süresi nedir?", "düşük sınıf cihazlarda performans", "Ucuz telefonlarda oyun ne kadar akıcı?"]
+    must: [[low, low-end, cheap, dusuk, ucuz], [frame, fps, smooth, kare, performans, akici]]
+    params: []
+    sql: |
+      SELECT app_id, device_tier, windows, ft_p50_ms, ft_p95_ms, slow_frame_share
+      FROM fct_perf_by_tier WHERE device_tier = 'low' ORDER BY ft_p50_ms DESC
+    units: {app_id: text, device_tier: text, windows: count, ft_p50_ms: ms, ft_p95_ms: ms, slow_frame_share: pct}
+    answer:
+      en: "Slowest on low-tier devices (last {window} days): {first.app_id}, median frame time {first.ft_p50_ms}, p95 {first.ft_p95_ms}, slow frames {first.slow_frame_share}."
+      tr: "Düşük sınıf cihazlarda en yavaş (son {window} gün): {first.app_id}, medyan kare süresi {first.ft_p50_ms}, p95 {first.ft_p95_ms}, yavaş kare {first.slow_frame_share}."
+    consts: {window: [28, id]}
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: ua_best_roas
+    phrasings:
+      en: ["Which campaign has the best D7 ROAS?", "best performing campaigns by ROAS", "top campaigns by return on ad spend"]
+      tr: ["En iyi D7 ROAS hangi kampanyada?", "ROAS'a göre en iyi kampanyalar", "reklam harcaması getirisine göre en iyi kampanyalar"]
+    must: [[roas, return, getirisi, getiri], [campaign, campaigns, kampanya, kampanyada, kampanyalar]]
+    params: []
+    sql: |
+      SELECT app_id, network, campaign_name, spend_30d_usd, roas_d7, payback_day
+      FROM fct_ua_summary WHERE roas_d7 IS NOT NULL AND campaign_key IS NOT NULL
+      ORDER BY roas_d7 DESC LIMIT 10
+    units: {app_id: text, network: text, campaign_name: data, spend_30d_usd: usd, roas_d7: pct, payback_day: days}
+    answer:
+      en: "Best D7 ROAS: {first.campaign_name} ({first.network}, {first.app_id}) at {first.roas_d7} on {first.spend_30d_usd} of {window}-day spend."
+      tr: "En iyi D7 ROAS: {first.campaign_name} ({first.network}, {first.app_id}), {window} günlük {first.spend_30d_usd} harcamada {first.roas_d7}."
+    consts: {window: [30, id]}
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: ua_spend_by_network
+    phrasings:
+      en: ["How much did we spend per network in the last 30 days?", "UA spend by network", "ad spend per network"]
+      tr: ["Son 30 günde ağ başına ne kadar harcadık?", "ağlara göre reklam harcaması", "ağ başına kullanıcı edinme harcaması"]
+    must: [[spend, spent, harcama, harcadik, harcamasi], [network, networks, ag, aglara, agi]]
+    params: []
+    sql: |
+      SELECT app_id, network, SUM(spend_30d_usd) AS spend_30d_usd, SUM(network_installs_30d) AS installs_30d,
+             SUM(spend_30d_usd) / NULLIF(SUM(network_installs_30d), 0) AS cpi_usd
+      FROM fct_ua_summary WHERE campaign_key IS NOT NULL
+      GROUP BY 1, 2 ORDER BY spend_30d_usd DESC
+    units: {app_id: text, network: text, spend_30d_usd: usd, installs_30d: count, cpi_usd: usd}
+    answer:
+      en: "Largest {window}-day spend: {first.network} for {first.app_id}, {first.spend_30d_usd} for {first.installs_30d} installs (CPI {first.cpi_usd}); {rows} network rows."
+      tr: "Son {window} günde en büyük harcama: {first.app_id} için {first.network}, {first.installs_30d} kurulum için {first.spend_30d_usd} (CPI {first.cpi_usd}); {rows} ağ satırı."
+    consts: {window: [30, id]}
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: rating_by_version
+    phrasings:
+      en: ["What is the rating by version for {app}?", "store rating per version of {app}", "Which version of {app} has the worst reviews?"]
+      tr: ["{app} sürüme göre puan nedir?", "{app} sürüm başına mağaza puanı", "{app} hangi sürümün yorumları en kötü?"]
+    must: [[rating, reviews, stars, puan, puani, yorumlari, yildiz], [version, surume, surum, surumun]]
+    params: [app]
+    sql: |
+      SELECT app_version, store, first_date, reviews, avg_rating, low_star_share
+      FROM fct_rating_by_version WHERE app_id = $app ORDER BY avg_rating, app_version
+    units: {app_version: version, store: text, first_date: date, reviews: count, avg_rating: ratio, low_star_share: pct}
+    answer:
+      en: "Lowest-rated version of {app}: {first.app_version} with {first.avg_rating} stars over {first.reviews} reviews (low-star share {first.low_star_share})."
+      tr: "{app} en düşük puanlı sürümü: {first.app_version}, {first.reviews} yorumda {first.avg_rating} yıldız (düşük yıldız payı {first.low_star_share})."
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: review_topics
+    phrasings:
+      en: ["What do reviews complain about in {app}?", "review topics for {app}", "What are players saying about {app}?"]
+      tr: ["{app} yorumlarında en çok ne şikâyet ediliyor?", "{app} yorum konuları", "Oyuncular {app} hakkında ne diyor?"]
+    must: [[review, reviews, complain, saying, yorum, yorumlarinda, sikayet, diyor]]
+    params: [app]
+    sql: |
+      SELECT topic, label, reviews_30d, share_30d, low_star_share_30d, share_prior_30d
+      FROM fct_review_topics WHERE app_id = $app ORDER BY share_30d DESC, topic
+    units: {topic: text, label: data, reviews_30d: count, share_30d: pct, low_star_share_30d: pct, share_prior_30d: pct}
+    answer:
+      en: "Most mentioned topic in the last {window} days of {app} reviews: {first.label}, in {first.share_30d} of reviews ({first.reviews_30d}; {first.share_prior_30d} the {window} days before). Topics are counts of keyword matches, not the review text."
+      tr: "{app} yorumlarında son {window} günde en çok geçen konu: {first.label}, yorumların {first.share_30d} kadarı ({first.reviews_30d}; önceki {window} günde {first.share_prior_30d}). Konular anahtar kelime eşleşmesi sayılarıdır, yorum metni değil."
+    consts: {window: [30, id]}
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: experiment_result
+    phrasings:
+      en: ["What is the result of the A/B test?", "experiment results", "Did the experiment win?"]
+      tr: ["A/B testinin sonucu ne?", "deney sonuçları", "Deney kazandı mı?"]
+    must: [[experiment, test, deney, deneyi, testinin]]
+    params: []
+    sql: |
+      SELECT app_id, experiment_id, variant, test, estimate, ci_low, ci_high, p_value
+      FROM fct_experiment_tests ORDER BY app_id, experiment_id, variant, test
+    units: {app_id: text, experiment_id: text, variant: text, test: text, estimate: ratio, ci_low: ratio, ci_high: ratio, p_value: p}
+    answer:
+      en: "{first.experiment_id} ({first.app_id}), variant {first.variant}, {first.test} test: difference {first.estimate} ({ci_level}% interval {first.ci_low} to {first.ci_high}), {first.p_value}; {rows} test rows in the table."
+      tr: "{first.experiment_id} ({first.app_id}), {first.variant} varyantı, {first.test} testi: fark {first.estimate} (%{ci_level} aralık {first.ci_low} ile {first.ci_high}), {first.p_value}; tabloda {rows} test satırı var."
+    consts: {ci_level: [95, id]}
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: ltv_d30
+    phrasings:
+      en: ["What is the D30 LTV of {app}?", "cumulative ARPU at day 30 for {app}", "lifetime value of {app}"]
+      tr: ["{app} D30 LTV nedir?", "{app} 30. gün kümülatif ARPU", "{app} yaşam boyu değeri"]
+    must: [[ltv, arpu, lifetime, yasam]]
+    params: [app]
+    sql: |
+      SELECT day_n, cumulative_arpu_usd, cohorts, cohort_users, payer_rate
+      FROM fct_ltv_curve WHERE app_id = $app AND day_n <= 30 ORDER BY day_n DESC LIMIT 1
+    units: {day_n: id, cumulative_arpu_usd: usd, cohorts: count, cohort_users: count, payer_rate: pct}
+    answer:
+      en: "{app}: cumulative ARPU {first.cumulative_arpu_usd} by day {first.day_n} over {first.cohorts} complete cohorts ({first.cohort_users} users); {first.payer_rate} paid by then."
+      tr: "{app}: {first.day_n}. güne kadar kümülatif ARPU {first.cumulative_arpu_usd}, {first.cohorts} tamamlanmış kohort ({first.cohort_users} kullanıcı); o güne kadar ödeyenler {first.payer_rate}."
+    verified_by: owner
+    verified_at: 2026-11-12
+
+  - id: data_freshness
+    phrasings:
+      en: ["Is the data fresh?", "When was each source last updated?", "data freshness"]
+      tr: ["Veri güncel mi?", "Kaynaklar en son ne zaman güncellendi?", "veri tazeliği"]
+    must: [[fresh, freshness, updated, guncel, guncellendi, taze, tazeligi]]
+    params: []
+    sql: |
+      SELECT app_id, source, data_through, last_loaded_at, rows_loaded
+      FROM fct_source_freshness ORDER BY data_through, app_id, source
+    units: {app_id: text, source: text, data_through: date, last_loaded_at: date, rows_loaded: count}
+    answer:
+      en: "Oldest source: {first.source} of {first.app_id}, data through {first.data_through}; {rows} sources in the table."
+      tr: "En eski kaynak: {first.app_id} için {first.source}, veri {first.data_through} tarihine kadar; tabloda {rows} kaynak var."
+    verified_by: owner
+    verified_at: 2026-11-12

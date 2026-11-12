@@ -59,6 +59,30 @@ used, so every cohort is complete from day 0.
 | Complete cell | cohort_date + N <= last day with data | `fct_retention.is_complete` |
 | Headline D1 / D7 / D14 / D30 | sum of retained users / sum of cohort sizes over the 28 most recent cohorts that are complete for that N (a cohort-size weighted mean) | `fct_retention_summary.retention` |
 
+Alert baselines combine points the way the metric catalog
+(`src/studio_pulse/brain/metrics.yaml`, `alert.baseline`) says. Retention and
+the other proportions whose sample is their denominator are **pooled**: the
+D1 baseline of the trailing 14 cohorts is sum(retained users) / sum(cohort
+users), the same rate as the headline above, not the mean of the 14 daily
+rates (on the demo 26.46% against 26.40%). Levels such as DAU or frame time
+use the mean of the daily values.
+
+### Cohorts by dimension
+
+`stg_cohort_dims` (the GA4 pull `cohort_dims`, aggregated inside BigQuery):
+install cohorts by day with day-0 users and users active exactly on day 1, 7
+and 30, for GROUPING SETS of platform, country, app version, first-touch
+source and device tier - all users, each dimension and each pair
+(`grouping_set` names the cell's dimensions). Values are the user's on the
+install day: version and country of the first event, the tier of the first
+`pulse_perf` event (or a configured model -> tier map), GA4's first-touch
+`traffic_source.source` with organic and `(none)` mediums as `organic`. A cell
+with fewer than `min_cell_users` (default 50) day-0 users is not returned, so
+small dimension values add up to less than the total; the brain counts the
+remainder as `(other)`. `stg_segment_retention` is the same for the day-0
+value of GA4 user properties listed under `segments:`, with and without a
+day-0 sessions stratum (1 / 2 / 3+).
+
 This is "classic" (day-N) retention, not rolling/unbounded retention: a user
 counts for D7 only if active exactly on day 7. Rolling retention (active on day
 7 or later) is always higher and is not comparable with the benchmarks below.

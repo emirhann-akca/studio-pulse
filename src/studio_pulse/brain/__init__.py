@@ -1,0 +1,18 @@
+"""The grounded insight engine ("brain").
+
+Order of work, cheapest and most trustworthy first:
+
+  catalog.py      metrics.yaml: one definition per metric (unit, grain, aggregation)
+  guard.py        sqlglot AST checks for any SQL that did not come from this package
+  executor.py     a locked, read-only DuckDB session with row and time limits
+  insights/       deterministic statistics -> Evidence objects (meta_insights)
+  attribution.py  Adtributor + DIFF-lite over the cohort_dims pull
+  fmt.py          numbers are formatted by code (TR %60,9 / EN 60.9%)
+  verify.py       every number in user-facing text must match an evidence value
+  narrate.py      template text first; an optional Narrator may only restyle it
+  qa.py           question router: verified query -> catalog tool -> guarded SQL -> refusal
+
+An LLM never computes, never writes SQL that reaches BigQuery and never sends
+anything anywhere: it can only pick and phrase. The provider is behind the
+narrow protocol in llm.py; tests and CI use the deterministic FakeLLM.
+"""

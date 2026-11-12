@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ lang|default('en') }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -31,6 +31,8 @@ dl.kv dt{opacity:.7}dl.kv dd{margin:0}
   <a href="/dashboard/experiments.html">Experiments</a>
   <a href="/health"{% if page == 'health' %} aria-current="page"{% endif %}>Refresh &amp; data health</a>
   <a href="/alerts"{% if page == 'alerts' %} aria-current="page"{% endif %}>Alerts</a>
+  <a href="/insights"{% if page == 'insights' %} aria-current="page"{% endif %}>Insights</a>
+  <a href="/ask"{% if page == 'ask' %} aria-current="page"{% endif %}>Ask</a>
 </nav>
 {% if source == 'snapshot' %}<div class="banner" role="note">Showing the snapshot of the last good refresh. <span>A refresh is writing the warehouse right now; live data returns when it finishes.</span></div>{% endif %}
 {% if source == 'none' %}<div class="banner" role="note">No warehouse yet. <span>Run a refresh (button below or <code>pulse run</code>) to load data.</span></div>{% endif %}

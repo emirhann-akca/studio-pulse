@@ -17,7 +17,7 @@ store reviews included).
 
 [![Portfolio page of the demo dashboard](docs/img/dashboard.png)](https://emirhann-akca.github.io/studio-pulse/)
 
-- **16 source connectors -> 34 SQL models + 2 statistics steps -> 51
+- **16 source connectors -> 36 SQL models + 2 statistics steps -> 51
   data-quality checks -> 11 alert rules -> static HTML.** `pulse demo`
   generates export-shaped files and recorded API responses and runs them
   through the real connectors in about 20 seconds.
@@ -57,7 +57,11 @@ store reviews included).
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.
-- 351 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
+- **A grounded insight engine** (`pulse insights`, `pulse ask`, `/insights` and
+  `/ask` in the local UI): deterministic statistics find and explain the
+  changes, every number in a sentence is formatted by code and checked against
+  its evidence, and a language model may only rephrase (see below).
+- 497 Python tests + 8 Flutter tests, ruff, dart analyze; CI on Windows,
   macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -102,10 +106,11 @@ One demo app ships a bad release in its last four days. The run ends with:
 ```
 Data quality: 51/51 checks passed, 0 error(s), 0 warning(s).
 4 alert(s):
-  [CRITICAL] quartz_merge  crash_free_users_low      2026-10-31  crash_free_users 98.46% is below 99.00%
-  [WARNING ] quartz_merge  d1_retention_drop         2026-10-30  d1_retention 17.03% is down 36.3% vs the trailing 14-day mean 26.76% (limit 20%) (z=-4.2, n=364)
+  [CRITICAL] quartz_merge  crash_free_users_low      2026-10-31  crash_free_users 98.65% is below 99.00%
+  [WARNING ] quartz_merge  d1_retention_drop         2026-10-30  d1_retention 16.10% is down 39.1% vs the trailing 14-day pooled rate 26.46% (limit 20%) (z=-4.6, n=385)
   [WARNING ] quartz_merge  low_tier_frame_time_high  2026-10-31  frame_time_p50_ms 24.7 ms is above 20.0 ms [device_tier=low]
-  [WARNING ] quartz_merge  play_crash_rate_bad       2026-10-31  vitals_crash_rate 1.31% is above 1.09%
+  [WARNING ] quartz_merge  play_crash_rate_bad       2026-10-31  vitals_crash_rate 1.15% is above 1.09%
+Insights: 18 stored from 79 tested hypotheses.
 ```
 
 The app's version table shows the regression is GPU-bound on low-tier phones
@@ -128,8 +133,50 @@ interval says to keep running.
 | `pulse experiment` | A/B test results from the warehouse (`--sql` prints the BigQuery aggregate query, `--input arms.csv` analyses totals from anywhere); exit 3 on a sample ratio mismatch |
 | `pulse serve` | local UI on 127.0.0.1: dashboard, refresh health (heartbeat, recent runs, check results, source freshness, schedule state), alerts, and a run-now button. It opens the warehouse read-only per request and serves the last good snapshot while a refresh is writing |
 | `pulse doctor [--json]` | Python, time zones, DuckDB, config, writable folders, Google credentials (present or not, never their contents), schedule state |
+| `pulse insights [--lang tr]` | the deterministic insight jobs (also run at the end of every refresh, stored in `meta_insights`) |
+| `pulse ask "..." [--lang tr]` | a question in English or Turkish; the answer names its route and shows its SQL and rows |
+| `pulse brain eval` | the router's golden, refusal and prompt-injection sets against the warehouse |
 
 Details, file locations and Windows notes: [docs/OPERATIONS.md](docs/OPERATIONS.md).
+
+## Insight engine
+
+[![Insights page of the local UI](docs/img/insights.png)](docs/img/insights.png)
+
+Elite analytics products share one order of work - definitions, verified
+queries, deterministic statistics, and only then a model that picks and
+phrases - and `src/studio_pulse/brain/` follows it:
+
+- **Metric catalog** ([`metrics.yaml`](src/studio_pulse/brain/metrics.yaml)):
+  the machine-readable METRICS.md, with Turkish and English names and
+  synonyms, unit, grain, dimensions and how rows combine (`pooled`, `sum`,
+  `mean_of_daily`). Alert baselines read it too, so "the D1 baseline" is one
+  number (pooled) in alerts, insights and answers.
+- **Deterministic jobs**, each producing evidence (the SQL, rows, n, effect,
+  interval, p and Benjamini-Hochberg q over everything scanned in the run): a
+  data-trust gate first (stale or failed data gets a data card, not an
+  explanation), alerts as the anomaly detector, mix vs rate decomposition,
+  Adtributor and a DIFF-style scan of single and paired cohort cells,
+  difficulty spikes (robust z + Wilson bound), the level funnel as a
+  Kaplan-Meier curve, frame time by version x tier, crashes since a release,
+  monetisation shifts, and user-property segments worded as associations.
+- **A dimensional cohort pull** (`cohort_dims`): install cohorts aggregated
+  inside BigQuery over GROUPING SETS of platform, country, version, first-touch
+  source and device tier, no cell under 50 users. On the demo it turns "D1
+  fell" into "D1 fell among users who installed 1.8.0 (11.7% vs 28.2% for the
+  rest of the same cohorts)", which platform-only cohorts could not show.
+- **Numbers by code, checked**: every number in a sentence is formatted by
+  code (`%60,9` in Turkish, `60.9%` in English) and must match a value of the
+  cited evidence; recommendations cite evidence ids; text written by players
+  or ad networks is quoted as data.
+- **Questions**: a verified-query library first, then the catalog, then
+  (only with a model configured) a model-written SELECT that passes a sqlglot
+  AST guard and runs on the local warehouse in a read-only, locked DuckDB
+  session with row and time limits - never on BigQuery - and otherwise a
+  refusal that names what is missing.
+
+The language model is optional and narrow (`brain/llm.py`): tests and CI use
+a deterministic fake, and a provider plugs in behind that interface.
 
 ## Architecture
 
@@ -310,13 +357,17 @@ Mono to produce the fixtures the Python tests parse.
   its basis. Creative D7 ROAS is always that model.
 - pLTV v1 fits smooth curves; a subscription app's stepped revenue fits badly
   (the demo's fitness app backtests at about 35% error, shown on its page).
+- The insight engine explains changes by association in time (a cohort
+  split, a release date), never by experiment, and says so in every such
+  sentence; the model-written SQL route and model narration run only against
+  the deterministic fake so far.
 
 ## Development
 
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 351 tests (1 Windows-only, 1 needs the forecast extra), ~70 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 497 tests (1 Windows-only, 1 needs the forecast extra), ~80 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 
@@ -333,7 +384,7 @@ publish the release ([`release.yml`](.github/workflows/release.yml)).
 
 Layout: `src/studio_pulse/` (config, warehouse, runner, connectors incl. `ua/`
 and `reviews`, stats (experiments, forecast, pLTV), checks, alerts, runstate,
-schedule, serve, doctor, dashboard, demo, CLI), `models/` (SQL), `tests/`,
+schedule, serve, doctor, dashboard, demo, CLI, brain), `models/` (SQL), `tests/`,
 `unity/`, `flutter/`, `docs/`.
 
 ## License

@@ -290,4 +290,7 @@ def create_app(
             }
         )
 
+    from ..brain.web import register as register_brain  # /insights and /ask
+
+    register_brain(app, cfg, templates, context=context, hosts=hosts)
     return app
