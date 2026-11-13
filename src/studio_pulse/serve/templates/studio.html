@@ -63,7 +63,7 @@
     <div class="ic">{{ icon('plug')|safe }}</div>
     <h3>{{ t.empty_title }}</h3>
     <p>{{ t.empty_waiting if current.status == 'waiting' else t.no_data }}</p>
-    {% if not static %}<a class="btn primary" href="/health">{{ t.empty_cta }}</a>{% endif %}
+    {% if not static %}<a class="btn primary" href="/settings#app-{{ chosen }}">{{ t.empty_cta }}</a>{% endif %}
   </div></section>
   {% endif %}
 
@@ -75,7 +75,7 @@
         {% for r in view.store_daily %}<tr><td>{{ r.store }}</td><td class="num">{{ r.installs or 0 }}</td><td class="num">{{ r.uninstalls or 0 }}</td><td class="muted date">{{ r.last_date }}</td></tr>{% endfor %}
         </tbody></table>
       {% else %}
-        <div class="empty compact"><p>{{ t.store_missing }}</p>{% if not static %}<a class="btn sm" href="/health">{{ t.store_cta }}</a>{% endif %}</div>
+        <div class="empty compact"><p>{{ t.store_missing }}</p>{% if not static %}<a class="btn sm primary" href="/settings#app-{{ chosen }}">{{ t.store_cta }}</a>{% endif %}</div>
       {% endif %}
       {% if view and view.store %}
         <h2 style="margin-top:14px">{{ t.builds }}</h2>

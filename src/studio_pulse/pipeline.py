@@ -235,20 +235,36 @@ def _ingest_source(
             log=log,
         )
     if kind == "play_console":
+        path = str(src["path"])
+        if path.startswith("gs://"):  # the Play bucket itself: only this package's overviews
+            root = revenuecat.sync_gcs(
+                path,
+                cfg.resolve(src.get("cache_dir", f".pulse-cache/play_console/{app.id}")),
+                log=log,
+                suffixes=("overview.csv",),
+                label="play_console",
+                contains=src.get("package"),
+            )
+        else:
+            root = cfg.resolve(path)
         return stores.ingest_play(
-            con,
-            app_id=app.id,
-            source=name,
-            path=cfg.resolve(src["path"]),
-            package=src.get("package"),
-            log=log,
+            con, app_id=app.id, source=name, path=root, package=src.get("package"), log=log
         )
     if kind == "app_store":
+        if src.get("vendor_number"):  # download the daily reports through the API first
+            from .connectors.reviews import asc_token
+
+            folder = cfg.resolve(src.get("path", f".pulse-cache/app_store/{app.id}"))
+            stores.fetch_appstore_sales(
+                folder, str(src["vendor_number"]), start, end, token=asc_token, log=log
+            )
+        else:
+            folder = cfg.resolve(src["path"])
         return stores.ingest_appstore(
             con,
             app_id=app.id,
             source=name,
-            path=cfg.resolve(src["path"]),
+            path=folder,
             apple_id=src.get("apple_id"),
             sku=src.get("sku"),
             log=log,

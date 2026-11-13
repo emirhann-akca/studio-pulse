@@ -306,17 +306,7 @@ def cmd_schedule_install(args: argparse.Namespace) -> int:
 
     cfg = load_config(args.config)
     hour, minute = schedule.parse_time(args.at)
-    pulse_args = ["run", "--config", str(cfg.path)] + (["--notify"] if args.notify else [])
-    job = schedule.Job(
-        name=args.name,
-        hour=hour,
-        minute=minute,
-        args=pulse_args,
-        workdir=cfg.base_dir,
-        log_dir=Path(cfg.state_dir) / "logs",
-        config=cfg.path,
-        state_dir=cfg.state_dir,
-    )
+    job = schedule.daily_job(cfg, hour, minute, name=args.name, notify=args.notify)
     b = schedule.backend(args.backend)
     if args.dry_run:
         data = b.render(job)

@@ -461,6 +461,22 @@ def _fake_cmd(tool: str) -> list[str] | None:
     return [str(x) for x in v] if v else None
 
 
+def daily_job(
+    cfg: Any, hour: int, minute: int, name: str = DEFAULT_NAME, notify: bool = False
+) -> Job:
+    """The daily `pulse run` for one config (the CLI's `schedule install` and the Settings page)."""
+    return Job(
+        name=name,
+        hour=hour,
+        minute=minute,
+        args=["run", "--config", str(cfg.path)] + (["--notify"] if notify else []),
+        workdir=cfg.base_dir,
+        log_dir=Path(cfg.state_dir) / "logs",
+        config=cfg.path,
+        state_dir=cfg.state_dir,
+    )
+
+
 def backend(name: str | None = None, run: Runner = run_command) -> Launchd | Schtasks:
     choice = name or os.environ.get("PULSE_SCHEDULER_BACKEND")
     if not choice:

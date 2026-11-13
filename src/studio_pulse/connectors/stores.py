@@ -14,6 +14,12 @@ Developer Proceeds (per unit), Begin Date (MM/DD/YYYY), ..., Currency of
 Proceeds, Apple Identifier, ..., Parent Identifier, ...
 
 Each file is loaded as its own slice (re-importing a file replaces its rows).
+
+Fetching: Play reports can be read straight from the bucket (`path: gs://pubsite_prod_rev_<id>/stats/`,
+synced by pipeline with the package as a name filter, read-only, with the caller's Google
+credentials); App Store daily Summary Sales reports can be downloaded from the App Store
+Connect API (`vendor_number:` set, key from PULSE_ASC_*): one gzip file per day, kept in
+the cache folder so a day is fetched once.
 """
 
 from __future__ import annotations
@@ -23,7 +29,7 @@ import datetime as dt
 import gzip
 import io
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
 
@@ -217,3 +223,69 @@ def ingest_appstore(
     record_load(con, app_id=app_id, source=source, table="raw_store_installs", rows=total)
     log(f"    app_store     -> raw_store_installs     {total:>7} rows")
     return total
+
+
+ASC_SALES_URL = "https://api.appstoreconnect.apple.com/v1/salesReports"
+
+
+def fetch_appstore_sales(
+    dest: Path,
+    vendor_number: str,
+    start: dt.date,
+    end: dt.date,
+    *,
+    token: Callable[[], str],
+    session: Any = None,
+    today: dt.date | None = None,
+    log: Any = print,
+) -> int:
+    """Download the daily Summary Sales report of each day in [start, end] not yet in dest.
+
+    A day Apple has no report for (HTTP 404) is remembered with an empty `.none` marker once
+    it is three days old (younger days may simply not be published yet); any other error
+    stops with the status and Apple's message (never the token)."""
+    import requests
+
+    dest.mkdir(parents=True, exist_ok=True)
+    today = today or dt.date.today()
+    end = min(end, today - dt.timedelta(days=1))
+    start = max(start, today - dt.timedelta(days=365))  # Apple keeps a year of dailies
+    sess = session or requests.Session()
+    tok: str | None = None
+    fetched = none = 0
+    day = start
+    while day <= end:
+        name = f"S_D_{vendor_number}_{day:%Y%m%d}"
+        if not ((dest / f"{name}.txt.gz").exists() or (dest / f"{name}.none").exists()):
+            tok = tok or token()
+            r = sess.get(
+                ASC_SALES_URL,
+                params={
+                    "filter[frequency]": "DAILY",
+                    "filter[reportType]": "SALES",
+                    "filter[reportSubType]": "SUMMARY",
+                    "filter[vendorNumber]": vendor_number,
+                    "filter[reportDate]": day.isoformat(),
+                    "filter[version]": "1_0",
+                },
+                headers={"Authorization": f"Bearer {tok}", "Accept": "application/a-gzip"},
+                timeout=60,
+            )
+            if r.status_code == 200:
+                (dest / f"{name}.txt.gz").write_bytes(r.content)
+                fetched += 1
+            elif r.status_code == 404:
+                if (today - day).days >= 3:
+                    (dest / f"{name}.none").write_text("", encoding="utf-8")
+                none += 1
+            else:
+                try:
+                    detail = r.json()["errors"][0].get("detail", "")
+                except (ValueError, KeyError, IndexError, TypeError):
+                    detail = ""
+                raise RuntimeError(
+                    f"App Store Connect sales report {day}: HTTP {r.status_code} {detail}".strip()
+                )
+        day += dt.timedelta(days=1)
+    log(f"    app_store: {fetched} daily report(s) downloaded, {none} day(s) without a report")
+    return fetched

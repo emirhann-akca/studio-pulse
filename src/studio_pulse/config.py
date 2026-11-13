@@ -181,11 +181,39 @@ def load_env_files(spec: Any, base_dir: Path) -> list[Path]:
     return loaded
 
 
+SETTINGS_FILE = "pulse.settings.yaml"  # written by the Settings page, next to the config
+SETTINGS_ENV = "pulse.settings.env"  # its keys (mode 600), never in the config itself
+
+
+def apply_settings(data: dict[str, Any], base_dir: Path) -> dict[str, Any]:
+    """Merge the Settings page's overlay into the config: `apps.<id>.sources.<name>` adds or
+    replaces that source (null removes it). The config file itself is never rewritten."""
+    f = base_dir / SETTINGS_FILE
+    if not f.is_file():
+        return data
+    over = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
+    by_id = (over.get("apps") or {}) if isinstance(over, dict) else {}
+    for a in data.get("apps") or []:
+        extra = (by_id.get(a.get("id")) or {}).get("sources") or {}
+        if not extra:
+            continue
+        merged = dict(a.get("sources") or {})
+        for name, src in extra.items():
+            if src is None:
+                merged.pop(name, None)
+            else:
+                merged[name] = src
+        a["sources"] = merged
+    return data
+
+
 def load_config(path: str | Path | None = None) -> Config:
     p = find_config(path)
     data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    load_env_files(SETTINGS_ENV, p.parent)
     if data.get("env_file"):
         load_env_files(data["env_file"], p.parent)
+    data = apply_settings(data, p.parent)
     cfg = config_from_dict(data, base_dir=p.parent, path=p)
     if data.get("collector"):  # SDK apps the collector registered appear without a config edit
         from .collector.hooks import add_registry_apps

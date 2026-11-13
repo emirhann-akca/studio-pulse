@@ -333,4 +333,10 @@ def create_app(
     from .studio import register as register_studio  # /studio: the one-window app view
 
     register_studio(app, cfg, templates, context=context, open_db=open_db, rows=_rows, hosts=hosts)
+
+    from .settings_page import register as register_settings  # /settings: sources, schedule
+
+    register_settings(
+        app, cfg, templates, context=context, open_db=open_db, rows=_rows, hosts=hosts
+    )
     return app

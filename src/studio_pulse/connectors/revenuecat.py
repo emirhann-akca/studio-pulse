@@ -105,6 +105,7 @@ def sync_gcs(
     log: Any = print,
     suffixes: tuple[str, ...] | None = None,
     label: str = "revenuecat",
+    contains: str | None = None,
 ) -> Path:
     """Download new export files from gs://bucket/prefix into cache_dir (read-only on GCS)."""
     suffixes = suffixes or _SUFFIXES
@@ -120,7 +121,7 @@ def sync_gcs(
     root = cache_dir.resolve()
     fetched = 0
     for blob in client.list_blobs(bucket, prefix=prefix or None):
-        if not blob.name.endswith(suffixes):
+        if not blob.name.endswith(suffixes) or (contains and contains not in blob.name):
             continue
         rel = blob.name[len(prefix) :].lstrip("/") if prefix else blob.name
         target = (root / rel).resolve()

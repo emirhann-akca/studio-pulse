@@ -29,4 +29,5 @@
 <a class="nav-item" href="/alerts"{% if chosen == '@alerts' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('alerts')|safe }}</span><span class="nav-l">{{ s.alerts }}</span>{% if side_alerts %}<span class="badge warn" data-tip="{{ s.alerts_last }}">{{ side_alerts }}</span>{% endif %}</a>
 <a class="nav-item" href="/health"{% if chosen == '@health' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('health')|safe }}</span><span class="nav-l">{{ s.health }}</span>{% if side_failing %}<span class="badge bad" data-tip="{{ s.failing_checks }}">{{ side_failing }}</span>{% endif %}</a>
 {% if dashboard_ready %}<a class="nav-item" href="/dashboard/index.html"><span class="nav-ic">{{ icon('dashboard')|safe }}</span><span class="nav-l">{{ s.dashboard }}</span></a>{% endif %}
+<a class="nav-item" href="/settings"{% if chosen == '@settings' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('settings')|safe }}</span><span class="nav-l">{{ s.settings }}</span></a>
 {% endif %}

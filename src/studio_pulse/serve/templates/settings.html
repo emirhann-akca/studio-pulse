@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ s.settings }}{% endblock %}
+{% block head %}
+<style>
+.set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 14px; }
+.set-form .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.set-form .input { width: 100%; }
+.set-form .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.help { font-size: 12.5px; color: var(--text-2); background: var(--panel-2); border-radius: var(--r-2); padding: 9px 11px; margin: 0 0 12px; line-height: 1.55; }
+.result:empty { display: none; }
+.result { margin-top: 10px; }
+.result .callout { margin: 0; }
+.app-block > header .app-ic { width: 22px; height: 22px; font-size: 11px; }
+</style>
+{% endblock %}
+{% block body %}
+<header class="page-head"><h1>{{ s.settings }}</h1><p class="sub">{{ s.set_sub }}</p></header>
+{% set badge = {'ok': 'good', 'stale': 'warn', 'nodata': 'outline'} %}
+
+{% for a in set_apps %}
+<section class="card app-block" id="app-{{ a.id }}">
+  <header><span class="app-ic" style="background:var(--accent)" aria-hidden="true">{{ a.name[:1]|upper }}</span><h2>{{ a.name }}</h2></header>
+  {% if a.sources %}
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ s.set_source }}</th><th>{{ s.set_status }}</th><th>{{ s.set_through }}</th><th class="num">{{ s.set_rows }}</th></tr></thead>
+    <tbody>{% for src in a.sources %}<tr>
+      <td>{{ src.label }} {% if src.from_settings %}<span class="badge info">{{ s.set_from }}</span>{% endif %}<div class="muted" style="font-size:11.5px"><code>{{ src.name }}</code></div></td>
+      <td><span class="badge {{ badge[src.status] }}">{{ s['src_' ~ src.status] }}</span></td>
+      <td class="date">{{ src.through or '—' }}{% if src.lag is not none %} <span class="muted">({{ src.lag }} {{ 'gün' if lang == 'tr' else 'd' }})</span>{% endif %}</td>
+      <td class="num muted">{{ src.rows if src.rows is not none else '—' }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted">{{ s.set_none }}</p>{% endif %}
+
+  <div class="set-grid" style="margin-top:14px">
+    <form class="card set-form" style="margin:0" hx-post="/settings/play/{{ a.id }}" hx-target="#play-{{ a.id }}" hx-swap="innerHTML">
+      <h2>{{ s.set_play_title }}</h2>
+      <p class="help">{{ s.set_play_help }}</p>
+      <div class="field"><label for="bucket-{{ a.id }}">{{ s.set_bucket }}</label><input class="input" id="bucket-{{ a.id }}" name="bucket" value="{{ a.play_bucket }}" placeholder="gs://pubsite_prod_rev_…" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label for="pkg-{{ a.id }}">{{ s.set_package }}</label><input class="input" id="pkg-{{ a.id }}" name="package" value="{{ a.play_package }}" placeholder="com.example.game" autocomplete="off" spellcheck="false"></div>
+      <div class="actions">
+        <button class="btn primary" type="submit">{{ s.set_save }}</button>
+        <button class="btn" type="button" hx-post="/settings/test/{{ a.id }}/play" hx-target="#play-{{ a.id }}">{{ icon('plug')|safe }} {{ s.set_test }}</button>
+      </div>
+      <div class="result" id="play-{{ a.id }}" aria-live="polite"></div>
+    </form>
+    <form class="card set-form" style="margin:0" hx-post="/settings/appstore/{{ a.id }}" hx-target="#asc-{{ a.id }}" hx-swap="innerHTML">
+      <h2>{{ s.set_asc_title }}</h2>
+      <p class="help">{{ s.set_asc_help }}</p>
+      <div class="row2">
+        <div class="field"><label for="apple-{{ a.id }}">{{ s.set_apple_id }}</label><input class="input" id="apple-{{ a.id }}" name="apple_id" value="{{ a.apple_id }}" inputmode="numeric" autocomplete="off"></div>
+        <div class="field"><label for="vendor-{{ a.id }}">{{ s.set_vendor }}</label><input class="input" id="vendor-{{ a.id }}" name="vendor" value="{{ a.vendor }}" inputmode="numeric" autocomplete="off"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="kid-{{ a.id }}">{{ s.set_key_id }}</label><input class="input" id="kid-{{ a.id }}" name="key_id" autocomplete="off" spellcheck="false"></div>
+        <div class="field"><label for="iss-{{ a.id }}">{{ s.set_issuer }}</label><input class="input" id="iss-{{ a.id }}" name="issuer_id" autocomplete="off" spellcheck="false"></div>
+      </div>
+      <div class="field"><label for="kp-{{ a.id }}">{{ s.set_key_path }}</label><input class="input" id="kp-{{ a.id }}" name="key_path" placeholder="~/…/AuthKey_XXXXXXXXXX.p8" autocomplete="off" spellcheck="false"></div>
+      <div class="actions">
+        <button class="btn primary" type="submit">{{ s.set_save }}</button>
+        <button class="btn" type="button" hx-post="/settings/test/{{ a.id }}/appstore" hx-target="#asc-{{ a.id }}">{{ icon('plug')|safe }} {{ s.set_test }}</button>
+      </div>
+      <div class="result" id="asc-{{ a.id }}" aria-live="polite"></div>
+    </form>
+  </div>
+</section>
+{% endfor %}
+
+<div class="grid c2">
+  <section class="card">
+    <header><h2>{{ s.set_sched_title }}</h2>{% if schedule.registered %}<span class="badge good">{{ s.h_sched_on }}</span>{% else %}<span class="badge warn">{{ s.h_sched_off }}</span>{% endif %}</header>
+    <p class="soft" style="margin:0 0 10px;font-size:13px">{{ s.set_sched_help }}</p>
+    {% if schedule.next_run %}<p class="muted" style="margin:0 0 10px;font-size:12.5px">{{ s.h_sched_next }}: {{ schedule.next_run }}</p>{% endif %}
+    <form class="row" hx-post="/settings/schedule" hx-target="#sched-result" hx-swap="innerHTML">
+      <label for="at" class="muted" style="font-size:12.5px">{{ s.set_at }}</label>
+      <input class="input" id="at" name="at" type="time" value="08:30" style="width:120px">
+      <button class="btn primary" type="submit">{{ s.set_install }}</button>
+    </form>
+    <div class="result" id="sched-result" aria-live="polite"></div>
+  </section>
+  <section class="card">
+    <h2>{{ s.set_keys_state }}</h2>
+    <table class="t"><tbody>{% for name, on in asc_vars %}<tr><td><code>{{ name }}</code></td><td><span class="badge {{ 'good' if on else 'outline' }}">{{ s.set_var_on if on else s.set_var_off }}</span></td></tr>{% endfor %}</tbody></table>
+    <p class="muted" style="font-size:12px;margin:10px 0 0">{{ s.set_where }}: <code>{{ settings_file }}</code></p>
+  </section>
+</div>
+{% endblock %}

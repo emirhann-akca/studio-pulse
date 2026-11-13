@@ -145,7 +145,7 @@ def test_an_app_without_data_offers_a_next_step(client, studio_cfg):
         c = TestClient(create_app(studio_cfg, token="t", live_fetcher=lambda: SNAP), base_url=HOST)
         page = c.get("/studio/quiet_game").text
         assert "Bu uygulamanın verisi yok" in page and "SDK mağaza derlemesinde kapalı" in page
-        assert 'href="/health"' in page and "Mağaza verisi bağlı değil" in page
+        assert 'href="/settings#app-quiet_game"' in page and "Mağaza verisi bağlı değil" in page
         assert "Toplayıcıya ulaşılamıyor" not in page  # a normal state is not shown as an error
     finally:
         studio_cfg.apps.remove(waiting)
