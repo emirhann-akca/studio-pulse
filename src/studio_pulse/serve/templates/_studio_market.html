@@ -1,0 +1,41 @@
+{# Studio market view: the newest radar facts (local only; store data never leaves this machine). #}
+<div class="head">
+  <h1>{{ t.m_title }}</h1>
+  {% if market.facts %}<span class="meta">{{ market.as_of }} · {{ market.countries }}</span>{% endif %}
+  <span class="links"><a href="/radar?lang={{ lang }}">{{ t.open_full }}</a></span>
+</div>
+<p class="empty" style="margin-top:-6px">{{ t.m_sub }}</p>
+{% if not market.facts %}
+  <p class="empty">{{ t.m_none }}</p>
+{% else %}
+  {% if market.narration %}
+  <section class="panel"><h3>{{ t.m_summary }}</h3><p style="margin:0">{{ market.narration }}</p></section>
+  {% endif %}
+  <section class="panel">
+    <h3>{{ t.m_rising }}</h3>
+    <table class="mini">
+      <tr><th>{{ t.m_game }}</th><th>{{ t.m_mech }}</th><th>{{ t.m_rank }} <span class="lbl">{{ market.observed }}</span></th><th>{{ t.m_age }}</th><th>{{ t.m_play }} <span class="lbl">{{ market.store_reported }}</span></th></tr>
+      {% for r in market.rising %}
+      <tr>
+        <td>{% if r.store_url %}<a href="{{ r.store_url }}" rel="noopener noreferrer">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}<br><span class="lbl">{{ r.developer or '' }}</span></td>
+        <td>{{ r.mechanic or '—' }}{% if r.mechanic %}<br><span class="lbl">{{ t.m_llm if r.src == 'llm' else t.m_kw }}</span>{% endif %}</td>
+        <td>{{ r.best }}</td><td>{{ r.age if r.age is not none else '—' }}</td><td>{{ r.play or '—' }}</td>
+      </tr>
+      {% else %}<tr><td colspan="5" class="empty">—</td></tr>{% endfor %}
+    </table>
+  </section>
+  <div class="cols">
+    <section class="panel">
+      <h3>{{ t.m_trends }}</h3>
+      {% if market.mechanics %}
+      <table class="mini">{% for m, n in market.mechanics %}<tr><td>{{ m }}</td><td>{{ n }} {{ t.m_games }}</td></tr>{% endfor %}</table>
+      {% else %}<p class="empty">—</p>{% endif %}
+      {% if not market.weekly_ready %}<p class="lbl" style="margin:8px 0 0">{{ t.m_weekly }}</p>{% endif %}
+      {% for r in market.trend_rows %}<p style="margin:6px 0 0"><b>{{ r.mechanic }}</b> · {{ r.country|upper }} · z {{ r.z }}</p>{% endfor %}
+    </section>
+    <section class="panel">
+      <h3>{{ t.m_late }}</h3>
+      <table class="mini">{% for r in market.others %}<tr><td>{{ r.name }}<br><span class="lbl">{{ r.class }}</span></td><td>{{ r.mechanic or '—' }}</td><td>{{ r.best }}</td></tr>{% else %}<tr><td class="empty">—</td></tr>{% endfor %}</table>
+    </section>
+  </div>
+{% endif %}

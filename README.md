@@ -92,7 +92,7 @@ store reviews included).
   `/ask` in the local UI): deterministic statistics find and explain the
   changes, every number in a sentence is formatted by code and checked against
   its evidence, and a language model may only rephrase (see below).
-- 699 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
+- 702 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
   dart analyze; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -126,8 +126,12 @@ and the installs active right now; a game whose SDK sends its first event shows
 up under "new arrivals" before any refresh), the selected app in the middle
 (7-day numbers, 30-day DAU, players now, store presence, hardest levels, stored
 insights), and its AI panel on the right (the brain's recommendations with their
-evidence ids, and a question box scoped to the app). Market radar, Creative
-Forge (when its app is running), data health and alerts sit under the apps.
+evidence ids, and a question box scoped to the app). Under the apps: the
+market radar inside the same window (`/studio/market`: the day's verified
+summary, games rising on the charts with their mechanic and where that tag came
+from, mechanics on today's charts, and ideas for an ad test with the
+`mechanic_shown` creative-forge reads), Creative Forge (when its app is
+running), data health and alerts.
 
 **Open it like an app.** The installers add **Studio Pulse** to the Start menu
 and the Desktop (Windows), to `~/Applications` (macOS: Launchpad and Spotlight
@@ -449,7 +453,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 699 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 702 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 

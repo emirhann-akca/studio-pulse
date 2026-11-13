@@ -36,6 +36,25 @@ T: dict[str, dict[str, str]] = {
         "new_section": "Yeni gelenler",
         "tools": "Araçlar",
         "radar": "Pazar radarı",
+        "m_title": "Pazar radarı",
+        "m_sub": "Mağaza listeleri ve sayfalarından günlük gözlem; her sayı GÖZLEM / MAĞAZA VERİSİ / TAHMİN etiketli.",
+        "m_none": "Henüz radar koşusu yok: `pulse radar run` ya da radar.enabled ile `pulse run`.",
+        "m_summary": "Günün özeti",
+        "m_rising": "Bugün yükselenler",
+        "m_late": "Geç yükselenler ve izlenenler",
+        "m_trends": "Mekanikler (bugünkü listelerde)",
+        "m_ideas": "Bize ne öğretir / ne yapabiliriz",
+        "m_ideas_note": "Çıkarım, veri değil: bir reklam testi için yön.",
+        "m_game": "Oyun",
+        "m_mech": "Mekanik",
+        "m_rank": "En iyi sıra",
+        "m_age": "Yaş (gün)",
+        "m_play": "Play kurulum",
+        "m_llm": "LLM, alıntıyla doğrulandı",
+        "m_kw": "anahtar kelime tahmini",
+        "m_test": "Creative Forge'da bu mekanikle reklam testi",
+        "m_games": "oyun",
+        "m_weekly": "haftalık eğilim için en az 5 haftalık geçmiş gerekiyor",
         "ads": "Reklamlar (Creative Forge)",
         "health": "Veri sağlığı",
         "alerts": "Uyarılar",
@@ -44,7 +63,8 @@ T: dict[str, dict[str, str]] = {
         "testing": "test",
         "new": "yeni",
         "ga4": "GA4",
-        "waiting": "SDK bekleniyor",
+        "waiting": "bekliyor",
+        "waiting_long": "SDK bekleniyor: hiçbir derleme henüz veri göndermiyor",
         "now": "şu an",
         "players_now": "Şu an oynayan",
         "dau7": "Günlük aktif (7 gün ort.)",
@@ -84,6 +104,25 @@ T: dict[str, dict[str, str]] = {
         "new_section": "New arrivals",
         "tools": "Tools",
         "radar": "Market radar",
+        "m_title": "Market radar",
+        "m_sub": "Daily observation of store charts and pages; every number labelled OBSERVED / STORE-REPORTED / ESTIMATE.",
+        "m_none": "No radar run yet: `pulse radar run`, or `pulse run` with radar.enabled.",
+        "m_summary": "Today in short",
+        "m_rising": "Rising today",
+        "m_late": "Late risers and watch list",
+        "m_trends": "Mechanics (on today's charts)",
+        "m_ideas": "What it teaches us / what we can do",
+        "m_ideas_note": "Inference, not data: a direction for an ad test.",
+        "m_game": "Game",
+        "m_mech": "Mechanic",
+        "m_rank": "Best rank",
+        "m_age": "Age (days)",
+        "m_play": "Play installs",
+        "m_llm": "LLM, verified quote",
+        "m_kw": "keyword guess",
+        "m_test": "An ad test with this mechanic in Creative Forge",
+        "m_games": "games",
+        "m_weekly": "a weekly trend needs at least 5 weeks of history",
         "ads": "Ads (Creative Forge)",
         "health": "Data health",
         "alerts": "Alerts",
@@ -92,7 +131,8 @@ T: dict[str, dict[str, str]] = {
         "testing": "testing",
         "new": "new",
         "ga4": "GA4",
-        "waiting": "awaiting SDK",
+        "waiting": "waiting",
+        "waiting_long": "awaiting SDK: no build sends data yet",
         "now": "now",
         "players_now": "Playing now",
         "dau7": "Daily active (7-day avg)",
@@ -327,20 +367,22 @@ def register(
             return None
         return None
 
-    def page_data(app_id: str | None, lang: str) -> dict[str, Any]:
+    def page_data(app_id: str | None, lang: str, full: bool = True) -> dict[str, Any]:
+        """full=False (the sidebar poll, the market view): the app list only, no app page
+        and no insights, so a 10-second poll never recomputes or re-narrates anything."""
         lv = live()
         con, source = open_db(cfg)
         try:
             apps = app_list(con, lv)
             chosen = app_id or (apps[0]["id"] if apps else None)
-            view = app_view(con, chosen, lv, lang) if chosen else None
+            view = app_view(con, chosen, lv, lang) if chosen and full else None
         finally:
             if con is not None:
                 con.close()
         current = next((a for a in apps if a["id"] == chosen), None)
         cards: list[dict[str, Any]] = []
         load = getattr(app.state, "brain_insights", None)
-        if load and chosen:
+        if load and chosen and full:
             try:
                 cards = [c for c in load(lang)["cards"] if c["app"] == chosen]
             except Exception:  # the brain is optional here; the page still shows the data
@@ -369,6 +411,83 @@ def register(
             "forge_url": creative_forge_url(),
         }
 
+    def market_data(lang: str) -> dict[str, Any]:
+        """The newest radar facts, shaped for the Studio's market view (local only)."""
+        from ..radar.digest import CLASS, COUNTRY, LABELS, LIST
+        from ..radar.page import latest_facts
+
+        try:
+            from ..radar.settings import from_config as radar_settings
+
+            facts = latest_facts(radar_settings(cfg).out_dir)
+        except Exception:  # no radar block or no run yet
+            facts = None
+        if not facts:
+            return {"facts": None}
+
+        def mech(item: dict[str, Any]) -> tuple[str | None, str | None, str]:
+            prim = next((c for c in (item.get("profile") or {}).get("claims", [])
+                         if c.get("dimension") == "mechanic_primary"), None)  # fmt: skip
+            src = (item.get("profile") or {}).get("source")
+            return (
+                (prim or {}).get("value"),
+                (prim or {}).get("quote"),
+                "llm" if src == "llm" else "kw",
+            )
+
+        def row(item: dict[str, Any]) -> dict[str, Any]:
+            m, quote, src = mech(item)
+            best = min(item.get("ranks") or [], key=lambda r: r["rank"], default=None)
+            return {
+                "name": item["name"],
+                "developer": item.get("developer"),
+                "class": CLASS[lang].get(item["class"], item["class"]),
+                "mechanic": m,
+                "quote": quote,
+                "src": src,
+                "best": f"{COUNTRY[lang].get(best['country'], best['country'])} "
+                f"{LIST[lang].get(best['list'], best['list'])} #{best['rank']}"
+                if best
+                else "—",
+                "age": (item.get("age") or {}).get("value"),
+                "play": (item.get("play") or {}).get("bucket"),
+                "store_url": item.get("store_url"),
+                "play_url": item.get("play_url"),
+            }
+
+        items = facts.get("items") or []
+        narr = (facts.get("meta") or {}).get("narration") or {}
+        mechs: dict[str, int] = {}
+        for r in (facts.get("trends") or {}).get("rows", []):
+            mechs[r["mechanic"]] = mechs.get(r["mechanic"], 0) + int(r.get("n_apps") or 0)
+        history = ((facts.get("trends") or {}).get("history_days") or {}).get("value") or 0
+        return {
+            "facts": facts,
+            "as_of": facts.get("as_of"),
+            "countries": ", ".join(COUNTRY[lang].get(c, c) for c in facts.get("countries") or []),
+            "rising": [row(i) for i in items if i["class"] == "breakout"][:10],
+            "others": [row(i) for i in items if i["class"] != "breakout"][:10],
+            "narration": narr.get(lang) if narr.get("status") == "ok" else None,
+            "mechanics": sorted(mechs.items(), key=lambda kv: -kv[1])[:8],
+            "weekly_ready": history >= 35,
+            "trend_rows": [
+                r for r in (facts.get("trends") or {}).get("rows", []) if r.get("is_trend")
+            ],
+            "ideas": [i for i in facts.get("ideas") or [] if i.get("kind") != "top_mechanic"][:6],
+            "observed": LABELS[lang]["observed"],
+            "store_reported": LABELS[lang]["store_reported"],
+        }
+
+    @app.get("/studio/market", response_class=HTMLResponse)
+    def studio_market(request: Request, lang: str | None = None):
+        lg = _lang(lang)
+        data = page_data(None, lg, full=False)
+        data.update(chosen="__market__", current=None, view=None, cards=[], recs=[],
+                    mode="market", market=market_data(lg))  # fmt: skip
+        return templates.TemplateResponse(
+            request, "studio.html", context(request, "studio", **data)
+        )
+
     @app.get("/studio", response_class=HTMLResponse)
     def studio_home(request: Request, lang: str | None = None):
         data = page_data(None, _lang(lang))
@@ -382,7 +501,7 @@ def register(
     def studio_sidebar(
         request: Request, chosen: str | None = Query(None, alias="app"), lang: str | None = None
     ):
-        data = page_data(chosen, _lang(lang))
+        data = page_data(chosen, _lang(lang), full=False)
         return templates.TemplateResponse(
             request, "_studio_sidebar.html", context(request, "fragment", **data)
         )

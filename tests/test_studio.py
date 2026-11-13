@@ -129,5 +129,64 @@ def test_an_sdk_only_app_without_data_is_awaiting_its_sdk(demo_build, tmp_path):
     con.close()
     c = TestClient(create_app(cfg, token="t", live_fetcher=lambda: SNAP), base_url=HOST)
     page = c.get("/studio/next_game").text
-    assert 'class="st waiting">SDK bekleniyor<' in page
-    assert re.search(r"Mossy Match</span>\s*<span class=\"st ga4\">GA4<", page)
+    assert 'class="st waiting">bekliyor<' in page and "SDK bekleniyor: hiçbir derleme" in page
+    assert re.search(r"Mossy Match</span>\s*<span class=\"st ga4\"[^>]*>GA4<", page)
+
+
+FACTS = {
+    "as_of": "2026-11-13",
+    "countries": ["us", "tr"],
+    "items": [
+        {"app_key": "apple:1", "app_id": "1", "name": "Word Tiles: Worträtsel", "developer": "Agave Games",
+         "class": "breakout", "store_url": "https://apps.apple.com/app/id1", "play_url": None,
+         "ranks": [{"country": "us", "list": "topfreeapplications:7012", "rank": 10},
+                   {"country": "tr", "list": "topfreeapplications:7012", "rank": 4}],
+         "age": {"value": 12}, "play": {"bucket": "100,000+"},
+         "profile": {"source": "llm", "claims": [{"dimension": "mechanic_primary", "value": "word",
+                                                  "quote": "make words"}]}},
+        {"app_key": "apple:2", "app_id": "2", "name": "Builder Tycoon", "developer": "X",
+         "class": "watch", "ranks": [{"country": "tr", "list": "topfreeapplications:7015", "rank": 30}],
+         "age": {"value": 38}, "play": None,
+         "profile": {"source": "keyword", "claims": [{"dimension": "mechanic_primary",
+                                                      "value": "idle-tycoon", "quote": "Tycoon"}]}},
+    ],
+    "trends": {"history_days": {"value": 1}, "week": "2026-11-09",
+               "rows": [{"country": "us", "mechanic": "word", "n_apps": 3, "is_trend": False}]},
+    "ideas": [
+        {"kind": "top_mechanic", "mechanic": "word", "count": {"value": 1}},
+        {"name": "Word Tiles: Worträtsel", "mechanic": "word", "quote": "make words", "source": "llm",
+         "hooks": ["challenge"], "forge_mechanic": "word"},
+        {"name": "Builder Tycoon", "mechanic": "idle-tycoon", "quote": "Tycoon", "source": "keyword",
+         "hooks": [], "forge_mechanic": "idle"},
+    ],
+    "meta": {"narration": {"status": "ok", "tr": "Bugün Word Tiles: Worträtsel öne çıkıyor.",
+                           "en": "Word Tiles: Worträtsel leads today."}},
+}  # fmt: skip
+
+
+def test_market_view_sits_inside_the_studio(studio_cfg, tmp_path):
+    """The market radar opens in the Studio window: digest, rising games, ideas with their source."""
+    import dataclasses
+    import json
+
+    out = tmp_path / "radar"
+    out.mkdir()
+    (out / "2026-11-13.facts.json").write_text(json.dumps(FACTS), encoding="utf-8")
+    raw = {**(studio_cfg.raw or {}), "radar": {"enabled": False, "out_dir": str(out)}}
+    cfg = dataclasses.replace(studio_cfg, raw=raw)
+    c = TestClient(create_app(cfg, token="t", live_fetcher=lambda: SNAP), base_url=HOST)
+    page = c.get("/studio/market").text
+    assert "Bugün yükselenler" in page and "Word Tiles: Worträtsel" in page
+    assert "Bugün Word Tiles: Worträtsel öne çıkıyor." in page  # the verified narration
+    assert "ABD Bulmaca #10" in page or "Türkiye Bulmaca #4" in page
+    assert "100,000+" in page and "MAĞAZA VERİSİ" in page
+    assert "LLM, alıntıyla doğrulandı" in page and "anahtar kelime tahmini" in page
+    assert "mechanic_shown=word" in page
+    assert 'aria-current="page">Pazar radarı' in page  # the sidebar shows where you are
+    en = c.get("/studio/market", params={"lang": "en"}).text
+    assert "Rising today" in en and "Word Tiles: Worträtsel leads today." in en
+
+
+def test_market_view_without_a_radar_run_says_so(client):
+    page = client.get("/studio/market").text
+    assert "Henüz radar koşusu yok" in page

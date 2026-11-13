@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ current.name if current else 'Studio' }} · Studio Pulse</title>
+<title>{{ t.m_title if mode == 'market' else (current.name if current else 'Studio') }} · Studio Pulse</title>
 <style>{{ css|safe }}
 body { overflow: hidden; }
 .studio { display: grid; grid-template-columns: 248px minmax(0, 1fr) 360px; height: 100vh; }
@@ -15,6 +15,8 @@ body { overflow: hidden; }
 .app-link { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; color: var(--ink); text-decoration: none; }
 .app-link:hover { background: var(--hover); }
 .app-link[aria-current="page"] { background: var(--hover); outline: 1px solid var(--ring); }
+.tool-link[aria-current="page"] { background: var(--hover); outline: 1px solid var(--ring); }
+.lbl { font-size: 10.5px; color: var(--muted); letter-spacing: .03em; }
 .app-link .ic { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-weight: 650; color: #fff; flex: none; }
 .app-link .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .app-link .now { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -82,7 +84,9 @@ table.mini th { color: var(--muted); font-weight: 500; }
   </aside>
 
   <main class="main">
-  {% if current %}
+  {% if mode == 'market' %}
+    {% include "_studio_market.html" %}
+  {% elif current %}
     <div class="head">
       <h1>{{ current.name }}</h1>
       <span class="st {{ current.status }}">{{ t[current.status] }}</span>
@@ -129,6 +133,19 @@ table.mini th { color: var(--muted); font-weight: 500; }
   </main>
 
   <aside class="ai" aria-label="{{ t.ai }}">
+  {% if mode == 'market' %}
+    <div class="top"><h2><span aria-hidden="true">✦</span> {{ t.m_ideas }}</h2><p>{{ t.m_ideas_note }}</p></div>
+    <div class="body">
+      {% for i in market.ideas if market and market.facts %}
+        <div class="rec"><b>{{ i.mechanic }}</b> · {{ i.name }}
+          <span class="ev">{{ t.m_llm if i.source == 'llm' else t.m_kw }}</span>
+          {% if i.quote %}<span class="ev">“{{ i.quote }}”</span>{% endif %}
+          {% if i.hooks %}<span class="ev">hooks: {{ i.hooks|join(', ') }}</span>{% endif %}
+          <span class="ev">{{ t.m_test }}: <code>mechanic_shown={{ i.forge_mechanic }}</code>{% if forge_url %} · <a href="{{ forge_url }}" rel="noopener">Creative Forge</a>{% endif %}</span>
+        </div>
+      {% else %}<p class="empty">—</p>{% endfor %}
+    </div>
+  {% else %}
     <div class="top"><h2><span aria-hidden="true">✦</span> {{ t.ai }}{% if current %} · {{ current.name }}{% endif %}</h2><p>{{ t.ai_note }}</p></div>
     <div class="body">
       <h3 style="font-size:13px;margin:4px 0">{{ t.recs }}</h3>
@@ -143,6 +160,7 @@ table.mini th { color: var(--muted); font-weight: 500; }
       <button type="submit">{{ t.send }}</button><span class="busy">…</span>
     </form>
     {% endif %}
+  {% endif %}
   </aside>
 </div>
 <script>{{ js|safe }}</script>

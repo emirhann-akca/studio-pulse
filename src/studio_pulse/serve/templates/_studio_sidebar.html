@@ -5,7 +5,7 @@
     <span class="ic" style="background:{{ palette[loop.index0 % palette|length] }}" aria-hidden="true">{{ a.name[:1]|upper }}</span>
     <span class="nm">{{ a.name }}</span>
     {% if a.now %}<span class="now" title="{{ t.players_now }}"><span class="dot" aria-hidden="true"></span> {{ a.now }}</span>{% endif %}
-    <span class="st {{ a.status }}">{{ t[a.status] }}</span>
+    <span class="st {{ a.status }}" title="{{ t.waiting_long if a.status == 'waiting' else t[a.status] }}">{{ t[a.status] }}</span>
   </a>
 {% endfor %}
 {% if arrived %}
@@ -15,12 +15,12 @@
     <span class="ic" style="background:{{ palette[(loop.index0 + 3) % palette|length] }}" aria-hidden="true">{{ a.name[:1]|upper }}</span>
     <span class="nm">{{ a.name }}</span>
     {% if a.now %}<span class="now" title="{{ t.players_now }}"><span class="dot" aria-hidden="true"></span> {{ a.now }}</span>{% endif %}
-    <span class="st {{ a.status }}">{{ t[a.status] }}</span>
+    <span class="st {{ a.status }}" title="{{ t.waiting_long if a.status == 'waiting' else t[a.status] }}">{{ t[a.status] }}</span>
   </a>
 {% endfor %}
 {% endif %}
 <h2>{{ t.tools }}</h2>
-<a class="tool-link" href="/radar">{{ t.radar }}<small>US · TR · GB · DE</small></a>
+<a class="tool-link" href="/studio/market?lang={{ lang }}"{% if chosen == '__market__' %} aria-current="page"{% endif %}>{{ t.radar }}<small>US · TR · GB · DE</small></a>
 {% if forge_url %}<a class="tool-link" href="{{ forge_url }}" rel="noopener">{{ t.ads }}</a>{% else %}<span class="tool-link" title="{{ t.ads_off }}">{{ t.ads }}<small>{{ t.ads_off }}</small></span>{% endif %}
 <a class="tool-link" href="/live">Canlı / Live</a>
 <a class="tool-link" href="/health">{{ t.health }}</a>
