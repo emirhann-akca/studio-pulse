@@ -10,6 +10,7 @@ import gzip
 import os
 import stat
 import sys
+from pathlib import Path
 
 import pytest
 import yaml
@@ -183,7 +184,7 @@ def test_play_bucket_sync_keeps_only_this_package(tmp_path):
             self.name, self.size = name, 3
 
         def download_to_filename(self, target):
-            open(target, "w").write("abc")
+            Path(target).write_text("abc", encoding="utf-8")
 
     class Client:
         def list_blobs(self, bucket, prefix=None):
