@@ -5,39 +5,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lantern Leap · Studio Pulse demo</title>
 <meta name="description" content="Studio Pulse demo - app portfolio metrics">
-<style>
-:root {
+<style>:root {
   color-scheme: light;
-  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6e69;
-  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10); --hover: rgba(42,120,214,0.08);
+  --bg: #f6f6f7; --panel: #ffffff; --panel-2: #f1f2f4; --panel-3: #e9eaed;
+  --line: rgba(17,18,20,.08); --line-2: rgba(17,18,20,.14);
+  --text: #111214; --text-2: #4a4d55; --text-3: #7a7d86;
+  --accent: #2a78d6; --accent-ink: #ffffff; --accent-soft: rgba(42,120,214,.10); --accent-text: #1c5cab;
+  --good: #0ca30c; --good-text: #006300; --good-soft: rgba(12,163,12,.10);
+  --warn: #c98500; --warn-text: #7a5000; --warn-soft: rgba(237,161,0,.14);
+  --bad: #d03b3b; --bad-text: #a32020; --bad-soft: rgba(208,59,59,.10);
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
-  --good: #0ca30c; --good-ink: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
-  --banner-bg: #fff4d6; --banner-ink: #5a4100; --banner-border: #eda100;
-  --link: #1c5cab;
+  --shadow: 0 1px 2px rgba(17,18,20,.04), 0 4px 16px rgba(17,18,20,.06);
+  --shadow-pop: 0 12px 40px rgba(17,18,20,.18);
+  --r-1: 6px; --r-2: 8px; --r-3: 12px; --r-pill: 999px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Inter, Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  /* legacy names used by older templates and the static dashboard */
+  --page: var(--bg); --surface: var(--panel); --ink: var(--text); --ink-2: var(--text-2); --muted: var(--text-3);
+  --grid: var(--line); --ring: var(--line-2); --hover: var(--accent-soft); --link: var(--accent-text);
+  --good-ink: var(--good-text); --warning: var(--warn); --critical: var(--bad); --axis: var(--line-2);
 }
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
-    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
+    --bg: #0b0c0e; --panel: #131417; --panel-2: #181a1e; --panel-3: #202227;
+    --line: rgba(255,255,255,.07); --line-2: rgba(255,255,255,.12);
+    --text: #ececee; --text-2: #b0b2b9; --text-3: #7d8089;
+    --accent: #3987e5; --accent-ink: #ffffff; --accent-soft: rgba(57,135,229,.16); --accent-text: #86b6ef;
+    --good: #22b922; --good-text: #5fd35f; --good-soft: rgba(34,185,34,.14);
+    --warn: #d99a1a; --warn-text: #f0c060; --warn-soft: rgba(217,154,26,.16);
+    --bad: #e66767; --bad-text: #ff9a9a; --bad-soft: rgba(230,103,103,.15);
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
-    --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
-    --link: #86b6ef;
+    --shadow: 0 1px 2px rgba(0,0,0,.4); --shadow-pop: 0 16px 48px rgba(0,0,0,.55);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
-  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
+  --bg: #0b0c0e; --panel: #131417; --panel-2: #181a1e; --panel-3: #202227;
+  --line: rgba(255,255,255,.07); --line-2: rgba(255,255,255,.12);
+  --text: #ececee; --text-2: #b0b2b9; --text-3: #7d8089;
+  --accent: #3987e5; --accent-ink: #ffffff; --accent-soft: rgba(57,135,229,.16); --accent-text: #86b6ef;
+  --good: #22b922; --good-text: #5fd35f; --good-soft: rgba(34,185,34,.14);
+  --warn: #d99a1a; --warn-text: #f0c060; --warn-soft: rgba(217,154,26,.16);
+  --bad: #e66767; --bad-text: #ff9a9a; --bad-soft: rgba(230,103,103,.15);
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
-  --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
-  --link: #86b6ef;
+  --shadow: 0 1px 2px rgba(0,0,0,.4); --shadow-pop: 0 16px 48px rgba(0,0,0,.55);
 }
+
+:root { --banner-bg: var(--warn-soft); --banner-ink: var(--text); --banner-border: var(--warn); }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--page); color: var(--ink);
-  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 14px/1.45 var(--font);
 }
 a { color: var(--link); }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 48px; }
@@ -489,7 +509,7 @@ Starts / completes: 1.64"><div class="bar b4" style="height:40.91%"></div></div>
 Starts / completes: 1.71"><div class="bar b4" style="height:42.74%"></div></div><div class="cat" data-tip="30
 Starts / completes: 1.38"><div class="bar b4" style="height:34.48%"></div></div></div></div><div class="endlabels"></div><div class="xaxis cats"><span style="left:1.79%">1</span><span style="left:12.50%">4</span><span style="left:23.21%">7</span><span style="left:33.93%">10</span><span style="left:44.64%">13</span><span style="left:55.36%">16</span><span style="left:66.07%">20</span><span style="left:76.79%">23</span><span style="left:87.50%">26</span><span style="left:98.21%">30</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Level</th><th>Starts / completes</th></tr></thead><tbody><tr><td>1</td><td>1.27</td></tr><tr><td>2</td><td>1.31</td></tr><tr><td>3</td><td>1.29</td></tr><tr><td>4</td><td>1.37</td></tr><tr><td>5</td><td>1.27</td></tr><tr><td>6</td><td>1.28</td></tr><tr><td>7</td><td>1.25</td></tr><tr><td>8</td><td>2.41</td></tr><tr><td>9</td><td>1.32</td></tr><tr><td>10</td><td>1.26</td></tr><tr><td>11</td><td>1.36</td></tr><tr><td>12</td><td>1.30</td></tr><tr><td>13</td><td>1.41</td></tr><tr><td>14</td><td>1.32</td></tr><tr><td>15</td><td>1.51</td></tr><tr><td>16</td><td>1.25</td></tr><tr><td>17</td><td>3.30</td></tr><tr><td>18</td><td>1.52</td></tr><tr><td>20</td><td>1.33</td></tr><tr><td>21</td><td>1.62</td></tr><tr><td>22</td><td>1.62</td></tr><tr><td>23</td><td>1.52</td></tr><tr><td>24</td><td>1.49</td></tr><tr><td>25</td><td>1.57</td></tr><tr><td>26</td><td>1.29</td></tr><tr><td>28</td><td>1.64</td></tr><tr><td>29</td><td>1.71</td></tr><tr><td>30</td><td>1.38</td></tr></tbody></table></div></details></figure></div>
 <h2>Alerts</h2><ul class="alerts"><li class="ok"><span class="sev">OK</span>No active alerts (11 rule(s) checked).</li></ul>
-<h2>Data sources</h2><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Source</th><th class="">Data through</th><th class="">Freshness</th><th class="">Last load</th><th class="">Rows (last load)</th></tr></thead><tbody><tr><td class="l">pulse_sdk</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-13 17:09 UTC</td><td>15,633</td></tr></tbody></table></div></div>
+<h2>Data sources</h2><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Source</th><th class="">Data through</th><th class="">Freshness</th><th class="">Last load</th><th class="">Rows (last load)</th></tr></thead><tbody><tr><td class="l">pulse_sdk</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-13 17:11 UTC</td><td>15,633</td></tr></tbody></table></div></div>
 </main>
 <footer>Generated by studio-pulse. Metric definitions: docs/METRICS.md. Hover a chart for values, or open its data table.<br>
 Retention benchmarks: <a href="https://gamedevreports.substack.com/p/gameanalytics-mobile-and-pc-game" rel="noopener">GameAnalytics, Mobile and PC Game Benchmarks 2026</a>
@@ -499,7 +519,7 @@ Retention benchmarks: <a href="https://gamedevreports.substack.com/p/gameanalyti
 <script>
 (function () {
   var root = document.documentElement;
-  try { var saved = localStorage.getItem('pulse-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  try { var saved = localStorage.getItem('ui-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
   var btn = document.querySelector('button.theme');
   function label() {
     var dark = root.getAttribute('data-theme') === 'dark' ||
@@ -512,7 +532,7 @@ Retention benchmarks: <a href="https://gamedevreports.substack.com/p/gameanalyti
     btn.addEventListener('click', function () {
       var next = label() ? 'light' : 'dark';
       root.setAttribute('data-theme', next);
-      try { localStorage.setItem('pulse-theme', next); } catch (e) {}
+      try { localStorage.setItem('ui-theme', next); } catch (e) {}
       label();
     });
   }

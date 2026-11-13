@@ -1,38 +1,25 @@
-"""Inline CSS and JS for the static dashboard (no external requests)."""
+"""Inline CSS and JS for the static dashboard (no external requests).
 
-CSS = r"""
-:root {
-  color-scheme: light;
-  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6e69;
-  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10); --hover: rgba(42,120,214,0.08);
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
-  --good: #0ca30c; --good-ink: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
-  --banner-bg: #fff4d6; --banner-ink: #5a4100; --banner-border: #eda100;
-  --link: #1c5cab;
-}
-@media (prefers-color-scheme: dark) {
-  :root:where(:not([data-theme="light"])) {
-    color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
-    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
-    --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
-    --link: #86b6ef;
-  }
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
-  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
-  --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
-  --link: #86b6ef;
-}
-* { box-sizing: border-box; }
+The colour, type and theme tokens are the studio-ui design system's (serve/static/ui.css,
+shared with the Studio and Creative Forge), so the dashboard reads as the same product;
+the rules below them are the dashboard's own charts and tables.
+"""
+
+from importlib import resources
+
+_UI = resources.files("studio_pulse.serve").joinpath("static", "ui.css").read_text(encoding="utf-8")
+_TOKENS = (
+    _UI[_UI.index(":root {") : _UI.index("/* ---- base ---- */")]
+    + ":root { --banner-bg: var(--warn-soft); --banner-ink: var(--text); --banner-border: var(--warn); }\n"
+)
+
+CSS = (
+    _TOKENS
+    + r"""* { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--page); color: var(--ink);
-  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 14px/1.45 var(--font);
 }
 a { color: var(--link); }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 48px; }
@@ -133,11 +120,12 @@ footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
 }
 @media print { button.theme, #tip { display: none; } }
 """
+)
 
 JS = r"""
 (function () {
   var root = document.documentElement;
-  try { var saved = localStorage.getItem('pulse-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  try { var saved = localStorage.getItem('ui-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
   var btn = document.querySelector('button.theme');
   function label() {
     var dark = root.getAttribute('data-theme') === 'dark' ||
@@ -150,7 +138,7 @@ JS = r"""
     btn.addEventListener('click', function () {
       var next = label() ? 'light' : 'dark';
       root.setAttribute('data-theme', next);
-      try { localStorage.setItem('pulse-theme', next); } catch (e) {}
+      try { localStorage.setItem('ui-theme', next); } catch (e) {}
       label();
     });
   }
