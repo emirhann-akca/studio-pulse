@@ -1,42 +1,40 @@
 {% extends "base.html" %}
 {% block title %}{{ t.insights }}{% endblock %}
+{% block head %}{% include "_brain_style.html" %}{% endblock %}
 {% block body %}
-{% include "_brain_style.html" %}
-<div class="brain-head">
-  <h2>{{ t.insights }}</h2>
-  {% if run %}<span class="note">{% if live %}{{ t.live }}{% else %}{{ t.stored }} {{ run.created_at }}{% endif %}{% if run.as_of %} · {{ t.as_of }} {{ run.as_of }}{% endif %}{% if tested %} · {{ tested }} {{ t.tested }}{% endif %}</span>{% endif %}
-  <a class="lang" href="/insights?lang={{ 'en' if lang == 'tr' else 'tr' }}" hreflang="{{ 'en' if lang == 'tr' else 'tr' }}">{{ t.lang_other }}</a>
-</div>
-<p class="note">{{ t.how }}</p>
-{% if blocked %}<div class="banner" role="note">{{ t.blocked }}</div>{% endif %}
-{% if not cards %}<p class="note">{{ t.none }}</p>{% endif %}
-<ol class="insights">
+<header class="page-head">
+  <h1>{{ t.insights }}</h1>
+  {% if run %}<span class="badge outline">{% if live %}{{ t.live }}{% else %}{{ t.stored }} {{ run.created_at }}{% endif %}</span>{% endif %}
+  {% if run and run.as_of %}<span class="muted">{{ t.as_of }} {{ run.as_of }}{% if tested %} · {{ tested }} {{ t.tested }}{% endif %}</span>{% endif %}
+  <p class="sub">{{ t.how }}</p>
+</header>
+{% if blocked %}<div class="callout warn" role="note"><span class="ic">{{ icon('warn')|safe }}</span><div>{{ t.blocked }}</div></div>{% endif %}
+{% if not cards %}<section class="card"><div class="empty"><div class="ic">{{ icon('insights')|safe }}</div><p>{{ t.none }}</p></div></section>{% endif %}
 {% for c in cards %}
-<li class="card insight {{ c.severity }}" id="{{ c.id }}">
-  <div class="ins-top"><span class="pill {{ c.severity }}">{{ c.sev_label }}</span><span>#{{ c.rank }}</span><code>{{ c.kind }}</code>{% if c.app %}<span>{{ c.app }}</span>{% endif %}{% if c.q_text %}<span>{{ c.q_text }}</span>{% endif %}</div>
-  <h3>{{ c.title }}</h3>
-  <p>{{ c.body }}</p>
+<section class="card insight {{ c.severity }}" id="{{ c.id }}">
+  <div class="ins-top"><span class="badge {{ 'bad' if c.severity == 'critical' else ('warn' if c.severity == 'warning' else 'info') }}">{{ c.sev_label }}</span><span class="muted">#{{ c.rank }}</span><code class="muted">{{ c.kind }}</code>{% if c.app %}<span class="badge outline">{{ c.app }}</span>{% endif %}{% if c.q_text %}<span class="muted">{{ c.q_text }}</span>{% endif %}</div>
+  <h2 class="ins-title">{{ c.title }}</h2>
+  <p class="soft" style="margin:4px 0 8px">{{ c.body }}</p>
   {% if c.caveats %}<ul class="caveats">{% for x in c.caveats %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
-  {% if c.actions %}<div class="recs"><strong>{{ t.recommend }}</strong><ul>{% for a, ids in c.actions %}<li>{{ a }} <span class="cite">[{{ ids|join(', ') }}]</span></li>{% endfor %}</ul></div>{% endif %}
+  {% if c.actions %}<div class="recs"><div class="lbl">{{ t.recommend }}</div><ul>{% for a, ids in c.actions %}<li>{{ a }} <span class="cite">[{{ ids|join(', ') }}]</span></li>{% endfor %}</ul></div>{% endif %}
   <details class="ev-wrap"><summary>{{ t.evidence }} ({{ c.evidence|length }})</summary>
   {% for e in c.evidence %}
     <div class="ev" id="ev-{{ e.id }}">
-      <dl class="kv">
-        <dt>id</dt><dd><code>{{ e.id }}</code></dd>
-        <dt>{{ t.method }}</dt><dd>{{ e.method }}</dd>
-        {% if e.definition %}<dt>{{ t.definition }}</dt><dd>{{ e.definition }}{% if e.aggregation %} ({{ e.aggregation }}){% endif %}</dd>{% endif %}
-        {% if e.n_text %}<dt>n</dt><dd>{{ e.n_text }}</dd>{% endif %}
-        {% if e.ci_text %}<dt>{{ t.interval }}</dt><dd>{{ e.ci_text }}</dd>{% endif %}
-        {% if e.p_text %}<dt>p / q</dt><dd>{{ e.p_text }}</dd>{% endif %}
-      </dl>
+      <table class="t kv"><tbody>
+        <tr><td>id</td><td><code>{{ e.id }}</code></td></tr>
+        <tr><td>{{ t.method }}</td><td>{{ e.method }}</td></tr>
+        {% if e.definition %}<tr><td>{{ t.definition }}</td><td>{{ e.definition }}{% if e.aggregation %} ({{ e.aggregation }}){% endif %}</td></tr>{% endif %}
+        {% if e.n_text %}<tr><td>n</td><td>{{ e.n_text }}</td></tr>{% endif %}
+        {% if e.ci_text %}<tr><td>{{ t.interval }}</td><td>{{ e.ci_text }}</td></tr>{% endif %}
+        {% if e.p_text %}<tr><td>p / q</td><td>{{ e.p_text }}</td></tr>{% endif %}
+      </tbody></table>
       {% if e.sql %}<details><summary>{{ t.sql }}{% if e.params %} · {{ t.params }}: {{ e.params|join(', ') }}{% endif %}</summary><pre><code>{{ e.sql }}</code></pre></details>{% endif %}
-      {% if e.rows %}<div class="tbl-wrap"><table><thead><tr>{% for col in e.columns %}<th class="l">{{ col }}</th>{% endfor %}</tr></thead><tbody>
-      {% for r in e.rows %}<tr>{% for v in r %}<td class="l">{{ v }}</td>{% endfor %}</tr>{% endfor %}
-      </tbody></table></div>{% if e.more %}<p class="note">+{{ e.more }} {{ t.rows }}</p>{% endif %}{% endif %}
+      {% if e.rows %}<div class="table-scroll"><table class="t"><thead><tr>{% for col in e.columns %}<th>{{ col }}</th>{% endfor %}</tr></thead><tbody>
+      {% for r in e.rows %}<tr>{% for v in r %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}
+      </tbody></table></div>{% if e.more %}<p class="muted">+{{ e.more }} {{ t.rows }}</p>{% endif %}{% endif %}
     </div>
   {% endfor %}
   </details>
-</li>
+</section>
 {% endfor %}
-</ol>
 {% endblock %}

@@ -1,19 +1,18 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Pazar Radarı' if lang == 'tr' else 'Market Radar' }}{% endblock %}
 {% block body %}
+<p style="margin:0 0 10px"><a href="/studio/market">← {{ s.radar }}</a></p>
+<header class="page-head">
+  <h1>{{ s.r_full }}</h1>{% if facts %}<span class="badge outline">{{ facts.as_of }}</span>{% endif %}
+  <p class="sub">{% if lang == 'tr' %}Yerel sayfa: mağaza verisi bu bilgisayarda kalır, panoya ve herkese açık demoya yazılmaz.{% else %}Local page: store data stays on this computer; it is not written to the dashboard or the public demo.{% endif %}</p>
+</header>
+{% if error %}<div class="callout bad" role="alert">{{ error }}</div>{% endif %}
 <section class="card">
-  <h2>{{ 'Pazar Radarı' if lang == 'tr' else 'Market Radar' }}{% if facts %} · {{ facts.as_of }}{% endif %}</h2>
-  <p class="note">
-    <a href="/radar?lang=tr">Türkçe</a> · <a href="/radar?lang=en">English</a> ·
-    {% if lang == 'tr' %}Yerel sayfa: mağaza verisi bu bilgisayarda kalır, panoya ve herkese açık demoya yazılmaz.
-    {% else %}Local page: store data stays on this computer; it is not written to the dashboard or the public demo.{% endif %}
-  </p>
-  {% if error %}<p class="note" role="alert">{{ error }}</p>{% endif %}
   {% if not facts %}
-    <p>{{ 'Henüz radar koşumu yok: pulse radar run' if lang == 'tr' else 'No radar run yet: pulse radar run' }}</p>
+    <div class="empty"><div class="ic">{{ icon('radar')|safe }}</div><p>{{ 'Henüz radar koşumu yok: pulse radar run' if lang == 'tr' else 'No radar run yet: pulse radar run' }}</p></div>
   {% else %}
-  <table class="data">
-    <caption>{{ 'Kopuş tablosu (kural puanı M)' if lang == 'tr' else 'Breakout table (rule score M)' }}</caption>
+  <h2>{{ 'Kopuş tablosu (kural puanı M)' if lang == 'tr' else 'Breakout table (rule score M)' }}</h2>
+  <div class="table-scroll"><table class="t">
     <thead><tr>
       <th>{{ 'Sınıf' if lang == 'tr' else 'Class' }}</th><th>{{ 'Oyun' if lang == 'tr' else 'Game' }}</th>
       <th>M</th><th>{{ 'Liste' if lang == 'tr' else 'Charts' }}</th><th>{{ 'Yaş (gün)' if lang == 'tr' else 'Age (days)' }}</th>
@@ -23,7 +22,7 @@
     {% for it in facts['items'] %}
       {% set prim = (it.profile.claims | selectattr('dimension', 'equalto', 'mechanic_primary') | list) %}
       <tr>
-        <td><span class="pill {{ 'ok' if it['class'] == 'breakout' else 'warn' }}">{{ classes[it['class']] }}</span></td>
+        <td><span class="badge {{ 'good' if it['class'] == 'breakout' else 'warn' }}">{{ classes[it['class']] }}</span></td>
         <td>{{ it.name }}<br><small>{{ it.developer }}</small></td>
         <td>{{ '%.2f' % it.momentum.value }} <small>({{ labels[it.momentum.basis] }})</small></td>
         <td>{% for r in it.ranks[:4] %}{{ countries.get(r.country, r.country) }} {{ lists.get(r.list, r.list) }} #{{ r.rank }}{% if not loop.last %}<br>{% endif %}{% endfor %} <small>({{ labels['observed'] }})</small></td>
@@ -36,17 +35,17 @@
       <tr><td colspan="8">{{ 'Bugün aday yok.' if lang == 'tr' else 'No candidates today.' }}</td></tr>
     {% endfor %}
     </tbody>
-  </table>
+  </table></div>
   {% if facts.trends.rows %}
-  <h3>{{ 'Mekanik payları' if lang == 'tr' else 'Mechanic shares' }} ({{ facts.trends.week }})</h3>
-  <table class="data">
+  <h2 style="margin-top:18px">{{ 'Mekanik payları' if lang == 'tr' else 'Mechanic shares' }} ({{ facts.trends.week }})</h2>
+  <div class="table-scroll"><table class="t">
     <thead><tr><th>{{ 'Ülke' if lang == 'tr' else 'Country' }}</th><th>{{ 'Mekanik' if lang == 'tr' else 'Mechanic' }}</th><th>%</th><th>z</th><th>{{ 'Oyun' if lang == 'tr' else 'Games' }}</th><th>Trend</th></tr></thead>
     <tbody>
     {% for r in facts.trends.rows if r.n_apps > 0 %}
       <tr><td>{{ countries.get(r.country, r.country) }}</td><td>{{ r.mechanic }}</td><td>{{ '%.1f' % (r.share * 100) }} <small>({{ labels['observed'] }})</small></td><td>{{ r.z if r.z is not none else '-' }}</td><td>{{ r.n_apps }}</td><td>{{ 'TREND' if r.is_trend else '' }}</td></tr>
     {% endfor %}
     </tbody>
-  </table>
+  </table></div>
   {% endif %}
   {% endif %}
 </section>

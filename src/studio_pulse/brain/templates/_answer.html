@@ -1,12 +1,12 @@
 {% if answer %}
 <div class="card answer">
-  <div class="ins-top"><span class="route {{ answer.route }}">{{ t['route_' ~ answer.route] }}</span>{% if answer.matched %}<code>{{ answer.matched }}</code>{% endif %}{% if answer.missing %}<span>{{ answer.missing }}</span>{% endif %}</div>
-  <p><em>{{ answer.question }}</em></p>
-  <p>{% if answer.verified %}{{ answer.text }}{% else %}{{ t.unverified }}{% endif %}</p>
+  <div class="ins-top"><span class="badge {{ {'verified_query': 'good', 'catalog': 'info', 'sql': 'warn', 'refused': 'bad'}.get(answer.route, 'outline') }}">{{ t['route_' ~ answer.route] }}</span>{% if answer.matched %}<code class="muted">{{ answer.matched }}</code>{% endif %}{% if answer.missing %}<span class="muted">{{ answer.missing }}</span>{% endif %}</div>
+  <p class="muted" style="margin:8px 0 4px"><em>{{ answer.question }}</em></p>
+  <p style="margin:0 0 8px;font-size:14px">{% if answer.verified %}{{ answer.text }}{% else %}{{ t.unverified }}{% endif %}</p>
   {% if answer.sql %}<details{% if answer.route == 'sql' %} open{% endif %}><summary>{{ t.sql }}{% if answer.params %} · {{ t.params }}: {{ answer.params|join(', ') }}{% endif %}</summary><pre><code>{{ answer.sql }}</code></pre></details>{% endif %}
-  {% if answer.rows %}<div class="tbl-wrap"><table><thead><tr>{% for col in answer.columns %}<th class="l">{{ col }}</th>{% endfor %}</tr></thead><tbody>
-  {% for r in answer.cells() %}<tr>{% for v in r %}<td class="l">{{ v }}</td>{% endfor %}</tr>{% endfor %}
-  </tbody></table></div>{% if answer.truncated %}<p class="note">{{ t.truncated }}</p>{% endif %}{% endif %}
-  {% if answer.evidence %}<p class="note">{{ t.evidence }}: <code>{{ answer.evidence.id }}</code> · {{ answer.evidence.method }}</p>{% endif %}
+  {% if answer.rows %}<div class="table-scroll"><table class="t"><thead><tr>{% for col in answer.columns %}<th>{{ col }}</th>{% endfor %}</tr></thead><tbody>
+  {% for r in answer.cells() %}<tr>{% for v in r %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}
+  </tbody></table></div>{% if answer.truncated %}<p class="muted">{{ t.truncated }}</p>{% endif %}{% endif %}
+  {% if answer.evidence %}<p class="muted" style="font-size:12px;margin:8px 0 0">{{ t.evidence }}: <code>{{ answer.evidence.id }}</code> · {{ answer.evidence.method }}</p>{% endif %}
 </div>
 {% endif %}

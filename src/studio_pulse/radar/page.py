@@ -26,10 +26,11 @@ def latest_facts(out_dir: Path) -> dict[str, Any] | None:
 
 def register(app: FastAPI, cfg: Config, templates: Any, context: Any) -> None:
     @app.get("/radar", response_class=HTMLResponse)
-    def radar_page(request: Request, lang: str = "tr"):
+    def radar_page(request: Request, lang: str | None = None):
+        from ..serve.ui import request_lang
         from .settings import from_config
 
-        lang = lang if lang in ("tr", "en") else "tr"
+        lang = request_lang(request, lang)
         try:
             out_dir = from_config(cfg).out_dir
             facts = latest_facts(out_dir)
@@ -42,6 +43,7 @@ def register(app: FastAPI, cfg: Config, templates: Any, context: Any) -> None:
             context(
                 request,
                 "radar",
+                chosen="@market",
                 source="files",
                 facts=facts,
                 error=error,

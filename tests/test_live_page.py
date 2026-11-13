@@ -50,12 +50,16 @@ def demo_cfg(demo_build, tmp_path_factory):
 
 
 def test_live_page_shows_apps_badges_breakdown_and_new_app_banner(demo_cfg):
-    client = TestClient(create_app(demo_cfg, token="t", live_fetcher=lambda: SNAP), base_url=HOST)
+    client = TestClient(
+        create_app(demo_cfg, token="t", live_fetcher=lambda: SNAP),
+        base_url=HOST,
+        cookies={"ui-lang": "en"},
+    )
     html = client.get("/live").text
-    assert "Canlı / Live" in html and 'aria-current="page"' in html
+    assert "Live" in html and 'href="/live" aria-current="page"' in html
     assert 'id="live-total">7<' in html
     assert re.search(r'data-app="demo.pebblepop">5<', html)
-    assert 'class="badge testing">testing' in html and 'class="badge new">new' in html
+    assert 'class="badge warn">testing' in html and 'class="badge info">new' in html
     assert "New app registered: Lantern Leap" in html
     assert "google_play" in html and ">TR<" in html and "debug" in html
     assert '<svg class="spark"' in html and "polyline" in html
@@ -71,7 +75,9 @@ def test_live_page_says_when_the_collector_is_down(demo_cfg):
     def down():
         raise ConnectionError("refused")
 
-    client = TestClient(create_app(demo_cfg, token="t", live_fetcher=down), base_url=HOST)
+    client = TestClient(
+        create_app(demo_cfg, token="t", live_fetcher=down), base_url=HOST, cookies={"ui-lang": "en"}
+    )
     r = client.get("/live")
     assert (
         r.status_code == 200 and "Collector not reachable" in r.text and "pulse collect" in r.text
@@ -79,7 +85,11 @@ def test_live_page_says_when_the_collector_is_down(demo_cfg):
 
 
 def test_sdk_app_page_has_funnel_heatmap_and_settings(demo_cfg):
-    client = TestClient(create_app(demo_cfg, token="t", live_fetcher=lambda: SNAP), base_url=HOST)
+    client = TestClient(
+        create_app(demo_cfg, token="t", live_fetcher=lambda: SNAP),
+        base_url=HOST,
+        cookies={"ui-lang": "en"},
+    )
     r = client.get("/live/apps/pebble_pop")
     assert r.status_code == 200
     html = r.text
@@ -107,7 +117,7 @@ def test_live_page_against_a_real_collector_and_simulator(demo_cfg, tmp_path):
         p = tmp_path / "pulse.yaml"
         p.write_text(yaml.safe_dump(data), encoding="utf-8")
         cfg = load_config(p)
-        client = TestClient(create_app(cfg, token="t"), base_url=HOST)
+        client = TestClient(create_app(cfg, token="t"), base_url=HOST, cookies={"ui-lang": "en"})
         html = client.get("/live").text
     total = int(re.search(r'id="live-total">(\d+)<', html).group(1))
     assert total == sum(rep.installs.values())

@@ -28,9 +28,9 @@ def cfg(brain_demo, tmp_path):
 
 @pytest.fixture()
 def client(cfg):
-    return TestClient(
-        create_app(cfg, token=TOKEN, launcher=lambda c: 0), base_url="http://127.0.0.1"
-    )
+    c = TestClient(create_app(cfg, token=TOKEN, launcher=lambda c: 0), base_url="http://127.0.0.1")
+    c.cookies.set("ui-lang", "en")  # these tests read the English texts
+    return c
 
 
 def test_insights_page_shows_cards_with_evidence(client, no_network):
@@ -74,7 +74,7 @@ def test_stale_data_shows_the_data_first_banner(cfg, tmp_path):
     c = TestClient(
         create_app(stale, token=TOKEN, launcher=lambda c: 0), base_url="http://127.0.0.1"
     )
-    r = c.get("/insights")
+    r = c.get("/insights", params={"lang": "en"})
     assert "Data first:" in r.text and "explanations are withheld" in r.text
     assert "difficulty spike" not in r.text
 
@@ -82,7 +82,11 @@ def test_stale_data_shows_the_data_first_banner(cfg, tmp_path):
 def test_ask_get_answers_with_route_sql_and_table(client, no_network):
     r = client.get("/ask", params={"q": "Which levels are the hardest in quartz_merge?"})
     assert r.status_code == 200
-    assert "Verified query" in r.text and "fct_level_funnel" in r.text and "<table>" in r.text
+    assert (
+        "Verified query" in r.text
+        and "fct_level_funnel" in r.text
+        and '<table class="t">' in r.text
+    )
     r = client.get("/ask", params={"q": "quartz_merge en zor seviyeler hangileri?", "lang": "tr"})
     assert "Doğrulanmış sorgu" in r.text and "%" in r.text
 

@@ -135,6 +135,9 @@ def register(
 
     @app.get("/live/apps/{app_id}", response_class=HTMLResponse)
     def sdk_app(request: Request, app_id: str, level: int | None = None):
+        from ..serve.ui import request_lang
+
+        tr = request_lang(request) == "tr"
         con, source = open_db(cfg)
         try:
             funnel = rows(
@@ -174,28 +177,57 @@ def register(
             cols = [f"{i / 10:.1f}" for i in range(10)]
         heat_html = (
             charts.heatmap(
-                f"Deaths on level {chosen}",
+                f"{chosen}. bölümde ölümler" if tr else f"Deaths on level {chosen}",
                 [f"{(9 - r) / 10:.1f}" for r in range(10)],
                 cols,
                 [[v for v in row] for row in grid],
                 fmt=lambda v: "" if v is None else f"{v:.0f}",
-                subtitle=f"level_fail positions on a 10 x 10 grid ({space} coordinates); rows are y, columns x",
+                subtitle=(
+                    f"level_fail konumları, 10 x 10 ızgara ({space} koordinat); satırlar y, sütunlar x"
+                    if tr
+                    else f"level_fail positions on a 10 x 10 grid ({space} coordinates); rows are y, columns x"
+                ),
                 corner="y \\ x",
             )
             if chosen is not None
-            else charts.empty_chart("Deaths", subtitle="No level_fail positions yet")
+            else charts.empty_chart(
+                "Ölümler" if tr else "Deaths",
+                subtitle="Henüz level_fail konumu yok" if tr else "No level_fail positions yet",
+            )
         )
         fail_chart = charts.bar_chart(
-            "Fail rate by level",
+            "Bölümlere göre başarısızlık oranı" if tr else "Fail rate by level",
             [str(r["level"]) for r in funnel],
-            [charts.Series("fail rate", [r["fail_rate"] for r in funnel])],
+            [
+                charts.Series(
+                    "başarısızlık" if tr else "fail rate", [r["fail_rate"] for r in funnel]
+                )
+            ],
             fmt=charts.fmt_pct,
-            subtitle="fails / (completes + fails); spikes are the hard levels",
-            x_name="Level",
+            subtitle=(
+                "başarısız / (biten + başarısız); sıçramalar zor bölümler"
+                if tr
+                else "fails / (completes + fails); spikes are the hard levels"
+            ),
+            x_name="Bölüm" if tr else "Level",
             max_labels=20,
         )
         table = charts.data_table(
             [
+                "Bölüm",
+                "Başlama",
+                "Bitirme",
+                "Başarısız",
+                "Çıkış",
+                "Başarısızlık",
+                "Kazanmak için deneme",
+                "Çıkarılan çıkış",
+                "Ulaşan oyuncu",
+                "Burada bırakan",
+                "Bırakma oranı",
+            ]
+            if tr
+            else [
                 "Level",
                 "Starts",
                 "Completes",

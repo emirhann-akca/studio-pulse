@@ -50,7 +50,7 @@ def test_studio_opens_on_an_app_and_lists_every_app(client, studio_cfg):
     assert r.status_code == 307 and r.headers["location"].startswith("/studio/")
     page = client.get(r.headers["location"]).text
     for a in studio_cfg.apps:
-        assert f'href="/studio/{a.id}?lang=tr"' in page, a.id
+        assert f'href="/studio/{a.id}"' in page, a.id
     assert "Uygulamalar" in page and "Yapay zekâ" in page and "Pazar radarı" in page
 
 
@@ -61,7 +61,8 @@ def test_a_new_sdk_game_appears_at_the_bottom_with_its_live_players(client):
     new_at = side.index("Yeni gelenler")
     assert side.index("Brand New") > new_at  # under "new arrivals", not among the apps
     assert re.search(
-        r"Brand New</span>\s*<span class=\"now\"[^>]*><span class=\"dot\"[^>]*></span> 3<", side
+        r"Brand New</span>\s*<span class=\"nav-m\"[^>]*><span class=\"dot live\"[^>]*></span> 3<",
+        side,
     )
     assert client.get("/studio/demo_brandnew").status_code == 200  # opens before any refresh
     frag = client.get("/studio/fragments/sidebar", params={"app": "pebble_pop"}).text
@@ -70,10 +71,10 @@ def test_a_new_sdk_game_appears_at_the_bottom_with_its_live_players(client):
 
 def test_app_page_shows_numbers_live_players_levels_and_ai(client):
     page = client.get("/studio/pebble_pop").text
-    assert "Pebble Pop" in page and "Günlük aktif (7 gün ort.)" in page and "D1 elde tutma" in page
-    assert re.search(r'class="dot"[^>]*></span> 5 şu an', page)  # 5 active in the snapshot
+    assert "Pebble Pop" in page and "Günlük aktif (ort.)" in page and "D1 elde tutma" in page
+    assert re.search(r'class="dot live"[^>]*></span> 5 şu an', page)  # 5 active in the snapshot
     assert "En zor bölümler" in page and "Öneriler" in page
-    assert '<svg class="dau"' in page  # the 30-day DAU chart
+    assert '<svg class="area-chart"' in page  # DAU for the period, the previous one dashed
 
 
 def test_a_ga4_app_shows_no_live_count(client, studio_cfg):
@@ -129,8 +130,9 @@ def test_an_sdk_only_app_without_data_is_awaiting_its_sdk(demo_build, tmp_path):
     con.close()
     c = TestClient(create_app(cfg, token="t", live_fetcher=lambda: SNAP), base_url=HOST)
     page = c.get("/studio/next_game").text
-    assert 'class="st waiting">bekliyor<' in page and "SDK bekleniyor: hiçbir derleme" in page
-    assert re.search(r"Mossy Match</span>\s*<span class=\"st ga4\"[^>]*>GA4<", page)
+    assert re.search(r'class="badge dashed"[^>]*>bekliyor<', page)
+    assert "SDK bekleniyor: hiçbir derleme" in page
+    assert re.search(r"Mossy Match</span>\s*<span class=\"badge outline\"[^>]*>GA4<", page)
 
 
 FACTS = {
@@ -182,7 +184,7 @@ def test_market_view_sits_inside_the_studio(studio_cfg, tmp_path):
     assert "100,000+" in page and "MAĞAZA VERİSİ" in page
     assert "LLM, alıntıyla doğrulandı" in page and "anahtar kelime tahmini" in page
     assert "mechanic_shown=word" in page
-    assert 'aria-current="page">Pazar radarı' in page  # the sidebar shows where you are
+    assert 'href="/studio/market" aria-current="page"' in page  # the sidebar shows where you are
     en = c.get("/studio/market", params={"lang": "en"}).text
     assert "Rising today" in en and "Word Tiles: Worträtsel leads today." in en
 

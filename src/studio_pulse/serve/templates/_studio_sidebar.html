@@ -1,33 +1,32 @@
 {% set palette = ['#3a2c8c', '#0e7490', '#b45309', '#be185d', '#047857', '#6d28d9', '#1d4ed8', '#b91c1c'] %}
-<h2>{{ t.apps }}</h2>
-{% for a in apps %}
-  <a class="app-link" href="{{ nav.app(a.id) }}"{% if a.id == chosen %} aria-current="page"{% endif %}>
-    <span class="ic" style="background:{{ palette[loop.index0 % palette|length] }}" aria-hidden="true">{{ a.name[:1]|upper }}</span>
-    <span class="nm">{{ a.name }}</span>
-    {% if a.now %}<span class="now" title="{{ t.players_now }}"><span class="dot" aria-hidden="true"></span> {{ a.now }}</span>{% endif %}
-    <span class="st {{ a.status }}" title="{{ t.waiting_long if a.status == 'waiting' else t[a.status] }}">{{ t[a.status] }}</span>
+{% set badge = {'live': 'good', 'testing': 'warn', 'new': 'info', 'ga4': 'outline', 'waiting': 'dashed'} %}
+{% macro app_link(a, color) %}
+  <a class="nav-item" href="{{ nav.app(a.id) }}"{% if a.id == chosen %} aria-current="page"{% endif %}>
+    <span class="app-ic" style="background:{{ color }}" aria-hidden="true">{{ a.name[:1]|upper }}</span>
+    <span class="nav-l">{{ a.name }}</span>
+    {% if a.now %}<span class="nav-m" data-tip="{{ s.players_now }}"><span class="dot live" aria-hidden="true"></span> {{ a.now }}</span>{% endif %}
+    <span class="badge {{ badge.get(a.status, 'outline') }}" data-tip="{{ s['app_' ~ a.status ~ '_long'] }}">{{ s['app_' ~ a.status] }}</span>
   </a>
-{% endfor %}
+{% endmacro %}
+<div class="nav-h">{{ s.apps }}</div>
+{% for a in apps %}{{ app_link(a, palette[loop.index0 % palette|length]) }}{% endfor %}
 {% if arrived %}
-<h2>{{ t.new_section }}</h2>
-{% for a in arrived %}
-  <a class="app-link" href="{{ nav.app(a.id) }}"{% if a.id == chosen %} aria-current="page"{% endif %}>
-    <span class="ic" style="background:{{ palette[(loop.index0 + 3) % palette|length] }}" aria-hidden="true">{{ a.name[:1]|upper }}</span>
-    <span class="nm">{{ a.name }}</span>
-    {% if a.now %}<span class="now" title="{{ t.players_now }}"><span class="dot" aria-hidden="true"></span> {{ a.now }}</span>{% endif %}
-    <span class="st {{ a.status }}" title="{{ t.waiting_long if a.status == 'waiting' else t[a.status] }}">{{ t[a.status] }}</span>
-  </a>
-{% endfor %}
+<div class="nav-h">{{ s.new_section }}</div>
+{% for a in arrived %}{{ app_link(a, palette[(loop.index0 + 3) % palette|length]) }}{% endfor %}
 {% endif %}
-<h2>{{ t.tools }}</h2>
-<a class="tool-link" href="{{ nav.market }}"{% if chosen == '__market__' %} aria-current="page"{% endif %}>{{ t.radar }}<small>US · TR · GB · DE</small></a>
-{% if forge_url %}<a class="tool-link" href="{{ forge_url }}" rel="noopener">{{ t.ads }}</a>{% else %}<span class="tool-link" title="{{ t.ads_off }}">{{ t.ads }}<small>{{ t.ads_off }}</small></span>{% endif %}
+<div class="nav-h">{{ s.tools }}</div>
+<a class="nav-item" href="{{ nav.market }}"{% if chosen == '@market' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('radar')|safe }}</span><span class="nav-l">{{ s.radar }}<small>US · TR · GB · DE</small></span></a>
+{% if forge_url %}<a class="nav-item" href="{{ forge_url }}" rel="noopener"><span class="nav-ic">{{ icon('ads')|safe }}</span><span class="nav-l">{{ s.ads }}<small>{{ s.ads_sub }}</small></span><span class="nav-ic">{{ icon('external')|safe }}</span></a>
+{% else %}<span class="nav-item" data-tip="{{ s.ads_off }}"><span class="nav-ic">{{ icon('ads')|safe }}</span><span class="nav-l">{{ s.ads }}<small>{{ s.ads_sub }}</small></span><span class="dot off" aria-hidden="true"></span></span>{% endif %}
 {% if static %}
-<a class="tool-link" href="{{ nav.dash }}index.html">{{ t.static_dash }}</a>
-<a class="tool-link" href="{{ nav.dash }}ua.html">{{ t.static_ua }}</a>
-<a class="tool-link" href="{{ nav.dash }}experiments.html">{{ t.static_exp }}</a>
+<a class="nav-item" href="{{ nav.dash }}index.html"><span class="nav-ic">{{ icon('dashboard')|safe }}</span><span class="nav-l">{{ s.static_dash }}</span></a>
+<a class="nav-item" href="{{ nav.dash }}ua.html"><span class="nav-ic">{{ icon('ads')|safe }}</span><span class="nav-l">{{ s.static_ua }}</span></a>
+<a class="nav-item" href="{{ nav.dash }}experiments.html"><span class="nav-ic">{{ icon('levels')|safe }}</span><span class="nav-l">{{ s.static_exp }}</span></a>
 {% else %}
-<a class="tool-link" href="/live">Canlı / Live</a>
-<a class="tool-link" href="/health">{{ t.health }}</a>
-<a class="tool-link" href="/alerts">{{ t.alerts }}</a>
+<a class="nav-item" href="/live"{% if chosen == '@live' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('live')|safe }}</span><span class="nav-l">{{ s.live_nav }}</span></a>
+<a class="nav-item" href="/insights"{% if chosen == '@insights' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('insights')|safe }}</span><span class="nav-l">{{ s.insights }}</span></a>
+<a class="nav-item" href="/ask"{% if chosen == '@ask' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('ask')|safe }}</span><span class="nav-l">{{ s.ask }}</span></a>
+<a class="nav-item" href="/alerts"{% if chosen == '@alerts' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('alerts')|safe }}</span><span class="nav-l">{{ s.alerts }}</span>{% if side_alerts %}<span class="badge warn" data-tip="{{ s.alerts_last }}">{{ side_alerts }}</span>{% endif %}</a>
+<a class="nav-item" href="/health"{% if chosen == '@health' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('health')|safe }}</span><span class="nav-l">{{ s.health }}</span>{% if side_failing %}<span class="badge bad" data-tip="{{ s.failing_checks }}">{{ side_failing }}</span>{% endif %}</a>
+{% if dashboard_ready %}<a class="nav-item" href="/dashboard/index.html"><span class="nav-ic">{{ icon('dashboard')|safe }}</span><span class="nav-l">{{ s.dashboard }}</span></a>{% endif %}
 {% endif %}

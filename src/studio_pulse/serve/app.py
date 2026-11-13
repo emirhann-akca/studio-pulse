@@ -28,13 +28,14 @@ from urllib.parse import urlsplit
 
 import duckdb
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .. import __version__, checks, runstate, schedule, warehouse
 from ..config import Config
-from ..dashboard.assets import CSS, JS
+from ..dashboard.assets import CHART_CSS, CSS, JS
+from . import ui
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
@@ -133,13 +134,24 @@ def create_app(
     hosts = LOCAL_HOSTS | {h.lower().strip("[]") for h in (allowed_hosts or set())}
     app = FastAPI(title="studio-pulse", docs_url=None, redoc_url=None, openapi_url=None)
     templates = Jinja2Templates(directory=str(_pkg_dir("templates")))
-    templates.env.globals.update(version=__version__, css=CSS, js=JS, token=token, age=_age)
+    templates.env.globals.update(
+        version=__version__, css=CSS, js=JS, token=token, age=_age,
+        ui_css=ui.UI_CSS, ui_js=ui.UI_JS, icon=ui.icon, chart_css=CHART_CSS,
+    )  # fmt: skip
     app.mount("/static", StaticFiles(directory=str(_pkg_dir("static"))), name="static")
     app.mount(
         "/dashboard",
         StaticFiles(directory=str(cfg.site_dir), html=True, check_dir=False),
         name="dashboard",
     )
+
+    @app.middleware("http")
+    async def remember_lang(request: Request, call_next):
+        resp = await call_next(request)
+        q = request.query_params.get("lang")
+        if q in ui.LANGS and request.cookies.get(ui.COOKIE) != q:
+            resp.set_cookie(ui.COOKIE, q, max_age=365 * 86400, samesite="lax", httponly=True)
+        return resp
 
     @app.middleware("http")
     async def local_only(request: Request, call_next):
@@ -152,16 +164,38 @@ def create_app(
         lock = runstate.read_json(Path(cfg.state_dir) / runstate.LOCK_NAME)
         return {"hb": hb, "lock": lock, "running": bool(hb and hb.get("status") == "running")}
 
-    def context(request: Request, page: str, **extra: Any) -> dict[str, Any]:
-        return {
+    def context(request: Request | None, page: str, **extra: Any) -> dict[str, Any]:
+        """Everything a page in the shell needs: its data, the language, the sidebar."""
+        lang = ui.request_lang(request, extra.pop("lang", None))
+        other = "en" if lang == "tr" else "tr"
+        base: dict[str, Any] = {
             "request": request,
             "page": page,
             "title": cfg.title,
             "config_path": str(cfg.path),
             "dashboard_ready": (cfg.site_dir / "index.html").exists(),
+            "lang": lang,
+            "s": ui.S[lang],
+            "age": lambda iso: ui.age(iso, lang),
+            "static": False,
+            "chosen": "@" + page,
+            "source": None,
+            "nav": {
+                "app": lambda a: f"/studio/{a}",
+                "market": "/studio/market",
+                "other_lang": f"?lang={other}",
+                "dash": "/dashboard/",
+            },
             **state(),
-            **extra,
         }
+        side = getattr(app.state, "studio_side", None)
+        if side is not None and "apps" not in extra and page != "fragment":
+            base.update(side(lang, "@" + page))
+        out = {**base, **extra}
+        out["commands"] = ui.commands(
+            out["s"], [*out.get("apps", []), *out.get("arrived", [])], out["nav"]
+        )
+        return out
 
     def load(con: duckdb.DuckDBPyConnection | None) -> dict[str, Any]:
         results = checks.latest_results(con) if con is not None else []
@@ -191,17 +225,9 @@ def create_app(
     def healthz() -> dict[str, Any]:
         return {"ok": True, "version": __version__}
 
-    @app.get("/", response_class=HTMLResponse)
-    def home(request: Request):
-        con, source = open_db(cfg)
-        try:
-            data = load(con)
-        finally:
-            if con is not None:
-                con.close()
-        return templates.TemplateResponse(
-            request, "home.html", context(request, "home", source=source, **data)
-        )
+    @app.get("/")
+    def home() -> RedirectResponse:
+        return RedirectResponse("/studio", status_code=307)
 
     @app.get("/health", response_class=HTMLResponse)
     def health(request: Request):
@@ -260,15 +286,13 @@ def create_app(
             return PlainTextResponse("cross-origin request refused", 403)
         st = state()
         lock = st["lock"]
+        s = ui.S[ui.request_lang(request)]
         if lock and not runstate.RunLock(Path(cfg.state_dir) / runstate.LOCK_NAME).is_stale(lock):
-            msg = f"A refresh is already running (pid {lock.get('pid')}, since {lock.get('started_at')})."
-            return HTMLResponse(f'<p class="note" role="status">{msg}</p>', 409)
+            msg = s["run_busy"].format(pid=lock.get("pid"), since=lock.get("started_at"))
+            return HTMLResponse(f'<div class="callout warn" role="status">{msg}</div>', 409)
         pid = launch(cfg)
-        return HTMLResponse(
-            f'<p class="note" role="status">Refresh started (pid {pid}). '
-            "This page updates when it finishes.</p>",
-            202,
-        )
+        msg = s["run_started"].format(pid=pid)
+        return HTMLResponse(f'<div class="callout info" role="status">{msg}</div>', 202)
 
     # SDK pages (Canlı / Live, levels and heatmaps): src/studio_pulse/collector/web.py
     from ..collector.web import register as register_live

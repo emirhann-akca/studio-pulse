@@ -1,12 +1,13 @@
-<div id="status" class="tiles" hx-get="/fragments/status" hx-trigger="every 5s" hx-swap="outerHTML">
+<div id="status" class="kpis"{% if not static %} hx-get="/fragments/status" hx-trigger="every 5s" hx-swap="outerHTML"{% endif %}>
 {% set h = hb or {} %}
-  <div class="tile"><div class="label">Last refresh</div>
-    <div class="value"><span class="pill {{ h.status|default('none') }}">{{ h.status|default('never run') }}</span></div>
-    <div class="delta">{% if h.last_start %}started {{ age(h.last_start) }}{% if h.duration_s is number and h.status != 'running' %}, took {{ h.duration_s }} s{% endif %}{% endif %}</div></div>
-  <div class="tile"><div class="label">Last success</div>
-    <div class="value" style="font-size:20px">{{ age(h.last_success) }}</div>
-    <div class="delta">{{ h.last_success|default('', true) }}</div></div>
-  <div class="tile"><div class="label">Last error</div>
-    <div class="value" style="font-size:14px;line-height:1.35">{{ h.error or 'none' }}</div>
-    <div class="delta">{% if h.last_failure %}last failure {{ age(h.last_failure) }}{% endif %}</div></div>
+{% set cls = {'success': 'good', 'failed': 'bad', 'interrupted': 'bad', 'running': 'warn'} %}
+  <div class="kpi"><div class="k">{{ s.h_last }}</div>
+    <div class="v" style="font-size:18px"><span class="badge {{ cls.get(h.status, 'outline') }}">{{ s['st_' ~ h.status] if h.status and ('st_' ~ h.status) in s else (h.status or s.never) }}</span></div>
+    <div class="d">{% if h.last_start %}{{ s.h_started }} {{ age(h.last_start) }}{% if h.duration_s is number and h.status != 'running' %} · {{ h.duration_s }} sn {{ s.h_took }}{% endif %}{% endif %}</div></div>
+  <div class="kpi"><div class="k">{{ s.h_success }}</div>
+    <div class="v" style="font-size:20px">{{ age(h.last_success) }}</div>
+    <div class="d">{{ h.last_success|default('', true) }}</div></div>
+  <div class="kpi"><div class="k">{{ s.h_error }}</div>
+    <div class="v" style="font-size:13.5px;font-weight:500;line-height:1.4">{{ h.error or s.h_none }}</div>
+    <div class="d">{% if h.last_failure %}{{ s.h_last_fail }} {{ age(h.last_failure) }}{% endif %}</div></div>
 </div>

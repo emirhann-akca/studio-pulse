@@ -1,51 +1,34 @@
 <!doctype html>
-<html lang="{{ lang|default('en') }}">
+<html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}{{ title }}{% endblock %} · studio-pulse</title>
-<style>{{ css|safe }}
-.ui-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}
-.ui-actions button{font:inherit;padding:7px 14px;border-radius:8px;border:1px solid var(--line, #ccc);background:var(--card, #fff);color:inherit;cursor:pointer}
-.ui-actions button:hover{border-color:currentColor}
-.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;border:1px solid currentColor}
-.pill.success,.pill.pass,.pill.ok{color:#1a7f37}.pill.failed,.pill.fail,.pill.error,.pill.interrupted{color:#c62828}
-.pill.running,.pill.warn{color:#b26a00}.pill.none,.pill.snapshot{color:#6b7280}
-dl.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;margin:0}
-dl.kv dt{opacity:.7}dl.kv dd{margin:0}
-</style>
-<script src="/static/htmx.min.js"></script>
+<title>{% block title %}{{ title }}{% endblock %} · Studio Pulse</title>
+<style>{{ ui_css|safe }}</style>
+{% if not static %}<script src="/static/htmx.min.js"></script>{% endif %}
 {% block head %}{% endblock %}
 </head>
-<body hx-headers='{"X-Pulse-Token": "{{ token }}"}'>
-<div class="wrap">
-<header class="top">
-  <h1>{{ title }}</h1>
-  <span class="meta">local UI · studio-pulse {{ version }} · {{ config_path }}</span>
-  <span class="spacer"></span>
-  <button class="theme" type="button">Dark mode</button>
-</header>
-<nav class="apps" aria-label="Sections">
-  <a href="/studio">Studio</a>
-  <a href="/"{% if page == 'home' %} aria-current="page"{% endif %}>Overview</a>
-  <a href="/dashboard/index.html">Dashboard</a>
-  <a href="/dashboard/ua.html">UA</a>
-  <a href="/dashboard/experiments.html">Experiments</a>
-  <a href="/health"{% if page == 'health' %} aria-current="page"{% endif %}>Refresh &amp; data health</a>
-  <a href="/alerts"{% if page == 'alerts' %} aria-current="page"{% endif %}>Alerts</a>
-  <a href="/insights"{% if page == 'insights' %} aria-current="page"{% endif %}>Insights</a>
-  <a href="/ask"{% if page == 'ask' %} aria-current="page"{% endif %}>Ask</a>
-  <a href="/radar"{% if page == 'radar' %} aria-current="page"{% endif %}>Market Radar</a>
-  {% for href, label, key in nav_extra|default([]) %}<a href="{{ href }}"{% if page == key %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
-</nav>
-{% if source == 'snapshot' %}<div class="banner" role="note">Showing the snapshot of the last good refresh. <span>A refresh is writing the warehouse right now; live data returns when it finishes.</span></div>{% endif %}
-{% if source == 'none' %}<div class="banner" role="note">No warehouse yet. <span>Run a refresh (button below or <code>pulse run</code>) to load data.</span></div>{% endif %}
-<main>
-{% block body %}{% endblock %}
-</main>
-<footer>Served from this computer only (127.0.0.1). Data source for this page: <strong>{{ source|default('n/a') }}</strong>.</footer>
+<body{% if not static %} hx-headers='{"X-Pulse-Token": "{{ token }}"}'{% endif %}>
+<div class="shell{% if self.aside()|trim %} with-aside{% endif %}">
+  <aside class="sidebar" aria-label="{{ s.apps }}">
+    <div class="brand"><span class="logo">{{ icon('logo')|safe }}</span>Studio Pulse</div>
+    <button class="search" type="button" data-cmdk>{{ icon('search')|safe }} {{ s.search }} <kbd>⌘K</kbd></button>
+    <nav class="scroll" id="sidebar"{% if not static %} hx-get="/studio/fragments/sidebar?app={{ chosen|urlencode }}" hx-trigger="every 10s" hx-swap="innerHTML"{% endif %}>
+      {% include "_studio_sidebar.html" %}
+    </nav>
+    <div class="foot">
+      <a class="btn ghost sm" href="{{ nav.other_lang }}" hreflang="{{ 'en' if lang == 'tr' else 'tr' }}">{{ s.other_lang }}</a>
+      <button class="btn ghost sm" type="button" data-theme-toggle data-light="{{ s.light }}" data-dark="{{ s.dark }}">{{ s.dark }}</button>
+    </div>
+  </aside>
+  <main class="main"><div class="inner">
+    {% if source == 'snapshot' %}<div class="callout warn" role="note"><span class="ic">{{ icon('info')|safe }}</span><div><b>{{ s.snapshot }}</b> {{ s.snapshot_sub }}</div></div>{% endif %}
+    {% if source == 'none' and page != 'health' %}<div class="callout info" role="note"><span class="ic">{{ icon('info')|safe }}</span><div><b>{{ s.no_wh }}</b> {{ s.no_wh_sub }}</div></div>{% endif %}
+    {% block body %}{% endblock %}
+  </div></main>
+  {% block aside %}{% endblock %}
 </div>
-<div id="tip" role="tooltip"></div>
-<script>{{ js|safe }}</script>
+<script type="application/json" id="ui-commands" data-placeholder="{{ s.search_ph }}">{{ commands|tojson }}</script>
+<script>{{ ui_js|safe }}</script>
 </body>
 </html>

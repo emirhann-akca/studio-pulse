@@ -91,13 +91,15 @@ def _self_check(server: uvicorn.Server, sock: socket.socket, base: str, cfg: Con
         return 1
     pages: list[tuple[str, str]] = [
         ("healthz", '"ok":true'),
-        ("", "Run refresh now"),
-        ("health", "Data quality"),
-        ("alerts", "History"),
-        ("live", "Canlı / Live"),
+        ("", "Studio Pulse"),  # / opens the Studio
+        ("health?lang=en", "Data quality"),
+        ("health?lang=tr", "Veri kalitesi"),
+        ("alerts?lang=en", "History"),
+        ("live?lang=tr", "Canlı"),
         ("api/status", '"version"'),
         ("static/htmx.min.js", "htmx"),
-        ("insights", "Insights"),
+        ("insights?lang=en", "Insights"),
+        ("studio/market", "Studio Pulse"),
         ("studio", "Studio Pulse"),
         ("insights?lang=tr", "İçgörüler"),
         # with data the router must answer from the verified-query library

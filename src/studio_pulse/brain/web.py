@@ -26,6 +26,7 @@ from starlette.concurrency import run_in_threadpool
 from .. import runstate
 from ..config import Config
 from ..llm.base import LLMError
+from ..serve.ui import request_lang
 from . import evidence as evidence_mod
 from . import fmt, llm, narrate
 from .executor import LockedSession
@@ -207,7 +208,7 @@ def register(
 
     @app.get("/insights", response_class=HTMLResponse)
     def insights_page(request: Request, lang: str | None = None):
-        lg = _lang(lang)
+        lg = request_lang(request, lang)
         data = load_insights(lg)
         blocked = any(c["blocked"] for c in data["cards"])
         return templates.TemplateResponse(
@@ -236,7 +237,7 @@ def register(
 
     @app.get("/ask", response_class=HTMLResponse)
     def ask_page(request: Request, lang: str | None = None, q: str | None = None):
-        lg = _lang(lang)
+        lg = request_lang(request, lang)
         ans = answer(q, lg) if q else None
         return templates.TemplateResponse(
             request,
@@ -259,7 +260,7 @@ def register(
         # python-multipart dependency
         form = parse_qs((await request.body()).decode("utf-8", errors="replace"))
         q = (form.get("q") or [""])[0]
-        lg = _lang((form.get("lang") or ["en"])[0])
+        lg = request_lang(request, (form.get("lang") or [None])[0])
         ans = await run_in_threadpool(answer, q, lg) if q.strip() else None
         return templates.TemplateResponse(
             request, "_answer.html", {"request": request, "answer": ans, "t": UI[lg], "lang": lg}

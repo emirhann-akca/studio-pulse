@@ -1,15 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Alerts{% endblock %}
+{% block title %}{{ s.a_title }}{% endblock %}
 {% block body %}
-<h2>Last refresh</h2>
-{% if alerts %}
-<ul class="alerts">{% for a in alerts %}<li class="{{ a.severity }}"><span class="sev">{{ a.severity|title }}</span><strong>{{ a.app_id }}</strong> · <code>{{ a.rule }}</code> · {{ a.date }}<br>{{ a.message }}</li>{% endfor %}</ul>
-{% else %}<ul class="alerts"><li class="ok"><span class="sev">OK</span>No alerts fired in the last refresh.</li></ul>{% endif %}
-<h2>History (90 days)</h2>
-{% if history %}
-<div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Fired (UTC)</th><th class="l">App</th><th class="l">Rule</th><th class="l">Severity</th><th class="l">Day</th><th class="l">Message</th></tr></thead><tbody>
-{% for a in history %}<tr><td class="l">{{ a.fired_at }}</td><td class="l">{{ a.app_id }}</td><td class="l"><code>{{ a.rule }}</code></td><td class="l">{{ a.severity }}</td><td class="l">{{ a.date }}</td><td class="l">{{ a.message }}</td></tr>{% endfor %}
-</tbody></table></div></div>
-{% else %}<p class="note">No alerts recorded.</p>{% endif %}
-<p class="note">Rules live in <code>alerts.yaml</code>; failed data-quality checks are listed under <a href="/health#checks">Refresh &amp; data health</a>.</p>
+{% set sev = {'critical': 'critical', 'warning': 'warning', 'info': 'info'} %}
+<header class="page-head"><h1>{{ s.a_title }}</h1><p class="sub">{{ s.a_sub }}</p></header>
+<section class="card">
+  <h2>{{ s.a_last }}</h2>
+  {% for a in alerts %}
+  <div class="finding {{ sev.get(a.severity, 'info') }}">
+    <div class="ttl"><span class="badge {{ 'bad' if a.severity == 'critical' else 'warn' }}">{{ s['sev_' ~ a.severity] if ('sev_' ~ a.severity) in s else a.severity }}</span> {{ a.app_id }} · <code>{{ a.rule }}</code> <span class="muted">{{ a.date }}</span></div>
+    <div class="bd">{{ a.message }}</div>
+  </div>
+  {% else %}<div class="empty compact"><div class="ic">{{ icon('check')|safe }}</div><p>{{ s.a_ok }}</p></div>{% endfor %}
+</section>
+<section class="card">
+  <h2>{{ s.a_history }}</h2>
+  {% if history %}
+  <div class="table-scroll"><table class="t"><thead><tr><th>{{ s.a_fired }}</th><th>{{ s.h_app }}</th><th>{{ s.a_rule }}</th><th>{{ s.h_sev }}</th><th>{{ s.a_day }}</th><th>{{ s.a_msg }}</th></tr></thead><tbody>
+  {% for a in history %}<tr><td class="muted" style="white-space:nowrap">{{ a.fired_at }}</td><td>{{ a.app_id }}</td><td><code>{{ a.rule }}</code></td><td><span class="badge {{ 'bad' if a.severity == 'critical' else 'warn' }}">{{ s['sev_' ~ a.severity] if ('sev_' ~ a.severity) in s else a.severity }}</span></td><td>{{ a.date }}</td><td class="wrap">{{ a.message }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty compact"><p>{{ s.a_none }}</p></div>{% endif %}
+  <p class="muted" style="font-size:12px;margin:10px 0 0">{{ s.a_note }}</p>
+</section>
 {% endblock %}

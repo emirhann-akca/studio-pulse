@@ -479,7 +479,7 @@ def check(config: str | None = None, *, state: Path | None = None, scale: float 
         path = cfg_path if cfg_path.exists() else build_demo(state, scale)
         switch.app = _ui_app(path)
         failures = 0
-        for page, needle in (("healthz", b'"ok":true'), ("", b"Run refresh now"), ("insights", b"Insights"),
+        for page, needle in (("healthz", b'"ok":true'), ("", b"Studio Pulse"), ("insights?lang=en", b"Insights"),
                              ("studio", b"Studio Pulse"),
                              ("__app/heartbeat.js", b"__app/ping")):  # fmt: skip
             code, body = _get(running.url + page, timeout=30)

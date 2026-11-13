@@ -1,41 +1,49 @@
 {# Studio market view: the newest radar facts (local only; store data never leaves this machine). #}
-<div class="head">
+<header class="page-head">
   <h1>{{ t.m_title }}</h1>
-  {% if market.facts %}<span class="meta">{{ market.as_of }} · {{ market.countries }}</span>{% endif %}
-  {% if not static %}<span class="links"><a href="/radar?lang={{ lang }}">{{ t.open_full }}</a></span>{% endif %}
-</div>
-<p class="empty" style="margin-top:-6px">{{ t.m_sub }}</p>
+  {% if market.facts %}<span class="badge outline">{{ market.as_of }}</span><span class="muted">{{ market.countries }}</span>{% endif %}
+  <span class="spacer"></span>
+  {% if not static %}<a class="btn sm" href="/radar">{{ t.open_full }}</a>{% endif %}
+  <p class="sub">{{ t.m_sub }}</p>
+</header>
 {% if not market.facts %}
-  <p class="empty">{{ t.m_none }}</p>
+  <div class="card"><div class="empty"><div class="ic">{{ icon('radar')|safe }}</div><h3>{{ t.m_title }}</h3><p>{{ t.m_none }}</p></div></div>
 {% else %}
   {% if market.narration %}
-  <section class="panel"><h3>{{ t.m_summary }}</h3><p style="margin:0">{{ market.narration }}</p></section>
+  <section class="card"><h2>{{ t.m_summary }}</h2><p style="margin:0;font-size:14px;line-height:1.6">{{ market.narration }}</p></section>
   {% endif %}
-  <section class="panel">
-    <h3>{{ t.m_rising }}</h3>
-    <table class="mini">
-      <tr><th>{{ t.m_game }}</th><th>{{ t.m_mech }}</th><th>{{ t.m_rank }} <span class="lbl">{{ market.observed }}</span></th><th>{{ t.m_age }}</th><th>{{ t.m_play }} <span class="lbl">{{ market.store_reported }}</span></th></tr>
+  <section class="card">
+    <header><h2>{{ t.m_rising }}</h2><span class="spacer"></span><span class="lbl">{{ market.observed }} · {{ market.store_reported }}</span></header>
+    <div class="table-scroll"><table class="t">
+      <thead><tr><th>{{ t.m_game }}</th><th>{{ t.m_mech }}</th><th>{{ t.m_rank }} <span class="lbl">{{ market.observed }}</span></th><th class="num">{{ t.m_age }}</th><th class="num">{{ t.m_play }} <span class="lbl">{{ market.store_reported }}</span></th></tr></thead>
+      <tbody>
       {% for r in market.rising %}
       <tr>
-        <td>{% if r.store_url %}<a href="{{ r.store_url }}" rel="noopener noreferrer">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}<br><span class="lbl">{{ r.developer or '' }}</span></td>
-        <td>{{ r.mechanic or '—' }}{% if r.mechanic %}<br><span class="lbl">{{ t.m_llm if r.src == 'llm' else t.m_kw }}</span>{% endif %}</td>
-        <td>{{ r.best }}</td><td>{{ r.age if r.age is not none else '—' }}</td><td>{{ r.play or '—' }}</td>
+        <td>{% if r.store_url %}<a href="{{ r.store_url }}" rel="noopener noreferrer">{{ r.name }}</a>{% else %}<b>{{ r.name }}</b>{% endif %}<div class="muted" style="font-size:12px">{{ r.developer or '' }}</div></td>
+        <td>{% if r.mechanic %}<span class="badge info">{{ r.mechanic }}</span><div class="muted" style="font-size:11.5px;margin-top:2px">{{ t.m_llm if r.src == 'llm' else t.m_kw }}</div>{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{{ r.best }}</td>
+        <td class="num">{{ r.age if r.age is not none else '—' }}</td>
+        <td class="num">{{ r.play or '—' }}</td>
       </tr>
-      {% else %}<tr><td colspan="5" class="empty">—</td></tr>{% endfor %}
-    </table>
+      {% else %}<tr><td colspan="5" class="muted">—</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
   </section>
-  <div class="cols">
-    <section class="panel">
-      <h3>{{ t.m_trends }}</h3>
+  <div class="grid c2">
+    <section class="card">
+      <h2>{{ t.m_trends }}</h2>
       {% if market.mechanics %}
-      <table class="mini">{% for m, n in market.mechanics %}<tr><td>{{ m }}</td><td>{{ n }} {{ t.m_games }}</td></tr>{% endfor %}</table>
-      {% else %}<p class="empty">—</p>{% endif %}
-      {% if not market.weekly_ready %}<p class="lbl" style="margin:8px 0 0">{{ t.m_weekly }}</p>{% endif %}
+      {% set top = market.mechanics[0][1] or 1 %}
+      <ul class="list">{% for m, n in market.mechanics %}
+        <li><span style="width:140px">{{ m }}</span><span class="bar" style="flex:1"><span style="width:{{ (100 * n / top)|round|int }}%"></span></span><span class="num muted" style="width:64px">{{ n }} {{ t.m_games }}</span></li>
+      {% endfor %}</ul>
+      {% else %}<p class="muted">—</p>{% endif %}
+      {% if not market.weekly_ready %}<p class="muted" style="margin:10px 0 0;font-size:12px">{{ t.m_weekly }}</p>{% endif %}
       {% for r in market.trend_rows %}<p style="margin:6px 0 0"><b>{{ r.mechanic }}</b> · {{ r.country|upper }} · z {{ r.z }}</p>{% endfor %}
     </section>
-    <section class="panel">
-      <h3>{{ t.m_late }}</h3>
-      <table class="mini">{% for r in market.others %}<tr><td>{{ r.name }}<br><span class="lbl">{{ r.class }}</span></td><td>{{ r.mechanic or '—' }}</td><td>{{ r.best }}</td></tr>{% else %}<tr><td class="empty">—</td></tr>{% endfor %}</table>
+    <section class="card">
+      <h2>{{ t.m_late }}</h2>
+      <table class="t"><tbody>{% for r in market.others %}<tr><td><b>{{ r.name }}</b><div><span class="badge {{ 'warn' if r.class in ('GEÇ YÜKSELEN', 'LATE RISER') else 'outline' }}">{{ r.class }}</span></div></td><td>{% if r.mechanic %}<span class="badge info">{{ r.mechanic }}</span>{% else %}<span class="muted">—</span>{% endif %}</td><td>{{ r.best }}</td></tr>{% else %}<tr><td class="muted">—</td></tr>{% endfor %}</tbody></table>
     </section>
   </div>
 {% endif %}

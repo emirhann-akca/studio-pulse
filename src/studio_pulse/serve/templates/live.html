@@ -1,29 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Canlı / Live{% endblock %}
+{% block title %}{{ s.l_title }}{% endblock %}
 {% block head %}
 <style>
-.live-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px;margin-top:12px}
-.live-card{background:var(--surface);border:1px solid var(--ring);border-radius:10px;padding:12px 14px;min-width:0}
-.live-card h3{margin:0;font-size:15px;font-weight:650;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.live-card .sub{color:var(--ink-2);font-size:12px;margin:2px 0 8px;overflow-wrap:anywhere}
-.live-card .big{font-size:30px;font-weight:700;line-height:1.1}
-.live-card .row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
-.live-card table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
-.live-card td,.live-card th{padding:2px 4px;text-align:right;border-bottom:1px solid var(--grid)}
-.live-card td.l,.live-card th.l{text-align:left}
-.badge{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid currentColor;text-transform:uppercase;letter-spacing:.03em}
-.badge.live{color:var(--good-ink)}.badge.testing{color:#b26a00}.badge.new{color:var(--s1)}
-:root[data-theme="dark"] .badge.testing{color:var(--warning)}
-@media (prefers-color-scheme: dark){:root:where(:not([data-theme="light"])) .badge.testing{color:var(--warning)}}
-.spark{display:block;max-width:100%}
-.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);margin-right:6px;vertical-align:middle;animation:pulse 2s infinite}
-@keyframes pulse{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}
-@media (prefers-reduced-motion: reduce){.dot{animation:none}}
-.newapp{border-left:4px solid var(--s1)}
+.live-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:12px}
+.live-card .big{font-size:32px;font-weight:700;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.live-card .row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:6px 0 4px}
+.live-card .spark{display:block;max-width:100%;color:var(--accent)}
+.pulse-dot{animation:pulse 2s infinite}@keyframes pulse{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}
+@media (prefers-reduced-motion: reduce){.pulse-dot{animation:none}}
 </style>
 {% endblock %}
 {% block body %}
-<h2><span class="dot" aria-hidden="true"></span>Canlı / Live: who is playing right now</h2>
-<p class="note">Installs with an event in the last 5 minutes, per app, store, platform and country, from the SDK collector. Updates every 5 seconds.</p>
+<header class="page-head"><h1><span class="dot live pulse-dot" aria-hidden="true"></span> {{ s.l_title }}</h1><p class="sub">{{ s.l_sub }}</p></header>
 {% include "_live.html" %}
 {% endblock %}

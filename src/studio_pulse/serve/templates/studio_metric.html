@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ metric.label if metric else metric_key }} · {{ current.name }}{% endblock %}
+{% block body %}
+<p style="margin:0 0 10px"><a href="{{ nav.app(chosen) }}?days={{ days }}">← {{ t.x_back.format(app=current.name) }}</a></p>
+<header class="page-head">
+  <h1>{{ metric.label if metric else metric_key }}</h1>
+  <span class="spacer"></span>
+  <nav class="seg" aria-label="{{ t.period }}">{% for d in periods %}<a href="?days={{ d }}"{% if d == days %} aria-current="true"{% endif %}>{{ t.days_n.format(n=d) }}</a>{% endfor %}</nav>
+  {% if metric %}<p class="sub">{{ metric.note }}</p>{% endif %}
+</header>
+{% if not metric or not metric.has_data %}
+  <section class="card"><div class="empty"><div class="ic">{{ icon('info')|safe }}</div><p>{{ t.x_none }}</p></div></section>
+{% else %}
+  <div class="kpis">
+    <div class="kpi"><div class="k">{{ t.x_period }}</div>
+      {% if metric.enough %}<div class="v">{{ metric.value }}</div>{% else %}<div class="v na">{{ t.too_few }}</div>{% endif %}
+      <div class="d">{{ metric.period[0] }} – {{ metric.period[1] }}</div></div>
+    <div class="kpi"><div class="k">{{ t.x_prev }}</div><div class="v{{ ' na' if metric.prev_value == '—' else '' }}">{{ metric.prev_value }}</div>
+      <div class="d">{{ metric.prev_period[0] }} – {{ metric.prev_period[1] }}</div></div>
+    <div class="kpi"><div class="k">{{ t.x_change }}</div>{% if metric.change_text %}<div class="v" style="color:var({{ '--good-text' if metric.good else '--bad-text' }})">{{ metric.change_text }}</div>{% else %}<div class="v na">—</div>{% endif %}</div>
+    <div class="kpi"><div class="k">{{ t.x_n }}</div><div class="v">{{ metric.n }}</div>{% if metric.min_n %}<div class="d">{{ t.x_floor.format(n=metric.min_n) }}</div>{% endif %}</div>
+  </div>
+  {% if chart %}<section class="card"><header><h2>{{ metric.label }}</h2><span class="spacer"></span><span class="muted" style="font-size:12px"><svg width="18" height="6" aria-hidden="true"><line x1="0" y1="3" x2="18" y2="3" stroke="currentColor" stroke-dasharray="3 3"/></svg> {{ t.prev_period }}</span></header>{{ chart|safe }}</section>{% endif %}
+  <div class="grid c2">
+    <section class="card">
+      <h2>{{ t.x_daily }}</h2>
+      <div class="table-scroll" style="max-height:420px;overflow-y:auto"><table class="t"><thead><tr><th>{{ t.x_date }}</th><th class="num">{{ t.x_value }}</th><th class="num">n</th></tr></thead><tbody>
+      {% for r in metric.rows|reverse %}<tr><td>{{ r.date }}</td><td class="num">{{ fmt_value(r.value) }}</td><td class="num muted">{{ r.n|int if r.n is not none else '' }}</td></tr>{% endfor %}
+      </tbody></table></div>
+    </section>
+    <section class="card">
+      <h2>{{ t.x_sql }}</h2>
+      <p class="muted" style="margin:0 0 8px;font-size:12.5px">{{ t.x_sql_note }}</p>
+      <pre style="white-space:pre-wrap;word-break:break-word;background:var(--panel-2);padding:10px;border-radius:8px;margin:0"><code>{{ metric.sql }}</code></pre>
+      <p class="muted" style="font-size:12px;margin:8px 0 0"><code>{{ metric.params|join(' · ') }}</code></p>
+    </section>
+  </div>
+{% endif %}
+{% endblock %}

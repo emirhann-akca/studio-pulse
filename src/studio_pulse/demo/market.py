@@ -127,11 +127,13 @@ def facts(as_of: dt.date) -> dict[str, Any]:
                 "hooks": tax.hooks(mech),
             }
         )
+    per_country = {c: sum(by[c] for by in TREND_ROWS.values()) for c in ("us", "tr", "gb", "de")}
     rows = [
-        {"country": c, "mechanic": m, "n_apps": k, "is_trend": False}
+        {"country": c, "mechanic": m, "n_apps": k, "share": round(k / per_country[c], 4),
+         "z": None, "is_trend": False}
         for m, by in TREND_ROWS.items()
         for c, k in by.items()
-    ]
+    ]  # fmt: skip
     top = max(TREND_ROWS, key=lambda m: sum(TREND_ROWS[m].values()))
     ideas.insert(0, {"kind": "top_mechanic", "mechanic": top,
                      "count": {"value": sum(TREND_ROWS[top].values()), "basis": "observed"}})  # fmt: skip

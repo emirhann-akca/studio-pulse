@@ -28,6 +28,9 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
+from . import studio_metrics as sm
+from .ui import request_lang
+
 STATIC_FORGE_URL = "https://github.com/emirhann-akca/creative-forge"
 
 STATUS_ORDER = {"live": 0, "testing": 1, "new": 2, "ga4": 3, "waiting": 4}
@@ -100,6 +103,43 @@ T: dict[str, dict[str, str]] = {
         "sdk_page": "SDK ayrıntıları (bölümler, ısı haritası)",
         "collector_down": "Toplayıcıya ulaşılamıyor; canlı sayılar yok.",
         "evidence": "kanıt",
+        "store30": "Mağaza · son 30 gün",
+        "x_back": "Geri: {app}",
+        "x_period": "Bu dönem",
+        "x_prev": "Önceki dönem",
+        "x_change": "Değişim",
+        "x_n": "Örneklem (n)",
+        "x_floor": "{n} altında sayı gösterilmez",
+        "x_daily": "Günlük değerler",
+        "x_date": "Tarih",
+        "x_value": "Değer",
+        "x_sql": "Bu sayının sorgusu",
+        "x_sql_note": "Kutu ve bu sayfa aynı sorguyu çalıştırır; parametreler: uygulama, başlangıç, bitiş.",
+        "x_none": "Bu dönemde bu metrik için satır yok.",
+        "period": "Dönem",
+        "days_n": "{n} gün",
+        "period_line": "{start} – {end} · karşılaştırma: {pstart} – {pend}",
+        "too_few": "örneklem yetersiz",
+        "need_n": "en az {n} gerekli",
+        "no_rows": "bu dönemde veri yok",
+        "vs_prev_short": "öncekine göre",
+        "prev_short": "önceki dönem",
+        "dau_period": "Günlük aktif kullanıcı · son {days} gün",
+        "prev_period": "önceki dönem",
+        "empty_title": "Bu uygulamanın verisi yok",
+        "empty_waiting": "SDK mağaza derlemesinde kapalı; hiçbir derleme henüz veri göndermiyor. Mağaza verisi bağlanınca indirme, puan ve çökme oranı yine görünür.",
+        "empty_cta": "Veri kaynaklarına bak",
+        "store_col": "Mağaza",
+        "installs30": "Kurulum",
+        "uninstalls30": "Kaldırma",
+        "data_through": "Son gün",
+        "store_missing": "Mağaza verisi bağlı değil. Play Console ve App Store Connect raporları bağlanınca kurulum, kaldırma ve puan burada görünür; az kullanıcıda bile anlamlıdır.",
+        "store_cta": "Veri kaynakları",
+        "builds": "SDK derlemeleri",
+        "no_levels": "Bölüm verisi yok: oyun level_start / level_complete / level_fail gönderince görünür.",
+        "no_recs": "Şimdilik öneri yok.",
+        "no_apps_title": "Henüz uygulama yok",
+        "no_apps": "pulse.yaml dosyasına bir uygulama ekleyin ya da SDK'lı bir oyunu toplayıcıya bağlayın; ilk olayla burada görünür.",
         "store_exports": "GA4 / mağaza dışa aktarımları",
         "static_banner": "Sentetik demo verisi.",
         "static_note": "Bu, `pulse demo`nun uydurma oyunları için Stüdyo'nun durağan bir kopyası; hiçbir gerçek ürünü, stüdyoyu ya da oyuncuyu anlatmaz. Uygulamada soldaki liste 10 saniyede bir yenilenir ve bu panel sorulara cevap verir.",
@@ -175,6 +215,43 @@ T: dict[str, dict[str, str]] = {
         "sdk_page": "SDK details (levels, heatmap)",
         "collector_down": "The collector is not reachable; no live numbers.",
         "evidence": "evidence",
+        "store30": "Store · last 30 days",
+        "x_back": "Back: {app}",
+        "x_period": "This period",
+        "x_prev": "Previous period",
+        "x_change": "Change",
+        "x_n": "Sample (n)",
+        "x_floor": "no number under {n}",
+        "x_daily": "Daily values",
+        "x_date": "Date",
+        "x_value": "Value",
+        "x_sql": "The query behind this number",
+        "x_sql_note": "The tile and this page run the same query; parameters: app, start, end.",
+        "x_none": "No rows for this metric in this period.",
+        "period": "Period",
+        "days_n": "{n} days",
+        "period_line": "{start} – {end} · compared with {pstart} – {pend}",
+        "too_few": "not enough data",
+        "need_n": "needs {n}+",
+        "no_rows": "no data in this period",
+        "vs_prev_short": "vs previous",
+        "prev_short": "previous period",
+        "dau_period": "Daily active users · last {days} days",
+        "prev_period": "previous period",
+        "empty_title": "No data for this app yet",
+        "empty_waiting": "The SDK is off in store builds; no build sends data yet. Once store data is connected, installs, rating and crash rate show up anyway.",
+        "empty_cta": "Check data sources",
+        "store_col": "Store",
+        "installs30": "Installs",
+        "uninstalls30": "Uninstalls",
+        "data_through": "Last day",
+        "store_missing": "Store data is not connected. Once the Play Console and App Store Connect reports are connected, installs, uninstalls and rating show here; they mean something even with few users.",
+        "store_cta": "Data sources",
+        "builds": "SDK builds",
+        "no_levels": "No level data: it appears once the game sends level_start / level_complete / level_fail.",
+        "no_recs": "No recommendations yet.",
+        "no_apps_title": "No apps yet",
+        "no_apps": "Add an app to pulse.yaml or point an SDK game at the collector; it shows up here with its first event.",
         "store_exports": "GA4 / store exports",
         "static_banner": "Synthetic demo data.",
         "static_note": "A static copy of the Studio for the fictional games of `pulse demo`; it does not describe any real product, studio or player. In the app the list on the left refreshes every 10 seconds and this panel answers questions.",
@@ -208,26 +285,6 @@ def _usd(v: Any, lang: str) -> str:
     if v is None:
         return "—"
     return f"${_num(v, lang, 2)}"
-
-
-def dau_chart(points: list[tuple[Any, Any]], label: str) -> str:
-    """The last 30 days of DAU as a small inline SVG area chart (no JS, no library)."""
-    vals = [float(v or 0) for _, v in points]
-    if len(vals) < 2:
-        return ""
-    w, h, pad = 560.0, 120.0, 6.0
-    top = max(vals) or 1.0
-    xs = [pad + i * (w - 2 * pad) / (len(vals) - 1) for i in range(len(vals))]
-    ys = [h - pad - v / top * (h - 2 * pad) for v in vals]
-    line = " ".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys, strict=True))
-    area = f"{xs[0]:.1f},{h - pad:.1f} {line} {xs[-1]:.1f},{h - pad:.1f}"
-    first, last = points[0][0], points[-1][0]
-    return (
-        f'<svg class="dau" viewBox="0 0 {w:.0f} {h:.0f}" role="img" aria-label="{label}">'
-        f'<polygon points="{area}" class="area"/><polyline points="{line}" class="line"/>'
-        f'<circle cx="{xs[-1]:.1f}" cy="{ys[-1]:.1f}" r="3.5" class="dot"/></svg>'
-        f'<div class="axis"><span>{first}</span><span>{last}</span></div>'
-    )
 
 
 def register(
@@ -296,16 +353,36 @@ def register(
             key=lambda a: (a["arrived"], STATUS_ORDER.get(a["status"], 9), a["name"].lower()),
         )
 
-    def app_view(con: Any, app_id: str, lv: dict[str, Any], lang: str) -> dict[str, Any]:
+    def app_view(
+        con: Any, app_id: str, lv: dict[str, Any], lang: str, days: int = 7
+    ) -> dict[str, Any]:
         t = T[lang]
         s = rows(con, "SELECT * FROM fct_app_summary WHERE app_id = ?", [app_id])
         s = s[0] if s else None
-        daily = rows(
+        end = sm.last_date(rows, con, app_id)
+        kpis: list[dict[str, Any]] = []
+        chart = ""
+        if end is not None:
+            for key in sm.METRICS:
+                k = sm.compute(rows, con, app_id, key, end, days, lang)
+                if key in ("installs", "rating") and not k["has_data"]:
+                    continue  # store data not connected: the store card says so
+                kpis.append(k)
+            dau = next(k for k in kpis if k["key"] == "dau")
+            chart = sm.area_chart(
+                [(r["date"], float(r["value"])) for r in dau["rows"]],
+                [float(r["value"]) for r in dau["prev_rows"]],
+                t["dau_period"].format(days=days),
+                "num",
+                lang,
+            )
+        store_daily = rows(
             con,
-            "SELECT date, dau FROM fct_app_daily WHERE app_id = ? AND dau IS NOT NULL "
-            "ORDER BY date DESC LIMIT 30",
+            "SELECT store, SUM(installs) AS installs, SUM(uninstalls) AS uninstalls, "
+            "MAX(date) AS last_date FROM stg_store_daily WHERE app_id = ? "
+            "AND date > CURRENT_DATE - INTERVAL 30 DAY GROUP BY store ORDER BY store",
             [app_id],
-        )[::-1]
+        )
         reg = rows(con, "SELECT platform, status, store_listed, store_url, store_version, last_version "
                         "FROM fct_sdk_apps WHERE app_id = ? ORDER BY platform", [app_id])  # fmt: skip
         hard = rows(
@@ -318,20 +395,6 @@ def register(
         sdk_levels = rows(
             con, "SELECT COUNT(*) AS n FROM fct_sdk_level_funnel WHERE app_id = ?", [app_id]
         )
-        tiles = []
-        if s:
-            change = s.get("dau_change")
-            tiles = [
-                (t["dau7"], _num(s.get("dau_7d"), lang, 0),
-                 f"{'+' if (change or 0) >= 0 else ''}{_pct(change, lang)} {t['vs_prev']}" if change is not None else ""),
-                (t["new7"], _num(s.get("new_users_7d"), lang), ""),
-                (t["d1"], _pct(s.get("d1_retention"), lang), ""),
-                (t["d7"], _pct(s.get("d7_retention"), lang), ""),
-                (t["rev7"], _usd(s.get("revenue_7d_usd"), lang), ""),
-                (t["arpdau"], _usd(s.get("arpdau_7d"), lang), ""),
-                (t["crash"], _pct(s.get("crash_free_users_7d"), lang, 2), ""),
-                (t["rating"], _num(s.get("rating"), lang, 2) if s.get("rating") else "—", ""),
-            ]  # fmt: skip
         now = None
         snap = lv.get("snap")
         if snap:
@@ -339,9 +402,12 @@ def register(
             now = sum(int(a.get("active") or 0) for a in mine) if mine else None  # None: no SDK
         return {
             "summary": s,
-            "tiles": tiles,
-            "chart": dau_chart([(r["date"], r["dau"]) for r in daily], t["dau30"]),
+            "kpis": kpis,
+            "days": days,
+            "end": end,
+            "chart": chart,
             "store": reg,
+            "store_daily": store_daily,
             "hard": [
                 {
                     "level": h["level"],
@@ -364,11 +430,12 @@ def register(
         (docs/demo/studio: English at the top, Turkish under tr/), relative file names."""
         other = "en" if lang == "tr" else "tr"
         if not static():
-            return {
-                "app": lambda a: f"/studio/{a}?lang={lang}",
-                "market": f"/studio/market?lang={lang}",
+            return {  # the language travels in a cookie (ui.request_lang)
+                "app": lambda a: f"/studio/{a}",
+                "market": "/studio/market",
                 "other_lang": f"?lang={other}",
                 "dash": "/dashboard/",
+                "static": False,
             }
         here = f"{page}.html"
         return {
@@ -376,6 +443,7 @@ def register(
             "market": "market.html",
             "other_lang": f"tr/{here}" if lang == "en" else f"../{here}",
             "dash": "../" if lang == "en" else "../../",
+            "static": True,
         }
 
     def creative_forge_url() -> str | None:
@@ -407,7 +475,9 @@ def register(
             return None
         return None
 
-    def page_data(app_id: str | None, lang: str, full: bool = True) -> dict[str, Any]:
+    def page_data(
+        app_id: str | None, lang: str, full: bool = True, days: int = 7
+    ) -> dict[str, Any]:
         """full=False (the sidebar poll, the market view): the app list only, no app page
         and no insights, so a 10-second poll never recomputes or re-narrates anything."""
         lv = live()
@@ -415,7 +485,8 @@ def register(
         try:
             apps = app_list(con, lv)
             chosen = app_id or (apps[0]["id"] if apps else None)
-            view = app_view(con, chosen, lv, lang) if chosen and full else None
+            view = app_view(con, chosen, lv, lang, days) if chosen and full else None
+            side = sidebar_counts(con)
         finally:
             if con is not None:
                 con.close()
@@ -451,7 +522,34 @@ def register(
             "forge_url": creative_forge_url(),
             "static": static(),
             "nav": nav(lang, chosen or "index"),
+            "periods": sm.PERIODS,
+            **side,
         }
+
+    def sidebar_counts(con: Any) -> dict[str, int]:
+        """The numbers next to Alerts and Data health in the sidebar."""
+        if con is None or static():
+            return {"side_alerts": 0, "side_failing": 0}
+        from .. import checks
+
+        summary = checks.summarize(checks.latest_results(con))
+        last = rows(
+            con,
+            "SELECT COUNT(*) AS n FROM meta_alert_events WHERE run_id = (SELECT run_id FROM "
+            "meta_alert_events ORDER BY fired_at DESC LIMIT 1)",
+        )
+        return {
+            "side_alerts": int(last[0]["n"]) if last else 0,
+            "side_failing": summary["errors"] + summary["warnings"],
+        }
+
+    def sidebar(lang: str, chosen: str) -> dict[str, Any]:
+        """The sidebar of every server page (base.html), from the same data as the Studio."""
+        d = page_data(None, lang, full=False)
+        keys = ("apps", "arrived", "forge_url", "static", "side_alerts", "side_failing")
+        return {**{k: d[k] for k in keys}, "nav": nav(lang, chosen), "chosen": chosen}
+
+    app.state.studio_side = sidebar
 
     def market_data(lang: str) -> dict[str, Any]:
         """The newest radar facts, shaped for the Studio's market view (local only)."""
@@ -524,7 +622,7 @@ def register(
         """One Studio page as HTML without a request (the static export)."""
         if page == "market":
             data = page_data(None, lang, full=False)
-            data.update(chosen="__market__", current=None, view=None, cards=[], recs=[],
+            data.update(chosen="@market", current=None, view=None, cards=[], recs=[],
                         mode="market", market=market_data(lang), nav=nav(lang, "market"))  # fmt: skip
         else:
             data = page_data(page, lang)
@@ -537,9 +635,9 @@ def register(
 
     @app.get("/studio/market", response_class=HTMLResponse)
     def studio_market(request: Request, lang: str | None = None):
-        lg = _lang(lang)
+        lg = request_lang(request, lang)
         data = page_data(None, lg, full=False)
-        data.update(chosen="__market__", current=None, view=None, cards=[], recs=[],
+        data.update(chosen="@market", current=None, view=None, cards=[], recs=[],
                     mode="market", market=market_data(lg), nav=nav(lg, "market"))  # fmt: skip
         return templates.TemplateResponse(
             request, "studio.html", context(request, "studio", **data)
@@ -547,9 +645,11 @@ def register(
 
     @app.get("/studio", response_class=HTMLResponse)
     def studio_home(request: Request, lang: str | None = None):
-        data = page_data(None, _lang(lang))
+        lg = request_lang(request, lang)
+        data = page_data(None, lg, full=False)
         if data["chosen"]:
-            return RedirectResponse(f"/studio/{data['chosen']}?lang={_lang(lang)}", status_code=307)
+            q = f"?lang={lang}" if lang in ("tr", "en") else ""
+            return RedirectResponse(f"/studio/{data['chosen']}{q}", status_code=307)
         return templates.TemplateResponse(
             request, "studio.html", context(request, "studio", **data)
         )
@@ -558,18 +658,53 @@ def register(
     def studio_sidebar(
         request: Request, chosen: str | None = Query(None, alias="app"), lang: str | None = None
     ):
-        data = page_data(chosen, _lang(lang), full=False)
+        data = page_data(chosen, request_lang(request, lang), full=False)
         return templates.TemplateResponse(
             request, "_studio_sidebar.html", context(request, "fragment", **data)
         )
 
     @app.get("/studio/{app_id}", response_class=HTMLResponse)
-    def studio_app(request: Request, app_id: str, lang: str | None = None):
-        data = page_data(app_id, _lang(lang))
+    def studio_app(request: Request, app_id: str, lang: str | None = None, days: int = 7):
+        days = days if days in sm.PERIODS else 7
+        data = page_data(app_id, request_lang(request, lang), days=days)
         if data["current"] is None:
             return HTMLResponse(f"unknown app {app_id!r}", 404)
         return templates.TemplateResponse(
             request, "studio.html", context(request, "studio", **data)
+        )
+
+    @app.get("/studio/{app_id}/metric/{key}", response_class=HTMLResponse)
+    def studio_metric(
+        request: Request, app_id: str, key: str, lang: str | None = None, days: int = 7
+    ):
+        """One KPI tile opened: its daily rows, the previous period, the SQL behind it."""
+        if key not in sm.METRICS:
+            return HTMLResponse(f"unknown metric {key!r}", 404)
+        days = days if days in sm.PERIODS else 7
+        lg = request_lang(request, lang)
+        data = page_data(app_id, lg, full=False)
+        if data["current"] is None:
+            return HTMLResponse(f"unknown app {app_id!r}", 404)
+        con, _ = open_db(cfg)
+        try:
+            end = sm.last_date(rows, con, app_id) if con is not None else None
+            m = sm.compute(rows, con, app_id, key, end, days, lg) if end else None
+        finally:
+            if con is not None:
+                con.close()
+        chart = ""
+        if m and len(m["rows"]) >= 2:
+            chart = sm.area_chart(
+                [(r["date"], float(r["value"])) for r in m["rows"]],
+                [float(r["value"]) for r in m["prev_rows"]],
+                m["label"],
+                m["fmt"],
+                lg,
+            )
+        data.update(metric=m, metric_key=key, chart=chart, days=days, mode="metric",
+                    fmt_value=lambda v: sm.fmt(None if v is None else float(v), m["fmt"], lg) if m else "—")  # fmt: skip
+        return templates.TemplateResponse(
+            request, "studio_metric.html", context(request, "studio", **data)
         )
 
     @app.post("/studio/{app_id}/ask", response_class=HTMLResponse)
@@ -582,7 +717,7 @@ def register(
             return PlainTextResponse("cross-origin request refused", 403)
         form = parse_qs((await request.body()).decode("utf-8", errors="replace"))
         q = (form.get("q") or [""])[0].strip()
-        lang = _lang((form.get("lang") or ["tr"])[0])
+        lang = request_lang(request, (form.get("lang") or [None])[0])
         answer = getattr(app.state, "brain_answer", None)
         bt = getattr(app.state, "brain_templates", None)
         if not q or answer is None or bt is None:

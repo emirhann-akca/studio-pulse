@@ -204,14 +204,15 @@ def test_static_studio_is_the_app_view_without_a_server(demo):
             assert not href.startswith("/"), (page, href)
             assert (page.parent / urlsplit(href).path).exists(), (page, href)
     en = (studio / "mossy_match.html").read_text(encoding="utf-8")
-    assert 'href="tr/mossy_match.html">Türkçe<' in en
+    assert 'href="tr/mossy_match.html" hreflang="tr">Türkçe<' in en
     assert 'href="../apps/mossy_match.html"' in en  # the full dashboard page
     assert "The question box opens in the running app" in en
     tr = (studio / "tr" / "mossy_match.html").read_text(encoding="utf-8")
     assert (
-        'href="../mossy_match.html">English<' in tr and 'href="../../apps/mossy_match.html"' in tr
+        'href="../mossy_match.html" hreflang="en">English<' in tr
+        and 'href="../../apps/mossy_match.html"' in tr
     )
-    assert "GA4 / mağaza dışa aktarımları" in tr  # the store panel speaks Turkish too
+    assert "Mağaza · son 30 gün" in tr and "Günlük aktif (ort.)" in tr  # Turkish throughout
     market = (studio / "market.html").read_text(encoding="utf-8")
     assert "Rising today" in market and "Teacup Tumble" in market and "mechanic_shown=" in market
     assert 'href="studio/index.html">Studio<' in (site / "index.html").read_text(encoding="utf-8")

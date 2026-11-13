@@ -174,3 +174,22 @@ JS = r"""
   document.addEventListener('focusout', function () { tip.style.display = 'none'; });
 })();
 """
+
+
+def _scoped_chart_css() -> str:
+    """The chart and table rules above, every selector prefixed with .dash, so server
+    pages in the studio-ui shell can embed dashboard charts without these generic rules
+    (table, th, .card, .dot) leaking into the shell."""
+    start = CSS.index(".grid2 {")
+    stop = CSS.index(".alerts {")
+    out = []
+    for line in CSS[start:stop].splitlines():
+        if "{" not in line or line.startswith(".card {"):
+            continue
+        sel, rest = line.split("{", 1)
+        sel = ", ".join(".dash " + part.strip() for part in sel.split(","))
+        out.append(f"{sel} {{{rest}")
+    return "\n".join(out)
+
+
+CHART_CSS = _scoped_chart_css()

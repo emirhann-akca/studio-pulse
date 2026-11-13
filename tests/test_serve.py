@@ -25,7 +25,8 @@ def ui_module(demo_build, tmp_path_factory):
         return 4242
 
     app = create_app(cfg, token="t0ken", launcher=launcher)
-    return cfg, TestClient(app, base_url="http://127.0.0.1:8765"), started
+    client = TestClient(app, base_url="http://127.0.0.1:8765", cookies={"ui-lang": "en"})
+    return cfg, client, started
 
 
 @pytest.fixture()
@@ -40,8 +41,9 @@ def ui(ui_module):
 def test_every_page_renders(ui):
     cfg, client, _ = ui
     for path, marker in [
-        ("/", "Run refresh now"),
+        ("/", "Studio Pulse"),  # / opens the Studio
         ("/health", "Data quality"),
+        ("/health", "Refresh now"),
         ("/alerts", "History"),
         ("/fragments/status", "Last refresh"),
         ("/dashboard/index.html", "Data quality"),
