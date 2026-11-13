@@ -149,3 +149,25 @@ def test_an_app_without_data_offers_a_next_step(client, studio_cfg):
         assert "Toplayıcıya ulaşılamıyor" not in page  # a normal state is not shown as an error
     finally:
         studio_cfg.apps.remove(waiting)
+
+
+def test_morning_brief_numbers_alerts_and_market(client, studio_cfg):
+    import duckdb
+
+    page = client.get("/studio").text
+    assert "Uygulamalar · son 7 gün" in page and "Pazarda bugün" not in page  # no radar run here
+    for a in ("Mossy Match", "Pacer Pal", "Quartz Merge", "Pebble Pop"):
+        assert a in page
+    con = duckdb.connect(str(studio_cfg.warehouse), read_only=True)
+    n_alerts = con.execute(
+        "SELECT COUNT(*) FROM meta_alert_events WHERE run_id = (SELECT run_id FROM "
+        "meta_alert_events ORDER BY fired_at DESC LIMIT 1)"
+    ).fetchone()[0]
+    con.close()
+    if n_alerts:
+        assert page.count('class="finding critical"') + page.count(
+            'class="finding warning"'
+        ) >= min(n_alerts, 8)
+    else:
+        assert "Acil bir şey yok" in page
+    assert "Öne çıkan içgörüler" in page  # the AI panel ranks insights across apps

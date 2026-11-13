@@ -45,10 +45,11 @@ def client(studio_cfg):
     )
 
 
-def test_studio_opens_on_an_app_and_lists_every_app(client, studio_cfg):
+def test_studio_opens_on_the_morning_brief_and_lists_every_app(client, studio_cfg):
     r = client.get("/studio", follow_redirects=False)
-    assert r.status_code == 307 and r.headers["location"].startswith("/studio/")
-    page = client.get(r.headers["location"]).text
+    assert r.status_code == 200 and "Bugün" in r.text and "Dikkat isteyenler" in r.text
+    assert 'href="/studio" aria-current="page"' in r.text  # "Bugün" in the sidebar
+    page = client.get("/studio/pebble_pop").text
     for a in studio_cfg.apps:
         assert f'href="/studio/{a.id}"' in page, a.id
     assert "Uygulamalar" in page and "Yapay zekâ" in page and "Pazar radarı" in page

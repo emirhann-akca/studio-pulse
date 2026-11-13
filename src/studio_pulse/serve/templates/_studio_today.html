@@ -1,0 +1,57 @@
+{# The morning brief: every number comes from studio_metrics (the same definitions as the tiles). #}
+{% set badge = {'live': 'good', 'testing': 'warn', 'new': 'info', 'ga4': 'outline', 'waiting': 'dashed'} %}
+{% set palette = ['#3a2c8c', '#0e7490', '#b45309', '#be185d', '#047857', '#6d28d9', '#1d4ed8', '#b91c1c'] %}
+{% macro delta(k) %}{% if k and k.change_text %}<span class="{{ 'up' if k.good else 'down' }}">{{ k.change_text }}</span>{% endif %}{% endmacro %}
+{% macro val(k) %}{% if not k or not k.has_data %}<span class="muted">—</span>{% elif not k.enough %}<span class="muted" data-tip="n = {{ k.n }}">{{ t.too_few }}</span>{% else %}{{ k.value }}{% endif %}{% endmacro %}
+<header class="page-head">
+  <h1>{{ t.today }}</h1>
+  {% if brief.apps and brief.apps[0].end %}<span class="badge outline">{{ brief.apps[0].end }}</span>{% endif %}
+  <p class="sub">{{ t.today_sub }}</p>
+</header>
+
+<section class="card">
+  <h2>{{ t.attention }}</h2>
+  {% if not brief.alerts and not brief.stale and not brief.failing %}
+    <div class="empty compact"><div class="ic">{{ icon('check')|safe }}</div><p>{{ t.all_clear }}</p></div>
+  {% else %}
+    {% for a in brief.alerts %}
+    <div class="finding {{ 'critical' if a.severity == 'critical' else 'warning' }}">
+      <div class="ttl"><span class="badge {{ 'bad' if a.severity == 'critical' else 'warn' }}">{{ s['sev_' ~ a.severity] if ('sev_' ~ a.severity) in s else a.severity }}</span> {{ a.app_id }} · <code>{{ a.rule }}</code></div>
+      <div class="bd">{{ a.message }}</div>
+    </div>
+    {% endfor %}
+    {% for r in brief.stale %}<div class="finding warning"><div class="bd" style="margin:0">{{ t.stale_line.format(app=r.app_id, source=r.source, lag=r.lag) }}</div></div>{% endfor %}
+    {% if brief.failing %}<div class="finding warning"><div class="bd" style="margin:0">{{ t.failing_line.format(n=brief.failing) }}{% if not static %} · <a href="/health">{{ s.health }} →</a>{% endif %}</div></div>{% endif %}
+  {% endif %}
+</section>
+
+<section class="card flush">
+  <header><h2>{{ t.apps_week }}</h2></header>
+  <div class="table-scroll" style="padding:4px 8px 8px"><table class="t">
+    <thead><tr><th>{{ s.apps }}</th><th class="num">{{ t.dau_short }}</th><th class="num">{{ t.new_short }}</th><th class="num">{{ t.rev_short }}</th><th class="num">{{ t.d1_short }}</th><th></th></tr></thead>
+    <tbody>
+    {% for row in brief.apps %}{% set a = row.app %}{% set k = row.k %}
+    <tr>
+      <td><a class="row" href="{{ nav.app(a.id) }}" style="color:var(--text);text-decoration:none"><span class="app-ic" style="background:{{ palette[loop.index0 % palette|length] }};width:22px;height:22px;font-size:11px">{{ a.name[:1]|upper }}</span><b>{{ a.name }}</b> <span class="badge {{ badge.get(a.status, 'outline') }}">{{ s['app_' ~ a.status] }}</span>{% if a.now %} <span class="muted" style="font-size:12px"><span class="dot live"></span> {{ a.now }}</span>{% endif %}</a></td>
+      {% if row.end %}
+      <td class="num">{{ val(k.dau) }}<div style="font-size:11.5px">{{ delta(k.dau) }}</div></td>
+      <td class="num">{{ val(k.new_users) }}<div style="font-size:11.5px">{{ delta(k.new_users) }}</div></td>
+      <td class="num">{{ val(k.revenue) }}<div style="font-size:11.5px">{{ delta(k.revenue) }}</div></td>
+      <td class="num">{{ val(k.d1) }}<div style="font-size:11.5px">{{ delta(k.d1) }}</div></td>
+      {% else %}
+      <td class="num muted" colspan="4">{{ t.no_data_short }}</td>
+      {% endif %}
+      <td class="num"><a class="btn sm" href="{{ nav.app(a.id) }}">{{ t.open }}</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+{% if market and market.facts %}
+<section class="card">
+  <header><h2>{{ t.market_today }}</h2><span class="spacer"></span><a class="btn sm" href="{{ nav.market }}">{{ t.m_title }} →</a></header>
+  {% if market.narration %}<p style="margin:0 0 10px;line-height:1.6">{{ market.narration }}</p>{% endif %}
+  <ul class="list">{% for r in market.rising[:3] %}<li><b>{{ r.name }}</b>{% if r.mechanic %}<span class="badge info">{{ r.mechanic }}</span>{% endif %}<span class="spacer"></span><span class="muted">{{ r.best }}</span></li>{% endfor %}</ul>
+</section>
+{% endif %}

@@ -8,6 +8,7 @@
     <span class="badge {{ badge.get(a.status, 'outline') }}" data-tip="{{ s['app_' ~ a.status ~ '_long'] }}">{{ s['app_' ~ a.status] }}</span>
   </a>
 {% endmacro %}
+<a class="nav-item" href="{{ nav.today }}"{% if chosen == '@today' %} aria-current="page"{% endif %} style="margin-top:4px"><span class="nav-ic">{{ icon('today')|safe }}</span><span class="nav-l">{{ s.today }}</span></a>
 <div class="nav-h">{{ s.apps }}</div>
 {% for a in apps %}{{ app_link(a, palette[loop.index0 % palette|length]) }}{% endfor %}
 {% if arrived %}

@@ -190,10 +190,10 @@ def test_static_studio_is_the_app_view_without_a_server(demo):
 
     site, work = demo
     studio = site / "studio"
-    # opens on the first configured app, not on whichever game sorts first
-    assert (studio / "index.html").read_text(encoding="utf-8") == (
-        studio / "mossy_match.html"
-    ).read_text(encoding="utf-8")
+    # opens on the morning brief, as the app does, with every demo app on it
+    index = (studio / "index.html").read_text(encoding="utf-8")
+    assert "Needs attention" in index and "Apps · last 7 days" in index
+    assert all(f'href="{a}.html"' in index for a in DEMO_APPS)
     for page in studio.rglob("*.html"):
         html = page.read_text(encoding="utf-8")
         for bad in ("hx-get", "hx-post", "htmx.min.js", "X-Pulse-Token", "127.0.0.1", "<form"):

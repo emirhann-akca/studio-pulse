@@ -98,7 +98,7 @@ question box, no polling) with an invented market-radar day; Turkish under
   `/ask` in the local UI): deterministic statistics find and explain the
   changes, every number in a sentence is formatted by code and checked against
   its evidence, and a language model may only rephrase (see below).
-- 731 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
+- 732 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
   dart analyze; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -126,7 +126,9 @@ clone instead: `uv tool install .`, or pip as below. CI runs these two lines
 verbatim on Windows PowerShell 5.1, macOS and Ubuntu, and forces the 404
 fallback once.
 
-**Studio** is the one-window view: every app on the left (configured apps and
+**Studio** opens on **Today**, a morning brief from the last refresh: alerts,
+sources that stopped sending, failing checks, every app's last 7 days against the
+7 before (the tiles' metric definitions) and the market's day. It is the one-window view: every app on the left (configured apps and
 every app the SDK collector has registered, with its live / testing / new status
 and the installs active right now; a game whose SDK sends its first event shows
 up under "new arrivals" before any refresh), the selected app in the middle
@@ -476,7 +478,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 731 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 732 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 

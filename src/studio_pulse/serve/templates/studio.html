@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ t.m_title if mode == 'market' else (current.name if current else 'Studio') }}{% endblock %}
+{% block title %}{{ t.m_title if mode == 'market' else (t.today if mode == 'today' else (current.name if current else 'Studio')) }}{% endblock %}
 {% block head %}
 <style>
 .ai-top { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
@@ -23,6 +23,8 @@
 {% if static %}<div class="banner" role="note"><b>{{ t.static_banner }}</b> {{ t.static_note }}</div>{% endif %}
 {% if mode == 'market' %}
   {% include "_studio_market.html" %}
+{% elif mode == 'today' %}
+  {% include "_studio_today.html" %}
 {% elif current %}
   {% set badge = {'live': 'good', 'testing': 'warn', 'new': 'info', 'ga4': 'outline', 'waiting': 'dashed'} %}
   <header class="page-head">
@@ -104,7 +106,14 @@
 
 {% block aside %}
 <aside class="aside" aria-label="{{ t.ai }}">
-{% if mode == 'market' %}
+{% if mode == 'today' %}
+  <div class="ai-top"><h2>{{ icon('insights')|safe }} {{ t.top_insights }}</h2><p>{{ t.ai_note }}</p></div>
+  <div class="ai-body">
+    {% for c in cards %}<div class="finding {{ c.severity }}"><div class="ttl">{{ c.title }}</div><div class="bd">{{ c.body }}</div>{% if c.app %}<div class="ev">{{ c.app }}</div>{% endif %}</div>
+    {% else %}<p class="muted" style="font-size:13px">{{ t.no_recs }}</p>{% endfor %}
+    {% if cards and not static %}<p style="margin:10px 0 0;font-size:12.5px"><a href="/insights">{{ t.see_all }} →</a></p>{% endif %}
+  </div>
+{% elif mode == 'market' %}
   <div class="ai-top"><h2>{{ icon('insights')|safe }} {{ t.m_ideas }}</h2><p>{{ t.m_ideas_note }}</p></div>
   <div class="ai-body">
     {% for i in market.ideas if market and market.facts %}

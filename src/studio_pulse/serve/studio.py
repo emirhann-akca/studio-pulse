@@ -18,6 +18,7 @@ and verified, never invented.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import secrets
 from pathlib import Path
@@ -25,7 +26,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from starlette.concurrency import run_in_threadpool
 
 from . import studio_metrics as sm
@@ -103,6 +104,22 @@ T: dict[str, dict[str, str]] = {
         "sdk_page": "SDK ayrıntıları (bölümler, ısı haritası)",
         "collector_down": "Toplayıcıya ulaşılamıyor; canlı sayılar yok.",
         "evidence": "kanıt",
+        "today": "Bugün",
+        "today_sub": "Son yenilemeden: dikkat isteyenler, her uygulamanın son 7 günü ve pazar.",
+        "attention": "Dikkat isteyenler",
+        "all_clear": "Acil bir şey yok: son yenilemede uyarı yok, kaynaklar güncel.",
+        "stale_line": "{app} · {source}: {lag} gündür yeni veri yok",
+        "failing_line": "{n} veri kalitesi denetimi başarısız",
+        "apps_week": "Uygulamalar · son 7 gün",
+        "open": "Aç",
+        "market_today": "Pazarda bugün",
+        "top_insights": "Öne çıkan içgörüler",
+        "see_all": "Tümü",
+        "no_data_short": "veri yok",
+        "rev_short": "Gelir",
+        "dau_short": "Günlük aktif",
+        "new_short": "Yeni",
+        "d1_short": "D1",
         "store30": "Mağaza · son 30 gün",
         "x_back": "Geri: {app}",
         "x_period": "Bu dönem",
@@ -215,6 +232,22 @@ T: dict[str, dict[str, str]] = {
         "sdk_page": "SDK details (levels, heatmap)",
         "collector_down": "The collector is not reachable; no live numbers.",
         "evidence": "evidence",
+        "today": "Today",
+        "today_sub": "From the last refresh: what needs attention, every app's last 7 days and the market.",
+        "attention": "Needs attention",
+        "all_clear": "Nothing urgent: no alerts in the last refresh and every source is fresh.",
+        "stale_line": "{app} · {source}: no new data for {lag} days",
+        "failing_line": "{n} data-quality check(s) failing",
+        "apps_week": "Apps · last 7 days",
+        "open": "Open",
+        "market_today": "Market today",
+        "top_insights": "Top insights",
+        "see_all": "All",
+        "no_data_short": "no data",
+        "rev_short": "Revenue",
+        "dau_short": "Daily active",
+        "new_short": "New",
+        "d1_short": "D1",
         "store30": "Store · last 30 days",
         "x_back": "Back: {app}",
         "x_period": "This period",
@@ -432,6 +465,7 @@ def register(
         if not static():
             return {  # the language travels in a cookie (ui.request_lang)
                 "app": lambda a: f"/studio/{a}",
+                "today": "/studio",
                 "market": "/studio/market",
                 "other_lang": f"?lang={other}",
                 "dash": "/dashboard/",
@@ -440,6 +474,7 @@ def register(
         here = f"{page}.html"
         return {
             "app": lambda a: f"{a}.html",
+            "today": "index.html",
             "market": "market.html",
             "other_lang": f"tr/{here}" if lang == "en" else f"../{here}",
             "dash": "../" if lang == "en" else "../../",
@@ -618,8 +653,62 @@ def register(
             "store_reported": LABELS[lang]["store_reported"],
         }
 
+    def today_data(lang: str) -> dict[str, Any]:
+        """The morning brief: what needs attention, every app's last 7 days against the 7
+        before (the same metric definitions as the tiles), the market's day."""
+        data = page_data(None, lang, full=False)
+        con, _ = open_db(cfg)
+        apps_out: list[dict[str, Any]] = []
+        alerts: list[dict[str, Any]] = []
+        stale: list[dict[str, Any]] = []
+        failing = 0
+        try:
+            if con is not None:
+                for a in data["apps"] + data["arrived"]:
+                    end = sm.last_date(rows, con, a["id"])
+                    ks = {k: sm.compute(rows, con, a["id"], k, end, 7, lang)
+                          for k in ("dau", "new_users", "revenue", "d1")} if end else {}  # fmt: skip
+                    apps_out.append({"app": a, "end": end, "k": ks})
+                alerts = rows(
+                    con,
+                    "SELECT * FROM meta_alert_events WHERE run_id = (SELECT run_id FROM "
+                    "meta_alert_events ORDER BY fired_at DESC LIMIT 1) ORDER BY severity, app_id, rule",
+                )
+                today = cfg.as_of or dt.date.today()
+                for r in rows(con, "SELECT * FROM fct_source_freshness ORDER BY app_id, source"):
+                    lag = (today - r["data_through"]).days if r.get("data_through") else None
+                    if lag is not None and lag > 3:
+                        stale.append({**r, "lag": lag})
+                from .. import checks
+
+                failing = checks.summarize(checks.latest_results(con))["errors"]
+            else:
+                apps_out = [
+                    {"app": a, "end": None, "k": {}} for a in data["apps"] + data["arrived"]
+                ]
+        finally:
+            if con is not None:
+                con.close()
+        cards: list[dict[str, Any]] = []
+        load = getattr(app.state, "brain_insights", None)
+        if load and not static():
+            try:
+                cards = load(lang)["cards"][:5]
+            except Exception:  # the brain is optional; the brief still shows the numbers
+                cards = []
+        data.update(
+            mode="today", chosen="@today", current=None, view=None, recs=[], cards=cards,
+            nav=nav(lang, "index"), market=market_data(lang),
+            brief={"apps": apps_out, "alerts": alerts[:8], "stale": stale, "failing": failing},
+        )  # fmt: skip
+        return data
+
     def render(page: str, lang: str) -> str | None:
         """One Studio page as HTML without a request (the static export)."""
+        if page == "index":
+            return templates.get_template("studio.html").render(
+                context(None, "studio", **today_data(lang))
+            )
         if page == "market":
             data = page_data(None, lang, full=False)
             data.update(chosen="@market", current=None, view=None, cards=[], recs=[],
@@ -646,12 +735,8 @@ def register(
     @app.get("/studio", response_class=HTMLResponse)
     def studio_home(request: Request, lang: str | None = None):
         lg = request_lang(request, lang)
-        data = page_data(None, lg, full=False)
-        if data["chosen"]:
-            q = f"?lang={lang}" if lang in ("tr", "en") else ""
-            return RedirectResponse(f"/studio/{data['chosen']}{q}", status_code=307)
         return templates.TemplateResponse(
-            request, "studio.html", context(request, "studio", **data)
+            request, "studio.html", context(request, "studio", **today_data(lg))
         )
 
     @app.get("/studio/fragments/sidebar", response_class=HTMLResponse)
@@ -767,9 +852,9 @@ def export_static(
                 continue
             (d / f"{page}.html").write_text(html, encoding="utf-8")
             written.append(d / f"{page}.html")
-        if ids:  # the folder opens on the first configured app (the config's order)
-            start = next((a.id for a in cfg.apps if a.id in ids), ids[0])
-            first = app.state.studio_render(start, lang) or ""
-            (d / "index.html").write_text(first, encoding="utf-8")
-            written.append(d / "index.html")
+        # the folder opens on the morning brief, as the app does
+        (d / "index.html").write_text(
+            app.state.studio_render("index", lang) or "", encoding="utf-8"
+        )
+        written.append(d / "index.html")
     return written

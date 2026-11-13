@@ -66,6 +66,7 @@ _PATHS = {
     "check": '<path d="M5 12l5 5 9-10"/>',
     "warn": '<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17h.01"/>',
     "levels": '<path d="M4 20h4v-6H4zM10 20h4V9h-4zM16 20h4V4h-4z"/>',
+    "today": '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     "apps": '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
 }
 
@@ -114,6 +115,7 @@ S: dict[str, dict[str, str]] = {
         "failing_checks": "başarısız denetim",
         "alerts_last": "son yenilemedeki uyarı",
         "apps": "Uygulamalar",
+        "today": "Bugün",
         "new_section": "Yeni gelenler",
         "tools": "Araçlar",
         "radar": "Pazar radarı",
@@ -317,6 +319,7 @@ S: dict[str, dict[str, str]] = {
         "failing_checks": "failing check(s)",
         "alerts_last": "alert(s) in the last refresh",
         "apps": "Apps",
+        "today": "Today",
         "new_section": "New arrivals",
         "tools": "Tools",
         "radar": "Market radar",
@@ -519,7 +522,8 @@ def commands(
     s: dict[str, str], apps: list[dict[str, Any]], nav: dict[str, Any]
 ) -> list[dict[str, str]]:
     """The ⌘K palette: every app, then every page this copy of the app has."""
-    out = [{"label": a["name"], "href": nav["app"](a["id"]), "hint": s["apps"]} for a in apps]
+    out = [{"label": s["today"], "href": nav.get("today", "/studio"), "hint": s["tools"]}]
+    out += [{"label": a["name"], "href": nav["app"](a["id"]), "hint": s["apps"]} for a in apps]
     out.append({"label": s["radar"], "href": nav["market"], "hint": s["tools"]})
     if nav.get("static"):
         d = nav["dash"]
