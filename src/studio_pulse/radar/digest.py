@@ -963,7 +963,71 @@ def verify_narration(text: str, facts: dict[str, Any]) -> list[str]:
 NARRATE_SYSTEM = """You write a short summary of a daily mobile-game market radar in Turkish and
 English. Use only the facts given as JSON. Do not add any number, date or claim that is not in
 the facts; prefer no numbers at all. Do not estimate downloads or revenue. Two to four
-sentences per language."""
+sentences per language. Write Turkish with its own letters (ç, ğ, ı, İ, ö, ş, ü), never as
+ASCII. Copy every game and developer name exactly as written in the facts, with its accents
+and punctuation."""
+
+_TR_LETTERS = set("çğıöşüÇĞİÖŞÜ")
+
+
+def _fold_char(c: str) -> str:
+    """One character to its unaccented lower-case base (1:1, so indices survive)."""
+    import unicodedata
+
+    if c in "ıİ":
+        return "i"
+    base = unicodedata.normalize("NFKD", c)[0]
+    return base.lower()
+
+
+def _fold(text: str) -> str:
+    return "".join(_fold_char(c) for c in text)
+
+
+def _edit_distance(a: str, b: str) -> int:
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def check_names(text: str, names: list[str], lang: str) -> tuple[str, list[str]]:
+    """Repair names that only lost their accents; report names the model misspelled.
+
+    A word of the text that folds to a word of a game or developer name but is written
+    differently gets the exact spelling back (Wortratsel -> Worträtsel). A capitalised word
+    one or two edits away from such a word (Wortrasel) is a misspelling: reported, not
+    guessed; lower-case words are ordinary words (titles is not Tiles).
+    A Turkish text longer than a sentence without a single Turkish letter is reported too.
+    """
+    problems: list[str] = []
+    words = {w for n in names for w in re.findall(r"[^\W\d_]+", n) if len(w) >= 5}
+    by_fold = {_fold(w): w for w in words}
+    out = []
+    for tok in re.split(r"([^\W\d_]+)", text):
+        f = _fold(tok)
+        if tok and f in by_fold and tok != by_fold[f] and len(tok) >= 5:
+            out.append(by_fold[f])
+            continue
+        # names are capitalised: a lower-case word near a name word is just a word (titles/Tiles)
+        if len(tok) >= 5 and tok[0].isupper() and f not in by_fold:
+            near = [
+                w
+                for k, w in by_fold.items()
+                if abs(len(k) - len(f)) <= 2
+                and _edit_distance(k, f) <= 2
+                and not (f.startswith(k) or k.startswith(f))  # Squads, Lordrush'ın: inflections
+            ]
+            if near and tok.lower() not in {w.lower() for w in words}:
+                problems.append(f"{tok} -> {near[0]}")
+        out.append(tok)
+    fixed = "".join(out)
+    if lang == "tr" and len(fixed) > 120 and not (_TR_LETTERS & set(fixed)):
+        problems.append("Türkçe harf yok (ASCII)")
+    return fixed, problems
 
 
 def narrate(
@@ -1012,4 +1076,14 @@ def narrate(
     bad = {lang: verify_narration(res.data.get(lang, ""), facts) for lang in ("tr", "en")}
     if any(bad.values()):
         return {"status": "rejected", "unsupported_numbers": bad}
-    return {"status": "ok", "tr": res.data["tr"], "en": res.data["en"]}
+    names = [x for i in brief["items"] for x in (i["name"], i["developer"]) if x]
+    out: dict[str, str] = {}
+    misnamed: dict[str, list[str]] = {}
+    for lang in ("tr", "en"):
+        out[lang], problems = check_names(res.data.get(lang, ""), names, lang)
+        if problems:
+            misnamed[lang] = problems
+    if misnamed:
+        log(f"    radar: narration rejected (names / letters): {misnamed}")
+        return {"status": "rejected", "misnamed": misnamed}
+    return {"status": "ok", "tr": out["tr"], "en": out["en"]}

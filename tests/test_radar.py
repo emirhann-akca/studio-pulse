@@ -729,6 +729,24 @@ def test_idle_tycoon_needs_more_than_the_word_idle():
     )
 
 
+def test_narration_names_and_turkish_letters_are_checked():
+    """13 Nov 2026 live run: the Turkish summary came back without Turkish letters and with
+    "Word Tiles: Wortrasel" for "Worträtsel"."""
+    names = ["Word Tiles: Worträtsel", "Agave Games", "Warline: Sniper Squad", "Lordrush"]
+    real = (
+        "Gunluk mobil oyun pazarinda Warline: Sniper Squad, Word Tiles: Wortrasel ve Lordrush "
+        "gibi gec yukselen yapimlar dikkat cekiyor; yeni cikislar da yukselen kategorisinde."
+    )
+    fixed, problems = digest.check_names(real, names, "tr")
+    assert "Wortrasel -> Worträtsel" in problems and "Türkçe harf yok (ASCII)" in problems
+    fixed, problems = digest.check_names("Word Tiles: Wortratsel öne çıkıyor.", names, "tr")
+    assert problems == [] and fixed == "Word Tiles: Worträtsel öne çıkıyor."  # accents restored
+    ok = "Lordrush'ın yükselişi ve Warline: Sniper Squads benzeri yapımlar öne çıkıyor; güçlü bir gün."
+    assert digest.check_names(ok, names, "tr") == (ok, [])  # suffixes are not misspellings
+    en = "Late risers such as Word Tiles: Worträtsel lead; these titles are gaining attention."
+    assert digest.check_names(en, names, "en") == (en, [])  # an ordinary word near a name word
+
+
 FOODIE = "6811006356"
 
 
