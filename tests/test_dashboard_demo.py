@@ -21,6 +21,14 @@ def demo(tmp_path_factory):
     return site, work
 
 
+DEMO_APPS = ["demo_lanternleap", "demo_tidyhabit", "mossy_match", "pacer_pal", "pebble_pop",
+             "quartz_merge"]  # fmt: skip
+# the Studio as static pages: English in studio/, Turkish in studio/tr/
+STUDIO_PAGES = sorted(
+    f"studio/{lang}{p}.html" for lang in ("", "tr/") for p in [*DEMO_APPS, "index", "market"]
+)
+
+
 def test_demo_builds_every_page(demo):
     site, _ = demo
     pages = sorted(p.relative_to(site).as_posix() for p in site.rglob("*.html"))
@@ -33,6 +41,7 @@ def test_demo_builds_every_page(demo):
         "apps/quartz_merge.html",
         "experiments.html",
         "index.html",
+        *STUDIO_PAGES,
         "ua.html",
     ]
 
@@ -41,6 +50,9 @@ def test_demo_banner_and_fictional_names(demo):
     site, _ = demo
     for page in site.rglob("*.html"):
         html = page.read_text(encoding="utf-8")
+        if "tr" in page.relative_to(site).parts[:-1]:  # the Studio's Turkish copy
+            assert "Sentetik demo verisi" in html and "uydurma" in html, page
+            continue
         assert "Synthetic demo data" in html, page
         assert "fictional" in html
 
@@ -170,3 +182,76 @@ def test_share_axis_never_exceeds_100_percent():
         cap=1.0,
     )
     assert "100.50%" not in html and "100.20%" not in html and ">100.00%<" in html
+
+
+def test_static_studio_is_the_app_view_without_a_server(demo):
+    """docs/demo/studio: the Studio for the demo games; every link is a file next to it."""
+    from urllib.parse import urlsplit
+
+    site, work = demo
+    studio = site / "studio"
+    # opens on the first configured app, not on whichever game sorts first
+    assert (studio / "index.html").read_text(encoding="utf-8") == (
+        studio / "mossy_match.html"
+    ).read_text(encoding="utf-8")
+    for page in studio.rglob("*.html"):
+        html = page.read_text(encoding="utf-8")
+        for bad in ("hx-get", "hx-post", "htmx.min.js", "X-Pulse-Token", "127.0.0.1", "<form"):
+            assert bad not in html, (page, bad)
+        for href in re.findall(r'href="([^"]+)"', html):
+            if urlsplit(href).scheme:
+                continue
+            assert not href.startswith("/"), (page, href)
+            assert (page.parent / urlsplit(href).path).exists(), (page, href)
+    en = (studio / "mossy_match.html").read_text(encoding="utf-8")
+    assert 'href="tr/mossy_match.html">Türkçe<' in en
+    assert 'href="../apps/mossy_match.html"' in en  # the full dashboard page
+    assert "The question box opens in the running app" in en
+    tr = (studio / "tr" / "mossy_match.html").read_text(encoding="utf-8")
+    assert (
+        'href="../mossy_match.html">English<' in tr and 'href="../../apps/mossy_match.html"' in tr
+    )
+    assert "GA4 / mağaza dışa aktarımları" in tr  # the store panel speaks Turkish too
+    market = (studio / "market.html").read_text(encoding="utf-8")
+    assert "Rising today" in market and "Teacup Tumble" in market and "mechanic_shown=" in market
+    assert 'href="studio/index.html">Studio<' in (site / "index.html").read_text(encoding="utf-8")
+
+
+def test_demo_live_snapshot_is_taken_in_the_evening_of_the_last_day(demo):
+    import datetime as dt
+    import json
+
+    from studio_pulse.demo.generate import DEMO_END
+
+    _, work = demo
+    snap = json.loads((work / "live_snapshot.json").read_text(encoding="utf-8"))
+    at = dt.datetime.fromtimestamp(snap["now_ms"] / 1000, dt.UTC)
+    assert at == dt.datetime.combine(DEMO_END, dt.time(20), dt.UTC)
+    assert {a["app_id"] for a in snap["apps"]} == {"demo.pebblepop", "demo.tidyhabit",
+                                                    "demo.lanternleap"}  # fmt: skip
+
+
+def test_demo_market_narration_only_states_its_own_facts():
+    """The synthetic market day: invented games, no store links, a summary whose numbers
+    all come from the facts next to it."""
+    import datetime as dt
+
+    from studio_pulse.demo.market import NARRATION, facts
+    from studio_pulse.radar.taxonomy import load
+
+    f = facts(dt.date(2026, 11, 1))
+    items = {i["name"]: i for i in f["items"]}
+    assert all(i["store_url"] is None and i["play_url"] is None for i in items.values())
+    by_mech: dict[str, int] = {}
+    for r in f["trends"]["rows"]:
+        by_mech[r["mechanic"]] = by_mech.get(r["mechanic"], 0) + r["n_apps"]
+    tea, ink = items["Teacup Tumble"], items["Inkwell Words"]
+    assert (tea["ranks"][0]["rank"], tea["age"]["value"]) == (6, 21)
+    assert (ink["ranks"][0]["rank"], ink["age"]["value"]) == (4, 15)
+    assert by_mech["merge"] == 31 == max(by_mech.values()) and by_mech["match-3"] == 24
+    numbers = {"6", "21", "4", "15", "31", "24", "3"}  # "match-3" in English
+    for text in NARRATION.values():
+        assert set(re.findall(r"\d+", text)) <= numbers, text
+    tax = load()
+    for idea in f["ideas"][1:]:
+        assert idea["forge_mechanic"] == tax.forge(idea["mechanic"])

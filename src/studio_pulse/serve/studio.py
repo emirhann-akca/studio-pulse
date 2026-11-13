@@ -28,6 +28,8 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
+STATIC_FORGE_URL = "https://github.com/emirhann-akca/creative-forge"
+
 STATUS_ORDER = {"live": 0, "testing": 1, "new": 2, "ga4": 3, "waiting": 4}
 
 T: dict[str, dict[str, str]] = {
@@ -98,6 +100,13 @@ T: dict[str, dict[str, str]] = {
         "sdk_page": "SDK ayrıntıları (bölümler, ısı haritası)",
         "collector_down": "Toplayıcıya ulaşılamıyor; canlı sayılar yok.",
         "evidence": "kanıt",
+        "store_exports": "GA4 / mağaza dışa aktarımları",
+        "static_banner": "Sentetik demo verisi.",
+        "static_note": "Bu, `pulse demo`nun uydurma oyunları için Stüdyo'nun durağan bir kopyası; hiçbir gerçek ürünü, stüdyoyu ya da oyuncuyu anlatmaz. Uygulamada soldaki liste 10 saniyede bir yenilenir ve bu panel sorulara cevap verir.",
+        "static_ask": "Soru kutusu çalışan uygulamada açılır (`pulse app`).",
+        "static_dash": "Pano",
+        "static_ua": "Kullanıcı edinme",
+        "static_exp": "Deneyler",
     },
     "en": {
         "apps": "Apps",
@@ -166,6 +175,13 @@ T: dict[str, dict[str, str]] = {
         "sdk_page": "SDK details (levels, heatmap)",
         "collector_down": "The collector is not reachable; no live numbers.",
         "evidence": "evidence",
+        "store_exports": "GA4 / store exports",
+        "static_banner": "Synthetic demo data.",
+        "static_note": "A static copy of the Studio for the fictional games of `pulse demo`; it does not describe any real product, studio or player. In the app the list on the left refreshes every 10 seconds and this panel answers questions.",
+        "static_ask": "The question box opens in the running app (`pulse app`).",
+        "static_dash": "Dashboard",
+        "static_ua": "User acquisition",
+        "static_exp": "Experiments",
     },
 }
 
@@ -340,8 +356,32 @@ def register(
             "last_date": s.get("last_date") if s else None,
         }
 
+    def static() -> bool:
+        return bool(getattr(app.state, "studio_static", False))
+
+    def nav(lang: str, page: str) -> dict[str, Any]:
+        """Where the Studio's links go: the running app's routes, or, for the static copy
+        (docs/demo/studio: English at the top, Turkish under tr/), relative file names."""
+        other = "en" if lang == "tr" else "tr"
+        if not static():
+            return {
+                "app": lambda a: f"/studio/{a}?lang={lang}",
+                "market": f"/studio/market?lang={lang}",
+                "other_lang": f"?lang={other}",
+                "dash": "/dashboard/",
+            }
+        here = f"{page}.html"
+        return {
+            "app": lambda a: f"{a}.html",
+            "market": "market.html",
+            "other_lang": f"tr/{here}" if lang == "en" else f"../{here}",
+            "dash": "../" if lang == "en" else "../../",
+        }
+
     def creative_forge_url() -> str | None:
         """The running Creative Forge app's URL, from its own app.json, if it answers."""
+        if static():  # the static copy never probes this machine
+            return STATIC_FORGE_URL
         import os
         import sys
         import urllib.request
@@ -407,8 +447,10 @@ def register(
             "cards": cards[:6],
             "recs": recs,
             "source": source,
-            "collector_error": lv.get("error"),
+            "collector_error": None if static() else lv.get("error"),
             "forge_url": creative_forge_url(),
+            "static": static(),
+            "nav": nav(lang, chosen or "index"),
         }
 
     def market_data(lang: str) -> dict[str, Any]:
@@ -478,12 +520,27 @@ def register(
             "store_reported": LABELS[lang]["store_reported"],
         }
 
+    def render(page: str, lang: str) -> str | None:
+        """One Studio page as HTML without a request (the static export)."""
+        if page == "market":
+            data = page_data(None, lang, full=False)
+            data.update(chosen="__market__", current=None, view=None, cards=[], recs=[],
+                        mode="market", market=market_data(lang), nav=nav(lang, "market"))  # fmt: skip
+        else:
+            data = page_data(page, lang)
+            if data["current"] is None:
+                return None
+        return templates.get_template("studio.html").render(context(None, "studio", **data))
+
+    app.state.studio_render = render
+    app.state.studio_apps = lambda: page_data(None, "en", full=False)
+
     @app.get("/studio/market", response_class=HTMLResponse)
     def studio_market(request: Request, lang: str | None = None):
         lg = _lang(lang)
         data = page_data(None, lg, full=False)
         data.update(chosen="__market__", current=None, view=None, cards=[], recs=[],
-                    mode="market", market=market_data(lg))  # fmt: skip
+                    mode="market", market=market_data(lg), nav=nav(lg, "market"))  # fmt: skip
         return templates.TemplateResponse(
             request, "studio.html", context(request, "studio", **data)
         )
@@ -540,3 +597,44 @@ def register(
             "_answer.html",
             {"request": request, "answer": ans, "t": UI[lang], "lang": lang},
         )
+
+
+def export_static(
+    cfg: Any,
+    out: Path,
+    *,
+    live: dict[str, Any] | None = None,
+) -> list[Path]:
+    """Write the Studio as static pages (the public demo): one page per app plus the
+    market view, English in out/ and Turkish in out/tr/. `live` is a collector
+    snapshot taken when the data was generated; without one the "playing now" counts
+    are left out. No question box, no polling, no probe of this machine."""
+    import copy
+
+    from .app import create_app
+
+    def fetch() -> dict[str, Any]:
+        if live is None:
+            raise OSError("no live snapshot")
+        return copy.deepcopy(live)
+
+    app = create_app(cfg, token="static", live_fetcher=fetch)
+    app.state.studio_static = True
+    listed = app.state.studio_apps()
+    ids = [a["id"] for a in listed["apps"] + listed["arrived"]]
+    written: list[Path] = []
+    for lang in ("en", "tr"):  # the layout nav() links to
+        d = out if lang == "en" else out / lang
+        d.mkdir(parents=True, exist_ok=True)
+        for page in [*ids, "market"]:
+            html = app.state.studio_render(page, lang)
+            if html is None:
+                continue
+            (d / f"{page}.html").write_text(html, encoding="utf-8")
+            written.append(d / f"{page}.html")
+        if ids:  # the folder opens on the first configured app (the config's order)
+            start = next((a.id for a in cfg.apps if a.id in ids), ids[0])
+            first = app.state.studio_render(start, lang) or ""
+            (d / "index.html").write_text(first, encoding="utf-8")
+            written.append(d / "index.html")
+    return written

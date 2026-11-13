@@ -30,7 +30,7 @@
         <td>{{ it.age.value }} <small>({{ labels['observed'] }})</small></td>
         <td>{% if it.play %}{{ it.play.bucket }} <small>({{ labels['store_reported'] }})</small>{% else %}-{% endif %}</td>
         <td>{% if prim %}{{ prim[0].value }}<br><small>“{{ prim[0].quote }}”</small><br><small>{% if prim[0].source == 'llm' %}{{ 'LLM, alıntıyla doğrulandı' if lang == 'tr' else 'LLM, verified quote' }}{% else %}{{ 'anahtar kelime tahmini' if lang == 'tr' else 'keyword guess' }}{% endif %}</small>{% else %}-{% endif %}</td>
-        <td><a href="{{ it.store_url }}" rel="noopener noreferrer">App Store</a>{% if it.play_url %} · <a href="{{ it.play_url }}" rel="noopener noreferrer">Play</a>{% endif %}</td>
+        <td>{% if it.store_url %}<a href="{{ it.store_url }}" rel="noopener noreferrer">App Store</a>{% endif %}{% if it.play_url %} · <a href="{{ it.play_url }}" rel="noopener noreferrer">Play</a>{% endif %}</td>
       </tr>
     {% else %}
       <tr><td colspan="8">{{ 'Bugün aday yok.' if lang == 'tr' else 'No candidates today.' }}</td></tr>

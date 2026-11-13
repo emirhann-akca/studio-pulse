@@ -73,7 +73,7 @@ h1{font-size:1.4rem}p{color:#94a3b8;line-height:1.5}</style></head><body><main>
 <h1>Studio Pulse hazırlanıyor / getting ready</h1>
 <p>İlk açılış: üç kurgusal oyunun demo verisi kuruluyor (yaklaşık yarım dakika).
 Kendi verin için pulse.local.yaml hazırlayıp <code>pulse app --config</code> ile seç.</p>
-<p>First launch: building demo data for three fictional apps (about half a minute).</p>
+<p>First launch: building demo data for six fictional apps (about half a minute).</p>
 {error}</main></body></html>"""
 
 

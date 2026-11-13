@@ -55,6 +55,14 @@ def cmd_demo(args: argparse.Namespace) -> int:
     print(
         f"Dashboard: {len(res['pages'])} page(s) written to {out}/ in {time.perf_counter() - t0:.1f}s"
     )
+    if index.exists():  # the Studio as static pages next to the dashboard (the public demo)
+        from .serve.studio import export_static
+        from .simulate.demo import LIVE_SNAPSHOT
+
+        snap = work / LIVE_SNAPSHOT
+        live = json.loads(snap.read_text(encoding="utf-8")) if snap.exists() else None
+        pages = export_static(cfg, out / "studio", live=live)
+        print(f"Studio: {len(pages)} static page(s) in {out / 'studio'}/")
     print(f"Open {index} in a browser, or run: pulse serve --config {cfg.path}")
     if args.open and index.exists():
         import webbrowser

@@ -61,6 +61,8 @@ table.mini th { color: var(--muted); font-weight: 500; }
 .ai input[type=text] { flex: 1; font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--ring); background: var(--page); color: var(--ink); }
 .ai button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--ring); background: var(--s1); color: #fff; cursor: pointer; }
 .empty { color: var(--muted); font-size: 13px; }
+.banner { border: 1px solid var(--ring); border-radius: 10px; padding: 8px 12px; margin-bottom: 14px; font-size: 13px; color: var(--muted); }
+.banner b { color: var(--ink); }
 .ai pre, .ai code { white-space: pre-wrap; word-break: break-word; }
 .ai table { display: block; max-width: 100%; overflow-x: auto; font-size: 12px; }
 .ai .body > div { max-width: 100%; }
@@ -68,22 +70,23 @@ table.mini th { color: var(--muted); font-weight: 500; }
 @media (max-width: 1100px) { .studio { grid-template-columns: 220px minmax(0, 1fr); } .ai { display: none; } }
 @media (max-width: 720px) { body { overflow: auto; } .studio { grid-template-columns: 1fr; height: auto; } .side { border-right: 0; } .cols { grid-template-columns: 1fr; } }
 </style>
-<script src="/static/htmx.min.js"></script>
+{% if not static %}<script src="/static/htmx.min.js"></script>{% endif %}
 </head>
-<body hx-headers='{"X-Pulse-Token": "{{ token }}"}'>
+<body{% if not static %} hx-headers='{"X-Pulse-Token": "{{ token }}"}'{% endif %}>
 <div class="studio">
   <aside class="side" aria-label="{{ t.apps }}">
     <div class="brand"><span class="logo" aria-hidden="true">▲</span>Studio Pulse</div>
-    <div class="scroll" id="sidebar" hx-get="/studio/fragments/sidebar?app={{ chosen }}&lang={{ lang }}" hx-trigger="every 10s" hx-swap="innerHTML">
+    <div class="scroll" id="sidebar"{% if not static %} hx-get="/studio/fragments/sidebar?app={{ chosen }}&lang={{ lang }}" hx-trigger="every 10s" hx-swap="innerHTML"{% endif %}>
       {% include "_studio_sidebar.html" %}
     </div>
     <div class="foot">
-      <a href="?lang={{ 'en' if lang == 'tr' else 'tr' }}">{{ 'English' if lang == 'tr' else 'Türkçe' }}</a>
+      <a href="{{ nav.other_lang }}">{{ 'English' if lang == 'tr' else 'Türkçe' }}</a>
       <span>·</span><button class="theme" type="button">Dark mode</button>
     </div>
   </aside>
 
   <main class="main">
+  {% if static %}<div class="banner" role="note"><b>{{ t.static_banner }}</b> {{ t.static_note }}</div>{% endif %}
   {% if mode == 'market' %}
     {% include "_studio_market.html" %}
   {% elif current %}
@@ -93,8 +96,8 @@ table.mini th { color: var(--muted); font-weight: 500; }
       {% if view and view.now is not none %}<span class="meta"><span class="dot" aria-hidden="true"></span> {{ view.now }} {{ t.now }}</span>{% endif %}
       {% if view and view.last_date %}<span class="meta">· {{ view.last_date }}</span>{% endif %}
       <span class="links">
-        {% if dashboard_ready %}<a href="/dashboard/apps/{{ chosen }}.html">{{ t.dashboard }}</a>{% endif %}
-        {% if view and view.has_sdk_page %}<a href="/live/apps/{{ chosen }}">{{ t.sdk_page }}</a>{% endif %}
+        {% if dashboard_ready %}<a href="{{ nav.dash }}apps/{{ chosen }}.html">{{ t.dashboard }}</a>{% endif %}
+        {% if view and view.has_sdk_page and not static %}<a href="/live/apps/{{ chosen }}">{{ t.sdk_page }}</a>{% endif %}
       </span>
     </div>
     {% if collector_error %}<p class="empty">{{ t.collector_down }}</p>{% endif %}
@@ -118,7 +121,7 @@ table.mini th { color: var(--muted); font-weight: 500; }
         <h3>{{ t.store }}</h3>
         {% if view and view.store %}
         <table class="mini">{% for r in view.store %}<tr><td>{{ r.platform }}</td><td><span class="st {{ r.status }}">{{ t[r.status] if r.status in t else r.status }}</span></td><td>{% if r.store_listed %}{% if r.store_url %}<a href="{{ r.store_url }}" rel="noopener noreferrer">{{ t.listed }}</a>{% else %}{{ t.listed }}{% endif %}{% else %}{{ t.not_listed }}{% endif %}</td><td>{{ r.last_version or '' }}</td></tr>{% endfor %}</table>
-        {% else %}<p class="empty">GA4 / store exports</p>{% endif %}
+        {% else %}<p class="empty">{{ t.store_exports }}</p>{% endif %}
       </section>
     </div>
     <section class="panel">
@@ -153,7 +156,9 @@ table.mini th { color: var(--muted); font-weight: 500; }
       {% else %}<p class="empty">—</p>{% endfor %}
       <div class="chat" id="chat"></div>
     </div>
-    {% if current %}
+    {% if current and static %}
+    <p class="empty" style="padding:10px 12px;margin:0;border-top:1px solid var(--grid)">{{ t.static_ask }}</p>
+    {% elif current %}
     <form hx-post="/studio/{{ chosen }}/ask" hx-target="#chat" hx-swap="beforeend" hx-on::before-request="var q=this.q.value;if(!q.trim()){event.preventDefault();return;}var d=document.createElement('div');d.className='q';d.textContent=q;document.getElementById('chat').appendChild(d);" hx-on::after-request="this.reset()">
       <input type="hidden" name="lang" value="{{ lang }}">
       <input type="text" name="q" placeholder="{{ t.ask_ph }}" aria-label="{{ t.ask }}" autocomplete="off">

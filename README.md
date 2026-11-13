@@ -12,8 +12,14 @@ warehouse; every app gets the same SQL metric definitions, the same alert
 rules and the same static dashboard.
 
 **Live demo: <https://emirhann-akca.github.io/studio-pulse/>** - synthetic data
-for three fictional apps, built by `pulse demo` (UA spend, an A/B test and
-store reviews included).
+for six fictional apps (three with GA4 and store exports, three sending through the
+SDK collector), built by `pulse demo` (UA spend, an A/B test and store reviews
+included). **The Studio, the app's one-window view:
+<https://emirhann-akca.github.io/studio-pulse/studio/>** - a static copy (no
+question box, no polling) with an invented market-radar day; Turkish under
+`studio/tr/`.
+
+[![The Studio: apps on the left, the selected app in the middle, its AI panel on the right](docs/img/studio.png)](https://emirhann-akca.github.io/studio-pulse/studio/)
 
 [![Portfolio page of the demo dashboard](docs/img/dashboard.png)](https://emirhann-akca.github.io/studio-pulse/)
 
@@ -92,7 +98,7 @@ store reviews included).
   `/ask` in the local UI): deterministic statistics find and explain the
   changes, every number in a sentence is formatted by code and checked against
   its evidence, and a language model may only rephrase (see below).
-- 702 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
+- 705 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
   dart analyze; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -140,7 +146,7 @@ find it) or to the applications menu (Linux); `PULSE_NO_SHORTCUT=1` skips that,
 A double-click starts the local server on a free port and opens **Studio**
 (`/studio`) in a window of its own (Edge, Chrome, Brave or Chromium in app mode: no tabs, no
 address bar; the default browser otherwise). The first launch builds demo data
-for three fictional apps behind a "getting ready" page; `pulse app --config
+for six fictional apps behind a "getting ready" page; `pulse app --config
 pulse.local.yaml` switches to your own data and the icon remembers it. A second
 double-click opens a window on the running server instead of starting another,
 and closing the last window stops the server (about 20 seconds later; the
@@ -453,7 +459,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 702 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 705 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 

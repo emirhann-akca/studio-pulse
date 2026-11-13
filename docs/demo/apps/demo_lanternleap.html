@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lantern Leap · Studio Pulse demo</title>
+<meta name="description" content="Studio Pulse demo - app portfolio metrics">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6e69;
+  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10); --hover: rgba(42,120,214,0.08);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --good: #0ca30c; --good-ink: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  --banner-bg: #fff4d6; --banner-ink: #5a4100; --banner-border: #eda100;
+  --link: #1c5cab;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
+    --link: #86b6ef;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10); --hover: rgba(57,135,229,0.14);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --good-ink: #0ca30c; --banner-bg: #3a2c00; --banner-ink: #ffe3a1; --banner-border: #c98500;
+  --link: #86b6ef;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--link); }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 48px; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 16px 0 8px; }
+header.top h1 { font-size: 20px; margin: 0; font-weight: 650; }
+header.top .meta { color: var(--ink-2); font-size: 13px; }
+header.top .spacer { flex: 1; }
+nav.apps { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+nav.apps a { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--ring); text-decoration: none; color: var(--ink); background: var(--surface); font-size: 13px; }
+nav.apps a[aria-current="page"] { border-color: var(--s1); box-shadow: inset 0 0 0 1px var(--s1); }
+button.theme { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--ring); background: var(--surface); color: var(--ink); cursor: pointer; }
+.banner { margin: 8px 0 16px; padding: 10px 14px; border-radius: 8px; background: var(--banner-bg); color: var(--banner-ink); border: 1px solid var(--banner-border); font-weight: 600; }
+.banner span { font-weight: 400; }
+h2 { font-size: 16px; margin: 28px 0 10px; font-weight: 650; }
+.note { color: var(--ink-2); font-size: 13px; margin: -4px 0 12px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.tile .label { color: var(--ink-2); font-size: 12px; }
+.tile .value { font-size: 22px; font-weight: 650; margin-top: 2px; }
+.tile .delta { font-size: 12px; color: var(--ink-2); }
+.tile .delta.good { color: var(--good-ink); }
+.tile .delta.bad { color: var(--critical); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 12px; }
+figure.chart { margin: 0; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 12px 12px 8px; min-width: 0; }
+figure.chart figcaption h3 { font-size: 14px; margin: 0; font-weight: 600; }
+figure.chart figcaption p { margin: 2px 0 0; color: var(--ink-2); font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 8px 0 4px; font-size: 12px; color: var(--ink-2); }
+.legend .key { display: inline-flex; align-items: center; gap: 6px; }
+.legend .sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.legend .sw.box { height: 10px; width: 10px; border-radius: 3px; }
+.legend .ramp { display: inline-block; width: 72px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, color-mix(in oklab, var(--s1) 8%, var(--surface)), var(--s1)); }
+.plot { display: grid; grid-template-columns: 52px minmax(0, 1fr) var(--endw, 0px); grid-template-rows: var(--h, 200px) 22px; margin-top: 6px; }
+.yaxis { position: relative; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.yaxis span { position: absolute; right: 6px; transform: translateY(50%); white-space: nowrap; }
+.area { position: relative; border-bottom: 1px solid var(--axis); }
+.area svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.xaxis { grid-column: 2; position: relative; font-size: 11px; color: var(--muted); }
+.xaxis span { position: absolute; top: 4px; transform: translateX(-50%); white-space: nowrap; }
+.xaxis span.first { transform: none; }
+.xaxis span.last { transform: translateX(-100%); }
+.endlabels { position: relative; min-width: 0; font-size: 11px; color: var(--ink-2); }
+.endlabels span { position: absolute; left: 6px; transform: translateY(-50%); white-space: nowrap; }
+.grid line { stroke: var(--grid); stroke-width: 1px; }
+.ln { fill: none; stroke-width: 2px; stroke-linejoin: round; stroke-linecap: round; }
+.ln.dashed { stroke-dasharray: 5 4; }
+.dot { stroke-width: 8px; stroke-linecap: round; }
+.dotring { stroke: var(--surface); stroke-width: 12px; stroke-linecap: round; }
+.hits rect { fill: transparent; }
+.hits rect:hover, .hits rect:focus { fill: var(--hover); outline: none; }
+.c1 { stroke: var(--s1); } .c2 { stroke: var(--s2); } .c3 { stroke: var(--s3); } .c4 { stroke: var(--s4); }
+.c5 { stroke: var(--s5); } .c6 { stroke: var(--s6); } .c7 { stroke: var(--s7); } .c8 { stroke: var(--s8); }
+.b1 { background: var(--s1); } .b2 { background: var(--s2); } .b3 { background: var(--s3); } .b4 { background: var(--s4); }
+.b5 { background: var(--s5); } .b6 { background: var(--s6); } .b7 { background: var(--s7); } .b8 { background: var(--s8); }
+.bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; padding: 0 2px; }
+.bars .cat { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+.bars .cat:hover, .bars .cat:focus { background: var(--hover); outline: none; }
+.bars .bar { width: min(24px, 100%); border-radius: 4px 4px 0 0; min-height: 1px; flex: 0 1 24px; }
+.xaxis.cats span { transform: translateX(-50%); }
+.bench { display: grid; grid-template-columns: 34px minmax(0, 1fr) 104px; align-items: center; gap: 10px; margin: 16px 0 24px; }
+.bench .bl { font-weight: 600; font-size: 13px; }
+.bench .track { position: relative; height: 14px; border-radius: 4px; }
+.bench .zone { position: absolute; top: 0; bottom: 0; background: color-mix(in oklab, var(--s1) 6%, var(--surface)); }
+.bench .zone.z1 { background: color-mix(in oklab, var(--s1) 16%, var(--surface)); }
+.bench .zone.z2 { background: color-mix(in oklab, var(--s1) 28%, var(--surface)); }
+.bench .zone.z3 { background: color-mix(in oklab, var(--s1) 42%, var(--surface)); }
+.bench .zone:first-child { border-radius: 4px 0 0 4px; }
+.bench .zone:last-of-type { border-radius: 0 4px 4px 0; }
+.bench .cut { position: absolute; top: -3px; bottom: -3px; }
+.bench .cut i { position: absolute; left: -1px; top: 0; bottom: 0; width: 2px; background: var(--axis); }
+.bench .cut b { position: absolute; top: 21px; transform: translateX(-50%); font-size: 10px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+.bench .mark { position: absolute; top: -5px; width: 4px; height: 24px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
+.bench .bv { font-variant-numeric: tabular-nums; font-weight: 600; }
+.bench .bv em { display: block; font-style: normal; font-weight: 400; font-size: 12px; color: var(--ink-2); }
+details.data { margin-top: 6px; }
+details.data summary { cursor: pointer; color: var(--ink-2); font-size: 12px; }
+.tbl-wrap { overflow-x: auto; max-height: 320px; overflow-y: auto; margin-top: 6px; }
+table { border-collapse: collapse; font-size: 12px; width: 100%; }
+th, td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; font-variant-numeric: tabular-nums; }
+th.l, td.l { text-align: left; }
+th { color: var(--ink-2); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+.heat td { text-align: center; min-width: 44px; padding: 4px 6px; }
+.heat td.na { color: var(--muted); }
+.alerts { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.alerts li { background: var(--surface); border: 1px solid var(--ring); border-left: 4px solid var(--warning); border-radius: 8px; padding: 8px 12px; }
+.alerts li.critical { border-left-color: var(--critical); }
+.alerts .sev { font-weight: 650; margin-right: 6px; }
+.alerts .ok { border-left-color: var(--good); }
+.status { display: inline-flex; align-items: center; gap: 4px; }
+.status i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.status.fresh i { background: var(--good); } .status.stale i { background: var(--warning); } .status.old i { background: var(--critical); }
+#tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 12px; padding: 6px 8px; border-radius: 6px; max-width: 280px; white-space: pre-line; display: none; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
+@media (max-width: 520px) {
+  .plot { grid-template-columns: 44px minmax(0, 1fr) 0px; }
+  .tile .value { font-size: 19px; }
+  .endlabels { display: none; }
+}
+@media print { button.theme, #tip { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <h1>Lantern Leap · Studio Pulse demo</h1>
+  <span class="meta">Data as of 2026-11-01 · studio-pulse 0.2.0</span>
+  <span class="spacer"></span>
+  <button class="theme" type="button">Dark mode</button>
+</header>
+<div class="banner" role="note">Synthetic demo data. <span>Every number on this site was generated by <code>pulse demo</code> for 6 fictional apps. It does not describe any real product, studio or player.</span></div>
+<nav class="apps" aria-label="Apps"><a href="../studio/index.html">Studio</a><a href="../index.html">Portfolio</a><a href="../ua.html">UA</a><a href="../experiments.html">Experiments</a><a href="../apps/mossy_match.html">Mossy Match</a><a href="../apps/pacer_pal.html">Pacer Pal</a><a href="../apps/quartz_merge.html">Quartz Merge</a><a href="../apps/pebble_pop.html">Pebble Pop</a><a href="../apps/demo_lanternleap.html" aria-current="page">Lantern Leap</a><a href="../apps/demo_tidyhabit.html">Tidy Habit</a></nav>
+<main>
+<div class="tiles"><div class="tile"><div class="label">DAU (7-day avg)</div><div class="value">31.9</div><div class="delta good">+77.0% vs prior 7 days</div></div><div class="tile"><div class="label">MAU</div><div class="value">–</div></div><div class="tile"><div class="label">DAU/MAU</div><div class="value">–</div></div><div class="tile"><div class="label">D1 / D7 / D30</div><div class="value">38% / 10% / –</div></div><div class="tile"><div class="label">Net revenue (7 days)</div><div class="value">$18.36</div><div class="delta good">+1885.8% vs prior 7 days</div></div><div class="tile"><div class="label">ARPDAU (7 days)</div><div class="value">$0.082</div></div><div class="tile" title="LTV curve value at the latest complete day &lt;= 30"><div class="label">Cumulative ARPU D3</div><div class="value">$0.176</div></div><div class="tile"><div class="label">Crash-free users (7 days)</div><div class="value">98.65%</div></div></div>
+<h2>Engagement</h2><div class="grid2"><figure class="chart" id="c-activeusers"><figcaption><h3>Active users</h3><p>WAU/MAU are shown once 7/30 days of history are available</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>DAU</span><span class="key"><i class="sw b2"></i>WAU</span></div><div role="img" aria-label="Active users: line chart, 2 series, 10 points"><div class="plot" style="--h:200px;--endw:55px"><div class="yaxis"><span style="bottom:0.00%">0</span><span style="bottom:33.33%">50</span><span style="bottom:66.67%">100</span><span style="bottom:100.00%">150</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,92.000 L111.11,86.000 L222.22,86.000 L333.33,84.000 L444.44,78.000 L555.56,81.333 L666.67,80.667 L777.78,75.333 L888.89,76.000 L1000.00,76.000" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M666.67,33.333 L777.78,26.000 L888.89,22.000 L1000.00,15.333" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="76.000" y2="76.000" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="76.000" y2="76.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="15.333" y2="15.333" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="15.333" y2="15.333" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="100.00" height="100" data-tip="Oct 22
+DAU: 12
+WAU: –"/><rect x="61.11" y="0" width="100.00" height="100" data-tip="Oct 23
+DAU: 21
+WAU: –"/><rect x="172.22" y="0" width="100.00" height="100" data-tip="Oct 24
+DAU: 21
+WAU: –"/><rect x="283.33" y="0" width="100.00" height="100" data-tip="Oct 25
+DAU: 24
+WAU: –"/><rect x="394.44" y="0" width="100.00" height="100" data-tip="Oct 26
+DAU: 33
+WAU: –"/><rect x="505.56" y="0" width="100.00" height="100" data-tip="Oct 27
+DAU: 28
+WAU: –"/><rect x="616.67" y="0" width="100.00" height="100" data-tip="Oct 28
+DAU: 29
+WAU: 100"/><rect x="727.78" y="0" width="100.00" height="100" data-tip="Oct 29
+DAU: 37
+WAU: 111"/><rect x="838.89" y="0" width="100.00" height="100" data-tip="Oct 30
+DAU: 36
+WAU: 117"/><rect x="950.00" y="0" width="100.00" height="100" data-tip="Oct 31
+DAU: 36
+WAU: 127"/></g></svg></div><div class="endlabels"><span style="top:76.00%">DAU 36</span><span style="top:15.33%">WAU 127</span></div><div class="xaxis"><span class="first" style="left:0.00%">Oct 22</span><span class="" style="left:22.22%">Oct 24</span><span class="" style="left:44.44%">Oct 26</span><span class="" style="left:77.78%">Oct 29</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>DAU</th><th>WAU</th></tr></thead><tbody><tr><td>Oct 22</td><td>12</td><td>–</td></tr><tr><td>Oct 23</td><td>21</td><td>–</td></tr><tr><td>Oct 24</td><td>21</td><td>–</td></tr><tr><td>Oct 25</td><td>24</td><td>–</td></tr><tr><td>Oct 26</td><td>33</td><td>–</td></tr><tr><td>Oct 27</td><td>28</td><td>–</td></tr><tr><td>Oct 28</td><td>29</td><td>100</td></tr><tr><td>Oct 29</td><td>37</td><td>111</td></tr><tr><td>Oct 30</td><td>36</td><td>117</td></tr><tr><td>Oct 31</td><td>36</td><td>127</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-newusersvsstoreinstalls"><figcaption><h3>New users vs store installs</h3><p>Store numbers come from Play Console / App Store Connect reports</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>New users (GA4 first_open)</span></div><div role="img" aria-label="New users vs store installs: line chart, 1 series, 10 points"><div class="plot" style="--h:200px;--endw:23px"><div class="yaxis"><span style="bottom:0.00%">0</span><span style="bottom:25.00%">5</span><span style="bottom:50.00%">10</span><span style="bottom:75.00%">15</span><span style="bottom:100.00%">20</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,40.000 L111.11,20.000 L222.22,35.000 L333.33,30.000 L444.44,20.000 L555.56,30.000 L666.67,25.000 L777.78,20.000 L888.89,20.000 L1000.00,15.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="15.000" y2="15.000" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="15.000" y2="15.000" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="100.00" height="100" data-tip="Oct 22
+New users (GA4 first_open): 12"/><rect x="61.11" y="0" width="100.00" height="100" data-tip="Oct 23
+New users (GA4 first_open): 16"/><rect x="172.22" y="0" width="100.00" height="100" data-tip="Oct 24
+New users (GA4 first_open): 13"/><rect x="283.33" y="0" width="100.00" height="100" data-tip="Oct 25
+New users (GA4 first_open): 14"/><rect x="394.44" y="0" width="100.00" height="100" data-tip="Oct 26
+New users (GA4 first_open): 16"/><rect x="505.56" y="0" width="100.00" height="100" data-tip="Oct 27
+New users (GA4 first_open): 14"/><rect x="616.67" y="0" width="100.00" height="100" data-tip="Oct 28
+New users (GA4 first_open): 15"/><rect x="727.78" y="0" width="100.00" height="100" data-tip="Oct 29
+New users (GA4 first_open): 16"/><rect x="838.89" y="0" width="100.00" height="100" data-tip="Oct 30
+New users (GA4 first_open): 16"/><rect x="950.00" y="0" width="100.00" height="100" data-tip="Oct 31
+New users (GA4 first_open): 17"/></g></svg></div><div class="endlabels"><span style="top:15.00%">17</span></div><div class="xaxis"><span class="first" style="left:0.00%">Oct 22</span><span class="" style="left:22.22%">Oct 24</span><span class="" style="left:44.44%">Oct 26</span><span class="" style="left:77.78%">Oct 29</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>New users (GA4 first_open)</th></tr></thead><tbody><tr><td>Oct 22</td><td>12</td></tr><tr><td>Oct 23</td><td>16</td></tr><tr><td>Oct 24</td><td>13</td></tr><tr><td>Oct 25</td><td>14</td></tr><tr><td>Oct 26</td><td>16</td></tr><tr><td>Oct 27</td><td>14</td></tr><tr><td>Oct 28</td><td>15</td></tr><tr><td>Oct 29</td><td>16</td></tr><tr><td>Oct 30</td><td>16</td></tr><tr><td>Oct 31</td><td>17</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-stickinessdaumau"><figcaption><h3>Stickiness (DAU/MAU)</h3></figcaption><p class="note" style="margin:12px 0">No data for this chart yet.</p></figure><figure class="chart" id="c-sessionsperdau"><figcaption><h3>Sessions per DAU</h3></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Sessions per DAU</span></div><div role="img" aria-label="Sessions per DAU: line chart, 1 series, 10 points"><div class="plot" style="--h:200px;--endw:36px"><div class="yaxis"><span style="bottom:0.00%">2.40</span><span style="bottom:20.00%">2.60</span><span style="bottom:40.00%">2.80</span><span style="bottom:60.00%">3.00</span><span style="bottom:80.00%">3.20</span><span style="bottom:100.00%">3.40</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="80.000" y2="80.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="60.000" y2="60.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="40.000" y2="40.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="20.000" y2="20.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,31.667 L111.11,40.000 L222.22,82.857 L333.33,27.500 L444.44,30.909 L555.56,32.857 L666.67,22.759 L777.78,77.838 L888.89,59.444 L1000.00,48.333" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="48.333" y2="48.333" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="48.333" y2="48.333" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="100.00" height="100" data-tip="Oct 22
+Sessions per DAU: 3.08"/><rect x="61.11" y="0" width="100.00" height="100" data-tip="Oct 23
+Sessions per DAU: 3.00"/><rect x="172.22" y="0" width="100.00" height="100" data-tip="Oct 24
+Sessions per DAU: 2.57"/><rect x="283.33" y="0" width="100.00" height="100" data-tip="Oct 25
+Sessions per DAU: 3.12"/><rect x="394.44" y="0" width="100.00" height="100" data-tip="Oct 26
+Sessions per DAU: 3.09"/><rect x="505.56" y="0" width="100.00" height="100" data-tip="Oct 27
+Sessions per DAU: 3.07"/><rect x="616.67" y="0" width="100.00" height="100" data-tip="Oct 28
+Sessions per DAU: 3.17"/><rect x="727.78" y="0" width="100.00" height="100" data-tip="Oct 29
+Sessions per DAU: 2.62"/><rect x="838.89" y="0" width="100.00" height="100" data-tip="Oct 30
+Sessions per DAU: 2.81"/><rect x="950.00" y="0" width="100.00" height="100" data-tip="Oct 31
+Sessions per DAU: 2.92"/></g></svg></div><div class="endlabels"><span style="top:48.33%">2.92</span></div><div class="xaxis"><span class="first" style="left:0.00%">Oct 22</span><span class="" style="left:22.22%">Oct 24</span><span class="" style="left:44.44%">Oct 26</span><span class="" style="left:77.78%">Oct 29</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Sessions per DAU</th></tr></thead><tbody><tr><td>Oct 22</td><td>3.08</td></tr><tr><td>Oct 23</td><td>3.00</td></tr><tr><td>Oct 24</td><td>2.57</td></tr><tr><td>Oct 25</td><td>3.12</td></tr><tr><td>Oct 26</td><td>3.09</td></tr><tr><td>Oct 27</td><td>3.07</td></tr><tr><td>Oct 28</td><td>3.17</td></tr><tr><td>Oct 29</td><td>2.62</td></tr><tr><td>Oct 30</td><td>2.81</td></tr><tr><td>Oct 31</td><td>2.92</td></tr></tbody></table></div></details></figure></div>
+<h2>Retention</h2><p class="note">Headline (last 28 complete cohorts, size-weighted, classic day-N): D1 37.9% (9 cohorts, 132 users), D7 9.8% (3 cohorts, 41 users)</p><div class="grid2"><figure class="chart" id="c-retentionbyinstallcohort"><figcaption><h3>Retention by install cohort</h3><p>Share of each day&#x27;s new users active again on day N</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>D1</span><span class="key"><i class="sw b2"></i>D7</span></div><div role="img" aria-label="Retention by install cohort: line chart, 2 series, 10 points"><div class="plot" style="--h:200px;--endw:61px"><div class="yaxis"><span style="bottom:0.00%">0.0%</span><span style="bottom:33.33%">20.0%</span><span style="bottom:66.67%">40.0%</span><span style="bottom:100.00%">60.0%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,30.556 L111.11,47.917 L222.22,35.897 L333.33,16.667 L444.44,37.500 L555.56,52.381 L666.67,33.333 L777.78,27.083 L888.89,47.917" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,86.111 L111.11,79.167 L222.22,87.179" vector-effect="non-scaling-stroke"/><line class="dotring" x1="888.89" x2="888.89" y1="47.917" y2="47.917" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="888.89" x2="888.89" y1="47.917" y2="47.917" vector-effect="non-scaling-stroke"/><line class="dotring" x1="222.22" x2="222.22" y1="87.179" y2="87.179" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="222.22" x2="222.22" y1="87.179" y2="87.179" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="100.00" height="100" data-tip="Oct 22
+D1: 41.7%
+D7: 8.3%"/><rect x="61.11" y="0" width="100.00" height="100" data-tip="Oct 23
+D1: 31.2%
+D7: 12.5%"/><rect x="172.22" y="0" width="100.00" height="100" data-tip="Oct 24
+D1: 38.5%
+D7: 7.7%"/><rect x="283.33" y="0" width="100.00" height="100" data-tip="Oct 25
+D1: 50.0%
+D7: –"/><rect x="394.44" y="0" width="100.00" height="100" data-tip="Oct 26
+D1: 37.5%
+D7: –"/><rect x="505.56" y="0" width="100.00" height="100" data-tip="Oct 27
+D1: 28.6%
+D7: –"/><rect x="616.67" y="0" width="100.00" height="100" data-tip="Oct 28
+D1: 40.0%
+D7: –"/><rect x="727.78" y="0" width="100.00" height="100" data-tip="Oct 29
+D1: 43.8%
+D7: –"/><rect x="838.89" y="0" width="100.00" height="100" data-tip="Oct 30
+D1: 31.2%
+D7: –"/><rect x="950.00" y="0" width="100.00" height="100" data-tip="Oct 31
+D1: –
+D7: –"/></g></svg></div><div class="endlabels"><span style="top:47.92%">D1 31.2%</span><span style="top:87.18%">D7 7.7%</span></div><div class="xaxis"><span class="first" style="left:0.00%">Oct 22</span><span class="" style="left:22.22%">Oct 24</span><span class="" style="left:44.44%">Oct 26</span><span class="" style="left:77.78%">Oct 29</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Cohort</th><th>D1</th><th>D7</th></tr></thead><tbody><tr><td>Oct 22</td><td>41.7%</td><td>8.3%</td></tr><tr><td>Oct 23</td><td>31.2%</td><td>12.5%</td></tr><tr><td>Oct 24</td><td>38.5%</td><td>7.7%</td></tr><tr><td>Oct 25</td><td>50.0%</td><td>–</td></tr><tr><td>Oct 26</td><td>37.5%</td><td>–</td></tr><tr><td>Oct 27</td><td>28.6%</td><td>–</td></tr><tr><td>Oct 28</td><td>40.0%</td><td>–</td></tr><tr><td>Oct 29</td><td>43.8%</td><td>–</td></tr><tr><td>Oct 30</td><td>31.2%</td><td>–</td></tr><tr><td>Oct 31</td><td>–</td><td>–</td></tr></tbody></table></div></details></figure><figure class="chart" id="h-cohortmatrixlatest14cohorts"><figcaption><h3>Cohort matrix (latest 14 cohorts)</h3><p>Rows: install date · cohort size. Dots mark days not observed yet.</p></figcaption><div class="legend" aria-hidden="true"><span class="key">0.0% <i class="ramp"></i> 50.0%</span><span class="key"><i class="sw box" style="background:var(--grid)"></i>· not observed yet</span></div><div class="tbl-wrap" style="max-height:none"><table class="heat" aria-label="Cohort matrix (latest 14 cohorts)"><thead><tr><th class="l">Cohort · users</th><th>D1</th><th>D2</th><th>D3</th><th>D7</th><th>D14</th><th>D21</th><th>D30</th></tr></thead><tbody><tr><td class="l">Oct 31 · 17</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 30 · 16</td><td style="background:color-mix(in oklab, var(--s1) 59%, var(--surface));color:#ffffff">31.2%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 29 · 16</td><td style="background:color-mix(in oklab, var(--s1) 80%, var(--surface));color:#ffffff">43.8%</td><td style="background:color-mix(in oklab, var(--s1) 39%, var(--surface));color:var(--ink)">18.8%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 28 · 15</td><td style="background:color-mix(in oklab, var(--s1) 74%, var(--surface));color:#ffffff">40.0%</td><td style="background:color-mix(in oklab, var(--s1) 30%, var(--surface));color:var(--ink)">13.3%</td><td style="background:color-mix(in oklab, var(--s1) 30%, var(--surface));color:var(--ink)">13.3%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 27 · 14</td><td style="background:color-mix(in oklab, var(--s1) 55%, var(--surface));color:#ffffff">28.6%</td><td style="background:color-mix(in oklab, var(--s1) 55%, var(--surface));color:#ffffff">28.6%</td><td style="background:color-mix(in oklab, var(--s1) 31%, var(--surface));color:var(--ink)">14.3%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 26 · 16</td><td style="background:color-mix(in oklab, var(--s1) 70%, var(--surface));color:#ffffff">37.5%</td><td style="background:color-mix(in oklab, var(--s1) 49%, var(--surface));color:var(--ink)">25.0%</td><td style="background:color-mix(in oklab, var(--s1) 49%, var(--surface));color:var(--ink)">25.0%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 25 · 14</td><td style="background:color-mix(in oklab, var(--s1) 90%, var(--surface));color:#ffffff">50.0%</td><td style="background:color-mix(in oklab, var(--s1) 55%, var(--surface));color:#ffffff">28.6%</td><td style="background:color-mix(in oklab, var(--s1) 31%, var(--surface));color:var(--ink)">14.3%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 24 · 13</td><td style="background:color-mix(in oklab, var(--s1) 71%, var(--surface));color:#ffffff">38.5%</td><td style="background:color-mix(in oklab, var(--s1) 58%, var(--surface));color:#ffffff">30.8%</td><td style="background:color-mix(in oklab, var(--s1) 46%, var(--surface));color:var(--ink)">23.1%</td><td style="background:color-mix(in oklab, var(--s1) 21%, var(--surface));color:var(--ink)">7.7%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 23 · 16</td><td style="background:color-mix(in oklab, var(--s1) 59%, var(--surface));color:#ffffff">31.2%</td><td style="background:color-mix(in oklab, var(--s1) 28%, var(--surface));color:var(--ink)">12.5%</td><td style="background:color-mix(in oklab, var(--s1) 59%, var(--surface));color:#ffffff">31.2%</td><td style="background:color-mix(in oklab, var(--s1) 28%, var(--surface));color:var(--ink)">12.5%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr><tr><td class="l">Oct 22 · 12</td><td style="background:color-mix(in oklab, var(--s1) 76%, var(--surface));color:#ffffff">41.7%</td><td style="background:color-mix(in oklab, var(--s1) 49%, var(--surface));color:var(--ink)">25.0%</td><td style="background:color-mix(in oklab, var(--s1) 49%, var(--surface));color:var(--ink)">25.0%</td><td style="background:color-mix(in oklab, var(--s1) 22%, var(--surface));color:var(--ink)">8.3%</td><td class="na">·</td><td class="na">·</td><td class="na">·</td></tr></tbody></table></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Cohort · users</th><th>D1</th><th>D2</th><th>D3</th><th>D7</th><th>D14</th><th>D21</th><th>D30</th></tr></thead><tbody><tr><td>Oct 31 · 17</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 30 · 16</td><td>31.2%</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 29 · 16</td><td>43.8%</td><td>18.8%</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 28 · 15</td><td>40.0%</td><td>13.3%</td><td>13.3%</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 27 · 14</td><td>28.6%</td><td>28.6%</td><td>14.3%</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 26 · 16</td><td>37.5%</td><td>25.0%</td><td>25.0%</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 25 · 14</td><td>50.0%</td><td>28.6%</td><td>14.3%</td><td>–</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 24 · 13</td><td>38.5%</td><td>30.8%</td><td>23.1%</td><td>7.7%</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 23 · 16</td><td>31.2%</td><td>12.5%</td><td>31.2%</td><td>12.5%</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Oct 22 · 12</td><td>41.7%</td><td>25.0%</td><td>25.0%</td><td>8.3%</td><td>–</td><td>–</td><td>–</td></tr></tbody></table></div></details></figure><figure class="chart" id="k-retentionvsmobilegamebenchmarks"><figcaption><h3>Retention vs mobile game benchmarks</h3><p>Headline D1/D7/D30 (marker) against GameAnalytics 2026 brackets, all genres combined</p></figcaption><div role="img" aria-label="Retention vs mobile game benchmarks: 2 values against reference brackets"><div class="bench" data-tip="D1: 37.9%
+top 25%: just above 30%
+top 10%: 40%"><span class="bl">D1</span><div class="track"><span class="zone z0" style="left:0.00%;width:60.00%"></span><span class="zone z1" style="left:60.00%;width:20.00%"></span><span class="zone z2" style="left:80.00%;width:20.00%"></span><span class="cut" style="left:60.00%"><i></i><b>top 25%</b></span><span class="cut" style="left:80.00%"><i></i><b>top 10%</b></span><span class="mark" style="left:75.76%"></span></div><span class="bv">37.9%<em>top 25%</em></span></div><div class="bench" data-tip="D7: 9.8%
+median: just under 4%
+top 25%: 6-7%
+top 10%: 11-12%"><span class="bl">D7</span><div class="track"><span class="zone z0" style="left:0.00%;width:27.13%"></span><span class="zone z1" style="left:27.13%;width:18.09%"></span><span class="zone z2" style="left:45.22%;width:34.78%"></span><span class="zone z3" style="left:80.00%;width:20.00%"></span><span class="cut" style="left:27.13%"><i></i><b>median</b></span><span class="cut" style="left:45.22%"><i></i><b>top 25%</b></span><span class="cut" style="left:80.00%"><i></i><b>top 10%</b></span><span class="mark" style="left:67.87%"></span></div><span class="bv">9.8%<em>top 25%</em></span></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Day</th><th>Value</th><th>Bracket</th><th>Benchmark</th></tr></thead><tbody><tr><td>D1</td><td>37.9%</td><td>top 25%</td><td>top 25% just above 30%; top 10% 40%</td></tr><tr><td>D7</td><td>9.8%</td><td>top 25%</td><td>median just under 4%; top 25% 6-7%; top 10% 11-12%</td></tr></tbody></table></div></details></figure></div>
+<h2>Monetization</h2><div class="grid2"><figure class="chart" id="c-netrevenueperday"><figcaption><h3>Net revenue per day</h3><p>IAP: ga4_gross · Ads: ga4_ad_impression</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>IAP</span><span class="key"><i class="sw b2"></i>Ads</span></div><div role="img" aria-label="Net revenue per day: line chart, 2 series, 10 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">$0</span><span style="bottom:33.33%">$5.00</span><span style="bottom:66.67%">$10.00</span><span style="bottom:100.00%">$15.00</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,100.000 L111.11,100.000 L222.22,100.000 L333.33,32.343 L444.44,72.937 L555.56,100.000 L666.67,100.000 L777.78,100.000 L888.89,100.000 L1000.00,100.000" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,98.103 L111.11,97.970 L222.22,97.762 L333.33,96.521 L444.44,95.515 L555.56,96.355 L666.67,96.096 L777.78,95.793 L888.89,96.197 L1000.00,95.817" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="100.000" y2="100.000" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="100.000" y2="100.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="95.817" y2="95.817" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="95.817" y2="95.817" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="100.00" height="100" data-tip="Oct 22
+IAP: $0
+Ads: $0.285"/><rect x="61.11" y="0" width="100.00" height="100" data-tip="Oct 23
+IAP: $0
+Ads: $0.305"/><rect x="172.22" y="0" width="100.00" height="100" data-tip="Oct 24
+IAP: $0
+Ads: $0.336"/><rect x="283.33" y="0" width="100.00" height="100" data-tip="Oct 25
+IAP: $10.15
+Ads: $0.522"/><rect x="394.44" y="0" width="100.00" height="100" data-tip="Oct 26
+IAP: $4.06
+Ads: $0.673"/><rect x="505.56" y="0" width="100.00" height="100" data-tip="Oct 27
+IAP: $0
+Ads: $0.547"/><rect x="616.67" y="0" width="100.00" height="100" data-tip="Oct 28
+IAP: $0
+Ads: $0.586"/><rect x="727.78" y="0" width="100.00" height="100" data-tip="Oct 29
+IAP: $0
+Ads: $0.631"/><rect x="838.89" y="0" width="100.00" height="100" data-tip="Oct 30
+IAP: $0
+Ads: $0.570"/><rect x="950.00" y="0" width="100.00" height="100" data-tip="Oct 31
+IAP: $0
+Ads: $0.627"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">Oct 22</span><span class="" style="left:22.22%">Oct 24</span><span class="" style="left:44.44%">Oct 26</span><span class="" style="left:77.78%">Oct 29</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>IAP</th><th>Ads</th></tr></thead><tbody><tr><td>Oct 22</td><td>$0</td><td>$0.285</td></tr><tr><td>Oct 23</td><td>$0</td><td>$0.305</td></tr><tr><td>Oct 24</td><td>$0</td><td>$0.336</td></tr><tr><td>Oct 25</td><td>$10.15</td><td>$0.522</td></tr><tr><td>Oct 26</td><td>$4.06</td><td>$0.673</td></tr><tr><td>Oct 27</td><td>$0</td><td>$0.547</td></tr><tr><td>Oct 28</td><td>$0</td><td>$0.586</td></tr><tr><td>Oct 29</td><td>$0</td><td>$0.631</td></tr><tr><td>Oct 30</td><td>$0</td><td>$0.570</td></tr><tr><td>Oct 31</td><td>$0</td><td>$0.627</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-arpdau"><figcaption><h3>ARPDAU</h3><p>Net revenue / DAU</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>ARPDAU</span></div><div role="img" aria-label="ARPDAU: line chart, 1 series, 10 points"><div class="plot" style="--h:200px;--endw:48px"><div class="yaxis"><span style="bottom:0.00%">$0</span><span style="bottom:33.33%">$0.200</span><span style="bottom:66.67%">$0.400</span><span style="bottom:100.00%">$0.600</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,96.048 L111.11,97.583 L222.22,97.336 L333.33,25.900 L444.44,76.100 L555.56,96.745 L666.67,96.634 L777.78,97.157 L888.89,97.359 L1000.00,97.095" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="97.095" y2="97.095" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="97.095" y2="97.095" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="100.00" height="100" data-tip="Oct 22
+ARPDAU: $0.024"/><rect x="61.11" y="0" width="100.00" height="100" data-tip="Oct 23
+ARPDAU: $0.015"/><rect x="172.22" y="0" width="100.00" height="100" data-tip="Oct 24
+ARPDAU: $0.016"/><rect x="283.33" y="0" width="100.00" height="100" data-tip="Oct 25
+ARPDAU: $0.445"/><rect x="394.44" y="0" width="100.00" height="100" data-tip="Oct 26
+ARPDAU: $0.143"/><rect x="505.56" y="0" width="100.00" height="100" data-tip="Oct 27
+ARPDAU: $0.020"/><rect x="616.67" y="0" width="100.00" height="100" data-tip="Oct 28
+ARPDAU: $0.020"/><rect x="727.78" y="0" width="100.00" height="100" data-tip="Oct 29
+ARPDAU: $0.017"/><rect x="838.89" y="0" width="100.00" height="100" data-tip="Oct 30
+ARPDAU: $0.016"/><rect x="950.00" y="0" width="100.00" height="100" data-tip="Oct 31
+ARPDAU: $0.017"/></g></svg></div><div class="endlabels"><span style="top:97.10%">$0.017</span></div><div class="xaxis"><span class="first" style="left:0.00%">Oct 22</span><span class="" style="left:22.22%">Oct 24</span><span class="" style="left:44.44%">Oct 26</span><span class="" style="left:77.78%">Oct 29</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>ARPDAU</th></tr></thead><tbody><tr><td>Oct 22</td><td>$0.024</td></tr><tr><td>Oct 23</td><td>$0.015</td></tr><tr><td>Oct 24</td><td>$0.016</td></tr><tr><td>Oct 25</td><td>$0.445</td></tr><tr><td>Oct 26</td><td>$0.143</td></tr><tr><td>Oct 27</td><td>$0.020</td></tr><tr><td>Oct 28</td><td>$0.020</td></tr><tr><td>Oct 29</td><td>$0.017</td></tr><tr><td>Oct 30</td><td>$0.016</td></tr><tr><td>Oct 31</td><td>$0.017</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-ltvcurvecumulativearpu"><figcaption><h3>LTV curve (cumulative ARPU)</h3><p>Cumulative net revenue per installed user by days since install (complete cohorts only)</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Total</span><span class="key"><i class="sw b2"></i>IAP</span><span class="key"><i class="sw b3"></i>Ads</span></div><div role="img" aria-label="LTV curve (cumulative ARPU): line chart, 3 series, 4 points"><div class="plot" style="--h:200px;--endw:87px"><div class="yaxis"><span style="bottom:0.00%">$0</span><span style="bottom:25.00%">$0.050</span><span style="bottom:50.00%">$0.100</span><span style="bottom:75.00%">$0.150</span><span style="bottom:100.00%">$0.200</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,55.626 L333.33,31.882 L666.67,22.108 L1000.00,11.827" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,65.944 L333.33,46.182 L666.67,38.759 L1000.00,28.960" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M0.00,89.682 L333.33,85.700 L666.67,83.349 L1000.00,82.867" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="11.827" y2="11.827" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="11.827" y2="11.827" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="28.960" y2="28.960" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="28.960" y2="28.960" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="82.867" y2="82.867" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="1000.00" x2="1000.00" y1="82.867" y2="82.867" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="250.00" height="100" data-tip="D0
+Total: $0.089
+IAP: $0.068
+Ads: $0.021"/><rect x="208.33" y="0" width="250.00" height="100" data-tip="D1
+Total: $0.136
+IAP: $0.108
+Ads: $0.029"/><rect x="541.67" y="0" width="250.00" height="100" data-tip="D2
+Total: $0.156
+IAP: $0.122
+Ads: $0.033"/><rect x="875.00" y="0" width="250.00" height="100" data-tip="D3
+Total: $0.176
+IAP: $0.142
+Ads: $0.034"/></g></svg></div><div class="endlabels"><span style="top:11.83%">Total $0.176</span><span style="top:28.96%">IAP $0.142</span><span style="top:82.87%">Ads $0.034</span></div><div class="xaxis"><span class="first" style="left:0.00%">D0</span><span class="" style="left:33.33%">D1</span><span class="" style="left:66.67%">D2</span><span class="last" style="left:100.00%">D3</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Day</th><th>Total</th><th>IAP</th><th>Ads</th></tr></thead><tbody><tr><td>D0</td><td>$0.089</td><td>$0.068</td><td>$0.021</td></tr><tr><td>D1</td><td>$0.136</td><td>$0.108</td><td>$0.029</td></tr><tr><td>D2</td><td>$0.156</td><td>$0.122</td><td>$0.033</td></tr><tr><td>D3</td><td>$0.176</td><td>$0.142</td><td>$0.034</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-payerconversion"><figcaption><h3>Payer conversion</h3><p>Share of daily active users who paid that day</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Payers / DAU</span></div><div role="img" aria-label="Payer conversion: line chart, 1 series, 10 points"><div class="plot" style="--h:200px;--endw:42px"><div class="yaxis"><span style="bottom:0.00%">0.00%</span><span style="bottom:33.33%">2.00%</span><span style="bottom:66.67%">4.00%</span><span style="bottom:100.00%">6.00%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,100.000 L111.11,100.000 L222.22,100.000 L333.33,30.556 L444.44,49.495 L555.56,100.000 L666.67,100.000 L777.78,100.000 L888.89,100.000 L1000.00,100.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="100.000" y2="100.000" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="100.000" y2="100.000" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="100.00" height="100" data-tip="Oct 22
+Payers / DAU: 0.00%"/><rect x="61.11" y="0" width="100.00" height="100" data-tip="Oct 23
+Payers / DAU: 0.00%"/><rect x="172.22" y="0" width="100.00" height="100" data-tip="Oct 24
+Payers / DAU: 0.00%"/><rect x="283.33" y="0" width="100.00" height="100" data-tip="Oct 25
+Payers / DAU: 4.17%"/><rect x="394.44" y="0" width="100.00" height="100" data-tip="Oct 26
+Payers / DAU: 3.03%"/><rect x="505.56" y="0" width="100.00" height="100" data-tip="Oct 27
+Payers / DAU: 0.00%"/><rect x="616.67" y="0" width="100.00" height="100" data-tip="Oct 28
+Payers / DAU: 0.00%"/><rect x="727.78" y="0" width="100.00" height="100" data-tip="Oct 29
+Payers / DAU: 0.00%"/><rect x="838.89" y="0" width="100.00" height="100" data-tip="Oct 30
+Payers / DAU: 0.00%"/><rect x="950.00" y="0" width="100.00" height="100" data-tip="Oct 31
+Payers / DAU: 0.00%"/></g></svg></div><div class="endlabels"><span style="top:100.00%">0.00%</span></div><div class="xaxis"><span class="first" style="left:0.00%">Oct 22</span><span class="" style="left:22.22%">Oct 24</span><span class="" style="left:44.44%">Oct 26</span><span class="" style="left:77.78%">Oct 29</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Payers / DAU</th></tr></thead><tbody><tr><td>Oct 22</td><td>0.00%</td></tr><tr><td>Oct 23</td><td>0.00%</td></tr><tr><td>Oct 24</td><td>0.00%</td></tr><tr><td>Oct 25</td><td>4.17%</td></tr><tr><td>Oct 26</td><td>3.03%</td></tr><tr><td>Oct 27</td><td>0.00%</td></tr><tr><td>Oct 28</td><td>0.00%</td></tr><tr><td>Oct 29</td><td>0.00%</td></tr><tr><td>Oct 30</td><td>0.00%</td></tr><tr><td>Oct 31</td><td>0.00%</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-cumulativepayerratebycohortday"><figcaption><h3>Cumulative payer rate by cohort day</h3></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Paid at least once</span></div><div role="img" aria-label="Cumulative payer rate by cohort day: line chart, 1 series, 4 points"><div class="plot" style="--h:200px;--endw:42px"><div class="yaxis"><span style="bottom:0.00%">0.00%</span><span style="bottom:25.00%">0.25%</span><span style="bottom:50.00%">0.50%</span><span style="bottom:75.00%">0.75%</span><span style="bottom:100.00%">1.00%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,32.886 L333.33,24.242 L666.67,13.793 L1000.00,0.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="250.00" height="100" data-tip="D0
+Paid at least once: 0.67%"/><rect x="208.33" y="0" width="250.00" height="100" data-tip="D1
+Paid at least once: 0.76%"/><rect x="541.67" y="0" width="250.00" height="100" data-tip="D2
+Paid at least once: 0.86%"/><rect x="875.00" y="0" width="250.00" height="100" data-tip="D3
+Paid at least once: 1.00%"/></g></svg></div><div class="endlabels"><span style="top:0.00%">1.00%</span></div><div class="xaxis"><span class="first" style="left:0.00%">D0</span><span class="" style="left:33.33%">D1</span><span class="" style="left:66.67%">D2</span><span class="last" style="left:100.00%">D3</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Day</th><th>Paid at least once</th></tr></thead><tbody><tr><td>D0</td><td>0.67%</td></tr><tr><td>D1</td><td>0.76%</td></tr><tr><td>D2</td><td>0.86%</td></tr><tr><td>D3</td><td>1.00%</td></tr></tbody></table></div></details></figure></div>
+<h2>Stability</h2><div class="grid2"><figure class="chart" id="c-crashfreeusersandsessions"><figcaption><h3>Crash-free users and sessions</h3><p>Source: ga4_app_exception</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>Crash-free users</span><span class="key"><i class="sw b2"></i>Crash-free sessions</span></div><div role="img" aria-label="Crash-free users and sessions: line chart, 2 series, 10 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">92.00%</span><span style="bottom:25.00%">94.00%</span><span style="bottom:50.00%">96.00%</span><span style="bottom:75.00%">98.00%</span><span style="bottom:100.00%">100.00%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,0.000 L111.11,0.000 L222.22,0.000 L333.33,52.083 L444.44,0.000 L555.56,0.000 L666.67,86.207 L777.78,0.000 L888.89,0.000 L1000.00,0.000" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,0.000 L111.11,0.000 L222.22,0.000 L333.33,16.667 L444.44,0.000 L555.56,0.000 L666.67,27.174 L777.78,0.000 L888.89,0.000 L1000.00,0.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="100.00" height="100" data-tip="Oct 22
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="61.11" y="0" width="100.00" height="100" data-tip="Oct 23
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="172.22" y="0" width="100.00" height="100" data-tip="Oct 24
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="283.33" y="0" width="100.00" height="100" data-tip="Oct 25
+Crash-free users: 95.83%
+Crash-free sessions: 98.67%"/><rect x="394.44" y="0" width="100.00" height="100" data-tip="Oct 26
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="505.56" y="0" width="100.00" height="100" data-tip="Oct 27
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="616.67" y="0" width="100.00" height="100" data-tip="Oct 28
+Crash-free users: 93.10%
+Crash-free sessions: 97.83%"/><rect x="727.78" y="0" width="100.00" height="100" data-tip="Oct 29
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="838.89" y="0" width="100.00" height="100" data-tip="Oct 30
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/><rect x="950.00" y="0" width="100.00" height="100" data-tip="Oct 31
+Crash-free users: 100.00%
+Crash-free sessions: 100.00%"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">Oct 22</span><span class="" style="left:22.22%">Oct 24</span><span class="" style="left:44.44%">Oct 26</span><span class="" style="left:77.78%">Oct 29</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Crash-free users</th><th>Crash-free sessions</th></tr></thead><tbody><tr><td>Oct 22</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 23</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 24</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 25</td><td>95.83%</td><td>98.67%</td></tr><tr><td>Oct 26</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 27</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 28</td><td>93.10%</td><td>97.83%</td></tr><tr><td>Oct 29</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 30</td><td>100.00%</td><td>100.00%</td></tr><tr><td>Oct 31</td><td>100.00%</td><td>100.00%</td></tr></tbody></table></div></details></figure></div>
+
+
+<h2>Client performance</h2><div class="grid2"><figure class="chart" id="b-frametimebydevicetierlast28days"><figcaption><h3>Frame time by device tier (last 28 days)</h3><p>Median over 30 s windows of the window p50 / p95 frame time</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw box b1"></i>p50</span><span class="key"><i class="sw box b2"></i>p95</span></div><div role="img" aria-label="Frame time by device tier (last 28 days): bar chart, 2 series, 4 categories"><div class="plot" style="--h:180px"><div class="yaxis"><span style="bottom:0.00%">0.0 ms</span><span style="bottom:33.33%">10.0 ms</span><span style="bottom:66.67%">20.0 ms</span><span style="bottom:100.00%">30.0 ms</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g></svg><div class="bars"><div class="cat" data-tip="low
+p50: 18.8 ms
+p95: 27.3 ms"><div class="bar b1" style="height:62.67%"></div><div class="bar b2" style="height:90.85%"></div></div><div class="cat" data-tip="mid
+p50: 17.4 ms
+p95: 25.3 ms"><div class="bar b1" style="height:58.15%"></div><div class="bar b2" style="height:84.32%"></div></div><div class="cat" data-tip="high
+p50: 17.4 ms
+p95: 25.2 ms"><div class="bar b1" style="height:57.92%"></div><div class="bar b2" style="height:83.98%"></div></div><div class="cat" data-tip="all
+p50: 17.9 ms
+p95: 26.0 ms"><div class="bar b1" style="height:59.70%"></div><div class="bar b2" style="height:86.53%"></div></div></div></div><div class="endlabels"></div><div class="xaxis cats"><span style="left:12.50%">low</span><span style="left:37.50%">mid</span><span style="left:62.50%">high</span><span style="left:87.50%">all</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Tier</th><th>p50</th><th>p95</th></tr></thead><tbody><tr><td>low</td><td>18.8 ms</td><td>27.3 ms</td></tr><tr><td>mid</td><td>17.4 ms</td><td>25.3 ms</td></tr><tr><td>high</td><td>17.4 ms</td><td>25.2 ms</td></tr><tr><td>all</td><td>17.9 ms</td><td>26.0 ms</td></tr></tbody></table></div></details></figure><figure class="chart" id="b-slowframes333ms"><figcaption><h3>Slow frames (&gt; 33.3 ms)</h3><p>sum(slow frames) / sum(frames)</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw box b1"></i>Share of frames</span></div><div role="img" aria-label="Slow frames (&gt; 33.3 ms): bar chart, 1 series, 4 categories"><div class="plot" style="--h:180px"><div class="yaxis"><span style="bottom:0.00%">0.0%</span><span style="bottom:33.33%">0.5%</span><span style="bottom:66.67%">1.0%</span><span style="bottom:100.00%">1.5%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g></svg><div class="bars"><div class="cat" data-tip="low
+Share of frames: 1.2%"><div class="bar b1" style="height:78.42%"></div></div><div class="cat" data-tip="mid
+Share of frames: 0.2%"><div class="bar b1" style="height:14.00%"></div></div><div class="cat" data-tip="high
+Share of frames: 0.2%"><div class="bar b1" style="height:12.97%"></div></div><div class="cat" data-tip="all
+Share of frames: 0.6%"><div class="bar b1" style="height:37.46%"></div></div></div></div><div class="endlabels"></div><div class="xaxis cats"><span style="left:12.50%">low</span><span style="left:37.50%">mid</span><span style="left:62.50%">high</span><span style="left:87.50%">all</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Tier</th><th>Share of frames</th></tr></thead><tbody><tr><td>low</td><td>1.2%</td></tr><tr><td>mid</td><td>0.2%</td></tr><tr><td>high</td><td>0.2%</td></tr><tr><td>all</td><td>0.6%</td></tr></tbody></table></div></details></figure><figure class="chart" id="b-memoryp95bytier"><figcaption><h3>Memory p95 by tier</h3><p>Peak per window, 95th percentile. OS view = System Used Memory, what low-memory kills act on</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw box b1"></i>Allocated (p95)</span><span class="key"><i class="sw box b2"></i>Reserved (p95)</span><span class="key"><i class="sw box b4"></i>Process, OS view (p95)</span></div><div role="img" aria-label="Memory p95 by tier: bar chart, 3 series, 4 categories"><div class="plot" style="--h:180px"><div class="yaxis"><span style="bottom:0.00%">0 MB</span><span style="bottom:33.33%">200 MB</span><span style="bottom:66.67%">400 MB</span><span style="bottom:100.00%">600 MB</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g></svg><div class="bars"><div class="cat" data-tip="low
+Allocated (p95): –
+Reserved (p95): 420 MB
+Process, OS view (p95): –"><div class="bar b2" style="height:70.00%"></div></div><div class="cat" data-tip="mid
+Allocated (p95): –
+Reserved (p95): 420 MB
+Process, OS view (p95): –"><div class="bar b2" style="height:70.00%"></div></div><div class="cat" data-tip="high
+Allocated (p95): –
+Reserved (p95): 420 MB
+Process, OS view (p95): –"><div class="bar b2" style="height:70.00%"></div></div><div class="cat" data-tip="all
+Allocated (p95): –
+Reserved (p95): 420 MB
+Process, OS view (p95): –"><div class="bar b2" style="height:70.00%"></div></div></div></div><div class="endlabels"></div><div class="xaxis cats"><span style="left:12.50%">low</span><span style="left:37.50%">mid</span><span style="left:62.50%">high</span><span style="left:87.50%">all</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Tier</th><th>Allocated (p95)</th><th>Reserved (p95)</th><th>Process, OS view (p95)</th></tr></thead><tbody><tr><td>low</td><td>–</td><td>420 MB</td><td>–</td></tr><tr><td>mid</td><td>–</td><td>420 MB</td><td>–</td></tr><tr><td>high</td><td>–</td><td>420 MB</td><td>–</td></tr><tr><td>all</td><td>–</td><td>420 MB</td><td>–</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-medianframetimeperday"><figcaption><h3>Median frame time per day</h3><p>16.7 ms = 60 fps, 33.3 ms = 30 fps</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>low tier</span><span class="key"><i class="sw b2"></i>mid tier</span><span class="key"><i class="sw b3"></i>high tier</span></div><div role="img" aria-label="Median frame time per day: line chart, 3 series, 10 points"><div class="plot" style="--h:200px;--endw:0px"><div class="yaxis"><span style="bottom:0.00%">16.0 ms</span><span style="bottom:25.00%">17.0 ms</span><span style="bottom:50.00%">18.0 ms</span><span style="bottom:75.00%">19.0 ms</span><span style="bottom:100.00%">20.0 ms</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,26.375 L111.11,27.500 L222.22,47.250 L333.33,23.500 L444.44,41.250 L555.56,30.000 L666.67,30.375 L777.78,35.875 L888.89,31.000 L1000.00,21.750" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,63.375 L111.11,67.000 L222.22,72.750 L333.33,59.750 L444.44,57.250 L555.56,64.500 L666.67,64.375 L777.78,60.750 L888.89,61.750 L1000.00,69.750" vector-effect="non-scaling-stroke"/><path class="ln c3" d="M0.00,79.250 L111.11,66.750 L222.22,67.125 L333.33,65.750 L444.44,76.625 L555.56,63.625 L666.67,67.000 L777.78,64.125 L888.89,65.500 L1000.00,63.750" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="21.750" y2="21.750" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="21.750" y2="21.750" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="69.750" y2="69.750" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="69.750" y2="69.750" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="63.750" y2="63.750" vector-effect="non-scaling-stroke"/><line class="dot c3" x1="1000.00" x2="1000.00" y1="63.750" y2="63.750" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="100.00" height="100" data-tip="Oct 22
+low tier: 18.9 ms
+mid tier: 17.5 ms
+high tier: 16.8 ms"/><rect x="61.11" y="0" width="100.00" height="100" data-tip="Oct 23
+low tier: 18.9 ms
+mid tier: 17.3 ms
+high tier: 17.3 ms"/><rect x="172.22" y="0" width="100.00" height="100" data-tip="Oct 24
+low tier: 18.1 ms
+mid tier: 17.1 ms
+high tier: 17.3 ms"/><rect x="283.33" y="0" width="100.00" height="100" data-tip="Oct 25
+low tier: 19.1 ms
+mid tier: 17.6 ms
+high tier: 17.4 ms"/><rect x="394.44" y="0" width="100.00" height="100" data-tip="Oct 26
+low tier: 18.4 ms
+mid tier: 17.7 ms
+high tier: 16.9 ms"/><rect x="505.56" y="0" width="100.00" height="100" data-tip="Oct 27
+low tier: 18.8 ms
+mid tier: 17.4 ms
+high tier: 17.5 ms"/><rect x="616.67" y="0" width="100.00" height="100" data-tip="Oct 28
+low tier: 18.8 ms
+mid tier: 17.4 ms
+high tier: 17.3 ms"/><rect x="727.78" y="0" width="100.00" height="100" data-tip="Oct 29
+low tier: 18.6 ms
+mid tier: 17.6 ms
+high tier: 17.4 ms"/><rect x="838.89" y="0" width="100.00" height="100" data-tip="Oct 30
+low tier: 18.8 ms
+mid tier: 17.5 ms
+high tier: 17.4 ms"/><rect x="950.00" y="0" width="100.00" height="100" data-tip="Oct 31
+low tier: 19.1 ms
+mid tier: 17.2 ms
+high tier: 17.4 ms"/></g></svg></div><div class="endlabels"></div><div class="xaxis"><span class="first" style="left:0.00%">Oct 22</span><span class="" style="left:22.22%">Oct 24</span><span class="" style="left:44.44%">Oct 26</span><span class="" style="left:77.78%">Oct 29</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>low tier</th><th>mid tier</th><th>high tier</th></tr></thead><tbody><tr><td>Oct 22</td><td>18.9 ms</td><td>17.5 ms</td><td>16.8 ms</td></tr><tr><td>Oct 23</td><td>18.9 ms</td><td>17.3 ms</td><td>17.3 ms</td></tr><tr><td>Oct 24</td><td>18.1 ms</td><td>17.1 ms</td><td>17.3 ms</td></tr><tr><td>Oct 25</td><td>19.1 ms</td><td>17.6 ms</td><td>17.4 ms</td></tr><tr><td>Oct 26</td><td>18.4 ms</td><td>17.7 ms</td><td>16.9 ms</td></tr><tr><td>Oct 27</td><td>18.8 ms</td><td>17.4 ms</td><td>17.5 ms</td></tr><tr><td>Oct 28</td><td>18.8 ms</td><td>17.4 ms</td><td>17.3 ms</td></tr><tr><td>Oct 29</td><td>18.6 ms</td><td>17.6 ms</td><td>17.4 ms</td></tr><tr><td>Oct 30</td><td>18.8 ms</td><td>17.5 ms</td><td>17.4 ms</td></tr><tr><td>Oct 31</td><td>19.1 ms</td><td>17.2 ms</td><td>17.4 ms</td></tr></tbody></table></div></details></figure><figure class="chart" id="c-coldstartp50p95"><figcaption><h3>Cold start p50 / p95</h3><p>Process start to first interactive frame</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw b1"></i>p50</span><span class="key"><i class="sw b2"></i>p95</span></div><div role="img" aria-label="Cold start p50 / p95: line chart, 2 series, 10 points"><div class="plot" style="--h:200px;--endw:87px"><div class="yaxis"><span style="bottom:0.00%">2,000 ms</span><span style="bottom:25.00%">3,000 ms</span><span style="bottom:50.00%">4,000 ms</span><span style="bottom:75.00%">5,000 ms</span><span style="bottom:100.00%">6,000 ms</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g><path class="ln c1" d="M0.00,82.032 L111.11,83.992 L222.22,83.117 L333.33,77.308 L444.44,75.354 L555.56,72.142 L666.67,73.511 L777.78,61.795 L888.89,72.763 L1000.00,79.290" vector-effect="non-scaling-stroke"/><path class="ln c2" d="M0.00,26.535 L111.11,27.023 L222.22,29.115 L333.33,20.506 L444.44,20.041 L555.56,20.234 L666.67,20.670 L777.78,24.978 L888.89,21.828 L1000.00,24.993" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="79.290" y2="79.290" vector-effect="non-scaling-stroke"/><line class="dot c1" x1="1000.00" x2="1000.00" y1="79.290" y2="79.290" vector-effect="non-scaling-stroke"/><line class="dotring" x1="1000.00" x2="1000.00" y1="24.993" y2="24.993" vector-effect="non-scaling-stroke"/><line class="dot c2" x1="1000.00" x2="1000.00" y1="24.993" y2="24.993" vector-effect="non-scaling-stroke"/><g class="hits"><rect x="0.00" y="0" width="100.00" height="100" data-tip="Oct 22
+p50: 2,719 ms
+p95: 4,939 ms"/><rect x="61.11" y="0" width="100.00" height="100" data-tip="Oct 23
+p50: 2,640 ms
+p95: 4,919 ms"/><rect x="172.22" y="0" width="100.00" height="100" data-tip="Oct 24
+p50: 2,675 ms
+p95: 4,835 ms"/><rect x="283.33" y="0" width="100.00" height="100" data-tip="Oct 25
+p50: 2,908 ms
+p95: 5,180 ms"/><rect x="394.44" y="0" width="100.00" height="100" data-tip="Oct 26
+p50: 2,986 ms
+p95: 5,198 ms"/><rect x="505.56" y="0" width="100.00" height="100" data-tip="Oct 27
+p50: 3,114 ms
+p95: 5,191 ms"/><rect x="616.67" y="0" width="100.00" height="100" data-tip="Oct 28
+p50: 3,060 ms
+p95: 5,173 ms"/><rect x="727.78" y="0" width="100.00" height="100" data-tip="Oct 29
+p50: 3,528 ms
+p95: 5,001 ms"/><rect x="838.89" y="0" width="100.00" height="100" data-tip="Oct 30
+p50: 3,090 ms
+p95: 5,127 ms"/><rect x="950.00" y="0" width="100.00" height="100" data-tip="Oct 31
+p50: 2,828 ms
+p95: 5,000 ms"/></g></svg></div><div class="endlabels"><span style="top:79.29%">p50 2,828 ms</span><span style="top:24.99%">p95 5,000 ms</span></div><div class="xaxis"><span class="first" style="left:0.00%">Oct 22</span><span class="" style="left:22.22%">Oct 24</span><span class="" style="left:44.44%">Oct 26</span><span class="" style="left:77.78%">Oct 29</span><span class="last" style="left:100.00%">Oct 31</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>p50</th><th>p95</th></tr></thead><tbody><tr><td>Oct 22</td><td>2,719 ms</td><td>4,939 ms</td></tr><tr><td>Oct 23</td><td>2,640 ms</td><td>4,919 ms</td></tr><tr><td>Oct 24</td><td>2,675 ms</td><td>4,835 ms</td></tr><tr><td>Oct 25</td><td>2,908 ms</td><td>5,180 ms</td></tr><tr><td>Oct 26</td><td>2,986 ms</td><td>5,198 ms</td></tr><tr><td>Oct 27</td><td>3,114 ms</td><td>5,191 ms</td></tr><tr><td>Oct 28</td><td>3,060 ms</td><td>5,173 ms</td></tr><tr><td>Oct 29</td><td>3,528 ms</td><td>5,001 ms</td></tr><tr><td>Oct 30</td><td>3,090 ms</td><td>5,127 ms</td></tr><tr><td>Oct 31</td><td>2,828 ms</td><td>5,000 ms</td></tr></tbody></table></div></details></figure></div>
+<h2>Performance by app version</h2><p class="note">Use this to spot a regression introduced by a release.</p><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Version</th><th class="l">Tier</th><th class="l">First seen</th><th class="">Windows</th><th class="">p50</th><th class="">p95</th><th class="">CPU p95</th><th class="">GPU p95</th><th class="">Slow frames</th></tr></thead><tbody><tr><td class="l">0.9.0</td><td class="l">high</td><td class="l">2026-10-22</td><td>140</td><td>17.4 ms</td><td>25.2 ms</td><td>–</td><td>–</td><td>0.2%</td></tr><tr><td class="l">0.9.0</td><td class="l">low</td><td class="l">2026-10-22</td><td>298</td><td>18.8 ms</td><td>27.3 ms</td><td>–</td><td>–</td><td>1.2%</td></tr><tr><td class="l">0.9.0</td><td class="l">mid</td><td class="l">2026-10-22</td><td>374</td><td>17.4 ms</td><td>25.3 ms</td><td>–</td><td>–</td><td>0.2%</td></tr></tbody></table></div></div>
+<h2>Load times (last 28 days)</h2><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Kind</th><th class="l">Scene</th><th class="">Samples</th><th class="">p50</th><th class="">p95</th></tr></thead><tbody><tr><td class="l">cold_start</td><td class="l">Menu</td><td>812</td><td>2,999 ms</td><td>5,120 ms</td></tr></tbody></table></div></div>
+<h2>Level funnel</h2><div class="grid2"><figure class="chart" id="b-playersreachingeachlevel"><figcaption><h3>Players reaching each level</h3><p>Users whose highest started level is at least this level</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw box b1"></i>Users reached</span></div><div role="img" aria-label="Players reaching each level: bar chart, 1 series, 28 categories"><div class="plot" style="--h:180px"><div class="yaxis"><span style="bottom:0.00%">0</span><span style="bottom:33.33%">50</span><span style="bottom:66.67%">100</span><span style="bottom:100.00%">150</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="66.667" y2="66.667" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="33.333" y2="33.333" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g></svg><div class="bars"><div class="cat" data-tip="1
+Users reached: 149"><div class="bar b1" style="height:99.33%"></div></div><div class="cat" data-tip="2
+Users reached: 146"><div class="bar b1" style="height:97.33%"></div></div><div class="cat" data-tip="3
+Users reached: 144"><div class="bar b1" style="height:96.00%"></div></div><div class="cat" data-tip="4
+Users reached: 133"><div class="bar b1" style="height:88.67%"></div></div><div class="cat" data-tip="5
+Users reached: 122"><div class="bar b1" style="height:81.33%"></div></div><div class="cat" data-tip="6
+Users reached: 120"><div class="bar b1" style="height:80.00%"></div></div><div class="cat" data-tip="7
+Users reached: 113"><div class="bar b1" style="height:75.33%"></div></div><div class="cat" data-tip="8
+Users reached: 107"><div class="bar b1" style="height:71.33%"></div></div><div class="cat" data-tip="9
+Users reached: 98"><div class="bar b1" style="height:65.33%"></div></div><div class="cat" data-tip="10
+Users reached: 94"><div class="bar b1" style="height:62.67%"></div></div><div class="cat" data-tip="11
+Users reached: 89"><div class="bar b1" style="height:59.33%"></div></div><div class="cat" data-tip="12
+Users reached: 85"><div class="bar b1" style="height:56.67%"></div></div><div class="cat" data-tip="13
+Users reached: 80"><div class="bar b1" style="height:53.33%"></div></div><div class="cat" data-tip="14
+Users reached: 75"><div class="bar b1" style="height:50.00%"></div></div><div class="cat" data-tip="15
+Users reached: 71"><div class="bar b1" style="height:47.33%"></div></div><div class="cat" data-tip="16
+Users reached: 68"><div class="bar b1" style="height:45.33%"></div></div><div class="cat" data-tip="17
+Users reached: 66"><div class="bar b1" style="height:44.00%"></div></div><div class="cat" data-tip="18
+Users reached: 55"><div class="bar b1" style="height:36.67%"></div></div><div class="cat" data-tip="20
+Users reached: 50"><div class="bar b1" style="height:33.33%"></div></div><div class="cat" data-tip="21
+Users reached: 46"><div class="bar b1" style="height:30.67%"></div></div><div class="cat" data-tip="22
+Users reached: 44"><div class="bar b1" style="height:29.33%"></div></div><div class="cat" data-tip="23
+Users reached: 42"><div class="bar b1" style="height:28.00%"></div></div><div class="cat" data-tip="24
+Users reached: 40"><div class="bar b1" style="height:26.67%"></div></div><div class="cat" data-tip="25
+Users reached: 38"><div class="bar b1" style="height:25.33%"></div></div><div class="cat" data-tip="26
+Users reached: 36"><div class="bar b1" style="height:24.00%"></div></div><div class="cat" data-tip="28
+Users reached: 34"><div class="bar b1" style="height:22.67%"></div></div><div class="cat" data-tip="29
+Users reached: 32"><div class="bar b1" style="height:21.33%"></div></div><div class="cat" data-tip="30
+Users reached: 30"><div class="bar b1" style="height:20.00%"></div></div></div></div><div class="endlabels"></div><div class="xaxis cats"><span style="left:1.79%">1</span><span style="left:12.50%">4</span><span style="left:23.21%">7</span><span style="left:33.93%">10</span><span style="left:44.64%">13</span><span style="left:55.36%">16</span><span style="left:66.07%">20</span><span style="left:76.79%">23</span><span style="left:87.50%">26</span><span style="left:98.21%">30</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Level</th><th>Users reached</th></tr></thead><tbody><tr><td>1</td><td>149</td></tr><tr><td>2</td><td>146</td></tr><tr><td>3</td><td>144</td></tr><tr><td>4</td><td>133</td></tr><tr><td>5</td><td>122</td></tr><tr><td>6</td><td>120</td></tr><tr><td>7</td><td>113</td></tr><tr><td>8</td><td>107</td></tr><tr><td>9</td><td>98</td></tr><tr><td>10</td><td>94</td></tr><tr><td>11</td><td>89</td></tr><tr><td>12</td><td>85</td></tr><tr><td>13</td><td>80</td></tr><tr><td>14</td><td>75</td></tr><tr><td>15</td><td>71</td></tr><tr><td>16</td><td>68</td></tr><tr><td>17</td><td>66</td></tr><tr><td>18</td><td>55</td></tr><tr><td>20</td><td>50</td></tr><tr><td>21</td><td>46</td></tr><tr><td>22</td><td>44</td></tr><tr><td>23</td><td>42</td></tr><tr><td>24</td><td>40</td></tr><tr><td>25</td><td>38</td></tr><tr><td>26</td><td>36</td></tr><tr><td>28</td><td>34</td></tr><tr><td>29</td><td>32</td></tr><tr><td>30</td><td>30</td></tr></tbody></table></div></details></figure><figure class="chart" id="b-churnbylevel"><figcaption><h3>Churn by level</h3><p>Stopped at this level and inactive for 7 days / users reached</p></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw box b2"></i>Churn rate</span></div><div role="img" aria-label="Churn by level: bar chart, 1 series, 28 categories"><div class="plot" style="--h:180px"><div class="yaxis"><span style="bottom:0.00%">0.0%</span><span style="bottom:25.00%">1.0%</span><span style="bottom:50.00%">2.0%</span><span style="bottom:75.00%">3.0%</span><span style="bottom:100.00%">4.0%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g></svg><div class="bars"><div class="cat" data-tip="1
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="2
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="3
+Churn rate: 1.4%"><div class="bar b2" style="height:34.72%"></div></div><div class="cat" data-tip="4
+Churn rate: 0.8%"><div class="bar b2" style="height:18.80%"></div></div><div class="cat" data-tip="5
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="6
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="7
+Churn rate: 1.8%"><div class="bar b2" style="height:44.25%"></div></div><div class="cat" data-tip="8
+Churn rate: 0.9%"><div class="bar b2" style="height:23.36%"></div></div><div class="cat" data-tip="9
+Churn rate: 1.0%"><div class="bar b2" style="height:25.51%"></div></div><div class="cat" data-tip="10
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="11
+Churn rate: 1.1%"><div class="bar b2" style="height:28.09%"></div></div><div class="cat" data-tip="12
+Churn rate: 1.2%"><div class="bar b2" style="height:29.41%"></div></div><div class="cat" data-tip="13
+Churn rate: 1.2%"><div class="bar b2" style="height:31.25%"></div></div><div class="cat" data-tip="14
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="15
+Churn rate: 1.4%"><div class="bar b2" style="height:35.21%"></div></div><div class="cat" data-tip="16
+Churn rate: 1.5%"><div class="bar b2" style="height:36.76%"></div></div><div class="cat" data-tip="17
+Churn rate: 1.5%"><div class="bar b2" style="height:37.88%"></div></div><div class="cat" data-tip="18
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="20
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="21
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="22
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="23
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="24
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="25
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="26
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="28
+Churn rate: 2.9%"><div class="bar b2" style="height:73.53%"></div></div><div class="cat" data-tip="29
+Churn rate: 0.0%"><div class="bar b2" style="height:0.00%"></div></div><div class="cat" data-tip="30
+Churn rate: 3.3%"><div class="bar b2" style="height:83.33%"></div></div></div></div><div class="endlabels"></div><div class="xaxis cats"><span style="left:1.79%">1</span><span style="left:12.50%">4</span><span style="left:23.21%">7</span><span style="left:33.93%">10</span><span style="left:44.64%">13</span><span style="left:55.36%">16</span><span style="left:66.07%">20</span><span style="left:76.79%">23</span><span style="left:87.50%">26</span><span style="left:98.21%">30</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Level</th><th>Churn rate</th></tr></thead><tbody><tr><td>1</td><td>0.0%</td></tr><tr><td>2</td><td>0.0%</td></tr><tr><td>3</td><td>1.4%</td></tr><tr><td>4</td><td>0.8%</td></tr><tr><td>5</td><td>0.0%</td></tr><tr><td>6</td><td>0.0%</td></tr><tr><td>7</td><td>1.8%</td></tr><tr><td>8</td><td>0.9%</td></tr><tr><td>9</td><td>1.0%</td></tr><tr><td>10</td><td>0.0%</td></tr><tr><td>11</td><td>1.1%</td></tr><tr><td>12</td><td>1.2%</td></tr><tr><td>13</td><td>1.2%</td></tr><tr><td>14</td><td>0.0%</td></tr><tr><td>15</td><td>1.4%</td></tr><tr><td>16</td><td>1.5%</td></tr><tr><td>17</td><td>1.5%</td></tr><tr><td>18</td><td>0.0%</td></tr><tr><td>20</td><td>0.0%</td></tr><tr><td>21</td><td>0.0%</td></tr><tr><td>22</td><td>0.0%</td></tr><tr><td>23</td><td>0.0%</td></tr><tr><td>24</td><td>0.0%</td></tr><tr><td>25</td><td>0.0%</td></tr><tr><td>26</td><td>0.0%</td></tr><tr><td>28</td><td>2.9%</td></tr><tr><td>29</td><td>0.0%</td></tr><tr><td>30</td><td>3.3%</td></tr></tbody></table></div></details></figure><figure class="chart" id="b-winratebylevel"><figcaption><h3>Win rate by level</h3></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw box b3"></i>Completes / (completes + fails)</span></div><div role="img" aria-label="Win rate by level: bar chart, 1 series, 28 categories"><div class="plot" style="--h:180px"><div class="yaxis"><span style="bottom:0.00%">0.0%</span><span style="bottom:25.00%">25.0%</span><span style="bottom:50.00%">50.0%</span><span style="bottom:75.00%">75.0%</span><span style="bottom:100.00%">100.0%</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g></svg><div class="bars"><div class="cat" data-tip="1
+Completes / (completes + fails): 83.4%"><div class="bar b3" style="height:83.43%"></div></div><div class="cat" data-tip="2
+Completes / (completes + fails): 82.3%"><div class="bar b3" style="height:82.29%"></div></div><div class="cat" data-tip="3
+Completes / (completes + fails): 79.9%"><div class="bar b3" style="height:79.89%"></div></div><div class="cat" data-tip="4
+Completes / (completes + fails): 76.2%"><div class="bar b3" style="height:76.16%"></div></div><div class="cat" data-tip="5
+Completes / (completes + fails): 83.0%"><div class="bar b3" style="height:82.99%"></div></div><div class="cat" data-tip="6
+Completes / (completes + fails): 82.2%"><div class="bar b3" style="height:82.19%"></div></div><div class="cat" data-tip="7
+Completes / (completes + fails): 83.1%"><div class="bar b3" style="height:83.09%"></div></div><div class="cat" data-tip="8
+Completes / (completes + fails): 43.1%"><div class="bar b3" style="height:43.11%"></div></div><div class="cat" data-tip="9
+Completes / (completes + fails): 77.9%"><div class="bar b3" style="height:77.87%"></div></div><div class="cat" data-tip="10
+Completes / (completes + fails): 82.9%"><div class="bar b3" style="height:82.88%"></div></div><div class="cat" data-tip="11
+Completes / (completes + fails): 82.2%"><div class="bar b3" style="height:82.24%"></div></div><div class="cat" data-tip="12
+Completes / (completes + fails): 78.1%"><div class="bar b3" style="height:78.10%"></div></div><div class="cat" data-tip="13
+Completes / (completes + fails): 74.3%"><div class="bar b3" style="height:74.29%"></div></div><div class="cat" data-tip="14
+Completes / (completes + fails): 79.6%"><div class="bar b3" style="height:79.57%"></div></div><div class="cat" data-tip="15
+Completes / (completes + fails): 68.6%"><div class="bar b3" style="height:68.63%"></div></div><div class="cat" data-tip="16
+Completes / (completes + fails): 82.9%"><div class="bar b3" style="height:82.93%"></div></div><div class="cat" data-tip="17
+Completes / (completes + fails): 31.8%"><div class="bar b3" style="height:31.82%"></div></div><div class="cat" data-tip="18
+Completes / (completes + fails): 67.5%"><div class="bar b3" style="height:67.53%"></div></div><div class="cat" data-tip="20
+Completes / (completes + fails): 76.2%"><div class="bar b3" style="height:76.19%"></div></div><div class="cat" data-tip="21
+Completes / (completes + fails): 66.2%"><div class="bar b3" style="height:66.18%"></div></div><div class="cat" data-tip="22
+Completes / (completes + fails): 68.9%"><div class="bar b3" style="height:68.85%"></div></div><div class="cat" data-tip="23
+Completes / (completes + fails): 66.7%"><div class="bar b3" style="height:66.67%"></div></div><div class="cat" data-tip="24
+Completes / (completes + fails): 70.9%"><div class="bar b3" style="height:70.91%"></div></div><div class="cat" data-tip="25
+Completes / (completes + fails): 66.1%"><div class="bar b3" style="height:66.07%"></div></div><div class="cat" data-tip="26
+Completes / (completes + fails): 81.4%"><div class="bar b3" style="height:81.40%"></div></div><div class="cat" data-tip="28
+Completes / (completes + fails): 67.3%"><div class="bar b3" style="height:67.35%"></div></div><div class="cat" data-tip="29
+Completes / (completes + fails): 62.0%"><div class="bar b3" style="height:62.00%"></div></div><div class="cat" data-tip="30
+Completes / (completes + fails): 82.9%"><div class="bar b3" style="height:82.86%"></div></div></div></div><div class="endlabels"></div><div class="xaxis cats"><span style="left:1.79%">1</span><span style="left:12.50%">4</span><span style="left:23.21%">7</span><span style="left:33.93%">10</span><span style="left:44.64%">13</span><span style="left:55.36%">16</span><span style="left:66.07%">20</span><span style="left:76.79%">23</span><span style="left:87.50%">26</span><span style="left:98.21%">30</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Level</th><th>Completes / (completes + fails)</th></tr></thead><tbody><tr><td>1</td><td>83.4%</td></tr><tr><td>2</td><td>82.3%</td></tr><tr><td>3</td><td>79.9%</td></tr><tr><td>4</td><td>76.2%</td></tr><tr><td>5</td><td>83.0%</td></tr><tr><td>6</td><td>82.2%</td></tr><tr><td>7</td><td>83.1%</td></tr><tr><td>8</td><td>43.1%</td></tr><tr><td>9</td><td>77.9%</td></tr><tr><td>10</td><td>82.9%</td></tr><tr><td>11</td><td>82.2%</td></tr><tr><td>12</td><td>78.1%</td></tr><tr><td>13</td><td>74.3%</td></tr><tr><td>14</td><td>79.6%</td></tr><tr><td>15</td><td>68.6%</td></tr><tr><td>16</td><td>82.9%</td></tr><tr><td>17</td><td>31.8%</td></tr><tr><td>18</td><td>67.5%</td></tr><tr><td>20</td><td>76.2%</td></tr><tr><td>21</td><td>66.2%</td></tr><tr><td>22</td><td>68.9%</td></tr><tr><td>23</td><td>66.7%</td></tr><tr><td>24</td><td>70.9%</td></tr><tr><td>25</td><td>66.1%</td></tr><tr><td>26</td><td>81.4%</td></tr><tr><td>28</td><td>67.3%</td></tr><tr><td>29</td><td>62.0%</td></tr><tr><td>30</td><td>82.9%</td></tr></tbody></table></div></details></figure><figure class="chart" id="b-attemptspercompletion"><figcaption><h3>Attempts per completion</h3></figcaption><div class="legend" aria-hidden="true"><span class="key"><i class="sw box b4"></i>Starts / completes</span></div><div role="img" aria-label="Attempts per completion: bar chart, 1 series, 28 categories"><div class="plot" style="--h:180px"><div class="yaxis"><span style="bottom:0.00%">0.00</span><span style="bottom:25.00%">1.00</span><span style="bottom:50.00%">2.00</span><span style="bottom:75.00%">3.00</span><span style="bottom:100.00%">4.00</span></div><div class="area"><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><g class="grid"><line x1="0" x2="1000" y1="75.000" y2="75.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="50.000" y2="50.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="25.000" y2="25.000" vector-effect="non-scaling-stroke"/><line x1="0" x2="1000" y1="0.000" y2="0.000" vector-effect="non-scaling-stroke"/></g></svg><div class="bars"><div class="cat" data-tip="1
+Starts / completes: 1.27"><div class="bar b4" style="height:31.85%"></div></div><div class="cat" data-tip="2
+Starts / completes: 1.31"><div class="bar b4" style="height:32.64%"></div></div><div class="cat" data-tip="3
+Starts / completes: 1.29"><div class="bar b4" style="height:32.34%"></div></div><div class="cat" data-tip="4
+Starts / completes: 1.37"><div class="bar b4" style="height:34.16%"></div></div><div class="cat" data-tip="5
+Starts / completes: 1.27"><div class="bar b4" style="height:31.76%"></div></div><div class="cat" data-tip="6
+Starts / completes: 1.28"><div class="bar b4" style="height:32.08%"></div></div><div class="cat" data-tip="7
+Starts / completes: 1.25"><div class="bar b4" style="height:31.19%"></div></div><div class="cat" data-tip="8
+Starts / completes: 2.41"><div class="bar b4" style="height:60.31%"></div></div><div class="cat" data-tip="9
+Starts / completes: 1.32"><div class="bar b4" style="height:32.89%"></div></div><div class="cat" data-tip="10
+Starts / completes: 1.26"><div class="bar b4" style="height:31.52%"></div></div><div class="cat" data-tip="11
+Starts / completes: 1.36"><div class="bar b4" style="height:34.09%"></div></div><div class="cat" data-tip="12
+Starts / completes: 1.30"><div class="bar b4" style="height:32.62%"></div></div><div class="cat" data-tip="13
+Starts / completes: 1.41"><div class="bar b4" style="height:35.26%"></div></div><div class="cat" data-tip="14
+Starts / completes: 1.32"><div class="bar b4" style="height:33.11%"></div></div><div class="cat" data-tip="15
+Starts / completes: 1.51"><div class="bar b4" style="height:37.86%"></div></div><div class="cat" data-tip="16
+Starts / completes: 1.25"><div class="bar b4" style="height:31.25%"></div></div><div class="cat" data-tip="17
+Starts / completes: 3.30"><div class="bar b4" style="height:82.59%"></div></div><div class="cat" data-tip="18
+Starts / completes: 1.52"><div class="bar b4" style="height:37.98%"></div></div><div class="cat" data-tip="20
+Starts / completes: 1.33"><div class="bar b4" style="height:33.33%"></div></div><div class="cat" data-tip="21
+Starts / completes: 1.62"><div class="bar b4" style="height:40.56%"></div></div><div class="cat" data-tip="22
+Starts / completes: 1.62"><div class="bar b4" style="height:40.48%"></div></div><div class="cat" data-tip="23
+Starts / completes: 1.52"><div class="bar b4" style="height:38.10%"></div></div><div class="cat" data-tip="24
+Starts / completes: 1.49"><div class="bar b4" style="height:37.18%"></div></div><div class="cat" data-tip="25
+Starts / completes: 1.57"><div class="bar b4" style="height:39.19%"></div></div><div class="cat" data-tip="26
+Starts / completes: 1.29"><div class="bar b4" style="height:32.14%"></div></div><div class="cat" data-tip="28
+Starts / completes: 1.64"><div class="bar b4" style="height:40.91%"></div></div><div class="cat" data-tip="29
+Starts / completes: 1.71"><div class="bar b4" style="height:42.74%"></div></div><div class="cat" data-tip="30
+Starts / completes: 1.38"><div class="bar b4" style="height:34.48%"></div></div></div></div><div class="endlabels"></div><div class="xaxis cats"><span style="left:1.79%">1</span><span style="left:12.50%">4</span><span style="left:23.21%">7</span><span style="left:33.93%">10</span><span style="left:44.64%">13</span><span style="left:55.36%">16</span><span style="left:66.07%">20</span><span style="left:76.79%">23</span><span style="left:87.50%">26</span><span style="left:98.21%">30</span></div></div></div><details class="data"><summary>Data table</summary><div class="tbl-wrap"><table><thead><tr><th>Level</th><th>Starts / completes</th></tr></thead><tbody><tr><td>1</td><td>1.27</td></tr><tr><td>2</td><td>1.31</td></tr><tr><td>3</td><td>1.29</td></tr><tr><td>4</td><td>1.37</td></tr><tr><td>5</td><td>1.27</td></tr><tr><td>6</td><td>1.28</td></tr><tr><td>7</td><td>1.25</td></tr><tr><td>8</td><td>2.41</td></tr><tr><td>9</td><td>1.32</td></tr><tr><td>10</td><td>1.26</td></tr><tr><td>11</td><td>1.36</td></tr><tr><td>12</td><td>1.30</td></tr><tr><td>13</td><td>1.41</td></tr><tr><td>14</td><td>1.32</td></tr><tr><td>15</td><td>1.51</td></tr><tr><td>16</td><td>1.25</td></tr><tr><td>17</td><td>3.30</td></tr><tr><td>18</td><td>1.52</td></tr><tr><td>20</td><td>1.33</td></tr><tr><td>21</td><td>1.62</td></tr><tr><td>22</td><td>1.62</td></tr><tr><td>23</td><td>1.52</td></tr><tr><td>24</td><td>1.49</td></tr><tr><td>25</td><td>1.57</td></tr><tr><td>26</td><td>1.29</td></tr><tr><td>28</td><td>1.64</td></tr><tr><td>29</td><td>1.71</td></tr><tr><td>30</td><td>1.38</td></tr></tbody></table></div></details></figure></div>
+<h2>Alerts</h2><ul class="alerts"><li class="ok"><span class="sev">OK</span>No active alerts (11 rule(s) checked).</li></ul>
+<h2>Data sources</h2><div class="card"><div class="tbl-wrap" style="max-height:none"><table><thead><tr><th class="l">Source</th><th class="">Data through</th><th class="">Freshness</th><th class="">Last load</th><th class="">Rows (last load)</th></tr></thead><tbody><tr><td class="l">pulse_sdk</td><td>2026-10-31</td><td><span class="status fresh"><i></i>fresh (1 d)</span></td><td>2026-11-13 08:28 UTC</td><td>15,633</td></tr></tbody></table></div></div>
+</main>
+<footer>Generated by studio-pulse. Metric definitions: docs/METRICS.md. Hover a chart for values, or open its data table.<br>
+Retention benchmarks: <a href="https://gamedevreports.substack.com/p/gameanalytics-mobile-and-pc-game" rel="noopener">GameAnalytics, Mobile and PC Game Benchmarks 2026</a>
+(16,262 mobile games with at least 1,000 MAU, iOS and Android, all genres combined).</footer>
+</div>
+<div id="tip" role="tooltip"></div>
+<script>
+(function () {
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem('pulse-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  var btn = document.querySelector('button.theme');
+  function label() {
+    var dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    if (btn) btn.textContent = dark ? 'Light mode' : 'Dark mode';
+    return dark;
+  }
+  if (btn) {
+    label();
+    btn.addEventListener('click', function () {
+      var next = label() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('pulse-theme', next); } catch (e) {}
+      label();
+    });
+  }
+  var tip = document.getElementById('tip');
+  function show(el, x, y) {
+    tip.textContent = el.getAttribute('data-tip');
+    tip.style.display = 'block';
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var left = Math.min(Math.max(8, x + 12), window.innerWidth - w - 8);
+    var top = y - h - 12; if (top < 8) top = y + 16;
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  document.addEventListener('pointermove', function (ev) {
+    var el = ev.target.closest && ev.target.closest('[data-tip]');
+    if (el) show(el, ev.clientX, ev.clientY); else tip.style.display = 'none';
+  });
+  document.addEventListener('focusin', function (ev) {
+    var el = ev.target.closest && ev.target.closest('[data-tip]');
+    if (el) { var r = el.getBoundingClientRect(); show(el, r.left + r.width / 2, r.top); }
+  });
+  document.addEventListener('focusout', function () { tip.style.display = 'none'; });
+})();
+</script>
+</body>
+</html>

@@ -12,11 +12,37 @@ the end, on developer builds for its first two days.
 from __future__ import annotations
 
 import datetime as dt
+import json
 import shutil
 from pathlib import Path
 from typing import Any
 
 SDK_DAYS = 42
+LIVE_SNAPSHOT = "live_snapshot.json"
+
+
+class _SnapshotClock:
+    """SimClock that calls take() once, just before the simulation passes `at`."""
+
+    def __init__(self, ms: int, at: int) -> None:
+        self._ms = ms
+        self.at = at
+        self.take: Any = None
+        self.snapshot: dict[str, Any] | None = None
+
+    def __call__(self) -> int:
+        return self._ms
+
+    @property
+    def ms(self) -> int:
+        return self._ms
+
+    @ms.setter
+    def ms(self, value: int) -> None:
+        if self.snapshot is None and self.take is not None and self._ms < self.at <= value:
+            self._ms = self.at
+            self.snapshot = self.take()
+        self._ms = value
 
 
 def add_sdk_games(
@@ -32,19 +58,25 @@ def add_sdk_games(
     from ..collector.registry import refresh
     from ..collector.settings import DEFAULT_LOCAL_KEY, CollectorSettings
     from .model import GAMES
-    from .run import Poster, SimClock, backfill
+    from .run import Poster, backfill
 
     data_dir = out_dir / "collector"
     if data_dir.exists():
         shutil.rmtree(data_dir)
     start = end - dt.timedelta(days=days - 1)
     t0 = int(dt.datetime.combine(start, dt.time(), dt.UTC).timestamp() * 1000)
-    clock = SimClock(t0)
+    # the static Studio's "playing now": the collector's live view at 20:00 UTC on the
+    # last day, taken as the simulation passes it (at midnight nobody is playing)
+    snap_at = int(dt.datetime.combine(end, dt.time(20), dt.UTC).timestamp() * 1000)
+    clock = _SnapshotClock(t0, snap_at)
     settings = CollectorSettings(data_dir=data_dir, country_header="CF-IPCountry")
     with running_collector(settings, clock) as (url, col):
+        clock.take = col.live_snapshot
         poster = Poster(url, DEFAULT_LOCAL_KEY, clock=clock)
         rep = backfill(poster, start=start, days=days, games=GAMES, scale=scale, seed=7, log=log)
         counters = col.counters
+    if clock.snapshot is not None:
+        (out_dir / LIVE_SNAPSHOT).write_text(json.dumps(clock.snapshot), encoding="utf-8")
     end_ms = int(
         dt.datetime.combine(end + dt.timedelta(days=1), dt.time(), dt.UTC).timestamp() * 1000
     )
