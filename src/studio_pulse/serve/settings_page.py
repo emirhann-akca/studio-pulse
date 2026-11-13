@@ -40,6 +40,7 @@ DIGITS = re.compile(r"\d{5,12}")
 KEY_ID = re.compile(r"[A-Z0-9]{10}")
 ISSUER = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 ASC_VARS = ("PULSE_ASC_KEY_ID", "PULSE_ASC_ISSUER_ID", "PULSE_ASC_PRIVATE_KEY_PATH")
+SLACK_HOOK = re.compile(r"https://hooks\.slack\.com/services/[A-Za-z0-9/_-]{20,}")
 
 KINDS = {
     "ga4_bigquery": ("GA4 (BigQuery)", "GA4 (BigQuery)"),
@@ -252,6 +253,7 @@ def register(
         return {
             "set_apps": apps,
             "asc_vars": [(v, bool(os.environ.get(v))) for v in ASC_VARS],
+            "slack_set": bool(os.environ.get("PULSE_SLACK_WEBHOOK_URL")),
             "schedule": sched,
             "settings_file": str(base_dir / SETTINGS_FILE),
             "source": source,
@@ -353,6 +355,18 @@ def register(
             return note("bad", s["set_test_fail"].format(detail=detail))
         return PlainTextResponse("unknown source", 404)
 
+    @app.post("/settings/slack", response_class=HTMLResponse)
+    async def save_slack(request: Request):
+        """The Slack incoming webhook alerts are sent to (scheduled runs with notify)."""
+        if (bad := guard(request)) is not None:
+            return bad
+        s = S[request_lang(request)]
+        url = (await form(request)).get("webhook", "")
+        if not SLACK_HOOK.fullmatch(url):
+            return note("bad", s["set_bad_slack"])
+        write_env(base_dir, {"PULSE_SLACK_WEBHOOK_URL": url})
+        return note("info", s["set_slack_saved"])
+
     @app.post("/settings/schedule", response_class=HTMLResponse)
     async def install_schedule(request: Request):
         if (bad := guard(request)) is not None:
@@ -361,7 +375,7 @@ def register(
         f = await form(request)
         try:
             hour, minute = schedule.parse_time(f.get("at") or "08:30")
-            job = schedule.daily_job(cfg, hour, minute)
+            job = schedule.daily_job(cfg, hour, minute, notify=f.get("notify") == "1")
             b = schedule.backend()
             b.install(job)
             schedule.save_record(job, b.kind)

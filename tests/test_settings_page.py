@@ -245,3 +245,34 @@ def test_app_store_errors_name_the_day_not_the_token(tmp_path):
                                     token=lambda: "SECRET", session=Session(),
                                     today=dt.date(2026, 11, 13), log=lambda m: None)  # fmt: skip
     assert "2026-11-01" in str(e.value) and "401" in str(e.value) and "SECRET" not in str(e.value)
+
+
+def test_slack_webhook_is_stored_privately_and_the_schedule_can_notify(client, cfg, monkeypatch):
+    hook = "https://hooks.slack.com/services/T000/B000/abcdefghijklmnopqrstuvwx"
+    assert (
+        "hooks.slack.com"
+        in post(client, "/settings/slack", {"webhook": "http://example.com/x"}).text
+    )
+    os.environ.pop("PULSE_SLACK_WEBHOOK_URL", None)
+    try:
+        assert "Kaydedildi" in post(client, "/settings/slack", {"webhook": hook}).text
+        assert f"PULSE_SLACK_WEBHOOK_URL={hook}" in (cfg.base_dir / SETTINGS_ENV).read_text(
+            encoding="utf-8"
+        )
+        page = client.get("/settings").text
+        assert hook not in page and "Slack bağlantısı: ayarlı" in page
+        assert 'name="notify" value="1" checked' in page
+        installed = []
+
+        class Fake:
+            kind = "fake"
+
+            def install(self, job):
+                installed.append(job)
+
+        monkeypatch.setattr(settings_page.schedule, "backend", lambda *a, **k: Fake())
+        monkeypatch.setattr(settings_page.schedule, "save_record", lambda job, kind: None)
+        post(client, "/settings/schedule", {"at": "08:30", "notify": "1"})
+        assert installed[0].args[-1] == "--notify"
+    finally:
+        os.environ.pop("PULSE_SLACK_WEBHOOK_URL", None)

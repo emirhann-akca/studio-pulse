@@ -98,7 +98,7 @@ question box, no polling) with an invented market-radar day; Turkish under
   `/ask` in the local UI): deterministic statistics find and explain the
   changes, every number in a sentence is formatted by code and checked against
   its evidence, and a language model may only rephrase (see below).
-- 733 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
+- 734 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
   dart analyze; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -155,8 +155,9 @@ the GA4 / BigQuery sources, so no new key) and the App Store (Apple ID, vendor
 number and an App Store Connect API key with Sales access, stored as a file
 *path*). It writes `pulse.settings.yaml` and `pulse.settings.env` (mode 600) next
 to the config, which the loader merges; `pulse.yaml` is never rewritten and no
-page shows a stored value. Each source has a "test connection" button, and the
-daily refresh can be set up from the same page.
+page shows a stored value. Each source has a "test connection" button; the daily
+refresh can be set up from the same page, sending alerts to a Slack incoming
+webhook saved there.
 
 **Open it like an app.** The installers add **Studio Pulse** to the Start menu
 and the Desktop (Windows), to `~/Applications` (macOS: Launchpad and Spotlight
@@ -478,7 +479,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 733 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 734 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 

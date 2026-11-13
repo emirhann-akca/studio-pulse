@@ -71,12 +71,24 @@
     <header><h2>{{ s.set_sched_title }}</h2>{% if schedule.registered %}<span class="badge good">{{ s.h_sched_on }}</span>{% else %}<span class="badge warn">{{ s.h_sched_off }}</span>{% endif %}</header>
     <p class="soft" style="margin:0 0 10px;font-size:13px">{{ s.set_sched_help }}</p>
     {% if schedule.next_run %}<p class="muted" style="margin:0 0 10px;font-size:12.5px">{{ s.h_sched_next }}: {{ schedule.next_run }}</p>{% endif %}
-    <form class="row" hx-post="/settings/schedule" hx-target="#sched-result" hx-swap="innerHTML">
-      <label for="at" class="muted" style="font-size:12.5px">{{ s.set_at }}</label>
-      <input class="input" id="at" name="at" type="time" value="08:30" style="width:120px">
-      <button class="btn primary" type="submit">{{ s.set_install }}</button>
+    <form hx-post="/settings/schedule" hx-target="#sched-result" hx-swap="innerHTML">
+      <div class="row">
+        <label for="at" class="muted" style="font-size:12.5px">{{ s.set_at }}</label>
+        <input class="input" id="at" name="at" type="time" value="08:30" style="width:120px">
+        <button class="btn primary" type="submit">{{ s.set_install }}</button>
+      </div>
+      <label class="row" style="margin-top:10px;font-size:13px"><input type="checkbox" name="notify" value="1"{% if slack_set %} checked{% endif %}> {{ s.set_notify_on }}</label>
     </form>
     <div class="result" id="sched-result" aria-live="polite"></div>
+  </section>
+  <section class="card">
+    <header><h2>{{ s.set_notify_title }}</h2><span class="badge {{ 'good' if slack_set else 'outline' }}">{{ s.set_slack_state }}: {{ s.set_var_on if slack_set else s.set_var_off }}</span></header>
+    <p class="help">{{ s.set_notify_help }}</p>
+    <form class="row" hx-post="/settings/slack" hx-target="#slack-result" hx-swap="innerHTML">
+      <input class="input" name="webhook" type="password" placeholder="https://hooks.slack.com/services/…" autocomplete="off" style="flex:1" aria-label="{{ s.set_slack }}">
+      <button class="btn primary" type="submit">{{ s.set_save }}</button>
+    </form>
+    <div class="result" id="slack-result" aria-live="polite"></div>
   </section>
   <section class="card">
     <h2>{{ s.set_keys_state }}</h2>
