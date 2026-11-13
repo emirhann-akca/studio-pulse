@@ -139,10 +139,15 @@ fingerprinting, no ATT prompt needed.
 | `ResetInstallId()` | a new id; already queued events keep the old one |
 | `PulseOptions.ChildDirected = true` | `ctx.child = true`, no `uid`, no free-text params (`level_name`, `step_name`, error messages, custom string params) |
 
-**Privacy manifest**: `Plugins/iOS/PrivacyInfo.xcprivacy` (generated from
-`contract/pulse_v2.yaml`, enabled for iOS in its importer): the collected data types,
-linked, not tracking, purposes Analytics and App Functionality, and the file timestamp
-API with reason `C617.1` (the queue reads its own file sizes). The SDK uses no
+**Privacy manifest and the iOS native part (opt-in)**: `Plugins/iOS/PrivacyInfo.xcprivacy`
+(generated from `contract/pulse_v2.yaml`): the collected data types, linked, not tracking,
+purposes Analytics and App Functionality, and the file timestamp API with reason `C617.1`
+(the queue reads its own file sizes). It and the Swift install-source plug-in are included
+only when the project defines **`STUDIO_PULSE_IOS_NATIVE`** (Player Settings > Scripting
+Define Symbols, iOS): Unity merges plug-in manifests into the app's, so an always-included
+manifest would make an app that never starts the SDK declare collected data. Without the
+define the SDK still runs on iOS; the install store is `unknown` and AppTransaction is not
+asked. Turn it on together with the App Store privacy label. The SDK uses no
 PlayerPrefs / UserDefaults. **Google Play Data safety**: declare App interactions, Crash
 logs, Diagnostics, Device or other IDs, Purchase history (if you report purchases),
 Approximate location (country from the IP, which is never stored).

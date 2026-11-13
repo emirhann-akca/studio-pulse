@@ -19,13 +19,18 @@ PKG = Path(__file__).resolve().parents[1] / "com.studio.pulse"
 
 TAIL = "  userData: \n  assetBundleName: \n  assetBundleVariant: \n"
 
+# The iOS native part (Swift install-source plug-in, privacy manifest) is opt-in: Unity
+# includes these files only when the project defines STUDIO_PULSE_IOS_NATIVE, so a build
+# that never starts the SDK does not ship a manifest declaring collected data.
+IOS_NATIVE_DEFINE = "STUDIO_PULSE_IOS_NATIVE"
 IOS_PLUGIN = (
     """PluginImporter:
   externalObjects: {}
   serializedVersion: 2
   iconMap: {}
   executionOrder: {}
-  defineConstraints: []
+  defineConstraints:
+  - STUDIO_PULSE_IOS_NATIVE
   isPreloaded: 0
   isOverridable: 1
   isExplicitlyReferenced: 0

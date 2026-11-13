@@ -60,8 +60,8 @@ namespace Studio.Pulse
             }
 #if UNITY_ANDROID
             AndroidInfo(d);
-#elif UNITY_IOS
-            IosInfo(d);
+#elif UNITY_IOS && !UNITY_EDITOR
+            IosInfo(d); // the Editor with the iOS target returned above (and has no IosInfo)
 #endif
             return d;
         }
@@ -232,7 +232,11 @@ namespace Studio.Pulse
             }
         }
 
-#if UNITY_IOS && !UNITY_EDITOR
+// The Swift plug-in and the privacy manifest in Plugins/iOS are compiled in only with the
+// scripting define STUDIO_PULSE_IOS_NATIVE (their importers' define constraint), so a build
+// that never starts the SDK carries no manifest declaring collected data. Without it the
+// install store on iOS is "unknown" and AppTransaction is not asked.
+#if UNITY_IOS && !UNITY_EDITOR && STUDIO_PULSE_IOS_NATIVE
         [DllImport("__Internal")] static extern IntPtr StudioPulse_InstallSource();
         [DllImport("__Internal")] static extern IntPtr StudioPulse_BuildNumber();
         [DllImport("__Internal")] static extern void StudioPulse_StartAppTransactionCheck();
@@ -275,6 +279,16 @@ namespace Studio.Pulse
             {
                 return null;
             }
+        }
+#elif UNITY_IOS && !UNITY_EDITOR
+        static void IosInfo(PulseDevice d)
+        {
+            d.InstallStore = PulseContract.InstallStore.Unknown; // native part off (see above)
+        }
+
+        public static string IosAppTransactionStore()
+        {
+            return null;
         }
 #else
         public static string IosAppTransactionStore()

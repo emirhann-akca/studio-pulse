@@ -92,7 +92,7 @@ store reviews included).
   `/ask` in the local UI): deterministic statistics find and explain the
   changes, every number in a sentence is formatted by code and checked against
   its evidence, and a language model may only rephrase (see below).
-- 698 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
+- 699 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
   dart analyze; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -449,7 +449,7 @@ Mono to produce the fixtures the Python tests parse.
 ```bash
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
-python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 698 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
+python -X warn_default_encoding -m pytest -W error::EncodingWarning   # 699 tests (2 Windows-only, 1 needs the forecast extra, 1 opt-in GeoIP), ~80 s
 pulse demo --out docs/demo  # regenerate the committed demo
 ```
 

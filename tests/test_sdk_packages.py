@@ -82,6 +82,26 @@ def test_privacy_manifests_ship_with_both_sdks():
     assert "PluginImporter" in meta and "iPhone: iOS" in meta and "enabled: 1" in meta
 
 
+def test_ios_native_part_is_opt_in_and_the_editor_compiles_for_ios():
+    """13 Nov 2026: the manifest went into every iOS build, also with the SDK off ("Data Not
+    Collected" apps); and with the Editor on the iOS target Device() called IosInfo, which
+    existed only outside the Editor (CS0103, seen with Unity's own Roslyn)."""
+    for name in ("PrivacyInfo.xcprivacy.meta", "StudioPulseInstallSource.swift.meta"):
+        meta = (UNITY / "Plugins/iOS" / name).read_text(encoding="utf-8")
+        assert "  defineConstraints:\n  - STUDIO_PULSE_IOS_NATIVE\n" in meta, name
+    src = (UNITY / "Runtime/UnityPulsePlatform.cs").read_text(encoding="utf-8")
+    assert "#elif UNITY_IOS && !UNITY_EDITOR\n            IosInfo(d);" in src
+    native = src.index("#if UNITY_IOS && !UNITY_EDITOR && STUDIO_PULSE_IOS_NATIVE")
+    fallback = src.index("#elif UNITY_IOS && !UNITY_EDITOR", native)
+    assert src.index('[DllImport("__Internal")]') > native
+    assert (
+        max(i for i in range(len(src)) if src.startswith('[DllImport("__Internal")]', i)) < fallback
+    )
+    assert (
+        "static void IosInfo(PulseDevice d)" in src[fallback:]
+    )  # the build without the define has one too
+
+
 def test_unity_meta_files_are_complete():
     spec = importlib.util.spec_from_file_location("unity_meta", ROOT / "unity/tools/unity_meta.py")
     mod = importlib.util.module_from_spec(spec)
