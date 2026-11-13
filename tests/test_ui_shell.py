@@ -171,3 +171,20 @@ def test_morning_brief_numbers_alerts_and_market(client, studio_cfg):
     else:
         assert "Acil bir şey yok" in page
     assert "Öne çıkan içgörüler" in page  # the AI panel ranks insights across apps
+
+
+def test_alerts_read_in_turkish_from_their_numbers(client):
+    from studio_pulse import alerts
+    from studio_pulse.serve.alert_text import AlertText
+
+    say = AlertText(None)  # no rules file: the stored text is kept
+    row = {"rule": "x", "metric": "crash_free_users", "value": 0.9865, "baseline": None,
+           "threshold": 0.99, "message": "crash_free_users 98.65% is below 99.00%"}  # fmt: skip
+    assert say(row, "tr") == row["message"]
+    rule = alerts.Rule.from_dict({"name": "x", "metric": "crash_free_users", "condition": "below",
+                                  "threshold": 0.99, "severity": "critical"}, {})  # fmt: skip
+    say.rules = {"x": rule}
+    assert say(row, "tr") == "çökmesiz kullanıcı oranı %98,65: eşiğin (%99,00) altında"
+    assert say(row, "en") == row["message"]
+    tr = client.get("/alerts").text
+    assert " is below " not in tr and " is above " not in tr and " is down " not in tr

@@ -17,7 +17,7 @@
     {% for a in brief.alerts %}
     <div class="finding {{ 'critical' if a.severity == 'critical' else 'warning' }}">
       <div class="ttl"><span class="badge {{ 'bad' if a.severity == 'critical' else 'warn' }}">{{ s['sev_' ~ a.severity] if ('sev_' ~ a.severity) in s else a.severity }}</span> {{ a.app_id }} · <code>{{ a.rule }}</code></div>
-      <div class="bd">{{ a.message }}</div>
+      <div class="bd">{{ alert_text(a) }}</div>
     </div>
     {% endfor %}
     {% for r in brief.stale %}<div class="finding warning"><div class="bd" style="margin:0">{{ t.stale_line.format(app=r.app_id, source=r.source, lag=r.lag) }}</div></div>{% endfor %}

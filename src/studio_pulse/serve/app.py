@@ -164,6 +164,11 @@ def create_app(
         lock = runstate.read_json(Path(cfg.state_dir) / runstate.LOCK_NAME)
         return {"hb": hb, "lock": lock, "running": bool(hb and hb.get("status") == "running")}
 
+    from .. import pipeline
+    from .alert_text import AlertText
+
+    alert_text = AlertText(pipeline.default_file(cfg, None, "alerts_path", "alerts.yaml"))
+
     def context(request: Request | None, page: str, **extra: Any) -> dict[str, Any]:
         """Everything a page in the shell needs: its data, the language, the sidebar."""
         lang = ui.request_lang(request, extra.pop("lang", None))
@@ -177,6 +182,7 @@ def create_app(
             "lang": lang,
             "s": ui.S[lang],
             "age": lambda iso: ui.age(iso, lang),
+            "alert_text": lambda a: alert_text(a, lang),
             "static": False,
             "chosen": "@" + page,
             "source": None,

@@ -8,7 +8,7 @@
   {% for a in alerts %}
   <div class="finding {{ sev.get(a.severity, 'info') }}">
     <div class="ttl"><span class="badge {{ 'bad' if a.severity == 'critical' else 'warn' }}">{{ s['sev_' ~ a.severity] if ('sev_' ~ a.severity) in s else a.severity }}</span> {{ a.app_id }} · <code>{{ a.rule }}</code> <span class="muted">{{ a.date }}</span></div>
-    <div class="bd">{{ a.message }}</div>
+    <div class="bd">{{ alert_text(a) }}</div>
   </div>
   {% else %}<div class="empty compact"><div class="ic">{{ icon('check')|safe }}</div><p>{{ s.a_ok }}</p></div>{% endfor %}
 </section>
@@ -16,7 +16,7 @@
   <h2>{{ s.a_history }}</h2>
   {% if history %}
   <div class="table-scroll"><table class="t"><thead><tr><th>{{ s.a_fired }}</th><th>{{ s.h_app }}</th><th>{{ s.a_rule }}</th><th>{{ s.h_sev }}</th><th>{{ s.a_day }}</th><th>{{ s.a_msg }}</th></tr></thead><tbody>
-  {% for a in history %}<tr><td class="muted" style="white-space:nowrap">{{ a.fired_at }}</td><td>{{ a.app_id }}</td><td><code>{{ a.rule }}</code></td><td><span class="badge {{ 'bad' if a.severity == 'critical' else 'warn' }}">{{ s['sev_' ~ a.severity] if ('sev_' ~ a.severity) in s else a.severity }}</span></td><td>{{ a.date }}</td><td class="wrap">{{ a.message }}</td></tr>{% endfor %}
+  {% for a in history %}<tr><td class="muted" style="white-space:nowrap">{{ a.fired_at }}</td><td>{{ a.app_id }}</td><td><code>{{ a.rule }}</code></td><td><span class="badge {{ 'bad' if a.severity == 'critical' else 'warn' }}">{{ s['sev_' ~ a.severity] if ('sev_' ~ a.severity) in s else a.severity }}</span></td><td>{{ a.date }}</td><td class="wrap">{{ alert_text(a) }}</td></tr>{% endfor %}
   </tbody></table></div>
   {% else %}<div class="empty compact"><p>{{ s.a_none }}</p></div>{% endif %}
   <p class="muted" style="font-size:12px;margin:10px 0 0">{{ s.a_note }}</p>
