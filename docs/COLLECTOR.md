@@ -41,7 +41,9 @@ pulse serve --config pulse.yaml                 # Canlı / Live at http://127.0.
 collector:
   data_dir: local/collector       # where pulse collect writes
   url: http://127.0.0.1:8787      # where pulse serve reads /live
-  write_keys: ["${PULSE_WRITE_KEY}"]   # default when empty: sp_pub_local (laptop only)
+  write_keys:                     # default when empty: sp_pub_local (laptop only)
+    - key: ${PULSE_WRITE_KEY}
+      apps: [com.example.pebblepop] # this key writes for these app_ids only (403 for others)
   read_key: ${PULSE_READ_KEY:-}   # optional; required by /live when set
   bundle_prefixes: []             # e.g. [com.grich.]: other apps are quarantined
   country_header:                 # e.g. CF-IPCountry behind Cloudflare
@@ -60,6 +62,16 @@ Phones on the same Wi-Fi: `pulse collect --host 0.0.0.0 --key <your key>` and
 point the SDK at `http://<laptop-ip>:8787`. With only the default key the
 collector warns when it is reachable from the network.
 
+**Bind every shipped key to its apps.** A bare key (`- <key>` in
+`write_keys`, or no `=` in `PULSE_WRITE_KEYS` / `--key`) writes for any
+`app_id`, so anyone who pulls it out of one build can create apps and send
+events, purchases included, for another. A bound key is accepted only for its
+`app_id`s: `{key: ..., apps: [...]}` in `pulse.yaml`, `key=app_id|app_id` in
+`PULSE_WRITE_KEYS` (comma separated) or `--key`. A batch, JSON-lines request or
+deletion for any other app answers `403 key_not_for_app` and nothing of it is
+stored (the batch head goes to the quarantine). On a non-loopback address the
+collector warns about every unbound key; `/healthz` reports `bound_keys`.
+
 `pulse collect setup-geoip` installs DB-IP's free *IP to Country Lite*
 database (CC BY 4.0, updated monthly): it reads the download page, takes the
 `.mmdb.gz` link and the SHA1 DB-IP publishes for the uncompressed file
@@ -74,7 +86,7 @@ extra (`maxminddb`). Tests never download it.
 |---|---|---|
 | `POST /v2/batch` | a v2 batch ([CONTRACT.md](CONTRACT.md)), optionally `Content-Encoding: gzip` | `200 {"accepted", "duplicates", "quarantined", "ignored", "rejected": [{"id", "reason"}], "skew_ms"}` |
 | `POST /v1/ndjson` | contract v1 JSON lines (the Unity/Flutter perf packages' `JsonLinesSink`) | `200 {"accepted", "duplicates", "quarantined"}`; lines are upgraded to v2 rows with `schema = "1"` |
-| `POST /v2/delete` | `{"install_id", "app_id"?, "reason"?}` | `202`: events of that install are refused from now on, stored rows go with the next run |
+| `POST /v2/delete` | `{"install_id", "app_id"?, "reason"?}` | `202`: events of that install are refused from now on, stored rows go with the next run; rate limited per IP like ingest; a bound key needs its own `app_id` |
 | `GET /live` | - | active installs per app in the last 5 minutes, breakdown, events per minute, registry status, new apps |
 | `GET /healthz` | - | mode, counters, contract version (no keys, no data) |
 
@@ -89,6 +101,7 @@ secret. `/live` needs the read key when one is set.
 | 200 | every event was stored, quarantined (with a reason) or is a repeat | delete the batch |
 | 400 | not JSON, broken gzip, invalid envelope (the batch head is quarantined too) | drop the batch, count it |
 | 401 | unknown write key | stop sending until the next launch |
+| 403 | `key_not_for_app`: the key is bound to other `app_id`s | stop sending until the next launch; the queue stays |
 | 413 | more than 500 events, more than 1 MiB uncompressed or inflated | halve the batch |
 | 415 | `Content-Encoding` other than gzip | (SDK bug) |
 | 429 | rate limit (token buckets per salted IP hash and per install) | back off, retry |

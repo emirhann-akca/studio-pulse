@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import datetime as dt
 from collections.abc import Callable
+from html import escape
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -44,7 +45,11 @@ def default_fetcher(cfg: Any) -> Callable[[], dict[str, Any]]:
 
 
 def sparkline(values: list[int], label: str) -> str:
-    """Events per minute as a small inline SVG (oldest left, now right)."""
+    """Events per minute as a small inline SVG (oldest left, now right).
+
+    The template renders the result with `|safe`, and `label` is the app name an
+    SDK sent with a public write key: everything that is not a number is escaped.
+    """
     n = len(values)
     top = max(values) if values and max(values) > 0 else 1
     w, h = 120.0, 28.0
@@ -53,9 +58,10 @@ def sparkline(values: list[int], label: str) -> str:
         for i, v in enumerate(values)
     )
     last = values[-1] if values else 0
+    aria = escape(f"{label}: events per minute over the last {n} minutes, last {last}", quote=True)
     return (
         f'<svg class="spark" viewBox="0 0 {w:.0f} {h:.0f}" width="120" height="28" role="img" '
-        f'aria-label="{label}: events per minute over the last {n} minutes, last {last}">'
+        f'aria-label="{aria}">'
         f'<polyline fill="none" stroke="var(--s1)" stroke-width="1.6" points="{pts}"/></svg>'
     )
 

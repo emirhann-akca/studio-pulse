@@ -3,6 +3,7 @@
     POST /v2/batch    contract v2 batch (gzip optional), X-Pulse-Key
     POST /v1/ndjson   contract v1 JSON lines (Unity JsonLinesSink HTTP), upgraded
     POST /v2/delete   {"install_id": ..., "app_id": ..., "reason": ...}: deletion / opt-out
+                      (rate limited per IP like ingest)
     GET  /live        active installs in the last 5 minutes per app (read key if configured)
     GET  /healthz     liveness, mode, counters (no keys, no data)
 
@@ -116,12 +117,15 @@ def create_app(settings: CollectorSettings, collector: Collector | None = None) 
     async def delete(request: Request) -> JSONResponse:
         hdrs = _headers(request)
         try:
+            col.check_key(hdrs)  # 401 before reading a body
             raw = await read_limited(request, 4096)
             try:
                 body = json.loads(raw or b"{}")
             except ValueError as exc:
                 raise HTTPError(400, "bad_json") from exc
-            out = await run_in_threadpool(col.delete, body, hdrs)
+            out = await run_in_threadpool(
+                col.delete, body, hdrs, client_ip(request, settings.trusted_proxy_hops)
+            )
         except HTTPError as exc:
             return error(exc)
         return JSONResponse(out, 202)
@@ -167,6 +171,13 @@ def serve(
         log(
             "warning: listening on the network with the default local write key; "
             "set collector.write_keys (or PULSE_WRITE_KEYS) before phones or the internet can reach it"
+        )
+    elif not local and settings.unbound_keys:
+        log(
+            f"warning: {len(settings.unbound_keys)} write key(s) accept events for any app_id; "
+            "bind each key to its apps (collector.write_keys: [{key: ..., apps: [...]}] or "
+            "PULSE_WRITE_KEYS=key=app_id|app_id) so a key taken from one build cannot write "
+            "events or revenue for another app"
         )
     app = create_app(settings)
     sock = bind(host, port)

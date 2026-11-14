@@ -128,6 +128,7 @@ class Collector:
         self.geo = geo or CountryResolver(settings.geoip, settings.country_header)
         self.live = live or LiveWindow(settings.live_window_s * 1000, settings.spark_minutes)
         self.keys = settings.key_ids()
+        self.key_apps = settings.apps_by_key_id()
         self.limits = spec()["limits"]
         self.prod_stores = frozenset(spec()["production_stores"])
         self._salt = secrets.token_bytes(16)
@@ -152,6 +153,21 @@ class Collector:
         if not kid:
             raise HTTPError(401, "unknown_write_key")
         return kid
+
+    def check_app(self, kid: str, app_id: Any) -> None:
+        """A key bound to app_ids (collector.write_keys) writes for those apps only:
+        the key is public (it ships in every build), so without the binding the key of
+        one game could create apps and forge events, revenue included, for any other."""
+        allowed = self.key_apps.get(kid)
+        if allowed is not None and app_id not in allowed:
+            raise HTTPError(403, "key_not_for_app")
+
+    def _require_app(self, received: int, kid: str, app_id: Any, head: Any) -> None:
+        try:
+            self.check_app(kid, app_id)
+        except HTTPError as exc:  # recorded like every request-level failure
+            self._reject_batch(received, f"batch:{exc.reason}", kid, head)
+            raise
 
     def rate_limit(self, ip: str | None) -> None:
         if not ip:
@@ -231,6 +247,8 @@ class Collector:
             )
             self._reject_batch(received, f"batch:{exc.reason}", kid, head)
             raise HTTPError(exc.status, exc.reason) from exc
+        head = {k: body.get(k) for k in ("v", "schema", "sent_at", "ctx")}
+        self._require_app(received, kid, ctx["app_id"], head)
         country = self.geo.country(headers, ip)
         return 200, self._process(received, kid, sent_at, schema, ctx, events, country)
 
@@ -457,6 +475,8 @@ class Collector:
                 )
             except (ValueError, KeyError, TypeError, AttributeError):
                 bad.append(("v1:bad_line", line[:RAW_MAX]))
+        for app in sorted({g[0] for g in groups}):  # before anything of the request is written
+            self._require_app(received, kid, app, {"v": 1, "app": app})
         accepted = dup = quarantined = 0
         if bad:
             rows = [self._quarantine_row(received, r, kid, None, raw_line) for r, raw_line in bad]
@@ -482,8 +502,9 @@ class Collector:
 
     # -- deletion and live ---------------------------------------------------------------
 
-    def delete(self, body: Any, headers: dict[str, str]) -> dict[str, Any]:
-        self.check_key(headers)
+    def delete(self, body: Any, headers: dict[str, str], ip: str | None = None) -> dict[str, Any]:
+        kid = self.check_key(headers)
+        self.rate_limit(ip)  # the same per-IP buckets as ingest: every request adds a row
         if not isinstance(body, dict) or not isinstance(body.get("install_id"), str):
             raise HTTPError(400, "missing:install_id")
         install = body["install_id"].strip().lower()
@@ -492,6 +513,7 @@ class Collector:
         except ValueError as exc:
             raise HTTPError(400, "uuid:install_id") from exc
         app_id = body.get("app_id") if isinstance(body.get("app_id"), str) else None
+        self.check_app(kid, app_id)  # a bound key deletes for its own apps (the SDKs send app_id)
         reason = str(body.get("reason") or "user_request")[:40]
         now = self.clock()
         self.store.add_deletion(install, app_id, reason, now)

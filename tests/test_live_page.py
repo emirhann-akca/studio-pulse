@@ -71,6 +71,57 @@ def test_live_page_shows_apps_badges_breakdown_and_new_app_banner(demo_cfg):
     assert "prefers-color-scheme: dark" in html  # light and dark
 
 
+def test_sdk_app_name_is_escaped_on_the_live_page(tmp_path):
+    """Audit, 14 Nov 2026 (stored XSS): ctx.app_name, sent with the public write key, became
+    the registry display name and reached the page unescaped through the sparkline's
+    aria-label, which _live.html renders with |safe."""
+    import time
+    import uuid
+
+    from studio_pulse.collector.app import create_app as collector_app
+    from studio_pulse.collector.core import Collector
+    from studio_pulse.collector.store import LocalStore
+    from studio_pulse.collector.web import sparkline
+
+    payload = '"><img src=x onerror=alert(document.domain)>'
+    s = CollectorSettings(data_dir=tmp_path / "c")
+    store = LocalStore(s.data_dir)
+    col = Collector(s, store)
+    now = int(time.time() * 1000)
+    body = {"v": 2, "schema": "2", "sent_at": now,
+            "ctx": {"app_id": "com.example.evil", "platform": "android", "app_version": "1.0",
+                    "install_id": str(uuid.uuid4()), "sdk": "unity/2.0.0", "app_name": payload},
+            "events": [{"id": str(uuid.uuid4()), "seq": 0, "name": "level_start", "ts": now,
+                        "sid": str(uuid.uuid4()), "snum": 1, "fg_ms": 0, "p": {"level": 1}}]}  # fmt: skip
+    r = TestClient(collector_app(s, col)).post(
+        "/v2/batch", json=body, headers={"X-Pulse-Key": DEFAULT_LOCAL_KEY}
+    )
+    assert r.json()["accepted"] == 1 and col.live_snapshot()["apps"][0]["name"] == payload
+
+    cfg_path = tmp_path / "pulse.yaml"
+    cfg_path.write_text(
+        yaml.safe_dump(
+            {
+                "warehouse": str(tmp_path / "w.duckdb"),
+                "apps": [{"id": "x", "name": "X", "sources": {}}],
+            }
+        ),  # fmt: skip
+        encoding="utf-8",
+    )
+    ui = TestClient(
+        create_app(load_config(cfg_path), token="t", live_fetcher=col.live_snapshot),
+        base_url=HOST,
+    )
+    for path in ("/fragments/live", "/live"):
+        html = ui.get(path).text
+        assert "<img src=x" not in html, path
+        # the new-app banner and the sparkline both show the name, as text
+        assert html.count("&gt;&lt;img src=x onerror=alert(document.domain)&gt;") >= 2, path
+    svg = sparkline([0, 3], payload)
+    assert "<img" not in svg and 'aria-label="&quot;&gt;&lt;img src=x' in svg
+    store.close()
+
+
 def test_live_page_says_when_the_collector_is_down(demo_cfg):
     def down():
         raise ConnectionError("refused")

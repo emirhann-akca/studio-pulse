@@ -23,7 +23,13 @@ from studio_pulse.collector.app import create_app
 from studio_pulse.collector.core import Collector
 from studio_pulse.collector.geo import CountryResolver
 from studio_pulse.collector.inprocess import running_collector
-from studio_pulse.collector.settings import DEFAULT_LOCAL_KEY, CollectorSettings, from_dict, key_id
+from studio_pulse.collector.settings import (
+    DEFAULT_LOCAL_KEY,
+    CollectorSettings,
+    from_dict,
+    key_id,
+    parse_write_keys,
+)
 from studio_pulse.collector.store import LocalStore
 
 T0 = 1_793_000_000_000  # 2026-10-26 (ms)
@@ -258,6 +264,96 @@ def test_bundle_allowlist_quarantines_unknown_apps(tmp_path):
     assert r["accepted"] == 0 and r["quarantined"] == 1
     assert [x["app_id"] for x in store.registry()] == ["com.example.game"]
     assert rows(s.data_dir, "quarantine")[0]["reason"] == "app_not_allowed"
+    store.close()
+
+
+def forged_purchase(seq: int = 0) -> dict:
+    """The audit probe's event: a $99.99 purchase sent with nothing but a public key."""
+    p = {"transaction_id": str(uuid.UUID(int=1000 + seq, version=4)), "product_id": "gems_10000",
+         "price_micros": 99_990_000, "currency": "USD"}  # fmt: skip
+    return ev(seq, "purchase", p)
+
+
+def test_bound_write_key_writes_only_for_its_apps(tmp_path):
+    """Audit, 14 Nov 2026: any key was accepted for any app_id, so the key pulled out of one
+    build forged a $99.99 purchase for another app (accepted: 1). A bound key is refused for
+    other apps on every write path and nothing of the request is stored."""
+    s = from_dict(
+        {
+            "data_dir": "c",
+            "write_keys": [{"key": "pk_game", "apps": ["com.example.game"]}, "pk_any"],
+        },
+        tmp_path,
+        env={},
+    )
+    store = LocalStore(s.data_dir)
+    client = TestClient(create_app(s, Collector(s, store, clock=Clock())))
+    game, any_app = {"X-Pulse-Key": "pk_game"}, {"X-Pulse-Key": "pk_any"}
+
+    r = post(client, batch([forged_purchase()], app="com.victim.game"), game)
+    assert r.status_code == 403 and r.json()["error"] == "key_not_for_app"
+    assert rows(s.data_dir) == [] and store.registry() == []
+    (q,) = rows(s.data_dir, "quarantine")  # recorded like every refused batch, never silent
+    assert q["reason"] == "batch:key_not_for_app" and q["key_id"] == key_id("pk_game")
+    assert post(client, batch([forged_purchase()]), game).json()["accepted"] == 1
+
+    def v1(app: str) -> str:
+        return json.dumps({"v": 1, "event": "pulse_load", "ts": "2026-10-26T08:00:00.000Z",
+                           "app": app, "app_version": "1.4.0", "platform": "ANDROID",
+                           "session": "0123456789abcdef0123456789abcdef", "params": {}})  # fmt: skip
+
+    body = (v1("com.example.game") + "\n" + v1("com.victim.game")).encode()
+    r = client.post("/v1/ndjson", content=body, headers=game)
+    assert r.status_code == 403 and len(rows(s.data_dir)) == 1  # not even the allowed line
+
+    def delete(body: dict, headers: dict) -> int:
+        return client.post("/v2/delete", json=body, headers=headers).status_code
+
+    assert delete({"install_id": install(1), "app_id": "com.victim.game"}, game) == 403
+    assert delete({"install_id": install(1)}, game) == 403
+    assert not store.deleted_installs()
+    assert delete({"install_id": install(1), "app_id": "com.example.game"}, game) == 202
+
+    # an unbound key still writes for any app (a laptop key); /healthz says how many are bound
+    r = post(client, batch([ev(0)], app="com.victim.game", inst=2), any_app)
+    assert r.json()["accepted"] == 1
+    assert client.get("/healthz").json()["bound_keys"] == 1
+    store.close()
+
+
+def test_write_key_binding_forms(tmp_path):
+    keys, apps = parse_write_keys("pk_a=com.a.game|com.a.lite, pk_b ,pk_a=com.a.web|com.a.game")
+    assert keys == ["pk_a", "pk_b"]
+    assert apps == {"pk_a": ["com.a.game", "com.a.lite", "com.a.web"]}
+    s = from_dict({"data_dir": "x"}, tmp_path, env={"PULSE_WRITE_KEYS": "pk_a=com.a.game,pk_b"})
+    assert s.write_keys == ["pk_a", "pk_b"] and s.unbound_keys == ["pk_b"]
+    assert s.apps_by_key_id() == {key_id("pk_a"): frozenset({"com.a.game"})}
+    assert s.public()["bound_keys"] == 1 and "pk_a" not in json.dumps(s.public())
+    # a typo must not silently turn into an unbound key or a nonsense app_id
+    for bad in ("pk_a=", "=com.a.game", "pk_padded==", "pk_a=com a.game"):
+        with pytest.raises(ValueError):
+            parse_write_keys(bad)
+    with pytest.raises(ValueError):
+        parse_write_keys([{"key": "pk_a"}])
+
+
+def test_delete_is_rate_limited_like_ingest(tmp_path):
+    """Audit, 14 Nov 2026: 500 deletion requests from one address under a 1/s limit were all
+    accepted in 0.5 s (500 stored rows, 500 in-memory entries)."""
+    s = CollectorSettings(data_dir=tmp_path / "c", rate_per_ip=0.001, burst_per_ip=2)
+    store = LocalStore(s.data_dir)
+    c = Collector(s, store, clock=Clock())
+    client = TestClient(create_app(s, c), client=("203.0.113.7", 5555))
+    answers = [
+        client.post("/v2/delete", json={"install_id": install(i), "reason": "x"}, headers=KEY)
+        for i in range(1, 51)
+    ]
+    codes = [r.status_code for r in answers]
+    assert codes[:2] == [202, 202] and set(codes[2:]) == {429}
+    assert answers[-1].headers["Retry-After"] == "5"
+    assert len(c.deleted) == 2 and len(store.deleted_installs()) == 2
+    # one bucket per address for both paths: the deletions used up the batch budget too
+    assert post(client, batch([ev(0)], inst=99)).status_code == 429
     store.close()
 
 

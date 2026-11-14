@@ -193,3 +193,16 @@ def test_market_view_sits_inside_the_studio(studio_cfg, tmp_path):
 def test_market_view_without_a_radar_run_says_so(client):
     page = client.get("/studio/market").text
     assert "Henüz radar koşusu yok" in page
+
+
+def test_unknown_app_or_metric_is_echoed_as_text_not_html(client):
+    """The 404s repeat the id from the URL: as text/plain, so a crafted link cannot run script
+    in the UI's origin (where the CSRF token lives)."""
+    from studio_pulse.serve import studio_metrics as sm
+
+    tag = "%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E"
+    for url in (f"/studio/{tag}", f"/studio/{tag}/metric/{next(iter(sm.METRICS))}",
+                f"/studio/x/metric/{tag}"):  # fmt: skip
+        r = client.get(url)
+        assert r.status_code == 404, url
+        assert r.headers["content-type"].startswith("text/plain"), url

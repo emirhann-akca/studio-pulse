@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ..config import ConfigError, load_config
-from .settings import DEFAULT_PORT, CollectorSettings, from_config, from_dict
+from .settings import DEFAULT_PORT, CollectorSettings, from_config, from_dict, parse_write_keys
 
 
 def settings_for(args: argparse.Namespace) -> CollectorSettings:
@@ -28,7 +28,7 @@ def settings_for(args: argparse.Namespace) -> CollectorSettings:
 def cmd_collect(args: argparse.Namespace) -> int:
     s = settings_for(args)
     if args.key:
-        s.write_keys = list(args.key)
+        s.write_keys, s.key_apps = parse_write_keys(args.key)
     if args.country_header:
         s.country_header = args.country_header
     if args.mode:
@@ -119,7 +119,11 @@ def register(sub: Any, with_config: Any) -> None:
     )
     c.add_argument("--host", default="127.0.0.1", help="bind address (default 127.0.0.1)")
     c.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"port (default {DEFAULT_PORT})")
-    c.add_argument("--key", action="append", help="accepted public write key (repeatable)")
+    c.add_argument(
+        "--key",
+        action="append",
+        help="accepted public write key (repeatable); key=app_id|app_id binds it to those apps",
+    )
     c.add_argument(
         "--country-header", help="trust this request header for the country (e.g. CF-IPCountry)"
     )

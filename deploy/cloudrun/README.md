@@ -55,7 +55,7 @@ window within five minutes; the warehouse dedupes anyway.
 |---|---|
 | `PULSE_COLLECTOR_MODE` | `bigquery` |
 | `PULSE_BQ_PROJECT`, `PULSE_BQ_DATASET`, `PULSE_BQ_LOCATION` | where the tables are |
-| `PULSE_WRITE_KEYS` | secret: accepted public write keys |
+| `PULSE_WRITE_KEYS` | secret: accepted public write keys, comma separated; `key=app_id\|app_id` binds a key to its apps (see docs/COLLECTOR.md) |
 | `PULSE_READ_KEY` | secret: required by `GET /live` |
 | `PULSE_TRUSTED_PROXY_HOPS` | `1`: the client address is the rightmost `X-Forwarded-For` entry added by Google's front end (used in memory for the country, never stored). Check it on the first deploy |
 | `PULSE_COUNTRY_HEADER` | optional, e.g. `CF-IPCountry` when Cloudflare is in front |

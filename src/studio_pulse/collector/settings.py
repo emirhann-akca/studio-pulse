@@ -3,7 +3,10 @@
     collector:
       data_dir: local/collector          # local mode: NDJSON segments + collector.sqlite3
       url: http://127.0.0.1:8787         # where `pulse serve` reads /live
-      write_keys: ["${PULSE_WRITE_KEY}"] # public, write-only keys compiled into the SDK (two during rotation)
+      write_keys:                        # public, write-only keys compiled into the SDK (two during rotation)
+        - key: ${PULSE_WRITE_KEY}
+          apps: [com.example.game]       # this key writes for these app_ids only (403 for any other)
+        - ${PULSE_DEV_KEY}               # a bare key writes for any app_id (a laptop, not a shipped game)
       read_key: ${PULSE_READ_KEY}        # optional: required by /live when set
       bundle_prefixes: [com.grich.]      # optional allowlist; other apps are quarantined
       country_header: CF-IPCountry       # trust this header for the country (only behind a proxy that sets it)
@@ -12,7 +15,8 @@
       mode: local                        # or bigquery (Cloud Run), with bigquery: {project, dataset}
 
 Environment variables (Cloud Run) override the file: PULSE_DATA_DIR,
-PULSE_WRITE_KEYS (comma separated), PULSE_READ_KEY, PULSE_COLLECTOR_MODE,
+PULSE_WRITE_KEYS (comma separated; key=app_id|app_id binds a key to its apps),
+PULSE_READ_KEY, PULSE_COLLECTOR_MODE,
 PULSE_BQ_PROJECT, PULSE_BQ_DATASET, PULSE_BQ_LOCATION, PULSE_COUNTRY_HEADER,
 PULSE_TRUSTED_PROXY_HOPS, PULSE_BUNDLE_PREFIXES, PULSE_GEOIP.
 """
@@ -21,9 +25,12 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from ..contract import spec
 
 # Accepted when no key is configured, so a laptop demo works out of the box.
 # The collector warns when it is reachable from other machines with only this key.
@@ -44,11 +51,51 @@ def _list(v: Any) -> list[str]:
     return [str(x).strip() for x in v if str(x).strip()]
 
 
+_EQ = " (a key that contains '=' goes in pulse.yaml as {key: ..., apps: [...]})"
+
+
+def parse_write_keys(v: Any) -> tuple[list[str], dict[str, list[str]]]:
+    """The accepted write keys and the app_ids each bound key may write for.
+
+    An entry is a bare key (any app_id), `key=app_id|app_id` (environment, CLI)
+    or `{key: ..., apps: [...]}` (pulse.yaml). A key listed twice gets the union
+    of its apps; a key without apps in every entry stays unbound.
+    """
+    app_id = re.compile(spec()["ctx"]["app_id"]["pattern"])
+    keys: list[str] = []
+    bound: dict[str, list[str]] = {}
+    if v is None or v == "":
+        return keys, bound
+    for item in v.split(",") if isinstance(v, str) else v:
+        if isinstance(item, dict):
+            key, apps = str(item.get("key") or "").strip(), _list(item.get("apps"))
+            if not key or not apps:
+                raise ValueError("a write_keys entry with key: needs at least one app_id in apps:")
+        else:
+            key, sep, rest = str(item).partition("=")
+            key, apps = key.strip(), [a.strip() for a in rest.split("|") if a.strip()]
+            if sep and not (key and apps):
+                raise ValueError(f"write key binding {item!r} is not key=app_id|app_id{_EQ}")
+        if not key:
+            continue
+        bad = [a for a in apps if not app_id.match(a)]
+        if bad:
+            raise ValueError(f"write key binding: {bad[0]!r} is not an app_id{_EQ}")
+        if key not in keys:
+            keys.append(key)
+        for a in apps:
+            if a not in bound.setdefault(key, []):
+                bound[key].append(a)
+    return keys, bound
+
+
 @dataclass
 class CollectorSettings:
     data_dir: Path
     mode: str = "local"
     write_keys: list[str] = field(default_factory=list)
+    # key -> the app_ids it may write for; a key missing here writes for any app_id
+    key_apps: dict[str, list[str]] = field(default_factory=dict)
     read_key: str | None = None
     bundle_prefixes: list[str] = field(default_factory=list)
     country_header: str | None = None
@@ -83,14 +130,26 @@ class CollectorSettings:
     def db_path(self) -> Path:
         return self.data_dir / "collector.sqlite3"
 
+    @property
+    def unbound_keys(self) -> list[str]:
+        """Write keys that are accepted for any app_id."""
+        return [k for k in self.write_keys if not self.key_apps.get(k)]
+
     def key_ids(self) -> dict[str, str]:
         return {k: key_id(k) for k in self.write_keys}
+
+    def apps_by_key_id(self) -> dict[str, frozenset[str]]:
+        """Key id -> the app_ids a bound key may write for (unbound keys are absent)."""
+        return {
+            key_id(k): frozenset(self.key_apps[k]) for k in self.write_keys if self.key_apps.get(k)
+        }
 
     def public(self) -> dict[str, Any]:
         """For /healthz and logs: no keys."""
         return {
             "mode": self.mode,
             "write_keys": len(self.write_keys),
+            "bound_keys": len(self.write_keys) - len(self.unbound_keys),
             "default_key": self.uses_default_key,
             "read_key": bool(self.read_key),
             "bundle_prefixes": self.bundle_prefixes,
@@ -116,6 +175,7 @@ def from_dict(
     for k, e in (("project", "PULSE_BQ_PROJECT"), ("dataset", "PULSE_BQ_DATASET")):
         if env.get(e):
             bq[k] = env[e]
+    write_keys, key_apps = parse_write_keys(env.get("PULSE_WRITE_KEYS") or b.get("write_keys"))
     if env.get("PULSE_BQ_LOCATION"):
         bq["location"] = env["PULSE_BQ_LOCATION"]
     geo = path(env.get("PULSE_GEOIP") or b.get("geoip"))
@@ -125,7 +185,8 @@ def from_dict(
     return CollectorSettings(
         data_dir=data_dir,  # type: ignore[arg-type]
         mode=str(env.get("PULSE_COLLECTOR_MODE") or b.get("mode") or "local"),
-        write_keys=_list(env.get("PULSE_WRITE_KEYS") or b.get("write_keys")),
+        write_keys=write_keys,
+        key_apps=key_apps,
         read_key=env.get("PULSE_READ_KEY") or b.get("read_key") or None,
         bundle_prefixes=_list(env.get("PULSE_BUNDLE_PREFIXES") or b.get("bundle_prefixes")),
         country_header=env.get("PULSE_COUNTRY_HEADER") or b.get("country_header") or None,
