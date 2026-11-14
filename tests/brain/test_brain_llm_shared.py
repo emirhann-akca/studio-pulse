@@ -101,3 +101,17 @@ def test_a_provider_failure_falls_back_to_the_template(tmp_path, demo_report):
         provider_obj=prov,
     )
     assert narrate.narrate(ins, "en", c).body == narrate.template_narration(ins, "en").body
+
+
+def test_a_turkish_rewrite_without_turkish_letters_is_rejected(tmp_path, demo_report):
+    """14 Nov, real model: "Zevo D1 elde tutma orani ... gerceklesmistir" (ASCII Turkish) passed
+    the number check. A Turkish rewrite that drops the Turkish letters keeps the template."""
+    ins = next(i for i in demo_report.insights if i.id == "difficult_level:quartz_merge:7")
+    base = narrate.template_narration(ins, "tr")
+    ascii_tr = base.body.translate(str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU"))
+    assert ascii_tr != base.body
+    bad, prov = _shared(tmp_path / "c", lambda req: {"text": ascii_tr})
+    assert narrate.narrate(ins, "tr", bad).body == base.body and len(prov.calls) == 2
+    good, _ = _shared(tmp_path / "d", lambda req: {"text": json.loads(req.prompt)["text"]})
+    assert narrate.narrate(ins, "tr", good).body == base.body
+    assert not narrate._lost_letters("ascii only text", "ascii only text", "tr")

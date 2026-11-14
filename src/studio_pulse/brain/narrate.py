@@ -570,6 +570,19 @@ _FORBIDDEN_TEXT = re.compile(
 )
 
 
+_TR_LETTERS = re.compile("[çğıöşüÇĞİÖŞÜ]")
+
+
+def _lost_letters(original: str, new: str, lang: str) -> bool:
+    """A Turkish rewrite that dropped the Turkish letters ("orani", "gerceklesmistir"):
+    the model wrote ASCII, which reads as broken Turkish; keep the template instead."""
+    if lang != "tr":
+        return False
+    before = len(_TR_LETTERS.findall(original))
+    after = len(_TR_LETTERS.findall(new))
+    return before >= 3 and after * 3 < before
+
+
 def restyle(
     text: str,
     evidence: list[Any],
@@ -603,7 +616,12 @@ def restyle(
             continue
         new = new.strip()
         bad = verify.unsupported(new, evidence, lang)
-        if not bad and not _FORBIDDEN_TEXT.search(new) and len(new) <= 2 * len(text) + 40:
+        if (
+            not bad
+            and not _FORBIDDEN_TEXT.search(new)
+            and len(new) <= 2 * len(text) + 40
+            and not _lost_letters(text, new, lang)
+        ):
             return new, "narrator"
         payload = {**payload, "rejected_numbers": bad}
     return text, "template"
