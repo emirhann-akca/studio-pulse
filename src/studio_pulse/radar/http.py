@@ -40,7 +40,9 @@ ROBOTS_TOKEN = "studio-pulse-radar"
 ALWAYS_REFUSED = {"play.google.com": ("/_", "/store/search", "/store/getreviews")}
 # Apple serves store screenshots from is1..is5-ssl.mzstatic.com; dossiers read them (Lookup lists their URLs).
 APPLE_IMAGE_HOSTS = frozenset(f"is{i}-ssl.mzstatic.com" for i in range(1, 6))
-STORE_HOSTS = frozenset({"itunes.apple.com", "apps.apple.com", "play.google.com"}) | APPLE_IMAGE_HOSTS
+STORE_HOSTS = (
+    frozenset({"itunes.apple.com", "apps.apple.com", "play.google.com"}) | APPLE_IMAGE_HOSTS
+)
 MAX_REDIRECTS = 3
 
 
