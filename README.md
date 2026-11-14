@@ -101,7 +101,7 @@ question box, no polling) with an invented market-radar day; Turkish under
   `/ask` in the local UI): deterministic statistics find and explain the
   changes, every number in a sentence is formatted by code and checked against
   its evidence, and a language model may only rephrase (see below).
-- 798 Python tests, 45 Flutter tests and 40 C# SDK tests (`dotnet test`), ruff,
+- 799 Python tests, 45 Flutter tests and 40 C# SDK tests (`dotnet test`), ruff,
   dart analyze; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install

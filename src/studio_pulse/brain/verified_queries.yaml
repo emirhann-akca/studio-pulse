@@ -28,6 +28,9 @@ queries:
     answer:
       en: "The hardest level of {app} is level {first.level}: fail rate {first.fail_rate} over {first.attempts} attempts, churn there {first.churn_rate}."
       tr: "{app} oyununun en zor seviyesi {first.level}: {first.attempts} denemede başarısızlık oranı {first.fail_rate}, orada bırakma {first.churn_rate}."
+    more:
+      en: "level {row.level} ({row.fail_rate} over {row.attempts} attempts)"
+      tr: "seviye {row.level} ({row.attempts} denemede {row.fail_rate})"
     verified_by: owner
     verified_at: 2026-11-12
 

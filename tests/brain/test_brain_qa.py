@@ -199,6 +199,29 @@ def test_named_period_metric_and_app_reach_the_right_answer(wh, no_network):
     assert day.route == "catalog" and "2026-10-31" in day.text and len(day.rows) == 1
 
 
+def test_top_n_overall_and_the_small_sample_caveat_follow_the_question(wh, no_network):
+    """Third round (14 Nov, morning): "top 3 hardest levels" names three levels, "average
+    rating" reads the whole history instead of the last week, and the small-sample caveat
+    is about the apps the answer names, not every app in the warehouse."""
+    with LockedSession.open(wh) as s:
+        r = qa.Router(s, client=evaluate._fake_for_golden(), as_of=AS_OF)
+        top = r.ask("What are the top 3 hardest levels in mossy_match?", "en")
+        one = r.ask("What is the hardest level of mossy_match?", "en")
+        cmp_ = r.ask("Compare D1 retention of mossy_match and quartz_merge in October 2026", "en")
+        week = r.ask("What is the D1 retention of quartz_merge?", "en")
+        avg = r.ask("What is the average D1 retention of quartz_merge?", "en")
+        why = r.ask("Why did quartz_merge's D1 retention drop?", "en")
+    assert why.matched == "d1_retention" and why.verified and "why_not_inferred" in why.notes
+    assert "Trend:" in why.text and "by platform" in why.text  # did it move, and where to look
+    assert top.matched == "hardest_levels" and top.verified
+    assert "Next:" in top.text and top.text.count("level") >= 3
+    assert "Next:" not in one.text
+    assert "small_sample" not in cmp_.notes and "Small sample" not in cmp_.text
+    first = lambda a: min(row[a.columns.index("first_day")] for row in a.rows)  # noqa: E731
+    assert avg.verified and first(avg) < first(week)  # the whole history, not the last 14 days
+    assert qa._wanted_count("en zor 3 seviye") == 3 and qa._wanted_count("hardest level") == 1
+
+
 def test_compare_trend_platform_and_ranking_questions(wh, no_network):
     """Second round of real-model questions (14 Nov): comparisons answered about one app,
     "going up or down" with a mean, "android and ios" without the platform split, the

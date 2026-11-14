@@ -59,6 +59,11 @@ _DAYS = re.compile(r"\b(?:last|past|son|gecen)\s+(\d{1,3})\s*(?:days?|gun\w*)\b"
 _WEEK = re.compile(r"\b(last week|past week|this week|son hafta\w*|gecen hafta\w*|bu hafta\w*)\b")
 _MONTH = re.compile(r"\b(last month|past month|son ay\w*|gecen ay\w*|son bir ay\w*)\b")
 _YESTERDAY = re.compile(r"\b(yesterday|dun|dunku)\b")
+# "average rating", "overall D7", "ortalama puan": with no period named, the whole history
+_OVERALL = re.compile(
+    r"\b(?:average|overall|all time|ever|lifetime|ortalama\w*|genel|tum zaman\w*|butun)\b"
+)
+_WHY = re.compile(r"\b(?:why|neden|niye|nicin)\b")
 _TREND = re.compile(
     r"\b(trend\w*|going up|going down|up or down|increas\w*|decreas\w*|grow\w*|declin\w*"
     r"|artiyor\w*|azaliyor\w*|dusuyor\w*|yukseliyor\w*|egilim\w*|gidisat\w*)\b"
@@ -151,6 +156,18 @@ TEXTS: dict[str, dict[str, str]] = {
         "en": "Small sample: treat these numbers as directional.",
         "tr": "Küçük örneklem: bu sayılar yalnız yön gösterir.",
     },
+    "why": {
+        "en": "The cause is not something one metric can show; compare it with the release dates and the campaigns of that week.",
+        "tr": "Nedeni tek bir metrikten çıkmaz; o haftanın sürüm tarihleri ve kampanyalarıyla karşılaştırın.",
+    },
+    "why_split": {
+        "en": "The cause is not something one metric can show; to see where it moved, ask for {metric} of {app} by {dim}.",
+        "tr": "Nedeni tek bir metrikten çıkmaz; nerede değiştiğini görmek için {app} {metric} değerini {dim} kırılımında sorun.",
+    },
+    "small_some": {
+        "en": "Small sample for {apps}: treat that app's numbers as directional.",
+        "tr": "{apps} için örneklem küçük: o uygulamanın sayıları yalnız yön gösterir.",
+    },
     "sql_refused": {
         "en": "The generated SQL was refused by the guard: {reason}.",
         "tr": "Üretilen SQL koruma tarafından reddedildi: {reason}.",
@@ -219,6 +236,28 @@ class Answer:
         return out
 
 
+_COUNT_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "iki": 2, "uc": 3, "dort": 4, "bes": 5}
+_N_BEFORE = re.compile(r"\b(?:top|first|ilk|en \w+) (\d{1,2}|" + "|".join(_COUNT_WORDS) + r")\b")
+_N_AFTER = re.compile(
+    r"\b(\d{1,2}|"
+    + "|".join(_COUNT_WORDS)
+    + r") (?:en\b|hardest|easiest|most|best|worst|levels?\b|seviye|bolum)"
+)
+_PLURAL = re.compile(r"\b(?:levels|seviyeler\w*|bolumler\w*|which levels|hangi seviyeler)\b")
+
+
+def _wanted_count(norm: str) -> int:
+    """How many rows a list question asks for: "top 3", "ilk 3", "3 en zor" -> 3; a plural
+    ("hardest levels", "en zor seviyeler") -> 3; otherwise 1."""
+    for rx in (_N_BEFORE, _N_AFTER):
+        m = rx.search(norm)
+        if m:
+            w = m.group(1)
+            n = int(w) if w.isdigit() else _COUNT_WORDS[w]
+            return max(1, min(n, 10))
+    return 3 if _PLURAL.search(norm) else 1
+
+
 def _guess_unit(v: Any) -> str:
     if isinstance(v, (dt.date, str)):
         return "text" if isinstance(v, str) else "date"
@@ -237,6 +276,7 @@ class VQ:
     units: dict[str, str]
     answer: dict[str, str]
     consts: dict[str, Fact]
+    more: dict[str, str] = field(default_factory=dict)  # one row of a "top N" list: {row.<column>}
 
 
 @lru_cache(maxsize=1)
@@ -258,6 +298,7 @@ def verified_queries() -> tuple[VQ, ...]:
                 units=dict(q.get("units") or {}),
                 answer=dict(q["answer"]),
                 consts={k: Fact(v[0], v[1]) for k, v in (q.get("consts") or {}).items()},
+                more=dict(q.get("more") or {}),
             )
         )
     return tuple(out)
@@ -505,6 +546,23 @@ class Router:
         if not res.rows:
             return self._no_data(ans, vq.id, app)
         ans.text = self._say(vq.answer[lang], facts, ev, lang, {"app": app or "portfolio"})
+        want = _wanted_count(norm)
+        if vq.more.get(lang) and want > 1 and len(res.rows) > 1:  # "top 3": the next rows too
+            items = []
+            for i, row in enumerate(res.rows[1:want], start=2):
+                row_facts = {
+                    f"row.{c}": Fact(v, vq.units.get(c, _guess_unit(v)))
+                    for c, v in zip(res.columns, row, strict=False)
+                }
+                ev.facts.update({f"row{i}.{k[4:]}": f for k, f in row_facts.items()})
+                try:
+                    item = narrate.render(vq.more[lang], row_facts, lang, {})
+                except narrate.TemplateError:
+                    break
+                items.append(item[:1].lower() + item[1:])
+            if items:
+                lead = {"en": "Next:", "tr": "Sonra:"}[lang]
+                ans.text = f"{ans.text} {lead} {'; '.join(items)}."
         ans.verified = verify.verified(ans.text, [ev], lang)
         return self._small(ans, app)
 
@@ -565,8 +623,19 @@ class Router:
                 if avail:
                     facts["available"] = Fact(", ".join(avail), "text")
                 return self._refuse(q, lang, "no_dimension", facts, missing=d)
-        trend = bool(_TREND.search(norm)) and not by and app is not None
-        return self._metric_answer(q, lang, metric, app, by, days, rng, compare, trend)
+        why = bool(_WHY.search(norm)) and not by and app is not None
+        trend = (bool(_TREND.search(norm)) or why) and not by and app is not None
+        overall = not days and rng is None and not trend and bool(_OVERALL.search(norm))
+        ans = self._metric_answer(q, lang, metric, app, by, days, rng, compare, trend, overall)
+        if why and ans.route == "catalog" and ans.evidence is not None:
+            # one metric over time says whether it moved, not why: say so and point at the split
+            splits = (*metric.dims, *metric.pull_dims)
+            dim = next((d for d in ("platform", "country") if d in splits), None)
+            hint = TEXTS["why_split" if dim else "why"][lang]
+            dname = self.catalog.dimensions[dim].name[lang] if dim else ""
+            ans.text = f"{ans.text} {hint.format(metric=metric.label(lang), app=app, dim=dname)}"
+            ans.notes.append("why_not_inferred")
+        return ans
 
     def _metric_answer(
         self,
@@ -579,6 +648,7 @@ class Router:
         rng: tuple[dt.date, dt.date] | None = None,
         compare: list[str] | None = None,
         trend: bool = False,
+        overall: bool = False,
     ) -> Answer:
         start = end = None
         if metric.time and metric.aggregation != "latest":
@@ -593,6 +663,12 @@ class Router:
                 return self._no_data(Answer(q, lang, "catalog", matched=metric.id), metric.id, app)
             span = days or (14 if metric.time == "cohort_date" else 7)
             end, start = last, last - dt.timedelta(days=span - 1)
+            if overall:  # "average rating": every day the warehouse has, not the last week
+                first = self._trusted(
+                    f"SELECT MIN({metric.time}) FROM {metric.model} {cond}", [app] if app else []
+                )
+                if first is not None and first.rows[0][0] is not None:
+                    start = first.rows[0][0]
             if rng is not None:  # the period the question names, cut at the latest data
                 start, end = rng[0], min(rng[1], last)
                 if start > end:
@@ -699,7 +775,12 @@ class Router:
             if more:
                 ans.text = f"{ans.text} {more}"
         ans.verified = verify.verified(ans.text, [ev], lang)
-        return self._small(ans, app)
+        named: list[str] = []
+        if app is None and "app_id" in cols:
+            ai = cols.index("app_id")
+            shown = [hi, lo] if key == "catalog_many" else [valued[0]]
+            named = sorted({str(r[ai]) for r in shown})
+        return self._small(ans, app, named)
 
     def _trend_text(
         self,
@@ -752,9 +833,10 @@ class Router:
         except duckdb.Error:
             return None
 
-    def _small(self, ans: Answer, app: str | None) -> Answer:
-        """Append the small-sample caveat (no numbers) when the app's median DAU is under 50."""
-        apps = [app] if app else list(self.apps)
+    def _small(self, ans: Answer, app: str | None, named: list[str] | None = None) -> Answer:
+        """Append the small-sample caveat (no numbers) when an app the answer is about has a median
+        DAU under 50: the one app asked about, else the apps the text names, else all of them."""
+        apps = [app] if app else (named if named else list(self.apps))
         if not apps or "fct_app_daily" not in self.schema:
             return ans
         res = self._trusted(
@@ -763,8 +845,13 @@ class Router:
             [],
         )
         small = {r[0] for r in (res.rows if res else []) if r[1] is not None and r[1] < 50}
-        if any(a in small for a in apps):
-            ans.text = f"{ans.text} {TEXTS['small'][ans.lang]}"
+        hit = [a for a in apps if a in small]
+        if hit:
+            some = len(hit) < len(apps) and not any(ch.isdigit() for ch in "".join(hit))
+            if some:  # a ranking that also names a big app: say which numbers are fragile
+                ans.text = f"{ans.text} {TEXTS['small_some'][ans.lang].format(apps=', '.join(hit))}"
+            else:
+                ans.text = f"{ans.text} {TEXTS['small'][ans.lang]}"
             ans.notes.append("small_sample")
         return ans
 
