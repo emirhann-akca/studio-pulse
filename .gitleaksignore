@@ -1,0 +1,7 @@
+# Reviewed gitleaks findings that are not secrets (the security workflow scans the whole
+# history). Each line is a finding's fingerprint: commit:file:rule:line.
+# tests/test_llm.py: made-up keys ("sk-test-SECRETSECRET...", "sk-ant-api03" prefixes)
+# that the redaction tests check never reach logs, errors or caches.
+54c30ab390a577a73947d24b48ff2b64f6b31a9a:tests/test_llm.py:generic-api-key:139
+54c30ab390a577a73947d24b48ff2b64f6b31a9a:tests/test_llm.py:generic-api-key:189
+54c30ab390a577a73947d24b48ff2b64f6b31a9a:tests/test_llm.py:generic-api-key:192
