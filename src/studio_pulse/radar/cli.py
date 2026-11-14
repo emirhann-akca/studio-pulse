@@ -111,3 +111,6 @@ def add_parser(sub: argparse._SubParsersAction, with_config) -> None:
     from .dossier.cli import add_parser as add_dossier_parser  # pulse radar dossier <id>
 
     add_dossier_parser(rs, with_config)
+    from .adintel.cli import add_parser as add_adintel_parser  # pulse radar adintel refresh
+
+    add_adintel_parser(rs, with_config)

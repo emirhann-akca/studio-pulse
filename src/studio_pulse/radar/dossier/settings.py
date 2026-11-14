@@ -2,11 +2,11 @@
 
 radar:
   dossier:
-    studio:                       # who "we" are in "should we make it?"
-      team_size: 2
+    studio:                       # who "we" are in "should we make it?" (defaults below:
+      team_size: 2                #  a 2-person Unity casual/puzzle studio; ASSUMPTIONS to edit)
       engine: unity
       genres: [puzzle, casual]    # families we ship (puzzle, casual, simulation, arcade ...)
-      strengths: [color-sort, block-puzzle]   # taxonomy mechanics we have shipped before
+      strengths: [color-sort, goods-sort, hexa-sort, block-puzzle, merge, physics-draw, runner]
       art: [2d, stylized-3d]      # art styles we can produce
       monetization: [ads, hybrid] # models we know how to run
       avoid: [pvp-race, battle-pass]   # twists/features we will not build
@@ -16,16 +16,19 @@ radar:
       test_market: br             # where the cheap creative test runs
       test_platform: android
       launch_platform: android    # the platform whose CPI the rubric checks
-      max_cpi_usd: 1.5            # the CPI our economics can carry in target markets
+      max_cpi_usd: auto           # the CPI our economics can carry; auto = the benchmark CPI
+                                  #   of hyper-casual in the first target market (US Android
+                                  #   1.55 USD, AppsFlyer Q3 2026): an ads-first hybrid-casual
+                                  #   studio's lifetime value is in that range, not puzzle's
       ipm_gate: 8                 # installs per 1,000 impressions a creative must reach
     rubric: {weights: {momentum: 0.2, ...}, yap_min: 0.62, bekle_min: 0.45, cpi_cap_ratio: 2}
     test: {variants: 4, installs_per_variant: 40, days: 4, min_per_variant_usd: 25}
     screenshots: 6
     reviews: true
+    peer_reviews: 3               # genre peers whose Play reviews are mined for comparison
     countries: [us, gb]           # Lookup storefronts (default: the radar's countries)
     ads:
-      google_atc: true            # BigQuery public dataset; dry-run first, capped
-      max_gb: 2                   # never above the config's max_bytes_billed
+      google_atc: true            # read the local weekly extract (radar.adintel, see google_atc.py)
       meta: {countries: [DE, FR], version: v24.0}   # token: PULSE_META_AD_LIBRARY_TOKEN
     effort: {base: {color-sort: 2.0}}   # overrides benchmarks.yaml effort
 """
@@ -44,11 +47,21 @@ from ...config import Config, ConfigError
 from ..settings import RadarSettings
 from ..settings import from_config as radar_from_config
 
+# A 2-person Unity studio making casual and puzzle games: sort puzzles, light merge, hyper- and
+# hybrid-casual. Every value is an assumption the owner edits under radar.dossier.studio.
 DEFAULT_STUDIO: dict[str, Any] = {
     "team_size": 2,
     "engine": "unity",
     "genres": ["puzzle", "casual"],
-    "strengths": [],
+    "strengths": [
+        "color-sort",
+        "goods-sort",
+        "hexa-sort",
+        "block-puzzle",
+        "merge",  # merge-lite: a merge step inside a puzzle, not a merge-2 meta game
+        "physics-draw",
+        "runner",
+    ],
     "art": ["2d", "stylized-3d"],
     "monetization": ["ads", "hybrid"],
     "avoid": ["pvp-race", "battle-pass"],
@@ -58,7 +71,7 @@ DEFAULT_STUDIO: dict[str, Any] = {
     "test_market": "br",
     "test_platform": "android",
     "launch_platform": "android",
-    "max_cpi_usd": 1.5,
+    "max_cpi_usd": "auto",
     "ipm_gate": 8,
 }
 DEFAULT_WEIGHTS: dict[str, float] = {
@@ -106,9 +119,9 @@ class DossierSettings:
     test: dict[str, Any] = field(default_factory=lambda: dict(DEFAULT_TEST))
     screenshots: int = 6
     reviews: bool = True
+    peer_reviews: int = 3
     countries: list[str] = field(default_factory=list)
     google_atc: bool = True
-    ads_max_bytes: int = 2_000_000_000
     meta_countries: list[str] = field(default_factory=lambda: ["DE", "FR"])
     meta_version: str = "v24.0"
     benchmarks: dict[str, Any] = field(default_factory=load_benchmarks)
@@ -139,12 +152,10 @@ def from_config(cfg: Config, radar: RadarSettings | None = None) -> DossierSetti
     s.test = {**DEFAULT_TEST, **(raw.get("test") or {})}
     s.screenshots = max(0, min(10, int(raw.get("screenshots", 6))))
     s.reviews = bool(raw.get("reviews", True))
+    s.peer_reviews = max(0, min(5, int(raw.get("peer_reviews", 3))))
     s.countries = [str(c).lower() for c in raw.get("countries") or rs.countries]
     ads = raw.get("ads") or {}
     s.google_atc = bool(ads.get("google_atc", True))
-    cap_gb = float(ads.get("max_gb", 2))
-    # the dossier never goes above the config's own BigQuery cap
-    s.ads_max_bytes = int(min(cap_gb * 1e9, cfg.max_bytes_billed))
     meta = ads.get("meta") or {}
     s.meta_countries = [str(c).upper() for c in meta.get("countries") or ["DE", "FR"]]
     s.meta_version = str(meta.get("version", "v24.0"))
@@ -154,5 +165,25 @@ def from_config(cfg: Config, radar: RadarSettings | None = None) -> DossierSetti
     if raw.get("cpi"):
         bm = _merge(bm, {"cpi": raw["cpi"]})
     s.benchmarks = bm
+    s.studio.update(resolve_max_cpi(s.studio, bm))
     s.out_dir = rs.out_dir / "dossier"
     return s
+
+
+def resolve_max_cpi(studio: dict[str, Any], bm: dict[str, Any]) -> dict[str, Any]:
+    """`max_cpi_usd: auto` -> the hyper-casual benchmark CPI of the first target market on the
+    launch platform (what an ads-first hybrid-casual game can pay); a number stays as given."""
+    v = studio.get("max_cpi_usd", "auto")
+    if v not in (None, "auto"):
+        return {"max_cpi_usd": float(v), "max_cpi_source": "config"}
+    cc = str((studio.get("target_markets") or ["us"])[0]).lower()
+    plat = str(studio.get("launch_platform", "android"))
+    row = ((bm.get("cpi") or {}).get("values") or {}).get("hypercasual", {}).get(cc) or [None, None]
+    cpi = row[0 if plat == "ios" else 1]
+    if cpi is None:
+        return {"max_cpi_usd": 1.5, "max_cpi_source": "fallback (no hyper-casual benchmark)"}
+    src = (bm.get("cpi") or {}).get("source", "benchmark")
+    return {
+        "max_cpi_usd": float(cpi),
+        "max_cpi_source": f"auto: hyper-casual CPI {cc.upper()} {plat} ({src})",
+    }

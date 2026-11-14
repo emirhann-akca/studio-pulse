@@ -24,14 +24,12 @@ def cmd_radar_dossier(args: argparse.Namespace) -> int:
         session = DossierReplaySession(Path(args.replay))
         sleep_kw["sleep"] = lambda _s: None
     s = None
-    if args.screenshots is not None or args.ads_max_gb is not None:
+    if args.screenshots is not None:
         from .settings import from_config
 
         s = from_config(cfg)
         if args.screenshots is not None:
             s.screenshots = max(0, min(10, args.screenshots))
-        if args.ads_max_gb is not None:
-            s.ads_max_bytes = int(min(args.ads_max_gb * 1e9, cfg.max_bytes_billed))
     try:
         res = build_dossier(
             cfg,
@@ -76,9 +74,6 @@ def add_parser(rs: argparse._SubParsersAction, with_config) -> None:
     p.add_argument("--date", help="snapshot date (default: today or the config's as_of)")
     p.add_argument("--no-llm", action="store_true", help="no LLM call (no deconstruction/themes)")
     p.add_argument("--no-ads", action="store_true", help="skip BigQuery and the Meta Ad Library")
-    p.add_argument(
-        "--ads-max-gb", type=float, help="BigQuery cap for this run (never above max_bytes_billed)"
-    )
     p.add_argument("--screenshots", type=int, help="screenshots to fetch and send (0-10)")
     p.add_argument("--max-requests", type=int, default=60, help="cap on store requests")
     p.add_argument("--replay", help="answer every store request from a recorded directory")

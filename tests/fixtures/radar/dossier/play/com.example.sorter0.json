@@ -1,0 +1,25 @@
+{
+ "appId": "com.example.sorter0",
+ "title": "Example Sorter Zero",
+ "description": "A colour sorting puzzle for the tests.",
+ "summary": "Sort colours.",
+ "installs": "1,000,000+",
+ "minInstalls": 1000000,
+ "realInstalls": 1500000,
+ "score": 4.3,
+ "ratings": 20000,
+ "offersIAP": true,
+ "inAppProductPrice": "$0.99 - $4.99 per item",
+ "developer": "Big Sort Co",
+ "genre": "Puzzle",
+ "genreId": "GAME_PUZZLE",
+ "categories": [
+  {
+   "name": "Puzzle",
+   "id": "GAME_PUZZLE"
+  }
+ ],
+ "containsAds": true,
+ "released": "Mar 1, 2026",
+ "version": "2.3.0"
+}

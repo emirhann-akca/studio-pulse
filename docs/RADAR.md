@@ -260,9 +260,16 @@ what it does right") and picks radar taxonomy mechanics; mechanics the taxonomy 
 kept only if its quote is found verbatim in the named field and holds no number; a screenshot
 item only if that screenshot was sent (what it shows cannot be checked by code, so such claims are
 labelled visual inference); a claim only with at least one kept item and no number in its text.
-Dropped claims are listed with the reason. The check proves the quote exists, not that it
-supports the claim: in the first live run the model cited "Colorful flowers, ropes, and
-satisfying sorting animations" for a 3D art style.
+Dropped claims are listed with the reason.
+
+That check proves a quote exists, not that it supports its claim (in the first live run the
+model cited "Colorful flowers, ropes, and satisfying sorting animations" for a 3D art style). So
+a second, cheap request judges every (claim, evidence) pair with a strict yes/no and a reason,
+with the screenshots attached so a screenshot note is checked against the image itself: a pair
+judged unsupported (or not judged) loses that evidence item, and a claim left without evidence
+is dropped and listed under "Elenen iddialar" with "evidence does not support the claim: ...".
+If that request fails, the claims stay and the dossier says the support check did not run.
+Turkish "2B"/"3B" (2D/3D) are not counted as numbers.
 
 Vertex AI rejects response schemas whose object arrays carry `maxItems` above five ("Request
 contains an invalid argument"), so the dossier schemas have no length limits; the verifier
@@ -275,6 +282,22 @@ The LLM labels each Play review with `(side, theme, quote)` from a fixed theme l
 Counts are computed by code from the kept labels. The 20 reviews are Play's "most relevant" for
 the page language, not a random sample: the dossier says so, and when their mean differs from the
 store average by 0.75 stars or more it prints both (Royal Match: 1.65 vs 4.63 on 14 Nov 2026).
+
+### What it does right, against its peers ("Neyi doğru yapıyor? Akranlara göre")
+
+The LLM's strengths are qualitative; this part is numbers (`radar/dossier/peers.py`). Peers are
+the games the radar tagged with the same mechanic that are in today's charts (with fewer than
+three, the games of the target's best chart). For the target and every peer: best rank today,
+days since the current version (Lookup), ratings per day, Play installs per day, countries
+charted in 7 days, average rating and the store monetisation model. A metric is a strength when
+the target beats the peers' median by 25 % or more and by a non-trivial amount (3 days, 5
+ranks, 5 ratings or 500 installs a day, one country, 0.2 stars) and a weakness when it trails by
+as much; each line gives the value, the median and n ("son güncellemeden bu yana gün: bu oyun 1,
+akranların medyanı 7 (n=21)"). Ratings per day come only from the storefronts where a game is
+charted, so the line names the target's storefront. The Play reviews of up to `peer_reviews` (3) peers
+with a Play mapping are mined in one extra LLM request with the same themes and quote check; a
+theme the target draws at least 15 points less (complaints) or more (praise) often than its peers
+is listed too. Ages are shown, because a new game and established ones are not the same race.
 
 ### "Yapmalı mıyız? / Should we make it?"
 
@@ -315,26 +338,35 @@ lesson (`id: DT-<day>-<key>`, `kind: market_trend`, `signal: dossier_first_test`
 ### Competitor ads ("Rakip reklamları")
 
 **Google Ads Transparency Center** (`bigquery-public-data.google_ads_transparency_center`,
-verified through the BigQuery API and `INFORMATION_SCHEMA.COLUMN_FIELD_PATHS`): tables
-`creative_stats` (~164 M rows, ~141 GB, not partitioned, not clustered) and
-`removed_creative_stats`. One row per creative: `advertiser_id`, `advertiser_disclosed_name`,
-`advertiser_legal_name`, `ad_format_type`, `advertiser_location`, `topic`, `region_stats`
-(REPEATED: `region_code`, `first_shown`, `last_shown`, `times_shown_*`, `surface_serving_stats`)
-and audience fields. A query is billed for the full columns it names: advertiser_id 3.93 GB,
-advertiser_disclosed_name 3.81 GB, ad_format_type 1.04 GB, region_code 2.25 GB, first_shown and
-last_shown 6.27 GB each. Every column that identifies an advertiser is over 2 GB, and
-`TABLESAMPLE` does not help: BigQuery checks `maximum_bytes_billed` against the unsampled size.
+verified through the BigQuery API, `INFORMATION_SCHEMA.COLUMN_FIELD_PATHS` and free
+`tabledata.list` samples): tables `creative_stats` (~164 M rows, ~141 GB, not partitioned, not
+clustered) and `removed_creative_stats`. One row per creative: `advertiser_id`,
+`advertiser_disclosed_name`, `advertiser_legal_name`, `ad_format_type`, `advertiser_location`,
+`topic`, `region_stats` (REPEATED: `region_code`, `first_shown`, `last_shown`, `times_shown_*`,
+`surface_serving_stats`) and audience fields. A query is billed for the full columns it names:
+advertiser_id 3.93 GB, advertiser_disclosed_name 3.81 GB, topic 3.05 GB, ad_format_type 1.04 GB,
+region_code 2.25 GB, first_shown and last_shown 6.27 GB each; `TABLESAMPLE` does not help
+(BigQuery checks `maximum_bytes_billed` against the unsampled size). There is no app, store or
+bundle field; `surface_serving_stats` exists only for EU regions and lists all five surfaces on
+every row, so "shown on Play" cannot be a filter. The narrowest game filter is the creative's
+`topic` "Hobbies, Games & Leisure" (it holds King.com's creatives, and also toy shops and
+betting).
 
-`radar/adintel/google_atc.py` checks the expected columns in INFORMATION_SCHEMA once a day (10 MB
-billed, BigQuery's minimum), builds one query for all advertiser names of the run (names folded to
-`[a-z0-9 ]`, generic words dropped, so nothing else reaches the SQL text), dry-runs it, refuses it
-when the estimate is over the cap and otherwise runs it with `maximum_bytes_billed` set
-(`BigQueryExecutor`). The exact per-advertiser query (creatives, formats, regions, first and last
-shown) is estimated at 23.6 GB: with the default `max_gb: 2` it is refused and the dossier says
-so. To run it, raise `radar.dossier.ads.max_gb` and `max_bytes_billed` knowingly (it falls in
-BigQuery's free 1 TiB a month on most projects; after that about 0.15 USD at 6.25 USD/TiB);
-results are cached for a week. The billing project is `PULSE_ADS_PROJECT`, `GOOGLE_CLOUD_PROJECT`
-or ADC's project; it is never written to a file.
+So the dossier never queries BigQuery. A weekly extract does, once (`radar/adintel/google_atc.py`,
+`pulse radar adintel refresh`, and inside `pulse run` when `radar.adintel.enabled`): one scan of
+those seven columns (26.6 GB on 14 Nov 2026, about 115 GB a month, inside BigQuery's free 1 TiB)
+for creatives whose topic is games or whose advertiser name matches a developer the radar has seen
+(names folded to `[a-z0-9 ]` words, generic words dropped; nothing else reaches the SQL text).
+It checks the columns in INFORMATION_SCHEMA (10 MB), dry-runs the scan, refuses it above
+`radar.adintel.max_gb` (default 30, at most 50) and runs it with `maximum_bytes_billed` set
+(`BigQueryExecutor`). One row per advertiser (creatives, games-topic creatives, formats, shown in
+the last 30 days, first and last shown, top 8 regions) lands in `raw_mr_adv` /
+`raw_mr_adv_region`; every run, with the bytes estimated and billed, in `raw_mr_adintel_run`. It
+is skipped while the last good extract is younger than `every_days` (7). A dossier matches its
+seller and developer names against the extract locally and ranks games-topic advertisers first;
+"not in the extract" means no Google ads under those names, or ads under another legal name. The
+billing project is `PULSE_ADS_PROJECT`, `GOOGLE_CLOUD_PROJECT` or ADC's project; it is never
+written to a file.
 
 **Meta Ad Library API** (`radar/adintel/meta_library.py`): `GET graph.facebook.com/{version}/
 ads_archive` with `ad_reached_countries` (EU countries: outside political ads only EU-delivered
@@ -348,21 +380,36 @@ the dossier shows "not configured".
 ```yaml
 radar:
   dossier:
-    studio: {team_size: 2, engine: unity, genres: [puzzle, casual], strengths: [color-sort],
+    studio: {team_size: 2, engine: unity, genres: [puzzle, casual],
+             strengths: [color-sort, goods-sort, hexa-sort, block-puzzle, merge, physics-draw,
+                         runner],
              art: [2d, stylized-3d], monetization: [ads, hybrid], avoid: [pvp-race, battle-pass],
              months: 3, budget_usd: 3000, target_markets: [us], test_market: br,
-             test_platform: android, launch_platform: android, max_cpi_usd: 1.5, ipm_gate: 8}
+             test_platform: android, launch_platform: android, max_cpi_usd: auto, ipm_gate: 8}
     rubric: {weights: {momentum: 0.2, saturation: 0.15, monetization_fit: 0.15,
                        capability_fit: 0.25, production: 0.15, cpi_risk: 0.1},
              yap_min: 0.62, bekle_min: 0.45, cpi_cap_ratio: 2}
     test: {variants: 4, installs_per_variant: 40, days: 4, min_per_variant_usd: 25}
     screenshots: 6
     reviews: true
+    peer_reviews: 3              # peers whose Play reviews are mined for the comparison
     countries: [us, gb]          # Lookup storefronts (default: the radar's countries)
-    ads: {google_atc: true, max_gb: 2, meta: {countries: [DE, FR], version: v24.0}}
+    ads: {google_atc: true, meta: {countries: [DE, FR], version: v24.0}}
     effort: {base: {color-sort: 2.0}}   # overrides benchmarks.yaml
+  adintel: {enabled: true, every_days: 7, max_gb: 30}   # the weekly extract in pulse run
 ```
+
+The studio defaults describe a 2-person Unity studio making sort puzzles, light merge ("merge" in
+`strengths` means a merge step inside a puzzle) and hyper/hybrid-casual games. They are
+assumptions, shown with every verdict; edit them. `max_cpi_usd: auto` takes the hyper-casual CPI
+of the first target market on the launch platform from the benchmark table (US Android 1.55 USD):
+an ads-first hybrid-casual game earns in that range per install, not in puzzle's (US Android
+4.81 USD), so a US puzzle game is capped at BEKLE until the owner says the studio can pay more.
 
 The LLM budget is the shared `llm.budget_usd` per run. On 14 Nov 2026 three live dossiers cost
 0.031 USD (Gemini 3.5 Flash-Lite: one multimodal request of about 7-11 k input tokens and one
-review request each).
+review request each); the support check and the peers' reviews added 0.021 USD for the three.
+The first live weekly extract billed 26.64 GB (26.62 GB scan plus the 10 MB schema check) and
+returned 498,647 advertisers in 264 s before the "games-topic >= 10 or a radar developer" rule
+(since then part of the scan itself) kept 104,678; Dream Games, King, Playrix, Scopely and Grand
+Games were found, two of the three dossier developers were not.

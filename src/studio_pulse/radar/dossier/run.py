@@ -31,7 +31,7 @@ from ..http import BudgetExhausted, Fetcher, HostStopped, RobotsDisallowed
 from ..run import _guard_out_dir
 from ..taxonomy import keyword_claims
 from ..taxonomy import load as load_taxonomy
-from . import collect, deconstruct, render, rubric
+from . import collect, deconstruct, peers, render, rubric
 from . import reviews as reviews_mod
 from .labels import LabelError, check_labels
 from .settings import DossierSettings, from_config
@@ -180,6 +180,51 @@ def _mechanic(
     return {"value": None, "source": None, "evidence": []}
 
 
+def _peer_reviews(con, f, s, peer, rv, themes, client, parser, res) -> None:
+    """Mine the Play reviews of up to s.peer_reviews peers (one LLM call for all of them) and
+    add the theme comparison to the peer items."""
+    ids = [p["app_id"] for p in peer["peers"]]
+    mapped = {
+        r[0]: r[1]
+        for r in con.execute(
+            "SELECT apple_id, play_id FROM raw_mr_xref WHERE status = 'mapped' "
+            "AND apple_id IN (SELECT UNNEST(?)) "
+            "QUALIFY ROW_NUMBER() OVER (PARTITION BY apple_id ORDER BY verified_on DESC) = 1",
+            [ids],
+        ).fetchall()
+    }
+    pool: list[dict[str, Any]] = []
+    used: list[dict[str, Any]] = []
+    for app_id in ids:
+        if len(used) >= s.peer_reviews:
+            break
+        pkg = mapped.get(app_id)
+        if not pkg:
+            continue
+        try:
+            data = collect.play_data(f, pkg, s.radar.play_country, s.radar.play_lang, parser)
+        except (BudgetExhausted, HostStopped, RobotsDisallowed) as exc:
+            res.notes.append(f"peer reviews: {exc}")
+            break
+        except Exception as exc:
+            res.notes.append(f"peer reviews {pkg}: {type(exc).__name__}: {exc}")
+            continue
+        if data.get("found") and data.get("reviews"):
+            pool += data["reviews"]
+            used.append({"app_id": app_id, "package": pkg, "reviews": len(data["reviews"])})
+    if not pool:
+        return
+    try:
+        out = client.generate(reviews_mod.mining_request(pool, themes))
+    except (BudgetExceeded, LLMError) as exc:
+        res.notes.append(f"peer review themes: {type(exc).__name__}: {exc}"[:300])
+        return
+    kept, _ = reviews_mod.verify_labels(out.data or {}, pool, themes)
+    pooled = reviews_mod.theme_counts(kept, themes, len(pool))
+    peer["review_peers"] = used
+    peer["items"] += peers.compare_themes(rv["themes"], rv["n"], pooled, len(pool), themes)
+
+
 def build_dossier(
     cfg: Config,
     target_text: str,
@@ -190,7 +235,6 @@ def build_dossier(
     llm_client: LLMClient | None = None,
     use_llm: bool = True,
     ads: bool = True,
-    atc: Any = None,
     meta: Any = None,
     max_requests: int | None = 60,
     sleep: Callable[[float], None] = time.sleep,
@@ -297,6 +341,21 @@ def build_dossier(
             except (BudgetExceeded, LLMError) as exc:
                 dec = {"status": "error", "reason": f"{type(exc).__name__}: {exc}"[:300]}
                 res.notes.append(f"deconstruction: {dec['reason']}")
+            items = deconstruct.support_items(dec, tax) if dec.get("status") == "ok" else []
+            if items:
+                # second pass: does each quote / screenshot actually support its claim?
+                try:
+                    sup = client.generate(deconstruct.support_request(items, images))
+                    dec = deconstruct.apply_support(dec, items, sup.data or {})
+                    dec["support"].update(
+                        {"cost_usd": round(sup.cost_usd, 6), "cached": sup.cached}
+                    )
+                except (BudgetExceeded, LLMError) as exc:
+                    dec["support"] = {
+                        "status": "error",
+                        "reason": f"{type(exc).__name__}: {exc}"[:300],
+                    }
+                    res.notes.append(f"support check: {dec['support']['reason']}")
         mech = _mechanic(dec, ctx, fields, tax)
         market = collect.market_context(con, mech["value"], day, target.apple_id)
         revs = list(play.get("reviews") or [])
@@ -347,6 +406,15 @@ def build_dossier(
             except (BudgetExceeded, LLMError) as exc:
                 rv["status"] = "error"
                 rv["reason"] = f"{type(exc).__name__}: {exc}"[:300]
+        peer = peers.compare(con, target.apple_id, mech["value"], day)
+        if (
+            peer["status"] == "ok"
+            and s.peer_reviews
+            and rv.get("status") == "ok"
+            and s.radar.play_enabled
+            and client is not None
+        ):
+            _peer_reviews(con, f, s, peer, rv, themes, client, play_parser, res)
         ads_out: dict[str, Any] = {
             "google_atc": {"status": "skipped"},
             "meta": {"status": "skipped"},
@@ -363,19 +431,11 @@ def build_dossier(
             }
         )
         if ads and s.google_atc:
-            if atc is None:
-                from ..adintel.google_atc import GoogleAdsTransparency
+            # the weekly extract (pulse radar adintel refresh) is read locally: no BigQuery here
+            from ..adintel.google_atc import lookup_local
 
-                atc = GoogleAdsTransparency(
-                    project=default_project(),
-                    cap_bytes=s.ads_max_bytes,
-                    cache_dir=Path(cfg.state_dir) / "radar-adintel",
-                    log=log,
-                    today=day,
-                )
-            ads_out["google_atc"] = atc.lookup(names).to_dict()
+            ads_out["google_atc"] = lookup_local(con, names, day)
             ads_out["google_atc"]["names"] = names
-            ads_out["google_atc"]["billed_this_run_gb"] = round(atc.billed_bytes() / 1e9, 3)
         if ads:
             if meta is None:
                 from ..adintel.meta_library import MetaAdLibrary
@@ -427,6 +487,7 @@ def build_dossier(
             "screenshots": shots,
             "texts": fields,
             "deconstruction": dec,
+            "peers": peer,
             "reviews": rv,
             "ads": ads_out,
         }
@@ -436,7 +497,7 @@ def build_dossier(
             "run_id": run_id,
             "requests": f.summary(),
             "llm": client.summary() if client else None,
-            "bigquery_billed_gb": (ads_out["google_atc"] or {}).get("billed_this_run_gb"),
+            "bigquery_billed_gb": 0.0,  # dossiers never query BigQuery; see the weekly extract
             "notes": res.notes,
             "errors": res.errors,
             "llm_label": "LLM output: the deconstruction and review labels; every kept claim "

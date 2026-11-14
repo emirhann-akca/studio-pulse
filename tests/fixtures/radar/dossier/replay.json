@@ -53,6 +53,17 @@
    "path": "/image/thumb/Example/v4/pebble/s3/392x696bb.png",
    "file": "shots/s3.png",
    "content_type": "image/png"
+  },
+  {
+   "host": "play.google.com",
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.example.sorter0"
+   },
+   "play_page": {
+    "fields": "play/com.example.sorter0.json",
+    "reviews": "play/com.example.sorter0_reviews.json"
+   }
   }
  ]
 }

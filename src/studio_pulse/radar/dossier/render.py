@@ -65,7 +65,20 @@ T = {
         "on_shot": "{s}'de: {w}",
         "proposed": "Önerilen yeni etiketler (taksonomide yok)",
         "rejected": "Elenen iddialar ({n})",
+        "support": "Kanıt-destek denetimi (ikinci LLM çağrısı): {n} kanıt öğesinin {k} tanesi iddiasını desteklemedi ve çıkarıldı; kanıtı kalmayan iddialar yukarıda elendi.",
+        "support_off": "Kanıt-destek denetimi yapılamadı ({r}); iddialar yalnızca alıntı varlığıyla doğrulandı.",
         "unknowns": "Metnin açık bıraktığı sorular",
+        "peers": "Neyi doğru yapıyor? Akranlara göre, sayılarla",
+        "peer_set": {
+            "mechanic": "Akranlar: radarın {m} etiketlediği ve bugün listede olan {n} oyun ({d}).",
+            "list": "Akranlar: bu oyunun en iyi listesindeki {n} oyun ({d}); mekanik etiketiyle yeterli akran yoktu.",
+        },
+        "peer_rev": "Yorum karşılaştırması: akranlardan {k} oyunun Play sayfasındaki {n} yorum aynı LLM etiketlemesiyle ({p}).",
+        "better": "Daha iyi",
+        "worse": "Daha zayıf",
+        "context": "Bağlam",
+        "peer_none": "Karşılaştırılacak akran yok (radar verisi ya da en az üç akran gerekli).",
+        "peer_age": "Yaş: bu oyun {a} gün, akranların medyanı {m} gün; yeni bir oyun ile yerleşik oyunları karşılaştırırken bunu hesaba katın.",
         "reviews": "Oyuncu yorumları",
         "rev_src": "Play: {n} yorum (sayfadaki 'en alakalı' sıra; rastgele örnek değil). Apple: {a}.",
         "apple_refused": "alınmadı, robots.txt yasaklıyor ({r})",
@@ -76,10 +89,12 @@ T = {
         "theme_line": "{t}: {c}/{n} yorum (LLM etiketi; ort. {s}★)",
         "rev_off": "Tema çıkarımı yapılmadı: {r}",
         "ads": "Rakip reklamları",
-        "atc": "Google Reklam Şeffaflık Merkezi (BigQuery herkese açık veri kümesi)",
-        "atc_refused": "Sorgu çalıştırılmadı: kuru çalıştırma {e} GB, tavan {c} GB (hiçbir şey faturalanmadı). Aranan: {p}.",
-        "atc_ok": "{name}: {n} reklam (video {v}, görsel {i}, metin {t}); ilk {f}, son {l}; bölgeler: {r} (PLATFORM VERİSİ)",
-        "atc_none": "Aranan adlarla reklamveren bulunamadı ({p}).",
+        "atc": "Google Reklam Şeffaflık Merkezi (haftalık BigQuery özeti, yerel)",
+        "atc_src": "Özet tarihi {d}: oyun konulu ya da radarın gördüğü geliştiricilerle eşleşen {n} reklamveren; tarama {b} GB faturalandı. Aranan: {p}.",
+        "atc_ok": "{name}: {n} reklam ({g} tanesi oyun konulu; video {v}, görsel {i}, metin {t}); son 30 günde gösterilen {a}; ilk {f}, son {l}; bölgeler: {r} (PLATFORM VERİSİ)",
+        "atc_none": "Özette bu adlarla reklamveren yok ({p}): ya reklam vermiyor ya da başka bir tüzel adla veriyor.",
+        "atc_no_extract": "Yerel özet yok: pulse radar adintel refresh.",
+        "atc_partial": "Yalnız ad parçasıyla eşleşenler (aynı adlı başka bir firma olabilir, doğrulanmadı):",
         "meta": "Meta Reklam Kütüphanesi (AB reklamları)",
         "meta_nc": "Yapılandırılmadı: {m} tanımlı değil. Bağlayıcı yalnızca kayıtlı biçimli örneklerle test edildi, canlı çalıştırılmadı.",
         "meta_ok": "{name}: {n} reklam, {a} etkin; platformlar {p}; ilk {f}, son {l} (PLATFORM VERİSİ; bağlayıcı canlıda doğrulanmadı)",
@@ -164,7 +179,20 @@ T = {
         "on_shot": "on {s}: {w}",
         "proposed": "Proposed new tags (not in the taxonomy)",
         "rejected": "Dropped claims ({n})",
+        "support": "Evidence-support check (a second LLM call): {k} of {n} evidence items did not support their claim and were removed; claims left without evidence are dropped above.",
+        "support_off": "The evidence-support check did not run ({r}); claims are checked only for quote existence.",
         "unknowns": "Questions the text leaves open",
+        "peers": "What it does right: against its peers, in numbers",
+        "peer_set": {
+            "mechanic": "Peers: {n} games the radar tagged {m} that are in today's charts ({d}).",
+            "list": "Peers: {n} games of this game's best chart ({d}); too few peers with the same mechanic tag.",
+        },
+        "peer_rev": "Review comparison: {n} reviews from the Play pages of {k} peers, labelled the same way by the LLM ({p}).",
+        "better": "Better",
+        "worse": "Weaker",
+        "context": "Context",
+        "peer_none": "No peers to compare with (needs radar data and at least three peers).",
+        "peer_age": "Age: this game {a} days, peers' median {m} days; keep it in mind when a new game is compared with established ones.",
         "reviews": "Player reviews",
         "rev_src": "Play: {n} reviews (the page's 'most relevant' order; not a random sample). Apple: {a}.",
         "apple_refused": "not fetched, robots.txt disallows it ({r})",
@@ -175,10 +203,12 @@ T = {
         "theme_line": "{t}: {c}/{n} reviews (LLM label; mean {s}★)",
         "rev_off": "No theme mining: {r}",
         "ads": "Competitor ads",
-        "atc": "Google Ads Transparency Center (BigQuery public dataset)",
-        "atc_refused": "Query not run: dry run {e} GB, cap {c} GB (nothing billed). Searched: {p}.",
-        "atc_ok": "{name}: {n} ads (video {v}, image {i}, text {t}); first {f}, last {l}; regions: {r} (PLATFORM-REPORTED)",
-        "atc_none": "No advertiser found for the names searched ({p}).",
+        "atc": "Google Ads Transparency Center (weekly BigQuery extract, local)",
+        "atc_src": "Extract of {d}: {n} advertisers with games-topic ads or matching a developer the radar has seen; the scan billed {b} GB. Searched: {p}.",
+        "atc_ok": "{name}: {n} ads ({g} games-topic; video {v}, image {i}, text {t}); shown in the last 30 days {a}; first {f}, last {l}; regions: {r} (PLATFORM-REPORTED)",
+        "atc_none": "No advertiser with these names in the extract ({p}): it does not advertise on Google, or under another legal name.",
+        "atc_no_extract": "No local extract yet: pulse radar adintel refresh.",
+        "atc_partial": "Matched on a name fragment only (possibly a namesake, not verified):",
         "meta": "Meta Ad Library (EU ads)",
         "meta_nc": "Not configured: {m} is not set. The connector is tested on recorded-shape fixtures only, never run live.",
         "meta_ok": "{name}: {n} ads, {a} active; platforms {p}; first {f}, last {l} (PLATFORM-REPORTED; connector not verified live)",
@@ -371,9 +401,48 @@ def render(d: dict[str, Any], lang: str) -> str:
             L += ["", f"### {t['unknowns']}", ""]
             L += [f"- {u} (LLM)" for u in dec["unknowns"]]
         rej = dec.get("rejected") or []
+        sup = dec.get("support") or {}
+        if sup.get("status") == "ok":
+            L += ["", t["support"].format(n=sup["items"], k=sup["unsupported_items"])]
+        elif sup.get("status") == "error":
+            L += ["", t["support_off"].format(r=sup.get("reason"))]
         L += ["", t["rejected"].format(n=len(rej)) + (":" if rej else "")]
         for r in rej[:8]:
             L.append(f"- [{r['section']}] {r['text']} — {r['reason']}")
+        L.append("")
+    # peers
+    pe = d.get("peers") or {}
+    L += [f"## {t['peers']}", ""]
+    if pe.get("status") != "ok":
+        L += [t["peer_none"], ""]
+    else:
+        L.append(
+            t["peer_set"][pe["peer_set"]].format(m=pe.get("mechanic"), n=pe["n_peers"], d=pe["day"])
+            + " "
+            + ", ".join(p["name"] for p in pe["peers"][:6])
+            + (" …" if pe["n_peers"] > 6 else "")
+        )
+        if pe.get("review_peers"):
+            L.append("")
+            L.append(
+                t["peer_rev"].format(
+                    k=len(pe["review_peers"]),
+                    n=sum(p["reviews"] for p in pe["review_peers"]),
+                    p=", ".join(p["package"] for p in pe["review_peers"]),
+                )
+            )
+        for title, flag in ((t["better"], True), (t["worse"], False), (t["context"], None)):
+            rows = [i for i in pe["items"] if i["better"] is flag]
+            if not rows:
+                continue
+            L += ["", f"**{title}**", ""]
+            L += [f"- {i['text'][lang]} ({lab[i['basis']]})" for i in rows]
+        age = pe.get("age") or {}
+        if age.get("value") is not None:
+            L += [
+                "",
+                t["peer_age"].format(a=fmt(age["value"], lang), m=fmt(age["peer_median"], lang)),
+            ]
         L.append("")
     # reviews
     rv = d.get("reviews") or {}
@@ -419,33 +488,44 @@ def render(d: dict[str, Any], lang: str) -> str:
     ads = d.get("ads") or {}
     L += [f"## {t['ads']}", "", f"**{t['atc']}**", ""]
     g = ads.get("google_atc") or {}
-    if g.get("status") == "refused":
+    ex = g.get("extract") or {}
+    if g.get("status") == "no_extract":
+        L.append(t["atc_no_extract"])
+    elif g.get("status") == "ok":
         L.append(
-            t["atc_refused"].format(
-                e=fmt(g.get("estimate_gb"), lang, 2),
-                c=fmt(g.get("cap_gb"), lang, 2),
+            t["atc_src"].format(
+                d=ex.get("extract_date"),
+                n=fmt(ex.get("advertisers"), lang),
+                b=fmt(ex.get("billed_gb"), lang, 2),
                 p=", ".join(g.get("patterns") or []),
             )
         )
-    elif g.get("status") == "ok" and g.get("advertisers"):
-        for a in g["advertisers"][:5]:
+        L.append("")
+        advs = g.get("advertisers") or []
+        strong = [a for a in advs if a.get("match", "name") == "name"]
+        shown = strong or advs[:3]
+        if not strong and advs:
+            L.append(t["atc_partial"])
+        for a in shown:
             regs = ", ".join(f"{r['region']} {r['creatives']}" for r in a["regions"][:6])
             L.append(
                 "- "
                 + t["atc_ok"].format(
                     name=a["name"],
                     n=fmt(a["creatives"], lang),
-                    v=a["formats"]["video"],
-                    i=a["formats"]["image"],
-                    t=a["formats"]["text"],
+                    g=fmt(a["games_creatives"], lang),
+                    v=fmt(a["formats"]["video"], lang),
+                    i=fmt(a["formats"]["image"], lang),
+                    t=fmt(a["formats"]["text"], lang),
+                    a=fmt(a["active_30d"], lang),
                     f=a["first_shown"],
                     l=a["last_shown"],
                     r=regs,
                 )
                 + f" · {a['url']}"
             )
-    elif g.get("status") == "ok":
-        L.append(t["atc_none"].format(p=", ".join(g.get("patterns") or [])))
+        if not g.get("advertisers"):
+            L.append(t["atc_none"].format(p=", ".join(g.get("patterns") or [])))
     else:
         L.append(f"{g.get('status')}: {g.get('message') or ''}".strip())
     mt = ads.get("meta") or {}

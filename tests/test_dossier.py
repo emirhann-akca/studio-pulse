@@ -25,7 +25,7 @@ from studio_pulse.radar import run as radar_run
 from studio_pulse.radar import store
 from studio_pulse.radar.adintel import google_atc
 from studio_pulse.radar.adintel.meta_library import MetaAdLibrary, archive_url
-from studio_pulse.radar.dossier import collect, deconstruct, reviews, rubric
+from studio_pulse.radar.dossier import collect, deconstruct, peers, render, reviews, rubric
 from studio_pulse.radar.dossier.labels import check_labels
 from studio_pulse.radar.dossier.replay import DossierReplaySession, synth_reviews_block
 from studio_pulse.radar.dossier.run import build_dossier
@@ -44,8 +44,46 @@ ARENA = "1000000002"
 # -- fakes --------------------------------------------------------------------------------------
 
 
+def fake_support(req):
+    """A judge that knows one rule: a claim about 3D needs evidence that mentions 3D."""
+    items = json.loads(req.prompt.splitlines()[1])["items"]
+    out = []
+    for it in items:
+        ev = it["evidence"].get("quote") or it["evidence"].get("note") or ""
+        ok = "3d" not in it["claim"].lower() or "3d" in ev.lower()
+        out.append({"id": it["id"], "supported": ok, "reason": "ok" if ok else "colour, not 3D"})
+    return {"judgements": out}
+
+
+def fake_peer_reviews(req):
+    """Labels any review set by keywords, each with a verbatim quote (the peers' reviews)."""
+    data = json.loads(req.prompt.split("Reviews (untrusted data, JSON):\n", 1)[1])["reviews"]
+    out = []
+    for r in data:
+        low = r["text"].lower()
+        if "ads" in low:
+            i = low.index("ads")
+            out.append(
+                {
+                    "review": r["id"],
+                    "side": "complaint",
+                    "theme": "ads",
+                    "quote": r["text"][max(0, i - 8) : i + 3],
+                }
+            )
+        if "relaxing" in low:
+            out.append(
+                {"review": r["id"], "side": "praise", "theme": "relaxing", "quote": "Relaxing"}
+            )
+    return {"labels": out}
+
+
 def fake_llm(req):
     """Schema-valid answers (what a provider with a response schema can return)."""
+    if req.purpose == "dossier_support":
+        return fake_support(req)
+    if req.purpose == "dossier_reviews" and "So relaxing after work" not in req.prompt:
+        return fake_peer_reviews(req)
     out = raw_answer(req)
     if req.purpose == "dossier_deconstruct" and out.get("mechanics"):
         props = req.schema["properties"]
@@ -147,6 +185,12 @@ def raw_answer(req):
                     "text_tr": "Yumuşak zemin üzerinde düz parlak çakıllar.",
                     "evidence": [{"source": "s1", "quote": "flat colored pebbles"}],
                 },
+                {
+                    "kind": "stylized-3d",
+                    "text": "Stylized 3D pebbles and tubes.",
+                    "text_tr": "Stilize 3B çakıllar ve tüpler.",
+                    "evidence": [{"source": q, "quote": "a relaxing color sort puzzle"}],
+                },  # a colour sentence is no evidence for 3D art: the support check drops it
             ],
             "onboarding": [
                 {
@@ -222,52 +266,76 @@ class FakeJob:
 
 
 class FakeBQ:
-    """Answers the schema query and the advertiser query; records every job."""
+    """Answers the schema query and the weekly extract; records every job."""
 
-    def __init__(self, advertiser_bytes: int, rows: list[dict] | None = None) -> None:
-        self.advertiser_bytes = advertiser_bytes
-        self.rows = rows or []
+    def __init__(self, extract_bytes: int = 26_623_000_000, rows: list[dict] | None = None) -> None:
+        self.extract_bytes = extract_bytes
+        self.rows = EXTRACT_ROWS if rows is None else rows
         self.jobs: list[tuple[str, bool]] = []
 
     def query(self, sql, job_config=None):
         dry = bool(getattr(job_config, "dry_run", False))
         self.jobs.append((sql, dry))
         if "INFORMATION_SCHEMA" in sql:
-            paths = sorted(google_atc.EXPECTED | {"topic"})
-            return FakeJob(0, 10_485_760, pa.table({"field_path": paths}))
+            paths = sorted(google_atc.EXPECTED)
+            return FakeJob(0, None if dry else 10_485_760, pa.table({"field_path": paths}))
         if dry:
-            return FakeJob(self.advertiser_bytes, None, None)
-        return FakeJob(
-            self.advertiser_bytes, self.advertiser_bytes, pa.Table.from_pylist(self.rows)
-        )
+            return FakeJob(self.extract_bytes, None, None)
+        return FakeJob(self.extract_bytes, self.extract_bytes, pa.Table.from_pylist(self.rows))
 
 
-ATC_ROWS = [
+def _region(code, n, first, last):
+    return {"region": code, "creatives": n, "first_shown": first, "last_shown": last}
+
+
+EXTRACT_ROWS = [
     {
         "advertiser_id": "AR000000000000000001",
         "name": "Example Pebbleworks Ltd",
         "creatives": 42,
+        "games_creatives": 40,
         "video": 30,
         "image": 12,
         "text": 0,
-        "region_code": "US",
-        "region_creatives": 40,
+        "active_30d": 25,
         "first_shown": "2026-10-22",
         "last_shown": "2026-11-13",
+        "regions_n": 2,
+        "regions": [
+            _region("US", 40, "2026-10-22", "2026-11-13"),
+            _region("DE", 18, "2026-10-25", "2026-11-12"),
+        ],
     },
     {
-        "advertiser_id": "AR000000000000000001",
-        "name": "Example Pebbleworks Ltd",
-        "creatives": 42,
-        "video": 30,
-        "image": 12,
+        "advertiser_id": "AR000000000000000002",
+        "name": "Pebbleworks Garden Supplies",  # a namesake with some games-topic ads
+        "creatives": 90,
+        "games_creatives": 12,
+        "video": 0,
+        "image": 90,
         "text": 0,
-        "region_code": "DE",
-        "region_creatives": 18,
-        "first_shown": "2026-10-25",
-        "last_shown": "2026-11-12",
+        "active_30d": 3,
+        "first_shown": "2024-01-02",
+        "last_shown": "2026-10-01",
+        "regions_n": 1,
+        "regions": [_region("GB", 90, "2024-01-02", "2026-10-01")],
     },
 ]
+
+
+def refresh_extract(path: Path, bq: FakeBQ | None = None, **kw):
+    con = warehouse.connect(path)
+    try:
+        return google_atc.refresh(
+            con,
+            project=None,
+            s=google_atc.AdIntelSettings(**kw),
+            today=DAY,
+            client=bq or FakeBQ(),
+            log=lambda m: None,
+        )
+    finally:
+        con.close()
 
 
 # -- warehouse with radar history -----------------------------------------------------------------
@@ -357,6 +425,44 @@ def build_warehouse(path: Path) -> None:
                 }
             ],
         )
+    # the peers' Lookup reads: they last updated 20 to 45 days ago and gain fewer ratings
+    for i, a in enumerate(sorters):
+        for back in (1, 0):
+            day = DAY - dt.timedelta(days=back)
+            store.insert(
+                con,
+                "raw_mr_app",
+                [
+                    {
+                        "snapshot_date": day,
+                        "fetched_at": dt.datetime(day.year, day.month, day.day, 9),
+                        "store": "apple",
+                        "country": "us",
+                        "app_id": a,
+                        "name": f"Game {a}",
+                        "release_date": dt.date(2025, 6, 1),
+                        "current_version_date": DAY - dt.timedelta(days=20 + 5 * i),
+                        "version": "2.0",
+                        "rating_count": 50_000 + i * 1000 + (1 - back) * 3,
+                        "rating_avg": 4.3,
+                        "source": "lookup",
+                    }
+                ],
+            )
+    store.insert(
+        con,
+        "raw_mr_xref",
+        [
+            {
+                "apple_id": "S0",
+                "bundle_id": "com.example.sorter0",
+                "play_id": "com.example.sorter0",
+                "method": "bundle_id",
+                "status": "mapped",
+                "verified_on": DAY,
+            }
+        ],
+    )
     store.insert(
         con,
         "raw_mr_profile",
@@ -405,19 +511,12 @@ def make_cfg(tmp_path: Path, **radar_extra) -> object:
     )
 
 
-def run(tmp_path, target=PEBBLE, *, client=True, bq=None, meta=None, **kw):
+def run(tmp_path, target=PEBBLE, *, client=True, extract=True, meta=None, **kw):
     cfg = make_cfg(tmp_path)
+    if extract:
+        refresh_extract(cfg.warehouse)
     prov = FakeProvider(fake_llm)
     llm = LLMClient(prov, cache_dir=tmp_path / "llmcache", budget_usd=0.5) if client else None
-    s = from_config(cfg)
-    atc = google_atc.GoogleAdsTransparency(
-        project=None,
-        cap_bytes=s.ads_max_bytes,
-        client=bq or FakeBQ(9_100_000_000),
-        cache_dir=tmp_path / "atc",
-        log=lambda m: None,
-        today=DAY,
-    )
     res = build_dossier(
         cfg,
         target,
@@ -425,7 +524,6 @@ def run(tmp_path, target=PEBBLE, *, client=True, bq=None, meta=None, **kw):
         day=DAY,
         llm_client=llm,
         use_llm=client,
-        atc=atc,
         meta=meta or MetaAdLibrary(token="", today=DAY),
         sleep=lambda _s: None,
         log=lambda m: None,
@@ -607,10 +705,45 @@ def test_dossier_end_to_end_without_network(tmp_path, monkeypatch):
     rv = d["reviews"]
     assert rv["n"] == 8 and rv["sources"]["apple"]["status"] == "refused"
     assert rv["themes"]["praise"][0]["theme"] == "relaxing"
-    # ads: BigQuery refused by the dry run (nothing run), Meta not configured
+    # ads: read from the local weekly extract (no BigQuery call in a dossier); Meta not set up
     g = d["ads"]["google_atc"]
-    assert g["status"] == "refused" and g["estimate_gb"] == 9.1 and g["patterns"] == ["pebbleworks"]
+    assert g["status"] == "ok" and g["patterns"] == ["pebbleworks"]
+    assert [(a["name"], a["match"]) for a in g["advertisers"]] == [
+        ("Example Pebbleworks Ltd", "name"),  # the developer's whole name: shown
+        ("Pebbleworks Garden Supplies", "partial"),  # a namesake: not shown when a name matches
+    ]
+    top = g["advertisers"][0]
+    assert top["creatives"] == 42 and top["active_30d"] == 25 and top["days_since_last_shown"] == 1
+    assert [r["region"] for r in top["regions"]] == ["US", "DE"]
+    assert g["extract"]["extract_date"] == "2026-11-14" and d["meta"]["bigquery_billed_gb"] == 0
     assert d["ads"]["meta"]["status"] == "not_configured"
+    # the support check: one LLM judge call, the colour sentence offered for 3D art is dropped
+    dec = d["deconstruction"]
+    assert dec["support"]["status"] == "ok" and dec["support"]["unsupported_items"] == 1
+    assert [c["kind"] for c in dec["art_style"]] == ["2d"]
+    assert any(
+        r["section"] == "art_style" and r["reason"].startswith("evidence does not support")
+        for r in dec["rejected"]
+    )
+    sup_call = next(c for c in prov.calls if c.purpose == "dossier_support")
+    assert len(sup_call.images) == 3 and "a relaxing color sort puzzle" in sup_call.prompt
+    # peers: the six colour-sort games in today's charts, with numbers
+    pe = d["peers"]
+    assert pe["status"] == "ok" and pe["peer_set"] == "mechanic" and pe["n_peers"] == 6
+    items = {i["metric"]: i for i in pe["items"]}
+    upd = items["days_since_update"]
+    assert upd["value"] == 4 and upd["peer_median"] == 32.5 and upd["better"] is True
+    # rank 11 against a peers' median of 7.5: 47 % worse but under 5 places, so only context
+    assert items["best_rank"]["better"] is None
+    ads_cmp = items["review_complaints:ads"]
+    assert (ads_cmp["value"], ads_cmp["of"], ads_cmp["peer_value"], ads_cmp["peer_of"]) == (
+        1,
+        8,
+        4,
+        6,
+    )
+    assert ads_cmp["better"] is True and ads_cmp["basis"] == "llm"
+    assert pe["review_peers"] == [{"app_id": "S0", "package": "com.example.sorter0", "reviews": 6}]
     # decision: a colour sort game for a studio that ships colour sort
     dc = d["decision"]
     assert dc["verdict"] in ("YAP", "BEKLE") and len(dc["reasons"]) == 3
@@ -628,7 +761,12 @@ def test_dossier_end_to_end_without_network(tmp_path, monkeypatch):
     )
     assert "Çekirdek döngü" in tr and "Bir tüpe dokunup" in tr and "robots.txt yasaklıyor" in tr
     assert "# Game dossier · Pebble Sort" in en and "What it does right" in en and "(LLM" in en
-    assert "Rakip reklamları" in tr and "9,10 GB" in tr and "9.10 GB" in en
+    assert "Rakip reklamları" in tr and "Example Pebbleworks Ltd: 42 reklam" in tr
+    assert "Pebbleworks Garden Supplies" not in tr
+    assert "son 30 günde gösterilen 25" in tr and "shown in the last 30 days 25" in en
+    assert "Akranlara göre" in tr and "son güncellemeden bu yana gün: bu oyun 4" in tr
+    assert "akranların medyanı 32,5 (n=6)" in tr and "Kanıt-destek denetimi" in tr
+    assert "reklamlar şikâyet: bu oyunda 1/8 yorum" in tr
     doc = yaml.safe_load(Path(res.files["market_trends"]).read_text(encoding="utf-8"))
     les = doc["lessons"][0]
     assert doc["schema"] == "studio-pulse/market_trends/v1" and les["kind"] == "market_trend"
@@ -794,62 +932,110 @@ def test_out_dir_inside_the_public_demo_is_refused(tmp_path):
 # -- ads --------------------------------------------------------------------------------------------
 
 
-def test_google_atc_patterns_are_sanitised_and_batched():
+def test_google_atc_patterns_are_sanitised():
     assert google_atc.name_pattern("Oakever Games Ltd.") == "oakever"
     assert google_atc.name_pattern("Dream Games Teknoloji Anonim Şirketi") == "dream"
     assert google_atc.name_pattern("Games Studio Ltd") is None
     assert google_atc.name_pattern("Example Person de Lima") == "example person"  # contiguous
     assert google_atc.name_pattern("x'); DROP TABLE t; --") == "drop table"
-    sql = google_atc.build_query(["oakever", "dream"])
-    assert sql.count("LIKE") == 2 and "creative_stats" in sql and "TABLESAMPLE" not in sql
+    assert google_atc.fold("Şirketi İstanbul Oyun A.Ş.") == "sirketi istanbul oyun a s"
+    sql = google_atc.build_extract_sql(["oakever", "big sort"], DAY)
+    assert "topic = 'Hobbies, Games & Leisure' OR REGEXP_CONTAINS(" in sql
+    assert "r' (?:oakever|big sort) '" in sql and "'2026-10-15'" in sql  # 30 days back
+    assert "TABLESAMPLE" not in sql and "advertiser_legal_name" not in sql
     with pytest.raises(ValueError):
-        google_atc.build_query(["bad'quote"])
+        google_atc.build_extract_sql(["bad'quote"], DAY)
+    with pytest.raises(ValueError):
+        google_atc.build_extract_sql([], DAY, topic="x' OR 1=1 --")
 
 
-def test_google_atc_dry_runs_first_and_refuses_over_the_cap(tmp_path):
-    bq = FakeBQ(advertiser_bytes=23_570_000_000)
-    atc = google_atc.GoogleAdsTransparency(
-        project=None,
-        cap_bytes=2_000_000_000,
-        client=bq,
-        cache_dir=tmp_path,
-        log=lambda m: None,
-        today=DAY,
-    )
-    res = atc.lookup(["Example Pebbleworks Ltd"])
-    assert res.status == "refused" and res.estimate_bytes == 23_570_000_000
-    adv = [
-        (sql, dry)
-        for sql, dry in bq.jobs
-        if "creative_stats" in sql and "INFORMATION_SCHEMA" not in sql
+def test_weekly_extract_dry_runs_first_stores_locally_and_logs_bytes(tmp_path):
+    cfg = make_cfg(tmp_path)
+    con = warehouse.connect(cfg.warehouse)
+    try:
+        pats = google_atc.developer_patterns(con)
+        assert "big sort" in pats and "tiny dev" in pats and "other" not in pats  # specific only
+    finally:
+        con.close()
+    bq = FakeBQ()
+    res = refresh_extract(cfg.warehouse, bq)
+    assert res["status"] == "ok" and res["advertisers"] == 2 and res["cap_gb"] == 30
+    assert res["billed_gb"] == round((26_623_000_000 + 10_485_760) / 1e9, 3)
+    # every job was dry-run before it ran; the extract scan ran once
+    extract_jobs = [
+        dry for sql, dry in bq.jobs if "creative_stats" in sql and "INFORMATION" not in sql
     ]
-    assert adv == [(adv[0][0], True)]  # the advertiser query was only dry-run
-    assert atc.billed_bytes() == 10_485_760  # only the schema check ran (BigQuery's 10 MB minimum)
+    assert extract_jobs == [True, False]
+    con = warehouse.connect(cfg.warehouse)
+    try:
+        run_row = con.execute(
+            "SELECT status, estimated_bytes, billed_bytes, cap_bytes, advertisers "
+            "FROM raw_mr_adintel_run"
+        ).fetchall()
+        assert run_row == [("ok", 26_623_000_000, 26_633_485_760, 30_000_000_000, 2)]
+        assert con.execute("SELECT COUNT(*) FROM raw_mr_adv_region").fetchone()[0] == 3
+        # a week does not pass in a day: the next refresh is skipped, nothing is sent
+        bq2 = FakeBQ()
+        again = google_atc.refresh(
+            con,
+            project=None,
+            s=google_atc.AdIntelSettings(),
+            today=DAY,
+            client=bq2,
+            log=lambda m: None,
+        )
+        assert again["status"] == "fresh" and bq2.jobs == []
+        found = google_atc.lookup_local(con, ["Example Pebbleworks Ltd", "Pebbleworks"], DAY)
+        assert (
+            found["patterns"] == ["pebbleworks"]
+            and found["advertisers"][0]["games_creatives"] == 40
+        )
+        none = google_atc.lookup_local(con, ["Nobody Here Ltd"], DAY)
+        assert none["status"] == "ok" and none["advertisers"] == []
+    finally:
+        con.close()
 
 
-def test_google_atc_runs_under_the_cap_and_caches(tmp_path):
-    bq = FakeBQ(advertiser_bytes=1_500_000_000, rows=ATC_ROWS)
-    kw = dict(
-        project=None, cap_bytes=2_000_000_000, cache_dir=tmp_path, log=lambda m: None, today=DAY
+def test_weekly_extract_over_the_cap_is_refused_and_nothing_stored(tmp_path):
+    cfg = make_cfg(tmp_path)
+    bq = FakeBQ(extract_bytes=26_623_000_000)
+    res = refresh_extract(cfg.warehouse, bq, cap_bytes=2_000_000_000)
+    assert res["status"] == "refused" and res["billed_gb"] == 0.01  # the schema check only
+    assert [dry for sql, dry in bq.jobs if "INFORMATION" not in sql] == [True]  # dry run only
+    con = warehouse.connect(cfg.warehouse)
+    try:
+        assert google_atc.lookup_local(con, ["Pebbleworks"], DAY)["status"] == "no_extract"
+    finally:
+        con.close()
+    with pytest.raises(ConfigError, match="max_gb"):
+        google_atc.settings(make_cfg(tmp_path, adintel={"max_gb": 200}))
+
+
+def test_pulse_run_hook_refreshes_weekly_only_when_enabled(tmp_path, monkeypatch):
+    from studio_pulse import pipeline
+    from studio_pulse.pipeline import IngestReport
+
+    calls = []
+    monkeypatch.setattr(radar_run, "run_in_pipeline", lambda con, cfg, log: [])
+    monkeypatch.setattr(
+        google_atc, "refresh", lambda con, **kw: calls.append(kw) or {"status": "ok"}
     )
-    res = google_atc.GoogleAdsTransparency(client=bq, **kw).lookup(["Example Pebbleworks Ltd"])
-    assert res.status == "ok" and res.billed_bytes == 1_500_000_000
-    a = res.advertisers[0]
-    assert (
-        a["creatives"] == 42
-        and a["formats"]["video"] == 30
-        and [r["region"] for r in a["regions"]] == ["US", "DE"]
-    )
-    assert (
-        a["first_shown"] == "2026-10-22"
-        and a["last_shown"] == "2026-11-13"
-        and a["days_since_last_shown"] == 1
-    )
-    real = [j for j in bq.jobs if not j[1] and "INFORMATION_SCHEMA" not in j[0]]
-    assert len(real) == 1
-    bq2 = FakeBQ(advertiser_bytes=1_500_000_000, rows=ATC_ROWS)
-    again = google_atc.GoogleAdsTransparency(client=bq2, **kw).lookup(["Example Pebbleworks Ltd"])
-    assert again.cached and again.advertisers == res.advertisers and bq2.jobs == []
+    cfg_off = make_cfg(tmp_path, enabled=True)
+    con = warehouse.connect(cfg_off.warehouse)
+    try:
+        pipeline._radar(con, cfg_off, IngestReport(), log=lambda m: None)
+        assert calls == []
+        cfg_on = make_cfg(tmp_path, enabled=True, adintel={"enabled": True, "max_gb": 30})
+        report = IngestReport()
+        pipeline._radar(con, cfg_on, report, log=lambda m: None)
+        assert len(calls) == 1 and calls[0]["s"].cap_bytes == 30_000_000_000
+        monkeypatch.setattr(
+            google_atc, "refresh", lambda con, **kw: {"status": "refused", "message": "cap"}
+        )
+        pipeline._radar(con, cfg_on, report, log=lambda m: None)
+        assert "adintel" in report.errors  # a refused extract is visible, not silent
+    finally:
+        con.close()
 
 
 def test_meta_ad_library_recorded_shape_not_run_live(tmp_path):
@@ -908,6 +1094,67 @@ def test_meta_ad_library_recorded_shape_not_run_live(tmp_path):
 
 
 # -- page and CLI --------------------------------------------------------------------------------------
+
+
+def test_a_failed_support_check_keeps_the_claims_and_says_so(tmp_path):
+    from studio_pulse.llm import LLMError
+
+    def flaky(req):
+        if req.purpose == "dossier_support":
+            raise LLMError("HTTP 400: synthetic failure")
+        return fake_llm(req)
+
+    cfg = make_cfg(tmp_path)
+    client = LLMClient(FakeProvider(flaky), cache_dir=tmp_path / "c")
+    d = build_dossier(
+        cfg,
+        PEBBLE,
+        session=DossierReplaySession(FIX),
+        day=DAY,
+        llm_client=client,
+        ads=False,
+        sleep=lambda s: None,
+        log=lambda m: None,
+    ).facts
+    dec = d["deconstruction"]
+    assert dec["support"]["status"] == "error" and len(dec["art_style"]) == 2
+    tr = render.render(d, "tr")
+    assert "Kanıt-destek denetimi yapılamadı" in tr
+
+
+def test_studio_profile_defaults_fit_a_small_casual_puzzle_studio(tmp_path):
+    cfg = config_from_dict({"apps": [{"id": "x"}]}, base_dir=tmp_path)
+    st = from_config(cfg).studio
+    assert st["team_size"] == 2 and st["engine"] == "unity" and st["genres"] == ["puzzle", "casual"]
+    assert {"color-sort", "goods-sort", "hexa-sort", "block-puzzle", "merge"} <= set(
+        st["strengths"]
+    )
+    # max CPI: the hyper-casual benchmark of the first target market, not a guess
+    assert st["max_cpi_usd"] == 1.55 and st["max_cpi_source"].startswith(
+        "auto: hyper-casual CPI US"
+    )
+    own = from_config(make_cfg(tmp_path, dossier={"studio": {"max_cpi_usd": 2.5}})).studio
+    assert own["max_cpi_usd"] == 2.5 and own["max_cpi_source"] == "config"
+
+
+def test_peer_review_themes_compare_shares():
+    themes = from_config(config_from_dict({"apps": [{"id": "x"}]}, base_dir=Path("."))).benchmarks[
+        "review_themes"
+    ]
+    target = {
+        "complaints": [{"theme": "ads", "count": 1}],
+        "praise": [{"theme": "relaxing", "count": 3}],
+    }
+    pooled = {
+        "complaints": [{"theme": "ads", "count": 9}],
+        "praise": [{"theme": "relaxing", "count": 4}],
+    }
+    out = peers.compare_themes(target, 10, pooled, 30, themes)
+    assert [(o["metric"], o["better"]) for o in out] == [
+        ("review_complaints:ads", True),  # 10 % against 30 %
+        ("review_praise:relaxing", True),  # 30 % against 13 %
+    ]
+    assert peers.compare_themes(target, 10, pooled, 0, themes) == []
 
 
 def test_dossier_pages_in_pulse_serve(tmp_path):

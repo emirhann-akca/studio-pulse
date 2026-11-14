@@ -531,8 +531,12 @@ def assumptions(d: dict[str, Any], s: DossierSettings) -> list[dict[str, str]]:
     n_rev = (d.get("reviews") or {}).get("n") or 0
     out = [
         _r(
-            f"Stüdyo profili (yapılandırma): {st.get('team_size')} kişi, {st.get('engine')}, türler {', '.join(st.get('genres') or [])}, en fazla {st.get('months')} ay, bütçe {st.get('budget_usd')} USD, yaptığımız mekanikler: {', '.join(st.get('strengths') or []) or '-'}",
-            f"Studio profile (config): {st.get('team_size')} people, {st.get('engine')}, genres {', '.join(st.get('genres') or [])}, at most {st.get('months')} months, budget {st.get('budget_usd')} USD, mechanics we shipped: {', '.join(st.get('strengths') or []) or '-'}",
+            f"Stüdyo profili (VARSAYIM, yapılandırmada değiştirilir): {st.get('team_size')} kişi, {st.get('engine')}, türler {', '.join(st.get('genres') or [])}, en fazla {st.get('months')} ay, bütçe {st.get('budget_usd')} USD, yaptığımız mekanikler: {', '.join(st.get('strengths') or []) or '-'}",
+            f"Studio profile (ASSUMPTION, edit it in the config): {st.get('team_size')} people, {st.get('engine')}, genres {', '.join(st.get('genres') or [])}, at most {st.get('months')} months, budget {st.get('budget_usd')} USD, mechanics we shipped: {', '.join(st.get('strengths') or []) or '-'}",
+        ),
+        _r(
+            f"Taşıyabileceğimiz en yüksek CPI {fmt(float(st.get('max_cpi_usd') or 0), 'tr', 2)} USD ({st.get('max_cpi_source', 'config')}).",
+            f"The most CPI we can carry: {fmt(float(st.get('max_cpi_usd') or 0), 'en', 2)} USD ({st.get('max_cpi_source', 'config')}).",
         ),
         _r(
             "Üretim süresi tablosu bir stüdyo varsayımıdır (benchmarks.yaml effort), ölçülmüş veri değildir.",
