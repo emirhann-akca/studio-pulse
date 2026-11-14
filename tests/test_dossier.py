@@ -1014,9 +1014,12 @@ def test_weekly_extract_over_the_cap_is_refused_and_nothing_stored(tmp_path):
 def test_pulse_run_hook_refreshes_weekly_only_when_enabled(tmp_path, monkeypatch):
     from studio_pulse import pipeline
     from studio_pulse.pipeline import IngestReport
+    from studio_pulse.radar.dossier import run as dossier_run
 
     calls = []
     monkeypatch.setattr(radar_run, "run_in_pipeline", lambda con, cfg, log: [])
+    # no credential lookup in a test (google.auth.default() may probe a metadata server)
+    monkeypatch.setattr(dossier_run, "default_project", lambda: "synthetic-project")
     monkeypatch.setattr(
         google_atc, "refresh", lambda con, **kw: calls.append(kw) or {"status": "ok"}
     )
@@ -1029,11 +1032,29 @@ def test_pulse_run_hook_refreshes_weekly_only_when_enabled(tmp_path, monkeypatch
         report = IngestReport()
         pipeline._radar(con, cfg_on, report, log=lambda m: None)
         assert len(calls) == 1 and calls[0]["s"].cap_bytes == 30_000_000_000
+        assert calls[0]["project"] == "synthetic-project"
         monkeypatch.setattr(
             google_atc, "refresh", lambda con, **kw: {"status": "refused", "message": "cap"}
         )
         pipeline._radar(con, cfg_on, report, log=lambda m: None)
         assert "adintel" in report.errors  # a refused extract is visible, not silent
+        # a fresh extract is not refreshed and no project is looked up
+        con.execute("DELETE FROM raw_mr_adintel_run")
+        store.insert(
+            con,
+            "raw_mr_adintel_run",
+            [
+                {
+                    "run_at": dt.datetime(2026, 11, 13, 9),
+                    "extract_date": DAY - dt.timedelta(days=1),
+                    "status": "ok",
+                }
+            ],
+        )
+        monkeypatch.setattr(dossier_run, "default_project", lambda: pytest.fail("looked up"))
+        report = IngestReport()
+        pipeline._radar(con, cfg_on, report, log=lambda m: None)
+        assert "adintel" not in report.errors
     finally:
         con.close()
 

@@ -491,10 +491,20 @@ def run_in_pipeline(
     s = settings(cfg)
     if not s.enabled:
         return None
-    from ..dossier.run import default_project
-
+    today = cfg.as_of or dt.date.today()
     log("Ads Transparency weekly extract ...")
-    res = refresh(con, project=default_project(), s=s, today=cfg.as_of or dt.date.today(), log=log)
+    last = last_refresh(con)
+    if last and (today - dt.date.fromisoformat(last["extract_date"])).days < s.every_days:
+        # fresh: no credential lookup, no request of any kind
+        res = {
+            "status": "fresh",
+            "age_days": (today - dt.date.fromisoformat(last["extract_date"])).days,
+            **last,
+        }
+    else:
+        from ..dossier.run import default_project
+
+        res = refresh(con, project=default_project(), s=s, today=today, log=log)
     if res["status"] == "fresh":
         log(f"    adintel: extract from {res['extract_date']} is fresh ({res['age_days']} d)")
     elif res["status"] != "ok":
