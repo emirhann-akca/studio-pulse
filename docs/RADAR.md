@@ -20,7 +20,8 @@ install` makes it daily; its data-quality checks are stored with the studio's ow
 
 | Source | What | Volume per day (8 countries x 5 lists) | Status |
 |---|---|---|---|
-| Apple legacy RSS `itunes.apple.com/{cc}/rss/{chart}/limit={<=100}/genre={id}/json` | top free / grossing lists per genre (6014 Games, 7012 Puzzle, 7003 Casual, 7015 Simulation ...) | 40 | undocumented; the new RSS v2 has no games list (its games endpoint answers 404), so the legacy one is the only Apple list with genres. `newfreeapplications` ignores `limit` and `genre`: extra rows and non-games are kept raw but not scored |
+| App Store chart pages `apps.apple.com/{cc}/iphone/charts/{genre}` (default, `radar.apple.chart_source: web`) | one page per storefront and genre holds Top Free and Top Paid Games: the first 25 apps in full, the ids of ranks 26-200 in order (`radar/charts_web.py`) | 32 (4 genres x 8; the default top-grossing list does not exist on the web) | robots.txt allows the chart pages (it lists chart sitemaps); the page's own continuation API (`/v1/*`) is disallowed and never called. No top-grossing and no new-games chart |
+| Apple legacy RSS `itunes.apple.com/{cc}/rss/{chart}/limit={<=100}/genre={id}/json` (`chart_source: rss`) | top free / grossing lists per genre | **replay only** | `itunes.apple.com/robots.txt` disallows `/*/rss/*` (found 14 Nov 2026): the radar refuses `rss` outside `--replay` of recorded fixtures. `newfreeapplications` ignores `limit` and `genre` |
 | iTunes Lookup `itunes.apple.com/lookup?id=a,b,...&country=cc` | release date, rating count per storefront, version and its date, description, genres | ~28 (100 ids per request) + rechecks (<= 2 per storefront) + 1 per storefront for the watchlist | documented, ~20 calls/minute; answers come from Apple caches of different ages (see below) |
 | Lookup `?id={artistId}&entity=software` | a watched publisher's whole catalogue | weekly | |
 | Google Play `play.google.com/store/apps/details?id=...` | install bucket, `realInstalls` (undocumented page field), Play tags, ads/IAP flags, description | <= 200: new-game candidates, watched games, the calibration panel (`estimates.panel_size`, 80) | robots.txt allows this path and nothing else the radar uses |
@@ -179,21 +180,22 @@ outright when the lists plus one Lookup per country already exceed `radar.apple.
 
 | Host | Default: 8 countries x 5 lists of 100 | With `ca`, `au` (10 x 5) | Budget | Spacing |
 |---|---|---|---|---|
-| itunes.apple.com, RSS lists | 40 | 50 | | >= 3 s |
+| apps.apple.com, chart pages (robots.txt checked first) | 32 (one page per genre gives its free and paid lists; no grossing list on the web) | 40 | 60 a day (`apple.web_daily_budget`) | >= 3 s |
 | itunes.apple.com, Lookup | ~28 (250-320 distinct apps per storefront, 100 ids a request) + up to 16 rechecks + 8 for the watchlist | ~35 + 20 + 10 | 120 a day (`apple.daily_budget`; raise it to ~150 for 10 countries with a watchlist) | >= 3 s |
 | play.google.com | robots.txt + new-game candidates (~50) + watched games + calibration panel (`estimates.panel_size`, 80): at most 200 | same | 200, hard cap (`play.daily_budget` above 200 is lowered to 200) | >= 3 s |
 
 At 3 s per request a full day takes about 10 minutes of wall time. The panel only uses Play
 budget the radar's own candidates left, and keeps `estimates.play_reserve` (10) for a re-run.
 
-Chart source. Apple's `itunes.apple.com/robots.txt` disallows `/*/rss/*` for every user agent
-(found 14 Nov 2026; the Lookup path is not matched), and the radar's fetcher checks robots.txt
-for Google Play only, so the legacy RSS lists are under review by the owner; Apple's current
-feed (`rss.marketingtools.apple.com`) has no games or genre lists. The estimates do not depend
-on that choice: they read ranks only from `stg_mr_rank_input` (day, country, list, `list_kind`
-free / grossing, `all_games`, rank, app), which is the RSS lists plus `raw_mr_rank_extra`, a
-table any other chart source can fill (`tests/test_radar_estimates.py` calibrates from it with
-no RSS row at all).
+Chart source. `itunes.apple.com/robots.txt` disallows `/*/rss/*` for every user agent (found
+14 Nov 2026; the Lookup path is not matched), so the radar reads Apple's charts from the App
+Store web pages, which robots.txt allows, and accepts the legacy RSS only to replay recorded
+fixtures. Apple's current feed (`rss.marketingtools.apple.com`) has no games or genre lists.
+The web pages have no top-grossing chart, so no revenue estimate depends on a grossing rank
+(below). The estimates read ranks only from `stg_mr_rank_input` (day, country, list,
+`list_kind` free / paid / grossing, `all_games`, rank, app, source), which is the radar's
+Apple lists plus `raw_mr_rank_extra`, a table any other chart source can fill
+(`tests/test_radar_estimates.py` calibrates from it with no Apple row at all).
 
 ## Market estimates
 
@@ -247,29 +249,45 @@ three places where both are published; Sensor Tower's store split of game downlo
 and KR). The band uses the extremes, so a game charting in Turkey and the US gets a ratio of
 0.16-2.26: that conversion is public data our own reads cannot check, and the band says so.
 
-### Revenue: top-grossing rank -> iOS revenue per day, from public figures
+### Revenue: from downloads, not from a rank
 
-`R_c(r) = A_us * m_c * r^(-b)`, USD per day of gross consumer spend through the App Store
-(`estimate/revenue.py`, sources in `estimate/revenue_anchors.yaml`, each with URL and date):
+No compliant source publishes a top-grossing rank: apps.apple.com has no grossing chart and
+the legacy iTunes RSS is disallowed by robots.txt. So revenue is estimated from a game's
+download band (`estimate/rpd.py`, sources in `estimate/revenue_per_download.yaml`, each with
+URL and date):
 
-- **b** is drawn uniformly from 0.60-0.95: Garg & Telang (MIS Quarterly 2013) fit 0.860 for
-  iPhone top grossing on 2011 data; a 2026 practitioner fit uses 0.62-0.72; book-sales rank
-  studies imply ~0.83. Three anchors cannot fit a slope.
-- **A_us** comes from US anchors, games with a disclosed quarterly figure: Roblox (Q3 2026
-  bookings $1,697M; 29% of revenue through the App Store in 2025; US and Canada 57% of
-  revenue), Disney Solitaire ($111.2M) and Bingo Blitz ($133.0M, both Playtika Q3 2026; 59.2%
-  of Playtika's revenue outside its own payment channel). Each undisclosed step (App Store
-  share, US share, store share) is a range drawn in log space; the ranks are the radar's own
-  US Top Grossing observations of 13-14 Nov 2026 (Roblox 3-4, Disney Solitaire 32-35, Bingo
-  Blitz 71-72). A_us is the anchors' geometric mean plus the uncertainty of that mean.
-- **m_c** is country c's iOS game spend over the US's: US $26.7B (2025, Sensor Tower via ESA),
-  Japan $10-11B, Korea $5.2B with iOS 25-26%, Germany EUR 2,596M, UK GBP 1.88bn, France
-  EUR 1.792bn, Turkey $347M (AppMagic, probably net of store fees: x1-1.43), converted at ECB
-  2025 averages. Where no store split is published the iOS share is a stated assumption range.
-  Canada, Australia and Brazil have no public figure: no revenue estimate there.
-- the band adds the anchors' scatter around the curve (at least 0.5 in natural log).
+```
+revenue/day = Android installs/day x RPD_android(g) + iOS downloads/day x RPD_ios(g)
+            + (Android + iOS installs/day) x ad revenue per install      (if it shows ads)
+```
 
-The money is the store's gross: the developer receives roughly 70-85% of it.
+- **RPD** (revenue per download = in-app purchase revenue / downloads of the same period) of
+  the game's genre g, worldwide 2025, both stores (AppMagic Mobile Market Landscape 2026):
+  RPG 6.9, strategy 5.1, casino 4.1, shooter 1.10, sports 0.81, puzzle 0.79, simulation 0.44,
+  action 0.18, arcade 0.10 USD, net of store fees, grossed up by 1/0.85-1/0.70; match-3 6.85,
+  merge 2.96 and tile-match ("Match 3D") 3.94 when the radar's profile names that mechanic
+  (AppMagic casual report H1 2025). The genre comes from the Lookup genres (first match:
+  Role Playing, Strategy, Casino, Sports, Racing, Puzzle, Word, Board, Card, Trivia, Simulation,
+  Action, Adventure, Arcade, Casual); none of them: the all-games $1.62 (Sensor Tower 2025).
+- **Store split**: like the whole market, an App Store download earns 4.15x and a Google Play
+  download 0.44x the two-store average (Sensor Tower 2025: $52.5B / 7.8B and $30B / 42.4B).
+- **One game vs its genre**: anywhere from a third to three times the genre average (five-fold
+  for an unknown genre). No public source gives that spread: it is a stated assumption.
+- **Ads**: AppsFlyer's D90 ad revenue per install (casual $0.55, casino $0.47, midcore $0.40,
+  hypercasual $0.22; Jan 2025-Mar 2026) to twice that for the lifetime, added when the Play page
+  says the game has ads, scaled by a uniform 0-1 when that is unknown, left out when it has none.
+
+RPD is a steady-state ratio (old players' spending is on the revenue side), not what a new
+install pays; the result is gross consumer spend plus ad revenue, worldwide, per day. A game
+without a download band gets no revenue band. Nothing of this could be checked against a
+game's real revenue yet: the download curves are not calibrated (below).
+
+The earlier grossing-rank model (`estimate/revenue.py`, anchors in `revenue_anchors.yaml`:
+Roblox, Playtika titles, Lineage M, with published rank-revenue exponents) stays in the code
+but is **inactive**: it runs only when a compliant grossing list reaches `stg_mr_rank_input`
+(`raw_mr_rank_extra`), never on the legacy RSS. Its US anchor ranks were read from the legacy
+RSS on 13-14 Nov 2026, before the robots finding, and must be re-observed in a compliant
+source before use.
 
 ### Data-quality checks of the estimates
 
@@ -288,19 +306,20 @@ What ran where (14 Nov 2026):
 
 | Part | Data | Result |
 |---|---|---|
-| Download curves, live | the radar's own Play reads: 2 days (13-14 Nov), one 29-hour interval | **no curve**: 0 windows of 7+ days, all 22 top-free lists `insufficient`, so no download number is shown. With the panel (80 games a day) the first lists should reach 10 games after ~2-3 weeks of daily runs |
+| Download curves, live | the radar's own Play reads: 2 days (13-14 Nov), one 29-hour interval | **no curve**: 0 windows of 7+ days, every top-free list `insufficient`, so no download number and no revenue number is shown. With the panel (80 games a day) the first lists should reach 10 games after ~2-3 weeks of daily runs |
 | Download method, synthetic | `tests/radar_synth.py`: 140 invented games, 35 days, true slope 0.8, counters refreshed every 1-6 days, 12% frozen, 6% lagging (+20-90 installs per refresh while ratings grow) | 412 windows, 20 dropped as implausible. US list: leave-one-game-out MAPE 26%, 79% of held-out windows inside the 80% band (n=280); time split (fit on the first 70% of windows) MAPE 27%, 79% inside (n=84); slope recovered 0.77 (0.68-0.85). TR list (installs driven mostly by US ranks, so a flat curve): 37% / 80% and 39% / 81% |
-| Revenue, leave one US anchor out | the three US anchors | MAPE 27% (live run), 3 of 3 disclosed values inside the band (n=3: a sanity check, not an accuracy estimate) |
-| Revenue, held-out country | Lineage M (NCSOFT 2Q26 KRW 117,333M), Korea, rank 4 in the KR Top Grossing list on 14 Nov 2026 (live run) | disclosed-and-converted $116k/day inside the band $63k-353k; middle 29% off (n=1) |
-| Revenue, market check | the US curve summed over ranks 1-1000 vs public US iOS game spend per day | **fails**: 2.1x (1.3-3.4x) the market. The curve is probably too high below the top ranks (or the tail is steeper than one power law); read the upper half of a band for ranks below ~30 with that in mind |
+| Revenue from downloads | public RPD and ad-ARPU benchmarks | **not checked**: it needs download bands, and none exists yet; when they do, the disclosed anchors of `revenue_anchors.yaml` (Roblox, Playtika titles) are the first check to run |
+| Grossing-rank model (inactive) | ranks from the legacy RSS (13-14 Nov, before the robots finding) | computed once on 14 Nov before the switch: leave one US anchor out MAPE 27%, 3 of 3 inside; Lineage M held out (KR) inside, 29% off; the curve summed over ranks 1-1000 was 2.1x the public US iOS market (fails). Not used: no compliant grossing source |
 
-The live check was one `pulse radar run --max-requests 75 --no-llm` on 14 Nov 2026 against the
-real stores, with a scratch config (10 storefronts, top free and top grossing Games only) and a
-copy of the radar's raw tables of 13-14 Nov: 75 requests (68 Apple, 7 Play), 2,000 chart
-rows, a watched game looked up in 4 storefronts where it is not charted, 700 revenue bands in
-7 countries, no download band. The calibration panel read no page in that run: the run cap
-was reached first, and packages already read that day took panel slots (fixed afterwards and
-covered by a test, not re-run live).
+Live checks (real network, scratch configs, outputs kept local): on 14 Nov 2026 one run on the
+legacy RSS (`--max-requests 75`, before the robots finding: 68 Apple and 7 Play requests) and,
+after the switch, one on the apps.apple.com pages (`--max-requests 45`, 4 storefronts, the
+default lists, empty warehouse): 17 apps.apple.com requests (robots.txt and 16 chart pages,
+one per storefront and genre), 21 Lookups, 7 Play requests; 1,600 chart rows (16 lists of 100,
+every name filled from the Lookup), the top-grossing list skipped with a note, a watched game
+looked up where it is not charted, 20 breakout/watch candidates, no estimate band (no Play
+history). The panel's selection fix and the grossing-model gate were applied after that run
+and re-computed on its warehouse without new requests.
 
 MAPE here is the median |middle - actual| / actual of held-out cases; "inside" is the share of
 held-out cases inside the band (nominal 80%). The game page and the digest show the same
@@ -310,8 +329,9 @@ recovers a known curve with honest bands; they are not a claim about real games.
 
 Known limits: realInstalls is an undocumented field and may change meaning; the iOS
 conversion and every revenue step rely on public figures from different years and sources;
-grossing anchors are company-level disclosures for a quarter, compared with ranks seen in
-November; the iPhone list is ranked by iPhone revenue while App Store revenue includes iPad.
+revenue per download is a market-wide ratio applied to one game, with a stated, unmeasured
+spread; the apps.apple.com page is undocumented and its layout may change (the parser fails
+loudly: `ChartPageError`); its ranks 26-200 are ids only until the Lookup names them.
 
 ## Game history and the watchlist
 
@@ -346,7 +366,8 @@ radar:
     - {chart: topfreeapplications, genre: "7015"}
     - {chart: topgrossingapplications, genre: "6014"}
   publishers: [{id: "1743349083", name: ABI Global}]
-  apple: {spacing_s: 3, daily_budget: 120, lookup_batch: 100}
+  apple: {chart_source: web, spacing_s: 3, daily_budget: 120, web_daily_budget: 60,
+          lookup_batch: 100}   # chart_source rss: only with --replay of recorded fixtures
   play: {country: us, lang: en, spacing_s: 3, daily_budget: 200, map_file: play_map.yaml,
          watch: [com.example.package]}
   estimates:                   # defaults shown; `enabled: false` keeps only the watchlist

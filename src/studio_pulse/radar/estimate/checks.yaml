@@ -50,7 +50,7 @@ checks:
     type: accepted_values
     table: raw_mr_est_game
     column: kind
-    values: [android_installs_ww, ios_downloads_ww, ios_revenue]
+    values: [android_installs_ww, ios_downloads_ww, revenue_ww, ios_revenue]
     severity: error
 
   - name: radar_est_only_calibrated_lists
@@ -59,7 +59,7 @@ checks:
     description: A download band is only given for a list whose curve has enough games (status ok).
     sql: >-
       SELECT g.snapshot_date, g.app_id, g.list_key FROM raw_mr_est_game AS g
-      WHERE g.kind IN ('android_installs_ww', 'ios_downloads_ww') AND NOT EXISTS (
+      WHERE g.kind IN ('android_installs_ww', 'ios_downloads_ww', 'revenue_ww') AND NOT EXISTS (
         SELECT 1 FROM raw_mr_est_fit AS f WHERE f.computed_on = g.snapshot_date
           AND f.kind = 'downloads' AND f.list_key = g.list_key AND f.status = 'ok')
 

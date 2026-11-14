@@ -86,11 +86,12 @@ question box, no polling) with an invented market-radar day; Turkish under
   rule-based breakout score, tests weekly mechanic share shifts, classifies
   games from their store text with an LLM whose every claim must quote that
   text, and writes a Turkish and English digest in which every number is
-  labelled observed, store-reported or estimate (a range). Rank-based download
-  bands are calibrated on the studio's own Google Play reads and revenue bands
-  on public company disclosures, each with a published backtest; a game page
-  shows its rank, version and rating history and a watchlist keeps games
-  looked up daily. It runs inside
+  labelled observed, store-reported or estimate (a range). Apple charts come
+  from the App Store web pages (robots-allowed). Rank-based download bands are
+  calibrated on the studio's own Google Play reads, revenue bands follow from
+  them and public revenue-per-download benchmarks (no compliant top-grossing
+  source exists); a game page shows its rank, version and rating history and a
+  watchlist keeps games looked up daily. It runs inside
   `pulse run`, shows on a local `pulse serve` page and feeds
   [creative-forge](https://github.com/emirhann-akca/creative-forge)'s idea
   library through `market_trends.yaml`. Store data never goes to the public demo.

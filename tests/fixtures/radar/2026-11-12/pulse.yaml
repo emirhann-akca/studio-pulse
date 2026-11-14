@@ -14,6 +14,9 @@ radar:
     - {chart: newfreeapplications, genre: "6014", limit: 25, countries: [us]}
   publishers:
     - {id: "1743349083", name: ABI Global}
+  # Recorded legacy RSS responses: the live radar reads apps.apple.com chart pages instead
+  # (itunes.apple.com/robots.txt disallows /*/rss/*); rss is accepted only in a replay.
+  apple: {chart_source: rss}
   play:
     country: us
     map_file: play_map.yaml

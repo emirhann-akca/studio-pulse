@@ -1,5 +1,9 @@
 # Top-grossing rank -> daily iOS revenue (radar/estimate/revenue.py, docs/RADAR.md
-# "Market estimates"). Public figures only: company filings and press releases (anchors),
+# "Market estimates"). INACTIVE BY DEFAULT: no compliant source publishes a top-grossing rank
+# (apps.apple.com has no grossing chart; itunes.apple.com/robots.txt disallows the legacy RSS,
+# found 14 Nov 2026). The US anchor ranks below were read from that legacy RSS on 13-14 Nov
+# 2026, before the finding; re-observe them in a compliant grossing source before relying on
+# this model. The default revenue estimate is revenue_per_download.yaml (rpd.py). Public figures only: company filings and press releases (anchors),
 # published rank-sales research (slope), trade-body / analytics-firm market sizes (country
 # scale). Every figure was read on the cited page on the retrieval date. Anything not
 # disclosed is an explicit range marked `assumption`; the bands carry all of them.
@@ -42,7 +46,7 @@ anchors:
     role: calibrate
     country: us
     ranks: {"2026-11-13": 3, "2026-11-14": 4}
-    rank_basis: studio-pulse radar, Apple legacy RSS US Top Grossing Games (public chart)
+    rank_basis: studio-pulse radar, Apple legacy RSS US Top Grossing Games (robots-disallowed; see header)
     amount: 1697.0e6
     currency: USD
     metric: bookings, worldwide, all platforms
@@ -63,7 +67,7 @@ anchors:
     role: calibrate
     country: us
     ranks: {"2026-11-13": 35, "2026-11-14": 32}
-    rank_basis: studio-pulse radar, Apple legacy RSS US Top Grossing Games (public chart)
+    rank_basis: studio-pulse radar, Apple legacy RSS US Top Grossing Games (robots-disallowed; see header)
     amount: 111.2e6
     currency: USD
     metric: revenue, worldwide, all channels (Playtika, SuperPlay studio)
@@ -83,7 +87,7 @@ anchors:
     role: calibrate
     country: us
     ranks: {"2026-11-13": 72, "2026-11-14": 71}
-    rank_basis: studio-pulse radar, Apple legacy RSS US Top Grossing Games (public chart)
+    rank_basis: studio-pulse radar, Apple legacy RSS US Top Grossing Games (robots-disallowed; see header)
     amount: 133.0e6
     currency: USD
     metric: revenue, worldwide, all channels (Playtika)

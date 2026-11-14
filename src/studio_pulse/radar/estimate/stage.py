@@ -17,7 +17,7 @@ import duckdb
 
 from ... import runner
 from .. import digest, store
-from . import downloads, revenue
+from . import downloads, revenue, rpd
 from .settings import EstimateSettings
 
 KINDS = {
@@ -26,6 +26,10 @@ KINDS = {
         "en": "Android installs/day (worldwide)",
     },
     "ios_downloads_ww": {"tr": "iOS indirme/gün (dünya)", "en": "iOS downloads/day (worldwide)"},
+    "revenue_ww": {
+        "tr": "Hasılat/gün (dünya, USD, satın alma + reklam)",
+        "en": "Revenue/day (worldwide, USD, purchases + ads)",
+    },
     "ios_revenue": {"tr": "iOS hasılat/gün (ülke, USD)", "en": "iOS revenue/day (country, USD)"},
 }
 
@@ -169,12 +173,21 @@ def compute(
                     }
                 )
     split = downloads.load_platform_split()
-    games = downloads.game_bands(con, day, curves, split, es, rng)
+    rpd_doc = rpd.load()
+    games = downloads.game_bands(
+        con, day, curves, split, es, rng, revenue=(rpd_doc, rpd.profiles(con, rpd_doc))
+    )
     # -- revenue
     doc = revenue.load_anchors()
     anchors = doc["anchors"]
     ranks = {a["id"]: revenue.anchor_ranks(con, a) for a in anchors}
-    model = revenue.build(doc, anchors, ranks, countries, es, rng)
+    # the grossing-rank model needs a compliant grossing list today (never the legacy RSS)
+    compliant_grossing = con.execute(
+        "SELECT COUNT(*) FROM stg_mr_rank_lists WHERE list_kind = ? AND all_games "
+        "AND source <> 'apple_rss' AND snapshot_date = ?",
+        [revenue.GROSSING, day],
+    ).fetchone()[0]
+    model = revenue.build(doc, anchors, ranks, countries, es, rng) if compliant_grossing else None
     grossing_list = dict(
         con.execute(
             "SELECT country, min(list_key) FROM stg_mr_rank_lists WHERE list_kind = ? "
@@ -206,7 +219,13 @@ def compute(
                 "rank_min": None,
                 "rank_max": None,
                 "method": "public anchors x rank^-b x country market size (revenue_anchors.yaml)",
-                "note": None if ok else "no public market size for this country",
+                "note": None
+                if ok
+                else (
+                    "no public market size for this country"
+                    if model is not None
+                    else "no compliant top-grossing list (revenue comes from downloads)"
+                ),
             }
         )
     if model is not None:
@@ -290,7 +309,19 @@ def add_facts(
         for r in rows
         if r["kind"] == "ios_revenue" and r["rank"] <= 3
     ]
-    facts["estimates"] = {"grossing_top": top}
+    # revenue from downloads: one row per game (its narrowest band), highest middles first
+    best: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        if r["kind"] != "revenue_ww":
+            continue
+        old = best.get(r["app_id"])
+        if old is None or r["high"] / r["low"] < old["high"] / old["low"]:
+            best[r["app_id"]] = r
+    rev_top = [
+        {"app_id": r["app_id"], "name": r["name"], "band": _est(r)}
+        for r in sorted(best.values(), key=lambda r: -r["mid"])[:10]
+    ]
+    facts["estimates"] = {"grossing_top": top, "revenue_top": rev_top}
     facts.setdefault("meta", {})["estimates"] = summary
     problems = digest.check_labels(facts)
     if problems:
@@ -302,15 +333,21 @@ T = {
         "title": "Tahminler (TAHMİN)",
         "intro": (
             "Her bant %{pct} aralıktır (alt-üst), ortası ayrıca yazılır; dayanağı yanındadır. "
-            "İndirme eğrileri stüdyonun kendi Play sayaç pencerelerinden, hasılat eğrisi kamuya "
-            "açık şirket açıklamalarından kalibre edilir (docs/RADAR.md, 'Ne kadar doğru?')."
+            "İndirme eğrileri stüdyonun kendi Play sayaç pencerelerinden kalibre edilir; hasılat "
+            "indirme bandı × türün indirme başına geliri (kamu kaynakları) ile hesaplanır "
+            "(docs/RADAR.md, 'How accurate is this')."
         ),
         "dl_status": "İndirme eğrileri: {ok}/{total} liste hazır.",
         "dl_none": "Hiçbir liste için yeterli Play sayaç penceresi yok (kullanılabilir 7+ günlük pencere: {w}); indirme tahmini gösterilmiyor.",
         "insufficient": "yetersiz veri",
         "stale": "Play sayacı: {pairs} ardışık okumanın {stale} tanesinde kurulum sayısı değişmedi, puan sayısı arttı (sayaç yenilenmemiş).",
-        "rev": "Hasılat (iOS, ülke içi, USD/gün), her ülkede en çok hasılat yapan ilk 3",
-        "rev_none": "Hasılat tahmini yok ({why}).",
+        "rev": "Hasılat (dünya, USD/gün: indirme × indirme başına gelir + reklam), en yüksek 10",
+        "rev_none": "Hasılat tahmini yok: indirme bandı olmayan oyuna hasılat bandı verilmez.",
+        "rev_note": (
+            "Uyumlu bir hasılat sıralaması kaynağı yok (apps.apple.com'da hasılat listesi yok, "
+            "eski iTunes RSS robots.txt ile yasak); hasılat sıradan değil indirmeden tahmin edilir."
+        ),
+        "gross": "Hasılat sıralamasından (yalnızca uyumlu bir kaynak varsa), ülke başına ilk 3",
         "acc": "Doğruluk (örneklem dışı)",
         "items": "Bugünkü adaylar için bantlar",
         "no_source": "kamu kaynağı yok",
@@ -319,15 +356,21 @@ T = {
         "title": "Estimates (ESTIMATE)",
         "intro": (
             "Every band is a {pct}% interval (low-high) with its middle; its basis is next to "
-            "it. Download curves are calibrated on the studio's own Play counter windows, the "
-            "revenue curve on public company disclosures (docs/RADAR.md, 'How accurate is this')."
+            "it. Download curves are calibrated on the studio's own Play counter windows; revenue "
+            "is the download band x the genre's public revenue per download "
+            "(docs/RADAR.md, 'How accurate is this')."
         ),
         "dl_status": "Download curves: {ok}/{total} lists ready.",
         "dl_none": "No list has enough Play counter windows (usable windows of 7+ days: {w}); no download estimate is shown.",
         "insufficient": "insufficient data",
         "stale": "Play counter: in {stale} of {pairs} consecutive reads the install count did not change while the rating count grew (counter not refreshed).",
-        "rev": "Revenue (iOS, in-country, USD/day), top 3 grossing per country",
-        "rev_none": "No revenue estimate ({why}).",
+        "rev": "Revenue (worldwide, USD/day: downloads x revenue per download + ads), top 10",
+        "rev_none": "No revenue estimate: a game without a download band gets no revenue band.",
+        "rev_note": (
+            "No compliant top-grossing source exists (apps.apple.com has no grossing chart, the "
+            "legacy iTunes RSS is disallowed by robots.txt): revenue comes from downloads, not rank."
+        ),
+        "gross": "From a top-grossing rank (only with a compliant source), top 3 per country",
         "acc": "Accuracy (out of sample)",
         "items": "Bands for today's candidates",
         "no_source": "no public source",
@@ -360,10 +403,20 @@ def render_md(facts: dict[str, Any], lang: str) -> str:
     cp = meta.get("counter_pairs") or {}
     if cp.get("pairs"):
         L.append("- " + t["stale"].format(pairs=cp["pairs"], stale=cp["stale"]))
-    L += ["", f"### {t['rev']}", ""]
+    L += ["", f"### {t['rev']}", "", t["rev_note"], ""]
+    rev_top = (facts.get("estimates") or {}).get("revenue_top") or []
+    if not rev_top:
+        L.append(t["rev_none"])
+    for g in rev_top:
+        b = g["band"]
+        L.append(
+            f"- {g['name'] or g['app_id']}: "
+            f"{digest.fmt_compact(b['low'], lang)}–{digest.fmt_compact(b['high'], lang)} USD "
+            f"({lab}; {b['method']}; n={b['n']})"
+        )
     top = (facts.get("estimates") or {}).get("grossing_top") or []
-    if not top:
-        L.append(t["rev_none"].format(why=t["no_source"]))
+    if top:
+        L += ["", f"### {t['gross']}", ""]
     for g in top:
         b = g["band"]
         L.append(

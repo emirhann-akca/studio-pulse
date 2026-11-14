@@ -311,6 +311,7 @@ def test_a_transient_zero_rating_count_is_rechecked_and_the_maximum_kept(tmp_pat
             "radar": {
                 "countries": ["us"],
                 "charts": [{"chart": "topfreeapplications", "genre": "6014"}],
+                "apple": {"chart_source": "rss"},  # recorded legacy RSS (replay only)
                 "play": {"enabled": False},
                 "out_dir": "out",
             },

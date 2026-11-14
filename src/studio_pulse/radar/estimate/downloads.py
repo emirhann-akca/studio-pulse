@@ -388,7 +388,12 @@ def game_bands(
     split: dict[str, Any],
     es: EstimateSettings,
     rng: random.Random,
+    revenue: tuple[dict[str, Any], dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
+    """Android, iOS and (with `revenue` = (revenue_per_download.yaml, profiles)) revenue bands
+    for every game charted today in a calibrated list."""
+    from . import rpd
+
     rows = charted_today(con, day)
     free_countries: dict[str, set[str]] = {}
     for r in rows:
@@ -431,6 +436,26 @@ def game_bands(
         if rr:
             ios = [d + math.log(log_uniform(rng, *rr)) for d in draws]
             ilo, imid, ihi = band(ios, es)
+            if revenue is not None:
+                doc, profs = revenue
+                prof = profs.get(r["app_id"]) or rpd.GameProfile("all", "unknown", None)
+                sample = rpd.revenue_sampler(doc, prof)
+                rev = [
+                    rpd.safe_log(sample(rng, math.exp(a), math.exp(i)))
+                    for a, i in zip(draws, ios, strict=True)
+                ]
+                rlo, rmid, rhi = band(rev, es)
+                out.append(
+                    {
+                        **base,
+                        "kind": "revenue_ww",
+                        "low": rlo,
+                        "mid": rmid,
+                        "high": rhi,
+                        "unit": "USD/day",
+                        "method": method + " x " + rpd.method_text(prof),
+                    }
+                )
             out.append(
                 {
                     **base,

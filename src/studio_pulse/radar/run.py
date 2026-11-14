@@ -25,7 +25,7 @@ from .. import runner, warehouse
 from ..config import Config, ConfigError
 from ..llm import ImagePart, LLMClient, client_from_settings
 from ..llm import settings as llm_settings
-from . import apple, classify, digest, feed, play, store
+from . import apple, charts_web, classify, digest, feed, play, store
 from .estimate import collect as est_collect
 from .estimate import settings as est_settings
 from .estimate import stage as est_stage
@@ -130,16 +130,27 @@ def run_radar(
             day,
             session=session,
             run_id=run_id,
-            budgets={"itunes.apple.com": s.apple_budget, "play.google.com": s.play_budget},
-            spacing={"itunes.apple.com": s.apple_spacing_s, "play.google.com": s.play_spacing_s},
+            budgets={
+                "itunes.apple.com": s.apple_budget,
+                "play.google.com": s.play_budget,
+                charts_web.HOST: s.apple_web_budget,
+            },
+            spacing={
+                "itunes.apple.com": s.apple_spacing_s,
+                "play.google.com": s.play_spacing_s,
+                charts_web.HOST: max(3.0, s.apple_spacing_s),
+            },
             max_total=max_requests,
             cache_dir=cache_dir,
             sleep=sleep,
             clock=clock,
             log=log,
         )
+        # apps.apple.com chart pages are robots-checked like Play (added to the fetcher's hosts)
+        f.robots_hosts = tuple(dict.fromkeys((*f.robots_hosts, charts_web.HOST)))
         _charts(con, f, s, day, res, log)
         _lookups(con, f, s, day, res, log)
+        charts_web.fill_from_lookup(con, day)
         _publishers(con, f, s, day, res, log)
         est_collect.lookup_watched(con, f, s, day, res, log)
         _settle_ratings(con, f, s, day, res, log)
@@ -300,6 +311,17 @@ def _stop(exc: Exception, res: RadarResult, what: str, log: Callable[[str], None
 
 
 def _charts(con, f: Fetcher, s: RadarSettings, day, res: RadarResult, log) -> None:
+    if s.apple_chart_source == "web":
+        charts_web.stage(con, f, s, day, res, log)
+        return
+    from .replay import RadarReplaySession
+
+    if not isinstance(f.session, RadarReplaySession):
+        # itunes.apple.com/robots.txt disallows /*/rss/* for every user agent
+        raise ConfigError(
+            "radar.apple.chart_source: rss is only for replaying recorded responses "
+            "(--replay); the live radar reads apps.apple.com chart pages (chart_source: web)"
+        )
     n = 0
     for cc in s.countries:
         for spec in s.charts_for(cc):

@@ -87,7 +87,7 @@ T = {
     "tr": {
         "title": "Pazar Radarı",
         "intro": (
-            "Kaynaklar: Apple eski RSS listeleri ({lists} liste, {countries}), iTunes "
+            "Kaynaklar: Apple listeleri ({lists} liste, {countries}; apps.apple.com), iTunes "
             "Lookup ve Google Play ayrıntı sayfaları (yalnızca robots.txt'in izin verdiği "
             "yol). Etiketler: GÖZLEM = mağaza listesinden ya da Lookup'tan okunan değer; "
             "MAĞAZA VERİSİ = Play sayfa alanı (belgelenmemiş); TAHMİN = aralıklı tahmin. "
@@ -164,7 +164,7 @@ T = {
     "en": {
         "title": "Market Radar",
         "intro": (
-            "Sources: Apple legacy RSS charts ({lists} lists, {countries}), iTunes Lookup "
+            "Sources: Apple charts ({lists} lists, {countries}; apps.apple.com), iTunes Lookup "
             "and Google Play details pages (only the path robots.txt allows). Labels: "
             "OBSERVED = read from a chart or Lookup; STORE-REPORTED = a Play page field "
             "(undocumented); ESTIMATE = a range estimate. Rank-to-downloads and revenue "

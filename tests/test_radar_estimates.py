@@ -20,7 +20,7 @@ from studio_pulse import cli, warehouse
 from studio_pulse.config import ConfigError, config_from_dict
 from studio_pulse.radar import digest, store
 from studio_pulse.radar import run as radar_run
-from studio_pulse.radar.estimate import collect, downloads, plan, revenue, stage, stats
+from studio_pulse.radar.estimate import collect, downloads, plan, revenue, rpd, stage, stats
 from studio_pulse.radar.estimate.settings import EstimateSettings, from_raw
 from studio_pulse.radar.http import Fetcher
 from studio_pulse.radar.replay import RadarReplaySession
@@ -196,6 +196,42 @@ def test_revenue_bands_fall_with_rank_and_unknown_markets_get_none():
     assert revenue.build(doc, one, ranks, ["us"], es, random.Random(1)) is None
 
 
+def test_revenue_per_download_yaml_and_genres():
+    doc = rpd.load()
+    for key, src in doc["sources"].items():
+        assert src["url"].startswith(("https://", "http://")), key
+    assert doc["genre_rpd_net"]["source"] in doc["sources"]
+    assert doc["mechanic_rpd_net"]["source"] in doc["sources"]
+    assert doc["ad_arpu_d90"]["source"] in doc["sources"]
+    # the platform split reproduces the market: 6.73 / 1.62 and 0.71 / 1.62
+    assert doc["platform_factor"]["ios"] == pytest.approx(6.73 / 1.62, rel=0.01)
+    assert doc["platform_factor"]["android"] == pytest.approx(0.71 / 1.62, rel=0.02)
+    assert rpd.genre_of(doc, ["Puzzle", "Casual"], "match-3").genre == "match-3"
+    assert rpd.genre_of(doc, ["Casual", "Puzzle"], None).genre == "puzzle"
+    assert rpd.genre_of(doc, ["Role Playing"], "word").genre == "rpg"
+    assert rpd.genre_of(doc, ["Education"], None).basis == "unknown"
+
+
+def test_revenue_from_downloads_weighs_ios_and_ads():
+    doc = rpd.load()
+    rng = random.Random(1)
+
+    def mid(prof, android, ios):
+        f = rpd.revenue_sampler(doc, prof)
+        return stats.quantile([f(rng, android, ios) for _ in range(3000)], 0.5)
+
+    puzzle_no_ads = rpd.GameProfile("puzzle", "apple:Puzzle", False)
+    a = mid(puzzle_no_ads, 10_000, 0)
+    i = mid(puzzle_no_ads, 0, 10_000)
+    assert i / a == pytest.approx(4.15 / 0.44, rel=0.15)  # an iOS download earns ~9x more
+    # puzzle: 0.79 net x ~1.3 gross x 0.44 Android ~ $0.45 per Android download
+    assert 2_000 < a < 9_000
+    with_ads = mid(rpd.GameProfile("puzzle", "apple:Puzzle", True), 10_000, 0)
+    assert with_ads > a + 3_000  # D90 casual ad ARPU $0.55 to twice that per install
+    rpg = mid(rpd.GameProfile("rpg", "apple:Role Playing", False), 10_000, 0)
+    assert rpg > 5 * a
+
+
 def test_revenue_validation_leaves_anchors_out():
     doc = revenue.load_anchors()
     ranks = {a["id"]: revenue.anchor_ranks(None, a) for a in doc["anchors"]}
@@ -232,6 +268,7 @@ def test_synthetic_world_calibrates_backtests_and_bands(world):
         assert n_ >= 20 and 0.6 <= cov <= 0.97 and mape < 0.8
     kinds = dict(con.execute("SELECT kind, COUNT(*) FROM raw_mr_est_game GROUP BY 1").fetchall())
     assert kinds["android_installs_ww"] > 50 and kinds["ios_downloads_ww"] > 50
+    assert kinds["revenue_ww"] == kinds["ios_downloads_ww"]  # revenue from downloads, per band
     assert kinds["ios_revenue"] == 100  # the US grossing list; CA has no public market size
     rev = dict(
         con.execute("SELECT country, status FROM raw_mr_est_fit WHERE kind = 'revenue'").fetchall()
@@ -494,8 +531,11 @@ def test_default_countries_and_the_budget_check():
     s = from_config(cfg)
     assert s.countries == ["us", "gb", "de", "fr", "br", "tr", "jp", "kr"]  # unchanged default
     p = plan.request_plan(s, EstimateSettings())
-    assert p["within_budget"] and 50 <= p["apple_requests_per_day"] <= s.apple_budget == 120
-    assert p["play_requests_per_day"] <= 200 and p["per_country"][0]["rss"] == 5
+    assert p["within_budget"] and p["chart_source"] == "web"
+    assert p["apps_apple_com_pages_per_day"] == 32  # 8 storefronts x 4 genres, free+paid each
+    assert p["assumptions"]["lists_not_on_the_web"] == ["topgrossingapplications:6014"]
+    assert 20 <= p["itunes_requests_per_day"] <= s.apple_budget == 120  # Lookup only
+    assert p["play_requests_per_day"] <= 200 and p["per_country"][0]["chart_requests"] == 4
     ten = from_config(
         config_from_dict(
             {
@@ -509,10 +549,18 @@ def test_default_countries_and_the_budget_check():
     with pytest.raises(ConfigError, match="daily_budget"):
         from_config(
             config_from_dict(
-                {"apps": [{"id": "x"}], "radar": {"apple": {"daily_budget": 40}}},
+                {"apps": [{"id": "x"}], "radar": {"apple": {"daily_budget": 5}}},
                 base_dir=Path("."),
             )
         )
+    with pytest.raises(ConfigError, match="web_daily_budget"):
+        from_config(
+            config_from_dict(
+                {"apps": [{"id": "x"}], "radar": {"apple": {"web_daily_budget": 10}}},
+                base_dir=Path("."),
+            )
+        )
+    assert s.apple_chart_source == "web"
     with pytest.raises(ConfigError, match="storefront"):
         from_config(
             config_from_dict(
@@ -532,7 +580,7 @@ def test_plan_cli_prints_the_volume(tmp_path, capsys):
     cfgp.write_text(yaml.safe_dump({"apps": [{"id": "x"}], "radar": {}}), encoding="utf-8")
     assert cli.main(["radar", "plan", "-c", str(cfgp)]) == 0
     out = capsys.readouterr().out
-    assert '"apple_requests_per_day"' in out and '"within_budget": true' in out
+    assert '"apps_apple_com_pages_per_day"' in out and '"within_budget": true' in out
 
 
 # -- the game page ----------------------------------------------------------------------------------

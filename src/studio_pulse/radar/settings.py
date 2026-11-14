@@ -11,7 +11,8 @@ radar:
     - {chart: topgrossingapplications, genre: 6014}
   limit: 100
   publishers: [{id: "1743349083", name: ABI Global}]   # artistIds, checked weekly
-  apple: {spacing_s: 3, daily_budget: 120, lookup_batch: 100}
+  apple: {chart_source: web, spacing_s: 3, daily_budget: 120, web_daily_budget: 60,
+          lookup_batch: 100}     # web: apps.apple.com chart pages; rss: replay of fixtures only
   play: {enabled: true, country: us, lang: en, spacing_s: 3, daily_budget: 200,
          map_file: play_map.yaml, watch: [com.example.package]}
   llm: {max_apps: 25, screenshots: 0, narrate: true}   # provider: top-level `llm:` block
@@ -35,6 +36,7 @@ from ..config import Config, ConfigError
 # itunes.apple.com (docs/RADAR.md, "Countries and request volume"; `pulse radar plan`).
 DEFAULT_COUNTRIES = ["us", "gb", "de", "fr", "br", "tr", "jp", "kr"]
 _STOREFRONT = re.compile(r"^[a-z]{2}$")
+_WEB_CHARTS = ("topfreeapplications", "toppaidapplications")
 DEFAULT_CHARTS = [
     {"chart": "topfreeapplications", "genre": "6014"},
     {"chart": "topfreeapplications", "genre": "7012"},
@@ -91,6 +93,10 @@ class RadarSettings:
     publisher_every_days: int = 7
     apple_spacing_s: float = 3.0
     apple_budget: int = 120
+    # apps.apple.com chart pages (default) or the legacy iTunes RSS, which robots.txt disallows
+    # (`/*/rss/*`): `rss` is accepted only for a replay of recorded responses.
+    apple_chart_source: str = "web"
+    apple_web_budget: int = 60
     lookup_batch: int = 100
     play_enabled: bool = True
     play_country: str = "us"
@@ -154,6 +160,10 @@ def from_config(cfg: Config) -> RadarSettings:
     apple = raw.get("apple") or {}
     s.apple_spacing_s = float(apple.get("spacing_s", 3.0))
     s.apple_budget = int(apple.get("daily_budget", 120))
+    s.apple_chart_source = str(apple.get("chart_source", "web")).lower()
+    if s.apple_chart_source not in ("web", "rss"):
+        raise ConfigError("radar.apple.chart_source must be web or rss")
+    s.apple_web_budget = int(apple.get("web_daily_budget", 60))
     s.lookup_batch = int(apple.get("lookup_batch", 100))
     play = raw.get("play") or {}
     s.play_enabled = bool(play.get("enabled", True))
@@ -169,7 +179,18 @@ def from_config(cfg: Config) -> RadarSettings:
     s.llm_screenshots = max(0, min(6, int(llm.get("screenshots", 0))))
     s.narrate = bool(llm.get("narrate", False))
     s.trend_list = str(raw.get("trend_list", "topfreeapplications:6014"))
-    need = sum(len(s.charts_for(cc)) for cc in s.countries) + len(s.countries)
+    need = len(s.countries)  # one Lookup per storefront at least
+    if s.apple_chart_source == "rss":
+        need += sum(len(s.charts_for(cc)) for cc in s.countries)
+    else:
+        pages = sum(
+            len({c.genre for c in s.charts_for(cc) if c.chart in _WEB_CHARTS}) for cc in s.countries
+        )
+        if pages > s.apple_web_budget:
+            raise ConfigError(
+                f"radar: {pages} apps.apple.com chart pages a day exceed "
+                f"radar.apple.web_daily_budget ({s.apple_web_budget})"
+            )
     if need > s.apple_budget:
         raise ConfigError(
             f"radar: {len(s.countries)} countries need at least {need} Apple requests a day "

@@ -1,5 +1,10 @@
 """Top-grossing rank -> daily iOS revenue band per country, from public figures only.
 
+INACTIVE BY DEFAULT: no compliant source publishes a top-grossing rank (apps.apple.com has no
+grossing chart; the legacy iTunes RSS is disallowed by robots.txt, and its grossing ranks are
+never used here). The model runs only when a compliant grossing list reaches
+stg_mr_rank_input (raw_mr_rank_extra); the default revenue estimate is rpd.py.
+
     R_c(r) = A_us * m_c * r^(-b)                          (revenue_anchors.yaml has the sources)
 
 - b: uniform over the published range of rank-revenue exponents (Garg & Telang 2013 and
@@ -102,7 +107,8 @@ def anchor_ranks(con: duckdb.DuckDBPyConnection | None, a: dict[str, Any]) -> li
     try:
         rows = con.execute(
             "SELECT MIN(rank) FROM stg_mr_rank_input WHERE country = ? AND list_kind = ? "
-            "AND all_games AND list_contains(?::VARCHAR[], app_id) GROUP BY snapshot_date "
+            "AND all_games AND source <> 'apple_rss' AND list_contains(?::VARCHAR[], app_id) "
+            "GROUP BY snapshot_date "
             "ORDER BY snapshot_date",
             [a["country"], GROSSING, ids],
         ).fetchall()
@@ -276,7 +282,7 @@ def game_bands(
 ) -> list[dict[str, Any]]:
     rows = con.execute(
         "SELECT app_id, country, list_key, rank FROM stg_mr_rank_input WHERE snapshot_date = ? "
-        "AND list_kind = ? AND all_games ORDER BY country, rank",
+        "AND list_kind = ? AND all_games AND source <> 'apple_rss' ORDER BY country, rank",
         [day, GROSSING],
     ).fetchall()
     out = []
