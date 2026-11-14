@@ -6,7 +6,8 @@ Every market number in the facts carries a `basis`:
 - store_reported (MAĞAZA VERİSİ / STORE-REPORTED): Google Play page fields (install bucket,
   realInstalls, an undocumented page field) and anything computed from them;
 - estimate (TAHMİN / ESTIMATE): always a range with low, high, method and n. The renderer
-  refuses an estimate without them. No rank-to-downloads estimate is shown in v1.
+  refuses an estimate without them. Rank-based download and revenue bands come from
+  radar/estimate (stage.add_facts) and are checked by the same rule.
 Run metadata (requests, cost, checks) lives under `meta` and `quality` and is not market data.
 
 The LLM may only rephrase supplied facts: `verify_narration` extracts every number from its
@@ -43,6 +44,8 @@ COUNTRY = {
         "br": "Brezilya",
         "jp": "Japonya",
         "kr": "Güney Kore",
+        "ca": "Kanada",
+        "au": "Avustralya",
     },
     "en": {
         "us": "US",
@@ -53,6 +56,8 @@ COUNTRY = {
         "br": "Brazil",
         "jp": "Japan",
         "kr": "South Korea",
+        "ca": "Canada",
+        "au": "Australia",
     },
 }
 LIST = {
@@ -83,11 +88,12 @@ T = {
     "tr": {
         "title": "Pazar Radarı",
         "intro": (
-            "Kaynaklar: Apple eski RSS listeleri ({lists} liste, {countries}), iTunes "
+            "Kaynaklar: Apple listeleri ({lists} liste, {countries}; apps.apple.com), iTunes "
             "Lookup ve Google Play ayrıntı sayfaları (yalnızca robots.txt'in izin verdiği "
             "yol). Etiketler: GÖZLEM = mağaza listesinden ya da Lookup'tan okunan değer; "
             "MAĞAZA VERİSİ = Play sayfa alanı (belgelenmemiş); TAHMİN = aralıklı tahmin. "
-            "Sıradan indirme tahmini bu sürümde gösterilmez."
+            "Sıradan indirme ve hasılat tahminleri, kalibre edildikleri yerde, en sondaki "
+            "Tahminler bölümündedir."
         ),
         "summary": "Özet",
         "narr_note": "(LLM anlatımı; içindeki her sayı olgularla doğrulandı)",
@@ -159,11 +165,11 @@ T = {
     "en": {
         "title": "Market Radar",
         "intro": (
-            "Sources: Apple legacy RSS charts ({lists} lists, {countries}), iTunes Lookup "
+            "Sources: Apple charts ({lists} lists, {countries}; apps.apple.com), iTunes Lookup "
             "and Google Play details pages (only the path robots.txt allows). Labels: "
             "OBSERVED = read from a chart or Lookup; STORE-REPORTED = a Play page field "
-            "(undocumented); ESTIMATE = a range estimate. No rank-to-downloads estimate is "
-            "shown in this version."
+            "(undocumented); ESTIMATE = a range estimate. Rank-to-downloads and revenue "
+            "estimates, where calibrated, are in the Estimates section at the end."
         ),
         "summary": "Summary",
         "narr_note": "(LLM narration; every number in it was checked against the facts)",

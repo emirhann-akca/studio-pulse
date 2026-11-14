@@ -1,0 +1,109 @@
+# Revenue per download benchmarks: the radar's default revenue estimate (no compliant source
+# publishes a top-grossing rank: apps.apple.com has no grossing chart and the legacy iTunes RSS
+# is disallowed by robots.txt). docs/RADAR.md "Market estimates".
+#
+#   revenue/day (worldwide, gross, all stores) =
+#       Android installs/day x RPD_android(genre) + iOS downloads/day x RPD_ios(genre)
+#     + (Android + iOS installs/day) x ad revenue per install   (when the game shows ads)
+#
+# RPD = in-app purchase revenue of a period / downloads of the same period. Old players'
+# spending is on the revenue side, so it is a steady-state ratio, not what a new install pays.
+# Every figure was read on the cited page on 14 Nov 2026; "derived" = revenue / downloads, both
+# printed on the page. Everything not published is an `assumption` range.
+version: 1
+retrieved: "2026-11-14"
+
+# Genre RPD, worldwide 2025, App Store + Google Play, AFTER store fees (AppMagic).
+genre_rpd_net:
+  source: appmagic_2026
+  values:            # USD per download, derived from the PDF's revenue and download columns
+    rpg: 6.9           # $11.0B / 1.6B
+    strategy: 5.1      # $13.3B / 2.6B
+    casino: 4.1        # $6.9B / 1.7B
+    shooter: 1.10      # $3.3B / 3.0B
+    sports: 0.81       # $1.7B / 2.1B
+    puzzle: 0.79       # $8.7B / 11.0B
+    simulation: 0.44   # $4.8B / 11.0B
+    action: 0.18       # $1.3B / 7.1B
+    arcade: 0.10       # $753.5M / 7.8B
+    hypercasual: 0.15  # HC-Puzzle $480.7M / 3.2B (IAP only; ads are added separately)
+# Subgenres of casual games, H1 2025, worldwide, net IAP (AppMagic casual report, via GameDev
+# Reports): used when the radar's quote-checked or keyword profile names the mechanic.
+mechanic_rpd_net:
+  source: appmagic_casual_h1_2025
+  values:
+    match-3: 6.85      # $2.7B / 394M installs
+    merge: 2.96        # $850M / 287M
+    tile-match: 3.94   # "Match 3D" $193M / 49M
+net_to_gross: [1.18, 1.43]   # AppMagic excludes store fees (15-30%): x 1/0.85 .. 1/0.70
+all_games_rpd_gross: 1.62    # Sensor Tower 2025, worldwide, both stores (fallback genre)
+# Platform split of RPD, worldwide 2025 (Sensor Tower, gross): App Store $52.5B / 7.8B = 6.73,
+# Google Play $30B / 42.4B = 0.71, both stores 1.62. A genre's RPD is split in the same ratio.
+platform_factor: {ios: 4.15, android: 0.44}
+# A single game against its genre's average: an assumption (no public spread per genre).
+game_spread: [0.33, 3.0]
+game_spread_unknown_genre: [0.2, 5.0]
+
+# Ad revenue per install, 90 days after install, worldwide, Jan 2025-Mar 2026 (AppsFlyer).
+# Lifetime ad revenue is higher than D90: the band runs from D90 to twice D90 (assumption).
+ad_arpu_d90:
+  source: appsflyer_2026
+  values: {casual: 0.55, casino: 0.47, midcore: 0.40, hypercasual: 0.22}
+  lifetime_factor: [1.0, 2.0]
+genre_ad_group:   # radar genre -> AppsFlyer group
+  rpg: midcore
+  strategy: midcore
+  shooter: midcore
+  action: midcore
+  casino: casino
+  hypercasual: hypercasual
+  arcade: hypercasual
+  puzzle: casual
+  simulation: casual
+  sports: casual
+  all: casual
+
+# Apple genre names (Lookup `genres`) -> radar genre, first match wins.
+apple_genre:
+  Role Playing: rpg
+  Strategy: strategy
+  Casino: casino
+  Sports: sports
+  Racing: arcade
+  Puzzle: puzzle
+  Word: puzzle
+  Board: puzzle
+  Card: puzzle
+  Trivia: puzzle
+  Simulation: simulation
+  Action: action
+  Adventure: action
+  Arcade: arcade
+  Casual: puzzle
+
+sources:
+  appmagic_2026:
+    title: AppMagic, Mobile Market Landscape 2026 (all-games genre table, 2025)
+    url: https://appmagic.rocks/files/view/upload/Reports/EN_MobileMarkeLandscape2026.pdf
+    published: "2026-02 (data recorded 2026-01-15)"
+    note: "IAP revenue worldwide across the App Store and Google Play; estimates exclude platform fees"
+  appmagic_fees:
+    title: AppMagic, Essentials (revenue estimates exclude platform fees)
+    url: https://appmagic.rocks/blog/essentials-new
+    published: "2025-05-15"
+  appmagic_casual_h1_2025:
+    title: AppMagic casual games H1 2025, summarised by GameDev Reports
+    url: https://gamedevreports.substack.com/p/appmagic-mobile-casual-games-in-h125
+    published: "2025-09-04"
+    note: "Match-3: $2.7B revenue, 394M installs; Merge RPD rose to $4.7 (merge-2)"
+  sensortower_2026:
+    title: Sensor Tower, State of Gaming 2026 (IAP RPD $1.62; App Store $52.5B, Google Play $30B; 7.8B / 42.4B downloads)
+    url: https://sensortower.com/blog/state-of-gaming-2026
+    url_rpd: http://www.pocketgamer.biz/over-95000-mobile-games-were-downloaded-every-minute-in-2025/
+    url_revenue: https://gamedevreports.substack.com/p/sensor-tower-state-of-gaming-2026
+    published: "2026-02 / 2026-03-19"
+  appsflyer_2026:
+    title: AppsFlyer, State of App Monetization 2026 (D90 IAP and ad ARPU by genre)
+    url: https://www.appsflyer.com/resources/reports/app-marketing-monetization-report/
+    published: "2026-06-01"
+    note: "D90 IAP ARPU casino 2.43, midcore 2.13, casual 1.34; D90 ad ARPU casual 0.55, casino 0.47, midcore 0.40, hypercasual 0.22"

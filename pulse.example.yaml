@@ -104,10 +104,11 @@ apps:
 # Turkish and English and market_trends.yaml for creative-forge. Kept local (out_dir).
 # radar:
 #   enabled: true
-#   countries: [us, gb, de, fr, br, tr, jp, kr]
+#   countries: [us, gb, de, fr, br, tr, jp, kr]   # the default; add ca, au ...: `pulse radar plan`
 #   publishers: [{id: "1743349083", name: ABI Global}]
 #   play: {country: us, daily_budget: 200}
 #   llm: {max_apps: 25, narrate: false}
+#   estimates: {panel_size: 80, min_games: 10}   # rank -> downloads / revenue bands
 #   out_dir: local/radar
 #
 # Shared LLM provider (radar classification). Project ids and keys come from the environment:

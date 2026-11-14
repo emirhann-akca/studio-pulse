@@ -8,7 +8,9 @@ an English digest, a local page in `pulse serve` and `market_trends.yaml` for cr
 pulse radar run -c pulse.yaml                    # today's snapshot, models, digest
 pulse radar run --replay tests/fixtures/radar/2026-11-12   # recorded responses, no network
 pulse radar show -c pulse.yaml --lang en         # print the newest digest
-pulse serve -c pulse.yaml                        # /radar: "Pazar Radarı / Market Radar"
+pulse radar plan -c pulse.yaml                   # expected store requests per day
+pulse radar watch add 6811006356 -c pulse.yaml   # look this game up daily (also: remove, list)
+pulse serve -c pulse.yaml                        # /radar and /radar/oyun/<id>: game page
 ```
 
 With `radar.enabled: true` the radar also runs inside every `pulse run`, so `pulse schedule
@@ -18,10 +20,11 @@ install` makes it daily; its data-quality checks are stored with the studio's ow
 
 | Source | What | Volume per day (8 countries x 5 lists) | Status |
 |---|---|---|---|
-| Apple legacy RSS `itunes.apple.com/{cc}/rss/{chart}/limit={<=100}/genre={id}/json` | top free / grossing lists per genre (6014 Games, 7012 Puzzle, 7003 Casual, 7015 Simulation ...) | 40 | undocumented; the new RSS v2 has no games list (its games endpoint answers 404), so the legacy one is the only Apple list with genres. `newfreeapplications` ignores `limit` and `genre`: extra rows and non-games are kept raw but not scored |
-| iTunes Lookup `itunes.apple.com/lookup?id=a,b,...&country=cc` | release date, rating count per storefront, description, genres | ~16 (100 ids per request) + rechecks | documented, ~20 calls/minute; answers come from Apple caches of different ages (see below) |
+| App Store chart pages `apps.apple.com/{cc}/iphone/charts/{genre}` (default, `radar.apple.chart_source: web`) | one page per storefront and genre holds Top Free and Top Paid Games: the first 25 apps in full, the ids of ranks 26-200 in order (`radar/charts_web.py`) | 32 (4 genres x 8; the default top-grossing list does not exist on the web) | robots.txt allows the chart pages (it lists chart sitemaps); the page's own continuation API (`/v1/*`) is disallowed and never called. No top-grossing and no new-games chart |
+| Apple legacy RSS `itunes.apple.com/{cc}/rss/{chart}/limit={<=100}/genre={id}/json` (`chart_source: rss`) | top free / grossing lists per genre | **replay only** | `itunes.apple.com/robots.txt` disallows `/*/rss/*` (found 14 Nov 2026): the radar refuses `rss` outside `--replay` of recorded fixtures. `newfreeapplications` ignores `limit` and `genre` |
+| iTunes Lookup `itunes.apple.com/lookup?id=a,b,...&country=cc` | release date, rating count per storefront, version and its date, description, genres | ~28 (100 ids per request) + rechecks (<= 2 per storefront) + 1 per storefront for the watchlist | documented, ~20 calls/minute; answers come from Apple caches of different ages (see below) |
 | Lookup `?id={artistId}&entity=software` | a watched publisher's whole catalogue | weekly | |
-| Google Play `play.google.com/store/apps/details?id=...` | install bucket, `realInstalls` (undocumented page field), Play tags, ads/IAP flags, description | <= 200 | robots.txt allows this path and nothing else the radar uses |
+| Google Play `play.google.com/store/apps/details?id=...` | install bucket, `realInstalls` (undocumented page field), Play tags, ads/IAP flags, description | <= 200: new-game candidates, watched games, the calibration panel (`estimates.panel_size`, 80) | robots.txt allows this path and nothing else the radar uses |
 
 Polite fetching (`radar/http.py`), enforced in code and tested:
 - robots.txt is read (RFC 9309: longest match, `*` and `$`) before the first Play request;
@@ -75,6 +78,14 @@ Raw (`radar/schema.sql`): `raw_mr_chart` (one row per day, country, list and ran
 | `fct_mr_app_tags` | app x claim | the profile used: newest LLM profile, else keyword profile; store-derived monetisation |
 | `fct_mr_mechanic_weekly` / `fct_mr_trend_weekly` | week x country x mechanic | chart share, the 4-week baseline, z and the trend flag |
 
+Market estimates and history (`radar/estimate/schema.sql`, `radar/estimate/models/`):
+`stg_mr_rank_input` / `stg_mr_rank_lists` (the estimates' only chart input: the RSS lists plus
+`raw_mr_rank_extra`), `raw_mr_watch` (watchlist), `raw_mr_est_window` (Play counter windows with status),
+`raw_mr_est_exposure` (a window's mean rank per list), `raw_mr_est_fit` (one curve per list and
+kind, status ok / insufficient / no_source), `raw_mr_est_backtest` (out-of-sample accuracy),
+`raw_mr_est_game` (the day's bands per game), `stg_mr_play_counter` (day x package: refreshed
+or stale counter) and `fct_mr_version_timeline` (app x store x storefront x version).
+
 ## The breakout score
 
 Notation: rank r in a list of length L (r̃ = L+1 when observed but not listed), day t.
@@ -123,9 +134,10 @@ distinct apps. Until there are 5 weeks of snapshots the digest shows the current
 | `store_reported` | MAĞAZA VERİSİ | STORE-REPORTED | Play page fields (bucket, `realInstalls`) and what is computed from them, including a score whose velocity came from Play |
 | `estimate` | TAHMİN | ESTIMATE | always `low`, `high`, `method`, `n`; the renderer refuses an estimate without them |
 
-The only estimate in v1: iOS daily installs ≈ rating velocity ÷ Play ratings-per-install, as
-the range of that ratio over the day's Play pages (n of them, at least 3). No rank-to-downloads
-estimate is shown. `digest.check_labels` fails the run if a market number lacks a basis.
+Estimates: iOS daily installs ≈ rating velocity ÷ Play ratings-per-install, as the range of
+that ratio over the day's Play pages (n of them, at least 3), and the rank-based download and
+revenue bands of "Market estimates" below. `digest.check_labels` fails the run if a market
+number lacks a basis or an estimate lacks its range, method or n.
 
 ## Classification with grounding
 
@@ -159,12 +171,194 @@ worst case (a model without a price is refused while a budget is set; prices in
 cost, cached, repaired), one repair request for invalid JSON, retries with backoff for 429/5xx
 and timeouts, and secrets redacted from errors, ledgers and caches.
 
+## Countries and request volume
+
+Default storefronts: `us, gb, de, fr, br, tr, jp, kr` (unchanged); any two-letter App Store
+storefront code can be added, for example `ca` and `au`. `pulse radar plan` prints the
+expected volume for a config and exits 1 if it does not fit the budgets; the config is refused
+outright when the lists plus one Lookup per country already exceed `radar.apple.daily_budget`.
+
+| Host | Default: 8 countries x 5 lists of 100 | With `ca`, `au` (10 x 5) | Budget | Spacing |
+|---|---|---|---|---|
+| apps.apple.com, chart pages (robots.txt checked first) | 32 (one page per genre gives its free and paid lists; no grossing list on the web) | 40 | 60 a day (`apple.web_daily_budget`) | >= 3 s |
+| itunes.apple.com, Lookup | ~28 (250-320 distinct apps per storefront, 100 ids a request) + up to 16 rechecks + 8 for the watchlist | ~35 + 20 + 10 | 120 a day (`apple.daily_budget`; raise it to ~150 for 10 countries with a watchlist) | >= 3 s |
+| play.google.com | robots.txt + new-game candidates (~50) + watched games + calibration panel (`estimates.panel_size`, 80): at most 200 | same | 200, hard cap (`play.daily_budget` above 200 is lowered to 200) | >= 3 s |
+
+At 3 s per request a full day takes about 10 minutes of wall time. The panel only uses Play
+budget the radar's own candidates left, and keeps `estimates.play_reserve` (10) for a re-run.
+
+Chart source. `itunes.apple.com/robots.txt` disallows `/*/rss/*` for every user agent (found
+14 Nov 2026; the Lookup path is not matched), so the radar reads Apple's charts from the App
+Store web pages, which robots.txt allows, and accepts the legacy RSS only to replay recorded
+fixtures. Apple's current feed (`rss.marketingtools.apple.com`) has no games or genre lists.
+The web pages have no top-grossing chart, so no revenue estimate depends on a grossing rank
+(below). The estimates read ranks only from `stg_mr_rank_input` (day, country, list,
+`list_kind` free / paid / grossing, `all_games`, rank, app, source), which is the radar's
+Apple lists plus `raw_mr_rank_extra`, a table any other chart source can fill
+(`tests/test_radar_estimates.py` calibrates from it with no Apple row at all).
+
+## Market estimates
+
+Every number below is labelled TAHMİN / ESTIMATE and carries `low`, `high` (an 80% band by
+default), its middle, the method and n; `digest.check_labels` refuses one without them. A
+list or country without enough data gets no number: the digest and the game page say
+"yetersiz veri / insufficient data" (downloads) or "kamu kaynağı yok / no public source"
+(revenue) instead. Code: `radar/estimate/`.
+
+### Downloads: rank -> installs per day, calibrated on our own Play reads
+
+**Ground truth.** Google Play's details page carries `realInstalls`, one worldwide counter per
+package. It is refreshed irregularly. Between the radar's reads of 13 and 14 Nov 2026 (29 hours
+apart) 18 of 30 packages kept exactly the same count, 13 of them while their Play rating count
+grew (one gained 644 ratings and 0 installs), and four of the 12 that changed moved by only
+26-87 installs, two of them while gaining 1,700-2,000 ratings. A day-over-day difference
+therefore measures the counter's refresh, not the installs, and is never used. Instead
+(`estimate/downloads.py`, `stg_mr_play_counter`, `raw_mr_est_window`):
+
+- a **window** runs between two observed refreshes (reads where the count changed), at least
+  `min_window_days` (7) and at most `max_window_days` (35) apart; its rate is the counter's
+  increase over the elapsed time (installs/day, worldwide, Android);
+- a window whose Play rating count grew by more than `max_ratings_per_install` (0.25) per new
+  install is `implausible` (a counter lagging its ratings) and is not used; a counter that went
+  down restarts the window;
+- the window's chart exposure is the geometric mean rank of the game in each top-free list
+  over the window's days (a day the list was observed but the game was not in it counts as
+  list length + 1); a list counts when the game was in it on at least half of those days.
+  Apple ids map to Play packages through the radar's verified mapping (`raw_mr_xref`), else
+  the same bundle id.
+
+To get windows across the whole rank range, the radar reads the Play pages of a
+**calibration panel** every day: up to `panel_size` charted games, round-robin over rank bands
+1-10, 11-25, 26-50, 51-100 of the top-free lists, games already in the panel first. Bundle ids
+that cannot be Android application ids (a `-`, a segment starting with a digit, an `ios`
+segment) are not tried.
+
+**Model.** Per top-free list (country x genre):
+`log(installs/day) = a - b log(mean rank)`, least squares, with a cluster bootstrap over games
+(400 replicates; one game's windows are not independent). The band is a prediction band: each
+replicate's curve plus one of its own residuals, so it carries the game-to-game scatter, not
+only the uncertainty of the curve. A list needs `min_games` (10) distinct games with windows
+and ranks spanning at least a factor of 2, else status `insufficient`.
+
+What the curve says: "games at this rank in this country's iPhone top-free list get this many
+Android installs a day **worldwide**" (Play publishes no per-country count, so no per-country
+download number is printed). iOS downloads are that times the iOS:Android download ratio of the
+countries where the game charts today (`estimate/ios_android.yaml`: StatCounter usage share
+per country, Oct 2026 and the 12-month mean, times download/usage factors 0.58-1.17 from the
+three places where both are published; Sensor Tower's store split of game downloads for JP
+and KR). The band uses the extremes, so a game charting in Turkey and the US gets a ratio of
+0.16-2.26: that conversion is public data our own reads cannot check, and the band says so.
+
+### Revenue: from downloads, not from a rank
+
+No compliant source publishes a top-grossing rank: apps.apple.com has no grossing chart and
+the legacy iTunes RSS is disallowed by robots.txt. So revenue is estimated from a game's
+download band (`estimate/rpd.py`, sources in `estimate/revenue_per_download.yaml`, each with
+URL and date):
+
+```
+revenue/day = Android installs/day x RPD_android(g) + iOS downloads/day x RPD_ios(g)
+            + (Android + iOS installs/day) x ad revenue per install      (if it shows ads)
+```
+
+- **RPD** (revenue per download = in-app purchase revenue / downloads of the same period) of
+  the game's genre g, worldwide 2025, both stores (AppMagic Mobile Market Landscape 2026):
+  RPG 6.9, strategy 5.1, casino 4.1, shooter 1.10, sports 0.81, puzzle 0.79, simulation 0.44,
+  action 0.18, arcade 0.10 USD, net of store fees, grossed up by 1/0.85-1/0.70; match-3 6.85,
+  merge 2.96 and tile-match ("Match 3D") 3.94 when the radar's profile names that mechanic
+  (AppMagic casual report H1 2025). The genre comes from the Lookup genres (first match:
+  Role Playing, Strategy, Casino, Sports, Racing, Puzzle, Word, Board, Card, Trivia, Simulation,
+  Action, Adventure, Arcade, Casual); none of them: the all-games $1.62 (Sensor Tower 2025).
+- **Store split**: like the whole market, an App Store download earns 4.15x and a Google Play
+  download 0.44x the two-store average (Sensor Tower 2025: $52.5B / 7.8B and $30B / 42.4B).
+- **One game vs its genre**: anywhere from a third to three times the genre average (five-fold
+  for an unknown genre). No public source gives that spread: it is a stated assumption.
+- **Ads**: AppsFlyer's D90 ad revenue per install (casual $0.55, casino $0.47, midcore $0.40,
+  hypercasual $0.22; Jan 2025-Mar 2026) to twice that for the lifetime, added when the Play page
+  says the game has ads, scaled by a uniform 0-1 when that is unknown, left out when it has none.
+
+RPD is a steady-state ratio (old players' spending is on the revenue side), not what a new
+install pays; the result is gross consumer spend plus ad revenue, worldwide, per day. A game
+without a download band gets no revenue band. Nothing of this could be checked against a
+game's real revenue yet: the download curves are not calibrated (below).
+
+The earlier grossing-rank model (`estimate/revenue.py`, anchors in `revenue_anchors.yaml`:
+Roblox, Playtika titles, Lineage M, with published rank-revenue exponents) stays in the code
+but is **inactive**: it runs only when a compliant grossing list reaches `stg_mr_rank_input`
+(`raw_mr_rank_extra`), never on the legacy RSS. Its US anchor ranks were read from the legacy
+RSS on 13-14 Nov 2026, before the robots finding, and must be re-observed in a compliant
+source before use.
+
+### Data-quality checks of the estimates
+
+`radar/estimate/checks.yaml`, run with the radar's own checks: a watchlist entry at most once,
+a usable window has a positive rate, every band has low <= middle <= high with basis, method
+and n, and download bands only for lists whose curve is `ok` (errors); watched games not read
+today, a list that lost its download curve since the previous computation, a curve whose
+held-out windows fell inside its band less than 60% of the time, a day where nine in ten Play
+counters were not refreshed (the field may have stopped updating), and a version date after its
+first sighting (warnings). Lists that were never calibrated are listed in the digest's
+Estimates section, not as a daily warning.
+
+## How accurate is this
+
+What ran where (14 Nov 2026):
+
+| Part | Data | Result |
+|---|---|---|
+| Download curves, live | the radar's own Play reads: 2 days (13-14 Nov), one 29-hour interval | **no curve**: 0 windows of 7+ days, every top-free list `insufficient`, so no download number and no revenue number is shown. With the panel (80 games a day) the first lists should reach 10 games after ~2-3 weeks of daily runs |
+| Download method, synthetic | `tests/radar_synth.py`: 140 invented games, 35 days, true slope 0.8, counters refreshed every 1-6 days, 12% frozen, 6% lagging (+20-90 installs per refresh while ratings grow) | 412 windows, 20 dropped as implausible. US list: leave-one-game-out MAPE 26%, 79% of held-out windows inside the 80% band (n=280); time split (fit on the first 70% of windows) MAPE 27%, 79% inside (n=84); slope recovered 0.77 (0.68-0.85). TR list (installs driven mostly by US ranks, so a flat curve): 37% / 80% and 39% / 81% |
+| Revenue from downloads | public RPD and ad-ARPU benchmarks | **not checked**: it needs download bands, and none exists yet; when they do, the disclosed anchors of `revenue_anchors.yaml` (Roblox, Playtika titles) are the first check to run |
+| Grossing-rank model (inactive) | ranks from the legacy RSS (13-14 Nov, before the robots finding) | computed once on 14 Nov before the switch: leave one US anchor out MAPE 27%, 3 of 3 inside; Lineage M held out (KR) inside, 29% off; the curve summed over ranks 1-1000 was 2.1x the public US iOS market (fails). Not used: no compliant grossing source |
+
+Live checks (real network, scratch configs, outputs kept local): on 14 Nov 2026 one run on the
+legacy RSS (`--max-requests 75`, before the robots finding: 68 Apple and 7 Play requests) and,
+after the switch, one on the apps.apple.com pages (`--max-requests 45`, 4 storefronts, the
+default lists, empty warehouse): 17 apps.apple.com requests (robots.txt and 16 chart pages,
+one per storefront and genre), 21 Lookups, 7 Play requests; 1,600 chart rows (16 lists of 100,
+every name filled from the Lookup), the top-grossing list skipped with a note, a watched game
+looked up where it is not charted, 20 breakout/watch candidates, no estimate band (no Play
+history). The panel's selection fix and the grossing-model gate were applied after that run
+and re-computed on its warehouse without new requests.
+
+MAPE here is the median |middle - actual| / actual of held-out cases; "inside" is the share of
+held-out cases inside the band (nominal 80%). The game page and the digest show the same
+numbers from the latest run (`raw_mr_est_backtest`, `data = live`); the synthetic numbers
+come from `pytest tests/test_radar_estimates.py` (seed 11) and only show that the method
+recovers a known curve with honest bands; they are not a claim about real games.
+
+Known limits: realInstalls is an undocumented field and may change meaning; the iOS
+conversion and every revenue step rely on public figures from different years and sources;
+revenue per download is a market-wide ratio applied to one game, with a stated, unmeasured
+spread; the apps.apple.com page is undocumented and its layout may change (the parser fails
+loudly: `ChartPageError`); its ranks 26-200 are ids only until the Lookup names them.
+
+## Game history and the watchlist
+
+Kept per game, daily: ranks in every watched list (`stg_mr_chart`), App Store rating count
+and velocity per storefront (`stg_mr_rating_daily`), the Play counter with refresh flags
+(`stg_mr_play_counter`), versions with the store's own date and Apple release notes
+(`fct_mr_version_timeline`, from Lookup `version` / `currentVersionReleaseDate` and Play
+`updated`), and the day's estimate bands (`raw_mr_est_game`).
+
+`pulse radar watch add|remove|list <apple id | play package | store URL>` keeps
+`raw_mr_watch`; a removed game stays as history. A watched Apple id is looked up in every
+configured storefront each day (one batched Lookup per country, rows with `source = 'watch'`)
+even when it is not charted; a watched package (or a watched Apple id with a known Play
+package) has its Play page read daily, ahead of the panel.
+
+`pulse serve` -> `/radar/oyun/<apple id | play package>` (linked from the radar table): rank
+timeline per country (one line per list, log scale, hover for date and rank), the day's bands
+with method, n, calibration status and out-of-sample accuracy, the version timeline, rating
+velocity and the Play counter with its usable windows. Turkish first (`?lang=en`). Like the
+rest of the radar it reads the local warehouse only and is never written to the public demo.
+
 ## Configuration
 
 ```yaml
 radar:
   enabled: true
-  countries: [us, gb, de, fr, br, tr, jp, kr]
+  countries: [us, gb, de, fr, br, tr, jp, kr]   # default; add ca, au ... (`pulse radar plan`)
   charts:                      # default: these five
     - {chart: topfreeapplications, genre: "6014"}
     - {chart: topfreeapplications, genre: "7012"}
@@ -172,9 +366,21 @@ radar:
     - {chart: topfreeapplications, genre: "7015"}
     - {chart: topgrossingapplications, genre: "6014"}
   publishers: [{id: "1743349083", name: ABI Global}]
-  apple: {spacing_s: 3, daily_budget: 120, lookup_batch: 100}
+  apple: {chart_source: web, spacing_s: 3, daily_budget: 120, web_daily_budget: 60,
+          lookup_batch: 100}   # chart_source rss: only with --replay of recorded fixtures
   play: {country: us, lang: en, spacing_s: 3, daily_budget: 200, map_file: play_map.yaml,
          watch: [com.example.package]}
+  estimates:                   # defaults shown; `enabled: false` keeps only the watchlist
+    enabled: true
+    min_games: 10              # games with Play windows a list needs for a download curve
+    min_window_days: 7
+    max_window_days: 35
+    max_ratings_per_install: 0.25
+    bootstrap: 400
+    draws: 2000                # Monte Carlo draws of the revenue band
+    band: [0.1, 0.9]
+    panel_size: 80             # charted games whose Play page is read daily
+    play_reserve: 10
   llm: {max_apps: 25, screenshots: 0, narrate: false}
   params: {breakout_min: 0.35}
   out_dir: local/radar

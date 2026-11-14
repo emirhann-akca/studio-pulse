@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}{{ view.name if view else key }} · {{ 'Pazar Radarı' if lang == 'tr' else 'Market Radar' }}{% endblock %}
+{% block body %}
+<p style="margin:0 0 10px"><a href="/radar">← {{ t.back }}</a></p>
+{% if not view or not view.found %}
+<section class="card"><div class="empty"><div class="ic">{{ icon('radar')|safe }}</div><p>{{ t.not_found }}</p></div></section>
+{% else %}
+<header class="page-head">
+  <h1>{{ view.name }}</h1>
+  {% if view.developer %}<span class="badge outline">{{ view.developer }}</span>{% endif %}
+  <p class="sub">{{ t.local }}
+    {% for a in view.apple_ids %} · <a href="https://apps.apple.com/app/id{{ a }}" rel="noopener noreferrer">App Store {{ a }}</a>{% endfor %}
+    {% for p in view.play_ids %} · <a href="https://play.google.com/store/apps/details?id={{ p }}" rel="noopener noreferrer">Play {{ p }}</a>{% endfor %}
+    · {% if view.watched %}<span class="badge good">{{ t.watch }}</span>{% else %}<small>{{ t.not_watched.format(k=view.key) }}</small>{% endif %}
+  </p>
+</header>
+
+<section class="card">
+  <h2>{{ t.est }} <small>({{ labels['estimate'] }})</small></h2>
+  <p><small>{{ t.unit_note.format(pct=band_pct) }}</small></p>
+  {% if view.estimates %}
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ t.kind }}</th><th>{{ t.country }} · {{ t.list }}</th><th>{{ t.rank }}</th><th>{{ t.band }}</th><th>{{ t.mid }}</th><th>{{ t.basis }}</th></tr></thead>
+    <tbody>
+    {% for e in view.estimates %}
+      <tr>
+        <td>{{ e.kind_name }}</td>
+        <td>{{ e.country|upper }} · {{ e.list_name }}</td>
+        <td>#{{ e.rank }} <small>({{ labels['observed'] }})</small></td>
+        <td><strong>{{ fc(e.low) }} – {{ fc(e.high) }}</strong> <small>{{ e.unit }} ({{ labels['estimate'] }})</small></td>
+        <td>{{ fc(e.mid) }}</td>
+        <td><small>{{ e.method }}; n={{ e.n }}</small></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p>{{ t.est_none }}</p>{% endif %}
+  {% if view.estimate_history|length > view.estimates|length %}
+  <details style="margin-top:10px"><summary>{{ t.history }}</summary>
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ t.date }}</th><th>{{ t.kind }}</th><th>{{ t.country }}</th><th>{{ t.rank }}</th><th>{{ t.band }}</th></tr></thead>
+    <tbody>
+    {% for h in view.estimate_history %}
+      <tr><td>{{ h.snapshot_date }}</td><td>{{ h.kind }}</td><td>{{ h.country|upper }}</td><td>#{{ h.rank }}</td><td>{{ fc(h.low) }} – {{ fc(h.high) }} <small>({{ labels['estimate'] }})</small></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div></details>
+  {% endif %}
+  {% if view.calibration %}
+  <h3 style="margin-top:14px">{{ t.calib }}</h3>
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ t.list }}</th><th>{{ t.status }}</th><th>{{ t.n }}</th><th>b</th></tr></thead>
+    <tbody>
+    {% for c in view.calibration %}
+      <tr>
+        <td>{{ c.list_name }} <small>({{ c.kind }})</small></td>
+        <td>{% if c.status == 'ok' %}<span class="badge good">{{ t.ok }}</span>{% elif c.status == 'no_source' %}<span class="badge warn">{{ t.no_source }}</span>{% else %}<span class="badge warn">{{ t.insufficient }}</span> <small>{{ c.note or '' }}</small>{% endif %}</td>
+        <td>{{ c.n_games }}{% if c.kind == 'downloads' %} / {{ c.min_games }}{% endif %}</td>
+        <td>{% if c.b is not none %}{{ fmt(c.b, 2) }} ({{ fmt(c.b_low, 2) }}–{{ fmt(c.b_high, 2) }}){% elif c.b_low is not none %}{{ fmt(c.b_low, 2) }}–{{ fmt(c.b_high, 2) }}{% else %}-{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+  {% if view.accuracy %}
+  <h3 style="margin-top:14px">{{ t.acc }}</h3>
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ t.list }}</th><th>{{ t.scheme }}</th><th>{{ t.n }}</th><th>MAPE</th><th>{{ t.coverage }}</th></tr></thead>
+    <tbody>
+    {% for a in view.accuracy %}
+      <tr><td>{{ a.kind }} · {{ a.list_key }} <small>({{ a.data }})</small></td><td>{{ a.scheme }}</td><td>{{ a.n }}</td>
+      <td>{% if a.mape is not none %}%{{ fmt(a.mape * 100) }}{% else %}-{% endif %}</td>
+      <td>{% if a.coverage is not none %}%{{ fmt(a.coverage * 100) }} / %{{ fmt(a.nominal * 100) }}{% else %}-{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+
+<section class="card" style="margin-top:14px">
+  <h2>{{ t.ranks }} <small>({{ labels['observed'] }})</small></h2>
+  {% if not view.charts %}<p>{{ t.ranks_none }}</p>{% else %}
+  <p><small>{{ t.rank_hint }}</small></p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:16px">
+  {% for c in view.charts %}
+    <figure style="margin:0">
+      <figcaption><strong>{{ c.name }}</strong></figcaption>
+      {{ c.svg|safe }}
+      <ul style="list-style:none;padding:0;margin:4px 0 0;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px">
+      {% for l in c.lists %}<li><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ l.color }};margin-right:4px;vertical-align:middle"></span>{{ l.name }} · #{{ l.last.rank }} ({{ l.last.snapshot_date }})</li>{% endfor %}
+      </ul>
+    </figure>
+  {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="card" style="margin-top:14px">
+  <h2>{{ t.versions }} <small>({{ labels['observed'] }})</small></h2>
+  {% if view.versions %}
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ t.version }}</th><th>{{ t.released }}</th><th>{{ t.first_seen }}</th><th></th></tr></thead>
+    <tbody>
+    {% for v in view.versions %}
+      <tr><td>{{ v.version }}</td><td>{{ v.version_date or '-' }}</td><td>{{ v.first_seen }}</td><td><small>{{ v.seen_in }}</small>{% if v.release_notes %}<br><small>{{ v.release_notes[:240] }}</small>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p>{{ t.versions_none }}</p>{% endif %}
+</section>
+
+<section class="card" style="margin-top:14px">
+  <h2>{{ t.ratings }} <small>({{ labels['observed'] }})</small></h2>
+  {% if view.ratings %}
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ t.date }}</th><th>{{ t.country }}</th><th>{{ t.count }}</th><th>{{ t.per_day }}</th></tr></thead>
+    <tbody>
+    {% for r in view.ratings %}
+      <tr><td>{{ r.snapshot_date }}</td><td>{{ r.country|upper }}</td><td>{{ fmt(r.rating_count) }}</td><td>{% if r.rv is not none %}{{ fmt(r.rv, 1) }} <small>({{ r.rv_method }})</small>{% else %}-{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<p>-</p>{% endif %}
+</section>
+
+<section class="card" style="margin-top:14px">
+  <h2>{{ t.play }} <small>({{ labels['store_reported'] }})</small></h2>
+  {% if view.counter %}
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ t.date }}</th><th>{{ t.installs }}</th><th>Play {{ t.count|lower }}</th><th>{{ t.refresh }}</th></tr></thead>
+    <tbody>
+    {% for c in view.counter %}
+      <tr><td>{{ c.snapshot_date }}</td><td>{{ fmt(c.real_installs) }}</td><td>{{ fmt(c.rating_count) }}</td>
+      <td>{% if c.prev_installs is none %}-{% elif c.refreshed %}{{ t.refreshed }}{% elif c.stale %}<span class="badge warn">{{ t.stale }}</span>{% else %}{{ t.same }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if view.windows %}
+  <h3 style="margin-top:14px">{{ t.windows }}</h3>
+  <ul>{% for w in view.windows %}<li>{{ w.t0.date() }} → {{ w.t1.date() }} ({{ fmt(w.days, 1) }} {{ 'gün' if lang == 'tr' else 'days' }}): {% if w.rate is not none %}{{ fmt(w.rate) }}/{{ 'gün' if lang == 'tr' else 'day' }}{% else %}-{% endif %} · {{ w.status }} <small>({{ labels['store_reported'] }})</small></li>{% endfor %}</ul>
+  {% endif %}
+  {% else %}<p>{{ t.play_none }}</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

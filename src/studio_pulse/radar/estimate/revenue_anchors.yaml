@@ -1,0 +1,167 @@
+# Top-grossing rank -> daily iOS revenue (radar/estimate/revenue.py, docs/RADAR.md
+# "Market estimates"). INACTIVE BY DEFAULT: no compliant source publishes a top-grossing rank
+# (apps.apple.com has no grossing chart; itunes.apple.com/robots.txt disallows the legacy RSS,
+# found 14 Nov 2026). The US anchor ranks below were read from that legacy RSS on 13-14 Nov
+# 2026, before the finding; re-observe them in a compliant grossing source before relying on
+# this model. The default revenue estimate is revenue_per_download.yaml (rpd.py). Public figures only: company filings and press releases (anchors),
+# published rank-sales research (slope), trade-body / analytics-firm market sizes (country
+# scale). Every figure was read on the cited page on the retrieval date. Anything not
+# disclosed is an explicit range marked `assumption`; the bands carry all of them.
+#
+# Model: revenue/day of the game at rank r in country c's iPhone Top Grossing Games list
+#   R_c(r) = A_us * m_c * r^(-b)
+#   b      ~ uniform(slope.low, slope.high)                       (research)
+#   A_us   = geometric mean over US anchors of daily_a * r_a^b      (anchors)
+#   m_c    = iOS game spend of c / iOS game spend of the US        (market_size)
+# plus a game-to-game spread (the anchors' scatter around the curve, floor `sigma_floor`).
+# Units: USD per day, gross consumer spend through the App Store.
+version: 1
+retrieved: "2026-11-14"
+list_kind: grossing   # all-games top-grossing lists of stg_mr_rank_input (Apple: genre 6014)
+currency: USD
+
+slope:
+  low: 0.60
+  high: 0.95
+  basis: >-
+    Garg & Telang (2013) fit 0.860 for iPhone top grossing (iPad 0.886) on 2011 data; a 2026
+    practitioner fit to US iPhone grossing uses 0.62-0.72 (non-peer-reviewed); book sales
+    rank studies imply ~0.83. The band spans them with a margin.
+  sources: [garg_telang_2013, apify_gazidev, chevalier_goolsbee_2003]
+sigma_floor: 0.5   # natural-log spread of games around the curve, at least (anchors are few)
+
+fx:
+  usd_per_eur_2025: 1.1293
+  usd_per_gbp_2025: 1.3184
+  krw_per_usd_2q26: 1500.58
+  basis: >-
+    ECB reference rates, monthly averages: 2025 mean of 12 months (USD/EUR 1.1293,
+    GBP/EUR 0.8566 -> USD/GBP 1.3184); Apr-Jun 2026 KRW/EUR 1745.55 / USD/EUR 1.1633.
+  source: ecb_exr
+
+anchors:
+  - id: roblox_q3_2026
+    name: Roblox
+    app_id: "431946152"
+    role: calibrate
+    country: us
+    ranks: {"2026-11-13": 3, "2026-11-14": 4}
+    rank_basis: studio-pulse radar, Apple legacy RSS US Top Grossing Games (robots-disallowed; see header)
+    amount: 1697.0e6
+    currency: USD
+    metric: bookings, worldwide, all platforms
+    period: {start: "2026-07-01", end: "2026-09-30"}
+    quote: "bookings were $1.7 billion, surpassing the high end of our guidance range"
+    sources: [roblox_q3_2026_letter, roblox_q3_2026_10q, roblox_fy2025_10k]
+    factors:
+      - {name: app_store_share, range: [0.26, 0.32],
+         basis: "FY2025 10-K: 29% of revenue from Robux sold through the Apple App Store (FY2024: 30%)"}
+      - {name: us_canada_share, range: [0.52, 0.62],
+         basis: "Q3 2026 10-Q: United States and Canada $895M, 57% of revenue (applied to App Store bookings: assumption)"}
+      - {name: us_of_us_canada, range: [0.85, 0.92], basis: assumption}
+    caveat: App Store revenue includes iPad and Mac; the chart is the iPhone list.
+
+  - id: disney_solitaire_q3_2026
+    name: Disney Solitaire
+    app_id: "6475757306"
+    role: calibrate
+    country: us
+    ranks: {"2026-11-13": 35, "2026-11-14": 32}
+    rank_basis: studio-pulse radar, Apple legacy RSS US Top Grossing Games (robots-disallowed; see header)
+    amount: 111.2e6
+    currency: USD
+    metric: revenue, worldwide, all channels (Playtika, SuperPlay studio)
+    period: {start: "2026-07-01", end: "2026-09-30"}
+    quote: "Disney Solitaire revenue of $111.2 million decreased (21.9)% sequentially"
+    sources: [playtika_q3_2026]
+    factors:
+      - {name: store_share, range: [0.45, 0.70],
+         basis: "Playtika Q3 2026: direct-to-consumer $275.1M of $673.8M revenue (59.2% elsewhere); per-title split not disclosed"}
+      - {name: app_store_of_store, range: [0.55, 0.75],
+         basis: "assumption; worldwide 2025 game IAP: App Store $52.5B vs Google Play $30B (63.6%, Sensor Tower)"}
+      - {name: us_share, range: [0.40, 0.75], basis: assumption (not disclosed)}
+
+  - id: bingo_blitz_q3_2026
+    name: Bingo Blitz
+    app_id: "529996768"
+    role: calibrate
+    country: us
+    ranks: {"2026-11-13": 72, "2026-11-14": 71}
+    rank_basis: studio-pulse radar, Apple legacy RSS US Top Grossing Games (robots-disallowed; see header)
+    amount: 133.0e6
+    currency: USD
+    metric: revenue, worldwide, all channels (Playtika)
+    period: {start: "2026-07-01", end: "2026-09-30"}
+    quote: "Bingo Blitz revenue of $133.0 million decreased (8.3)% sequentially"
+    sources: [playtika_q3_2026, playtika_fy2025_10k]
+    factors:
+      - {name: store_share, range: [0.35, 0.70],
+         basis: "Playtika Q3 2026: 59.2% of revenue outside its own payment channel; FY2025 10-K: 66.3% through Apple's and Google's billing; per-title split not disclosed"}
+      - {name: app_store_of_store, range: [0.55, 0.75],
+         basis: "assumption; worldwide 2025 game IAP App Store share 63.6% (Sensor Tower)"}
+      - {name: us_share, range: [0.40, 0.75], basis: assumption (not disclosed)}
+
+  - id: lineage_m_2q26
+    name: Lineage M
+    app_id: ["1474589366", "1128255542"]
+    role: validate
+    country: kr
+    ranks: {}   # read from the radar's own KR Top Grossing snapshots when they exist
+    rank_basis: studio-pulse radar snapshots of the KR Top Grossing Games list
+    amount: 117333.0e6
+    currency: KRW
+    metric: revenue, all regions (NCSOFT IR, mirrored)
+    period: {start: "2026-04-01", end: "2026-06-30"}
+    figure: "KRW 117,333 million in 2Q26 (1Q26: 112,805; 2Q25: 127,908)"
+    sources: [ncsoft_2q26]
+    factors:
+      - {name: korea_share, range: [0.48, 0.85],
+         basis: "NCSOFT 2Q26 revenue by region: Korea 48% (company); Lineage M is Korea-centred (upper end: assumption)"}
+      - {name: app_store_share_kr, range: [0.15, 0.30],
+         basis: "Sensor Tower: Android 73.6% (H1 2025) and 75% (H2 2025) of Korean game revenue; widened for an adult MMORPG (assumption)"}
+
+skipped:
+  - {name: "June's Journey (Playtika, Q3 2026 $76.6M)", why: "not in the US Top Grossing top 100 on 13-14 Nov 2026; country split not disclosed"}
+  - {name: "Garena / Free Fire (Q3 2026 bookings $890.0M)", why: "company-level; Free Fire's share and its iOS share not disclosed"}
+  - {name: "Supercell (FY2025 $3.01B)", why: "several games, no per-game split"}
+  - {name: "Royal Match, Monopoly GO!", why: "no company-disclosed revenue; public figures are analytics-firm estimates"}
+
+market_size:   # mobile game consumer spend per country, latest full year
+  us: {amount: 26.7e9, currency: USD, period: "2025", ios_share: [0.55, 0.75],
+       ios_basis: assumption (no public US store split found),
+       basis: "Sensor Tower via ESA: US mobile game spending reached $26.7 billion in 2025", source: esa_2025}
+  jp: {amount: [10.0e9, 11.0e9], currency: USD, period: "12 months to Jul 2026 (and to Jul 2025)",
+       ios_share: [0.50, 0.70], ios_basis: "Sensor Tower: iOS accounts for the majority of consumer spending",
+       basis: "Sensor Tower: over USD $10 billion (12 months to Jul 2026); $11B a year earlier", source: st_japan_2026}
+  kr: {amount: 5.2e9, currency: USD, period: "2025 (H1 ~$2.4B + H2 ~$2.8B)", ios_share: [0.25, 0.264],
+       ios_basis: "Sensor Tower: Android 73.6% (H1 2025) and 75% (H2 2025) of revenue",
+       basis: "Sensor Tower Korea half-year recaps 2025", source: st_korea_2025}
+  de: {amount: 2596.0e6, currency: EUR, period: "2025", ios_share: [0.40, 0.65], ios_basis: assumption,
+       basis: "game (German games industry association), YouGov/Sensor Tower: in-app purchases EUR 2,596M of EUR 2,671M", source: game_de_2026}
+  gb: {amount: 1.88e9, currency: GBP, period: "2025", ios_share: [0.50, 0.75], ios_basis: assumption,
+       basis: "ERA via PocketGamer.biz: mobile games revenue GBP 1.88bn (+8.8%)", source: era_2025}
+  fr: {amount: 1.792e9, currency: EUR, period: "2025", ios_share: [0.40, 0.65], ios_basis: assumption,
+       basis: "SELL: mobile ecosystem EUR 1.792bn in 2025 (+11%)", source: sell_2025}
+  tr: {amount: 347.0e6, currency: USD, period: "2025", ios_share: [0.25, 0.45], ios_basis: assumption,
+       gross_up: [1.0, 1.43], gross_basis: "AppMagic wording 'generating $347M for developers' suggests net of store fees",
+       basis: "AppMagic Turkiye Mobile Gaming Landscape 2026: mobile gaming revenue $347M (+6%)", source: appmagic_tr_2026}
+  # ca, au, br: no public country figure found on 14 Nov 2026 -> no revenue estimate there.
+
+sources:
+  roblox_q3_2026_letter: {title: "Roblox Q3 2026 shareholder letter (8-K ex. 99.1)", url: "https://www.sec.gov/Archives/edgar/data/0001315098/000162828026068235/ex991-q32026earningsshar.htm", published: "2026-10-29"}
+  roblox_q3_2026_10q: {title: "Roblox Form 10-Q, quarter ended 30 Sep 2026", url: "https://www.sec.gov/Archives/edgar/data/1315098/000162828026068253/rblx-20260930.htm", published: "2026-10-29"}
+  roblox_fy2025_10k: {title: "Roblox Form 10-K 2025", url: "https://www.sec.gov/Archives/edgar/data/1315098/000131509826000024/rblx-20251231.htm", published: "2026-02-11"}
+  playtika_q3_2026: {title: "Playtika Holding Corp. reports Q3 2026 financial results (GlobeNewswire copy)", url: "https://finviz.com/news/416606/playtika-holding-corp-reports-q3-2026-financial-results", published: "2026-11-05"}
+  playtika_fy2025_10k: {title: "Playtika Form 10-K 2025", url: "https://www.sec.gov/Archives/edgar/data/1828016/000182801626000010/playtika-20251231.htm", published: "2026-02-26"}
+  ncsoft_2q26: {title: "NCSOFT 2Q26 IR presentation (mirror)", url: "https://investgame.net/news/pdf/2026-08-11-2q26_pt_ncsoft_wp/", published: "2026-08-11"}
+  garg_telang_2013: {title: "Garg & Telang, Inferring App Demand from Publicly Available Data, MIS Quarterly 37(4), 2013", url: "https://aisel.aisnet.org/misq/vol37/iss4/14", note: "exponents read in the May 2012 working paper (SSRN 1924044): grossing iPhone 0.860, iPad 0.886; paid downloads 0.944; free downloads 0.616; Apple top-200 lists Apr-May 2011"}
+  chevalier_goolsbee_2003: {title: "Chevalier & Goolsbee, Measuring Prices and Price Competition Online (NBER w9085)", url: "https://www.nber.org/papers/w9085.pdf", note: "ln(rank) on ln(sales) theta = 1.2, i.e. sales ~ rank^-0.83 (books)"}
+  apify_gazidev: {title: "app-revenue-estimator (Apify, non-peer-reviewed)", url: "https://apify.com/gazidev/app-revenue-estimator", note: "US iPhone grossing exponents 0.62 / 0.68 / 0.72 fitted to third-party estimates; page undated, example run 2026-10-17"}
+  esa_2025: {title: "ESA: 2025 U.S. consumer spending on video games ($26.7B mobile, Sensor Tower)", url: "https://www.theesa.com/2025-u-s-consumer-spending-on-video-games-nears-pandemic-level-peak-at-60-7-billion-second-highest-on-record/", published: "2026-02-11"}
+  st_japan_2026: {title: "Sensor Tower, State of Japan Gaming 2026", url: "https://sensortower.com/blog/state-of-japan-gaming-2026", published: "2026-09"}
+  st_korea_2025: {title: "Sensor Tower, 1H 2025 and 2H 2025 mobile games recaps in Korea", url: "https://sensortower.com/ko/blog/2H2025-mobile-games-recap-in-Korea", url_h1: "https://sensortower.com/ko/blog/1H2025-mobile-games-recap-in-Korea", published: "2025-07 / 2026-01"}
+  game_de_2026: {title: "game: Mobile games in Germany 2026", url: "https://www.game.de/en/mobile-games-germany-2026/", published: "2026-07-06"}
+  era_2025: {title: "PocketGamer.biz: UK games spending hits GBP 5.4bn in 2025 (ERA)", url: "https://www.pocketgamer.biz/uk-games-spending-hits-54bn-in-2025-as-mobile-powers-strongest-growth-since-2020/", published: "2026-01-07"}
+  sell_2025: {title: "SELL: bilan du marche du jeu video 2025 (press release PDF)", url: "https://www.sell.fr/sites/default/files/espace-presse/cp_sell_-_bilan_marche_2025.pdf", published: "2026-03 (printed 26 mars 2025)"}
+  appmagic_tr_2026: {title: "AppMagic, Turkiye Mobile Gaming Landscape 2026", url: "https://appmagic.rocks/files/view/upload/Reports/Turkiye_Mobile_Gaming_Landscape_2026.pdf", published: "2026-04-01"}
+  ecb_exr: {title: "ECB reference exchange rates, monthly averages (data API)", url: "https://data-api.ecb.europa.eu/service/data/EXR/M.USD.EUR.SP00.A?startPeriod=2025-01&endPeriod=2026-10&format=csvdata", retrieved: "2026-11-14"}
