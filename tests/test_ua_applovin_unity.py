@@ -528,3 +528,18 @@ def test_doctor_needs_both_unity_variables(tmp_path, monkeypatch):
     res = {r.name: r for r in doctor.check_api_sources(load_config(p))}
     assert res["app.unity_ads"].status == "ok"
     assert all(AL_KEY not in r.detail and UNITY_SECRET not in r.detail for r in res.values())
+
+
+def test_redactor_masks_percent_encoded_secrets():
+    """A key with + / = shows up percent-encoded in a connection error's URL; mask that form too."""
+    key = "Ab+cd/EF==9z"
+    red = common.Redactor(key)
+    msg = (
+        "HTTPSConnectionPool(host='r.applovin.com', port=443): Max retries exceeded with url: "
+        "/report?api_key=Ab%2Bcd%2FEF%3D%3D9z&format=json (raw Ab+cd/EF==9z, form Ab%2Bcd%2FEF%3D%3D9z)"
+    )
+    out = red.clean(msg)
+    assert "Ab+cd" not in out and "Ab%2Bcd" not in out, out
+    red2 = common.Redactor()
+    red2.add(key)
+    assert "Ab%2Bcd" not in red2.clean(msg)

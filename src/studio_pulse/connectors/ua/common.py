@@ -31,7 +31,7 @@ import datetime as dt
 import os
 from collections.abc import Iterable, Iterator
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import quote, quote_plus, urlsplit
 
 import duckdb
 
@@ -129,11 +129,16 @@ class Redactor:
     """Replaces known secret values in text (exception messages, logs)."""
 
     def __init__(self, *secrets: str | None) -> None:
-        self.secrets = sorted({s for s in secrets if s and len(s) >= 4}, key=len, reverse=True)
+        self.secrets: list[str] = []
+        for s in secrets:
+            self.add(s)
 
     def add(self, secret: str | None) -> None:
-        if secret and len(secret) >= 4 and secret not in self.secrets:
-            self.secrets = sorted([*self.secrets, secret], key=len, reverse=True)
+        if not secret or len(secret) < 4:
+            return
+        # a key with + / = etc. appears percent-encoded in request URLs (connection errors quote them)
+        forms = {secret, quote(secret, safe=""), quote_plus(secret)}
+        self.secrets = sorted({*self.secrets, *forms}, key=len, reverse=True)
 
     def clean(self, text: Any) -> str:
         out = str(text)
