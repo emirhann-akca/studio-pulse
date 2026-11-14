@@ -159,13 +159,18 @@ def create_app(
         return resp
 
     # Outermost: Host check, access token, CSRF floor and security headers for every
-    # response. The inline scripts are the shell's ui.js and the static dashboard's JS.
+    # response. The inline scripts are the shell's ui.js and the static dashboard's JS;
+    # a dashboard written on Windows has CRLF line ends, hence both forms.
     app.add_middleware(
         security.Guard,
         csrf_token=token,
         hosts=None if any_host else hosts,
         access_token=access_token,
-        script_hashes=[security.csp_hash(ui.UI_JS), security.csp_hash(JS)],
+        script_hashes=[
+            security.csp_hash(ui.UI_JS),
+            security.csp_hash(JS),
+            security.csp_hash(JS.replace("\r\n", "\n").replace("\n", "\r\n")),
+        ],
     )
 
     def state() -> dict[str, Any]:

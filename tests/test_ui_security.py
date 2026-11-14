@@ -279,3 +279,22 @@ def test_app_json_may_only_name_a_local_port(tmp_path, monkeypatch):
         assert desktop.running_url(tmp_path) is None and probed == []
     desktop._write_state(tmp_path, {"url": "http://127.0.0.1:8765/"})
     assert desktop.running_url(tmp_path) == "http://127.0.0.1:8765/"
+
+
+def test_a_dashboard_written_on_windows_keeps_its_script(cfg, client):
+    """site.py writes text files, so on Windows the inline script has CRLF line ends and
+    another SHA-256; the CSP allows both forms (seen on the first CI run)."""
+    from studio_pulse.dashboard.assets import JS
+
+    page = cfg.site_dir / "crlf-check.html"
+    page.write_bytes(
+        f"<!doctype html><html><body><script>{JS}</script></body></html>".replace(
+            "\n", "\r\n"
+        ).encode()
+    )
+    try:
+        r = client.get("/dashboard/crlf-check.html")
+        body = re.search(r"<script>(.*?)</script>", r.text, re.S).group(1)
+        assert "\r\n" in body and security.csp_hash(body) in _csp(r)["script-src"].split()
+    finally:
+        page.unlink()

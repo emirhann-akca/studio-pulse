@@ -178,7 +178,7 @@ class RunLock:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         for attempt in range(2):
             try:
-                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
             except FileExistsError:
                 holder = self.read()
                 if attempt == 0 and self.is_stale(holder):
