@@ -35,6 +35,17 @@
     </tbody>
   </table></div>
   {% else %}<p>{{ t.est_none }}</p>{% endif %}
+  {% if view.estimate_history|length > view.estimates|length %}
+  <details style="margin-top:10px"><summary>{{ t.history }}</summary>
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ t.date }}</th><th>{{ t.kind }}</th><th>{{ t.country }}</th><th>{{ t.rank }}</th><th>{{ t.band }}</th></tr></thead>
+    <tbody>
+    {% for h in view.estimate_history %}
+      <tr><td>{{ h.snapshot_date }}</td><td>{{ h.kind }}</td><td>{{ h.country|upper }}</td><td>#{{ h.rank }}</td><td>{{ fc(h.low) }} – {{ fc(h.high) }} <small>({{ labels['estimate'] }})</small></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div></details>
+  {% endif %}
   {% if view.calibration %}
   <h3 style="margin-top:14px">{{ t.calib }}</h3>
   <div class="table-scroll"><table class="t">
