@@ -180,6 +180,9 @@ def panel_jobs(
     con: duckdb.DuckDBPyConnection, s: RadarSettings, es: EstimateSettings, day: dt.date
 ) -> list[tuple[str | None, str, str]]:
     """(apple_id, package, why) to read today: watched games first, then the panel."""
+    from .stage import run_models  # the panel reads today's rank input
+
+    run_models(con)
     manual = _manual_map(s)
     xref = {
         r[0]: (r[1], r[2], r[3])
@@ -223,8 +226,8 @@ def panel_jobs(
     cands = con.execute(
         """
         SELECT c.app_id, any_value(c.bundle_id) AS bundle, MIN(c.rank) AS best
-        FROM stg_mr_chart AS c
-        WHERE c.snapshot_date = ? AND c.chart = 'topfreeapplications'
+        FROM stg_mr_rank_input AS c
+        WHERE c.snapshot_date = ? AND c.list_kind = 'free' AND c.store = 'apple'
         GROUP BY 1
         """,
         [day],

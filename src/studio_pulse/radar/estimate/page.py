@@ -148,7 +148,7 @@ def resolve(con, key: str) -> tuple[list[str], list[str]]:
                 con,
                 "SELECT DISTINCT play_id FROM raw_mr_xref WHERE apple_id = ? AND status = 'mapped' "
                 "UNION SELECT DISTINCT app_id FROM raw_mr_app WHERE store = 'play' AND app_id IN "
-                "(SELECT bundle_id FROM raw_mr_chart WHERE app_id = ? UNION "
+                "(SELECT bundle_id FROM stg_mr_rank_input WHERE app_id = ? UNION "
                 "SELECT bundle_id FROM raw_mr_app WHERE store = 'apple' AND app_id = ?)",
                 [key, key, key],
             )
@@ -161,7 +161,7 @@ def resolve(con, key: str) -> tuple[list[str], list[str]]:
             con,
             "SELECT DISTINCT apple_id AS a FROM raw_mr_xref WHERE play_id = ? AND status = 'mapped' "
             "UNION SELECT DISTINCT app_id FROM raw_mr_app WHERE store = 'apple' AND bundle_id = ? "
-            "UNION SELECT DISTINCT app_id FROM raw_mr_chart WHERE bundle_id = ?",
+            "UNION SELECT DISTINCT app_id FROM stg_mr_rank_input WHERE bundle_id = ?",
             [key, key, key],
         )
     ]
@@ -246,8 +246,9 @@ def game_view(con, key: str, lang: str) -> dict[str, Any]:
     )
     ranks = _rows(
         con,
-        "SELECT snapshot_date, country, chart || ':' || genre_id AS list, MIN(rank) AS rank "
-        "FROM stg_mr_chart WHERE list_contains(?::VARCHAR[], app_id) GROUP BY 1, 2, 3 "
+        "SELECT snapshot_date, country, substr(list_key, length(country) + 2) AS list, "
+        "MIN(rank) AS rank FROM stg_mr_rank_input WHERE list_contains(?::VARCHAR[], app_id) "
+        "GROUP BY 1, 2, 3 "
         "ORDER BY 2, 3, 1",
         [apple],
     )

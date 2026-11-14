@@ -18,10 +18,10 @@ install` makes it daily; its data-quality checks are stored with the studio's ow
 
 ## Sources and rules
 
-| Source | What | Volume per day (10 countries x 5 lists) | Status |
+| Source | What | Volume per day (8 countries x 5 lists) | Status |
 |---|---|---|---|
-| Apple legacy RSS `itunes.apple.com/{cc}/rss/{chart}/limit={<=100}/genre={id}/json` | top free / grossing lists per genre (6014 Games, 7012 Puzzle, 7003 Casual, 7015 Simulation ...) | 50 | undocumented; the new RSS v2 has no games list (its games endpoint answers 404), so the legacy one is the only Apple list with genres. `newfreeapplications` ignores `limit` and `genre`: extra rows and non-games are kept raw but not scored |
-| iTunes Lookup `itunes.apple.com/lookup?id=a,b,...&country=cc` | release date, rating count per storefront, version and its date, description, genres | ~35 (100 ids per request) + rechecks (<= 2 per storefront) + 1 per storefront for the watchlist | documented, ~20 calls/minute; answers come from Apple caches of different ages (see below) |
+| Apple legacy RSS `itunes.apple.com/{cc}/rss/{chart}/limit={<=100}/genre={id}/json` | top free / grossing lists per genre (6014 Games, 7012 Puzzle, 7003 Casual, 7015 Simulation ...) | 40 | undocumented; the new RSS v2 has no games list (its games endpoint answers 404), so the legacy one is the only Apple list with genres. `newfreeapplications` ignores `limit` and `genre`: extra rows and non-games are kept raw but not scored |
+| iTunes Lookup `itunes.apple.com/lookup?id=a,b,...&country=cc` | release date, rating count per storefront, version and its date, description, genres | ~28 (100 ids per request) + rechecks (<= 2 per storefront) + 1 per storefront for the watchlist | documented, ~20 calls/minute; answers come from Apple caches of different ages (see below) |
 | Lookup `?id={artistId}&entity=software` | a watched publisher's whole catalogue | weekly | |
 | Google Play `play.google.com/store/apps/details?id=...` | install bucket, `realInstalls` (undocumented page field), Play tags, ads/IAP flags, description | <= 200: new-game candidates, watched games, the calibration panel (`estimates.panel_size`, 80) | robots.txt allows this path and nothing else the radar uses |
 
@@ -78,7 +78,8 @@ Raw (`radar/schema.sql`): `raw_mr_chart` (one row per day, country, list and ran
 | `fct_mr_mechanic_weekly` / `fct_mr_trend_weekly` | week x country x mechanic | chart share, the 4-week baseline, z and the trend flag |
 
 Market estimates and history (`radar/estimate/schema.sql`, `radar/estimate/models/`):
-`raw_mr_watch` (watchlist), `raw_mr_est_window` (Play counter windows with status),
+`stg_mr_rank_input` / `stg_mr_rank_lists` (the estimates' only chart input: the RSS lists plus
+`raw_mr_rank_extra`), `raw_mr_watch` (watchlist), `raw_mr_est_window` (Play counter windows with status),
 `raw_mr_est_exposure` (a window's mean rank per list), `raw_mr_est_fit` (one curve per list and
 kind, status ok / insufficient / no_source), `raw_mr_est_backtest` (out-of-sample accuracy),
 `raw_mr_est_game` (the day's bands per game), `stg_mr_play_counter` (day x package: refreshed
@@ -171,18 +172,28 @@ and timeouts, and secrets redacted from errors, ledgers and caches.
 
 ## Countries and request volume
 
-Default storefronts: `us, jp, kr, de, gb, fr, ca, au, br, tr` (ten large game markets; any
-two-letter App Store storefront code works). `pulse radar plan` prints the expected volume
-for a config and exits 1 if it does not fit the budgets; the config is refused outright when
-the lists plus one Lookup per country already exceed `radar.apple.daily_budget`.
+Default storefronts: `us, gb, de, fr, br, tr, jp, kr` (unchanged); any two-letter App Store
+storefront code can be added, for example `ca` and `au`. `pulse radar plan` prints the
+expected volume for a config and exits 1 if it does not fit the budgets; the config is refused
+outright when the lists plus one Lookup per country already exceed `radar.apple.daily_budget`.
 
-| Host | Per day, 10 countries x 5 lists of 100 | Budget | Spacing |
-|---|---|---|---|
-| itunes.apple.com | 50 RSS + ~35 Lookup (250-320 distinct apps per storefront, 100 ids a request) + up to 2 rechecks per storefront + 1 watchlist Lookup per storefront + publisher catalogues weekly: ~95-130 | 200 (`apple.daily_budget`) | >= 3 s |
-| play.google.com | robots.txt + new-game candidates (~50) + watched games + calibration panel (`estimates.panel_size`, 80): at most 200 | 200, hard cap (`play.daily_budget` above 200 is lowered to 200) | >= 3 s |
+| Host | Default: 8 countries x 5 lists of 100 | With `ca`, `au` (10 x 5) | Budget | Spacing |
+|---|---|---|---|---|
+| itunes.apple.com, RSS lists | 40 | 50 | | >= 3 s |
+| itunes.apple.com, Lookup | ~28 (250-320 distinct apps per storefront, 100 ids a request) + up to 16 rechecks + 8 for the watchlist | ~35 + 20 + 10 | 120 a day (`apple.daily_budget`; raise it to ~150 for 10 countries with a watchlist) | >= 3 s |
+| play.google.com | robots.txt + new-game candidates (~50) + watched games + calibration panel (`estimates.panel_size`, 80): at most 200 | same | 200, hard cap (`play.daily_budget` above 200 is lowered to 200) | >= 3 s |
 
-At 3 s per request a full day takes ~12 minutes of wall time. The panel only uses Play budget
-the radar's own candidates left, and keeps `estimates.play_reserve` (10) for a re-run.
+At 3 s per request a full day takes about 10 minutes of wall time. The panel only uses Play
+budget the radar's own candidates left, and keeps `estimates.play_reserve` (10) for a re-run.
+
+Chart source. Apple's `itunes.apple.com/robots.txt` disallows `/*/rss/*` for every user agent
+(found 14 Nov 2026; the Lookup path is not matched), and the radar's fetcher checks robots.txt
+for Google Play only, so the legacy RSS lists are under review by the owner; Apple's current
+feed (`rss.marketingtools.apple.com`) has no games or genre lists. The estimates do not depend
+on that choice: they read ranks only from `stg_mr_rank_input` (day, country, list, `list_kind`
+free / grossing, `all_games`, rank, app), which is the RSS lists plus `raw_mr_rank_extra`, a
+table any other chart source can fill (`tests/test_radar_estimates.py` calibrates from it with
+no RSS row at all).
 
 ## Market estimates
 
@@ -283,6 +294,14 @@ What ran where (14 Nov 2026):
 | Revenue, held-out country | Lineage M (NCSOFT 2Q26 KRW 117,333M), Korea, rank 4 in the KR Top Grossing list on 14 Nov 2026 (live run) | disclosed-and-converted $116k/day inside the band $63k-353k; middle 29% off (n=1) |
 | Revenue, market check | the US curve summed over ranks 1-1000 vs public US iOS game spend per day | **fails**: 2.1x (1.3-3.4x) the market. The curve is probably too high below the top ranks (or the tail is steeper than one power law); read the upper half of a band for ranks below ~30 with that in mind |
 
+The live check was one `pulse radar run --max-requests 75 --no-llm` on 14 Nov 2026 against the
+real stores, with a scratch config (10 storefronts, top free and top grossing Games only) and a
+copy of the radar's raw tables of 13-14 Nov: 75 requests (68 Apple, 7 Play), 2,000 chart
+rows, a watched game looked up in 4 storefronts where it is not charted, 700 revenue bands in
+7 countries, no download band. The calibration panel read no page in that run: the run cap
+was reached first, and packages already read that day took panel slots (fixed afterwards and
+covered by a test, not re-run live).
+
 MAPE here is the median |middle - actual| / actual of held-out cases; "inside" is the share of
 held-out cases inside the band (nominal 80%). The game page and the digest show the same
 numbers from the latest run (`raw_mr_est_backtest`, `data = live`); the synthetic numbers
@@ -319,7 +338,7 @@ rest of the radar it reads the local warehouse only and is never written to the 
 ```yaml
 radar:
   enabled: true
-  countries: [us, jp, kr, de, gb, fr, ca, au, br, tr]   # default
+  countries: [us, gb, de, fr, br, tr, jp, kr]   # default; add ca, au ... (`pulse radar plan`)
   charts:                      # default: these five
     - {chart: topfreeapplications, genre: "6014"}
     - {chart: topfreeapplications, genre: "7012"}
@@ -327,7 +346,7 @@ radar:
     - {chart: topfreeapplications, genre: "7015"}
     - {chart: topgrossingapplications, genre: "6014"}
   publishers: [{id: "1743349083", name: ABI Global}]
-  apple: {spacing_s: 3, daily_budget: 200, lookup_batch: 100}
+  apple: {spacing_s: 3, daily_budget: 120, lookup_batch: 100}
   play: {country: us, lang: en, spacing_s: 3, daily_budget: 200, map_file: play_map.yaml,
          watch: [com.example.package]}
   estimates:                   # defaults shown; `enabled: false` keeps only the watchlist

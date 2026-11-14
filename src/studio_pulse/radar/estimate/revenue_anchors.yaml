@@ -13,7 +13,7 @@
 # Units: USD per day, gross consumer spend through the App Store.
 version: 1
 retrieved: "2026-11-14"
-list: "topgrossingapplications:6014"
+list_kind: grossing   # all-games top-grossing lists of stg_mr_rank_input (Apple: genre 6014)
 currency: USD
 
 slope:

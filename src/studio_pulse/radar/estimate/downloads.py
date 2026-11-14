@@ -40,7 +40,7 @@ import yaml
 from .settings import EstimateSettings
 from .stats import Point, PowerLawFit, fit_power_law, log_uniform, quantile
 
-TOPFREE = "topfreeapplications"
+FREE = "free"  # list_kind of the rank input whose ranks measure downloads
 
 
 # -- iOS : Android ----------------------------------------------------------------------------
@@ -196,7 +196,8 @@ def apple_ids_for(con: duckdb.DuckDBPyConnection) -> dict[str, list[str]]:
         """
         SELECT play_id, apple_id FROM raw_mr_xref WHERE status = 'mapped' AND play_id IS NOT NULL
         UNION
-        SELECT bundle_id, app_id FROM raw_mr_chart WHERE bundle_id IS NOT NULL AND app_id IS NOT NULL
+        SELECT bundle_id, app_id FROM stg_mr_rank_input
+        WHERE bundle_id IS NOT NULL AND app_id IS NOT NULL
         """
     ).fetchall()
     out: dict[str, list[str]] = {}
@@ -221,17 +222,17 @@ def exposures(con: duckdb.DuckDBPyConnection, w: Window, apple_ids: list[str]) -
         return []
     d0, d1 = w.t0.date(), w.t1.date()
     lists = con.execute(
-        "SELECT snapshot_date, country, list_key, list_len FROM stg_mr_list_days "
-        "WHERE chart = ? AND snapshot_date BETWEEN ? AND ?",
-        [TOPFREE, d0, d1],
+        "SELECT snapshot_date, country, list_key, list_len FROM stg_mr_rank_lists "
+        "WHERE list_kind = ? AND snapshot_date BETWEEN ? AND ?",
+        [FREE, d0, d1],
     ).fetchall()
     ranks = {
         (d, lk): r
         for d, lk, r in con.execute(
-            "SELECT snapshot_date, list_key, MIN(rank) FROM stg_mr_chart WHERE chart = ? "
-            "AND snapshot_date BETWEEN ? AND ? AND list_contains(?::VARCHAR[], app_id) "
-            "GROUP BY 1, 2",
-            [TOPFREE, d0, d1, apple_ids],
+            "SELECT snapshot_date, list_key, MIN(rank) FROM stg_mr_rank_input "
+            "WHERE list_kind = ? AND snapshot_date BETWEEN ? AND ? "
+            "AND list_contains(?::VARCHAR[], app_id) GROUP BY 1, 2",
+            [FREE, d0, d1, apple_ids],
         ).fetchall()
     }
     by: dict[tuple[str, str], list[float]] = {}
@@ -372,7 +373,7 @@ def backtest(
 
 def charted_today(con: duckdb.DuckDBPyConnection, day: dt.date) -> list[dict[str, Any]]:
     cur = con.execute(
-        "SELECT app_id, bundle_id, name, country, list_key, rank FROM stg_mr_chart "
+        "SELECT app_id, bundle_id, name, country, list_key, list_kind, rank FROM stg_mr_rank_input "
         "WHERE snapshot_date = ? ORDER BY app_id, country, list_key",
         [day],
     )
@@ -391,7 +392,7 @@ def game_bands(
     rows = charted_today(con, day)
     free_countries: dict[str, set[str]] = {}
     for r in rows:
-        if r["list_key"].split(":")[1] == TOPFREE:
+        if r["list_kind"] == FREE:
             free_countries.setdefault(r["app_id"], set()).add(r["country"])
     out: list[dict[str, Any]] = []
     for r in rows:

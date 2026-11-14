@@ -242,6 +242,36 @@ def test_synthetic_world_calibrates_backtests_and_bands(world):
     assert summary["counter_pairs"]["stale"] > 0  # the frozen counters are counted
 
 
+def test_estimates_do_not_depend_on_the_chart_source(econ):
+    """Ranks from another feed (raw_mr_rank_extra) calibrate and band like the Apple RSS."""
+    w = radar_synth.build(econ, days=30, n_games=80)
+    econ.execute(
+        """
+        INSERT INTO raw_mr_rank_extra
+        SELECT snapshot_date, 'other_feed', 'apple', country,
+          country || CASE chart WHEN 'topfreeapplications' THEN ':free:all' ELSE ':grossing:all' END,
+          CASE chart WHEN 'topfreeapplications' THEN 'free' ELSE 'grossing' END,
+          TRUE, 100, rank, app_id, bundle_id, name
+        FROM raw_mr_chart
+        """
+    )
+    econ.execute("DELETE FROM raw_mr_chart")  # no Apple RSS at all
+    radar_run.run_models(econ)
+    summary = stage.compute(
+        econ, ["us", "tr"], EstimateSettings(draws=400), w.days[-1], log=lambda m: None
+    )
+    assert summary["download_lists"]["us:free:all"]["status"] == "ok"
+    kinds = dict(
+        econ.execute(
+            "SELECT kind, COUNT(*) FROM raw_mr_est_game WHERE list_key LIKE '%:all' GROUP BY 1"
+        ).fetchall()
+    )
+    assert kinds["android_installs_ww"] > 20 and kinds["ios_revenue"] == 80  # 80 games listed
+    assert econ.execute(
+        "SELECT status FROM raw_mr_est_fit WHERE kind = 'revenue' AND list_key = 'us:grossing:all'"
+    ).fetchone() == ("ok",)
+
+
 def test_estimate_checks_pass_on_the_synthetic_world(world):
     _, con, w, _ = world
     stage.run_models(con)
@@ -462,10 +492,20 @@ def test_panel_is_stratified_sticky_and_leaves_the_play_reserve(econ):
 def test_default_countries_and_the_budget_check():
     cfg = config_from_dict({"apps": [{"id": "x"}], "radar": {}}, base_dir=Path("."))
     s = from_config(cfg)
-    assert s.countries == ["us", "jp", "kr", "de", "gb", "fr", "ca", "au", "br", "tr"]
+    assert s.countries == ["us", "gb", "de", "fr", "br", "tr", "jp", "kr"]  # unchanged default
     p = plan.request_plan(s, EstimateSettings())
-    assert p["within_budget"] and 60 <= p["apple_requests_per_day"] <= s.apple_budget
+    assert p["within_budget"] and 50 <= p["apple_requests_per_day"] <= s.apple_budget == 120
     assert p["play_requests_per_day"] <= 200 and p["per_country"][0]["rss"] == 5
+    ten = from_config(
+        config_from_dict(
+            {
+                "apps": [{"id": "x"}],
+                "radar": {"countries": [*DEFAULT_COUNTRIES, "ca", "au"]},
+            },
+            base_dir=Path("."),
+        )
+    )
+    assert len(ten.countries) == 10 and plan.request_plan(ten, EstimateSettings())["per_country"]
     with pytest.raises(ConfigError, match="daily_budget"):
         from_config(
             config_from_dict(

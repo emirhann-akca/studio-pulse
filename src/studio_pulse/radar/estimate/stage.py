@@ -80,8 +80,9 @@ def compute(
     lists = [
         r[0]
         for r in con.execute(
-            "SELECT DISTINCT list_key FROM stg_mr_list_days WHERE chart = ? AND snapshot_date = ?",
-            [downloads.TOPFREE, day],
+            "SELECT DISTINCT list_key FROM stg_mr_rank_lists WHERE list_kind = ? "
+            "AND snapshot_date = ?",
+            [downloads.FREE, day],
         ).fetchall()
     ]
     curves = downloads.calibrate(pts, lists, es, rng)
@@ -174,6 +175,17 @@ def compute(
     anchors = doc["anchors"]
     ranks = {a["id"]: revenue.anchor_ranks(con, a) for a in anchors}
     model = revenue.build(doc, anchors, ranks, countries, es, rng)
+    grossing_list = dict(
+        con.execute(
+            "SELECT country, min(list_key) FROM stg_mr_rank_lists WHERE list_kind = ? "
+            "AND all_games AND snapshot_date = ? GROUP BY 1",
+            [revenue.GROSSING, day],
+        ).fetchall()
+    )
+
+    def glist(cc: str) -> str:
+        return grossing_list.get(cc) or f"{cc}:{revenue.GROSSING}"
+
     for cc in countries:
         ok = model is not None and cc in model.country_markets
         fits.append(
@@ -181,7 +193,7 @@ def compute(
                 "computed_on": day,
                 "kind": "revenue",
                 "country": cc,
-                "list_key": f"{cc}:{revenue.LIST}",
+                "list_key": glist(cc),
                 "status": "ok" if ok else "no_source",
                 "n_games": len(model.anchors) if model else 0,
                 "n_obs": sum(len(ranks[a]) for a in model.anchors) if model else 0,
@@ -204,7 +216,7 @@ def compute(
                 {
                     "computed_on": day,
                     "kind": "revenue",
-                    "list_key": f"{row['country']}:{revenue.LIST}",
+                    "list_key": glist(row["country"]),
                     "data": "live",
                     "nominal": es.band_hi - es.band_lo,
                     **row,
@@ -264,7 +276,7 @@ def add_facts(
     rows = digest._rows(
         con,
         "SELECT g.*, c.name FROM raw_mr_est_game AS g LEFT JOIN (SELECT DISTINCT ON (app_id) "
-        "app_id, name FROM stg_mr_chart WHERE snapshot_date = ?) AS c USING (app_id) "
+        "app_id, name FROM stg_mr_rank_input WHERE snapshot_date = ?) AS c USING (app_id) "
         "WHERE g.snapshot_date = ? ORDER BY g.kind, g.country, g.rank",
         [day, day],
     )

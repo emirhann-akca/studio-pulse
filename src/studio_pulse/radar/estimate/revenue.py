@@ -33,7 +33,7 @@ import yaml
 from .settings import EstimateSettings
 from .stats import log_uniform, quantile
 
-LIST = "topgrossingapplications:6014"
+GROSSING = "grossing"  # list_kind of the rank input whose ranks measure revenue
 
 
 def load_anchors() -> dict[str, Any]:
@@ -101,9 +101,10 @@ def anchor_ranks(con: duckdb.DuckDBPyConnection | None, a: dict[str, Any]) -> li
     ids = a["app_id"] if isinstance(a["app_id"], list) else [a["app_id"]]
     try:
         rows = con.execute(
-            "SELECT MIN(rank) FROM stg_mr_chart WHERE country = ? AND list_key = ? "
-            "AND list_contains(?::VARCHAR[], app_id) GROUP BY snapshot_date ORDER BY snapshot_date",
-            [a["country"], f"{a['country']}:{LIST}", ids],
+            "SELECT MIN(rank) FROM stg_mr_rank_input WHERE country = ? AND list_kind = ? "
+            "AND all_games AND list_contains(?::VARCHAR[], app_id) GROUP BY snapshot_date "
+            "ORDER BY snapshot_date",
+            [a["country"], GROSSING, ids],
         ).fetchall()
     except duckdb.Error:
         return []
@@ -274,9 +275,9 @@ def game_bands(
     rng: random.Random,
 ) -> list[dict[str, Any]]:
     rows = con.execute(
-        "SELECT app_id, country, list_key, rank FROM stg_mr_chart WHERE snapshot_date = ? "
-        "AND list_key = country || ':' || ? ORDER BY country, rank",
-        [day, LIST],
+        "SELECT app_id, country, list_key, rank FROM stg_mr_rank_input WHERE snapshot_date = ? "
+        "AND list_kind = ? AND all_games ORDER BY country, rank",
+        [day, GROSSING],
     ).fetchall()
     out = []
     for app_id, cc, lk, rank in rows:

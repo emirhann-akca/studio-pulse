@@ -2,7 +2,7 @@
 
 radar:
   enabled: true                 # run inside every `pulse run` (and so the daily schedule)
-  countries: [us, jp, kr, de, gb, fr, ca, au, br, tr]   # Apple storefront codes (default)
+  countries: [us, gb, de, fr, br, tr, jp, kr]   # Apple storefront codes (default; ca, au ...)
   charts:                       # Apple legacy RSS lists; `countries` narrows one list
     - {chart: topfreeapplications, genre: 6014}
     - {chart: topfreeapplications, genre: 7012}
@@ -11,7 +11,7 @@ radar:
     - {chart: topgrossingapplications, genre: 6014}
   limit: 100
   publishers: [{id: "1743349083", name: ABI Global}]   # artistIds, checked weekly
-  apple: {spacing_s: 3, daily_budget: 200, lookup_batch: 100}
+  apple: {spacing_s: 3, daily_budget: 120, lookup_batch: 100}
   play: {enabled: true, country: us, lang: en, spacing_s: 3, daily_budget: 200,
          map_file: play_map.yaml, watch: [com.example.package]}
   llm: {max_apps: 25, screenshots: 0, narrate: true}   # provider: top-level `llm:` block
@@ -30,9 +30,10 @@ from typing import Any
 
 from ..config import Config, ConfigError
 
-# Ten large game markets (App Store storefront codes). With the five default lists that is
-# 50 RSS + ~35 Lookup requests a day to itunes.apple.com (docs/RADAR.md, "Request volume").
-DEFAULT_COUNTRIES = ["us", "jp", "kr", "de", "gb", "fr", "ca", "au", "br", "tr"]
+# Eight large game markets (App Store storefront codes); any other storefront can be added in
+# the config. With the five default lists that is 40 RSS + ~28 Lookup requests a day to
+# itunes.apple.com (docs/RADAR.md, "Countries and request volume"; `pulse radar plan`).
+DEFAULT_COUNTRIES = ["us", "gb", "de", "fr", "br", "tr", "jp", "kr"]
 _STOREFRONT = re.compile(r"^[a-z]{2}$")
 DEFAULT_CHARTS = [
     {"chart": "topfreeapplications", "genre": "6014"},
@@ -89,7 +90,7 @@ class RadarSettings:
     publishers: list[dict[str, str]] = field(default_factory=list)
     publisher_every_days: int = 7
     apple_spacing_s: float = 3.0
-    apple_budget: int = 200
+    apple_budget: int = 120
     lookup_batch: int = 100
     play_enabled: bool = True
     play_country: str = "us"
@@ -152,7 +153,7 @@ def from_config(cfg: Config) -> RadarSettings:
     s.publisher_every_days = int(raw.get("publisher_every_days", 7))
     apple = raw.get("apple") or {}
     s.apple_spacing_s = float(apple.get("spacing_s", 3.0))
-    s.apple_budget = int(apple.get("daily_budget", 200))
+    s.apple_budget = int(apple.get("daily_budget", 120))
     s.lookup_batch = int(apple.get("lookup_batch", 100))
     play = raw.get("play") or {}
     s.play_enabled = bool(play.get("enabled", True))

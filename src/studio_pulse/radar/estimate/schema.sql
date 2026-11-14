@@ -48,3 +48,13 @@ CREATE TABLE IF NOT EXISTS raw_mr_est_game (
   kind VARCHAR, rank INTEGER, low DOUBLE, mid DOUBLE, high DOUBLE, unit VARCHAR,
   method VARCHAR, n INTEGER, basis VARCHAR
 );
+
+-- Ranks from any other chart source (another feed, another store, a licensed export). The
+-- estimates read ranks only through stg_mr_rank_input, which is the radar's own Apple charts
+-- plus this table, so a source can be added or replaced without touching the calibration.
+-- list_kind: free | grossing | paid | other; all_games: the list covers all games (not a genre).
+CREATE TABLE IF NOT EXISTS raw_mr_rank_extra (
+  snapshot_date DATE, source VARCHAR, store VARCHAR, country VARCHAR, list_key VARCHAR,
+  list_kind VARCHAR, all_games BOOLEAN, list_len INTEGER, rank INTEGER, app_id VARCHAR,
+  bundle_id VARCHAR, name VARCHAR
+);
