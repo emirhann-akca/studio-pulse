@@ -86,7 +86,11 @@ question box, no polling) with an invented market-radar day; Turkish under
   rule-based breakout score, tests weekly mechanic share shifts, classifies
   games from their store text with an LLM whose every claim must quote that
   text, and writes a Turkish and English digest in which every number is
-  labelled observed, store-reported or estimate (a range). It runs inside
+  labelled observed, store-reported or estimate (a range). Rank-based download
+  bands are calibrated on the studio's own Google Play reads and revenue bands
+  on public company disclosures, each with a published backtest; a game page
+  shows its rank, version and rating history and a watchlist keeps games
+  looked up daily. It runs inside
   `pulse run`, shows on a local `pulse serve` page and feeds
   [creative-forge](https://github.com/emirhann-akca/creative-forge)'s idea
   library through `market_trends.yaml`. Store data never goes to the public demo.
@@ -225,6 +229,7 @@ interval says to keep running.
 | `pulse serve` | local UI on 127.0.0.1: dashboard, refresh health (heartbeat, recent runs, check results, source freshness, schedule state), alerts, and a run-now button. It opens the warehouse read-only per request and serves the last good snapshot while a refresh is writing |
 | `pulse collect` | the SDK collector on 127.0.0.1:8787 (`setup-geoip`, `purge`); `pulse simulate` plays three fictional games against it, `pulse apps refresh` runs live detection ([docs/COLLECTOR.md](docs/COLLECTOR.md)) |
 | `pulse radar run` / `show` | the market radar (also part of `pulse run` with `radar.enabled`); `--replay DIR` answers every request from recorded responses |
+| `pulse radar watch add/remove/list` / `plan` | games looked up every day even when they leave the charts (Apple id, Play package or store URL); expected store requests per day for the config |
 | `pulse doctor [--json]` | Python, time zones, DuckDB, config, writable folders, Google credentials (present or not, never their contents), schedule state |
 | `pulse insights [--lang tr]` | the deterministic insight jobs (also run at the end of every refresh, stored in `meta_insights`) |
 | `pulse ask "..." [--lang tr]` | a question in English or Turkish; the answer names its route and shows its SQL and rows |

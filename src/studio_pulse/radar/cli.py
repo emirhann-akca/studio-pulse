@@ -20,7 +20,7 @@ def _replay_config(replay: Path, workdir: Path) -> Config:
     radar["out_dir"] = str(workdir / "radar")
     play = dict(radar.get("play") or {})
     if play.get("map_file"):
-        play["map_file"] = str(replay / play["map_file"])
+        play["map_file"] = str((replay / play["map_file"]).resolve())
     radar["play"] = play
     raw["radar"] = radar
     return dataclasses.replace(
@@ -108,3 +108,6 @@ def add_parser(sub: argparse._SubParsersAction, with_config) -> None:
     show.add_argument("--lang", choices=["tr", "en"], default="tr")
     show.add_argument("--date")
     show.set_defaults(func=cmd_radar_show)
+    from .estimate.cli import add_parsers as add_estimate_parsers  # watch, plan
+
+    add_estimate_parsers(rs, with_config)

@@ -2,7 +2,7 @@
 
 radar:
   enabled: true                 # run inside every `pulse run` (and so the daily schedule)
-  countries: [us, gb, de, fr, br, tr, jp, kr]
+  countries: [us, jp, kr, de, gb, fr, ca, au, br, tr]   # Apple storefront codes (default)
   charts:                       # Apple legacy RSS lists; `countries` narrows one list
     - {chart: topfreeapplications, genre: 6014}
     - {chart: topfreeapplications, genre: 7012}
@@ -11,7 +11,7 @@ radar:
     - {chart: topgrossingapplications, genre: 6014}
   limit: 100
   publishers: [{id: "1743349083", name: ABI Global}]   # artistIds, checked weekly
-  apple: {spacing_s: 3, daily_budget: 120, lookup_batch: 100}
+  apple: {spacing_s: 3, daily_budget: 200, lookup_batch: 100}
   play: {enabled: true, country: us, lang: en, spacing_s: 3, daily_budget: 200,
          map_file: play_map.yaml, watch: [com.example.package]}
   llm: {max_apps: 25, screenshots: 0, narrate: true}   # provider: top-level `llm:` block
@@ -23,13 +23,17 @@ radar:
 from __future__ import annotations
 
 import datetime as dt
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from ..config import Config, ConfigError
 
-DEFAULT_COUNTRIES = ["us", "gb", "de", "fr", "br", "tr", "jp", "kr"]
+# Ten large game markets (App Store storefront codes). With the five default lists that is
+# 50 RSS + ~35 Lookup requests a day to itunes.apple.com (docs/RADAR.md, "Request volume").
+DEFAULT_COUNTRIES = ["us", "jp", "kr", "de", "gb", "fr", "ca", "au", "br", "tr"]
+_STOREFRONT = re.compile(r"^[a-z]{2}$")
 DEFAULT_CHARTS = [
     {"chart": "topfreeapplications", "genre": "6014"},
     {"chart": "topfreeapplications", "genre": "7012"},
@@ -85,7 +89,7 @@ class RadarSettings:
     publishers: list[dict[str, str]] = field(default_factory=list)
     publisher_every_days: int = 7
     apple_spacing_s: float = 3.0
-    apple_budget: int = 120
+    apple_budget: int = 200
     lookup_batch: int = 100
     play_enabled: bool = True
     play_country: str = "us"
@@ -123,7 +127,12 @@ def _path(cfg: Config, v: Any) -> Path | None:
 def from_config(cfg: Config) -> RadarSettings:
     raw = dict(cfg.raw.get("radar") or {})
     s = RadarSettings(enabled=bool(raw.get("enabled", False)))
-    s.countries = [str(c).lower() for c in raw.get("countries") or DEFAULT_COUNTRIES]
+    s.countries = list(
+        dict.fromkeys(str(c).lower() for c in raw.get("countries") or DEFAULT_COUNTRIES)
+    )
+    bad = [c for c in s.countries if not _STOREFRONT.match(c)]
+    if bad:
+        raise ConfigError(f"radar.countries: not two-letter storefront codes: {bad}")
     limit = int(raw.get("limit", 100))
     if not 1 <= limit <= 100:
         raise ConfigError("radar.limit must be between 1 and 100 (the feed's maximum)")
@@ -143,7 +152,7 @@ def from_config(cfg: Config) -> RadarSettings:
     s.publisher_every_days = int(raw.get("publisher_every_days", 7))
     apple = raw.get("apple") or {}
     s.apple_spacing_s = float(apple.get("spacing_s", 3.0))
-    s.apple_budget = int(apple.get("daily_budget", 120))
+    s.apple_budget = int(apple.get("daily_budget", 200))
     s.lookup_batch = int(apple.get("lookup_batch", 100))
     play = raw.get("play") or {}
     s.play_enabled = bool(play.get("enabled", True))
@@ -159,6 +168,12 @@ def from_config(cfg: Config) -> RadarSettings:
     s.llm_screenshots = max(0, min(6, int(llm.get("screenshots", 0))))
     s.narrate = bool(llm.get("narrate", False))
     s.trend_list = str(raw.get("trend_list", "topfreeapplications:6014"))
+    need = sum(len(s.charts_for(cc)) for cc in s.countries) + len(s.countries)
+    if need > s.apple_budget:
+        raise ConfigError(
+            f"radar: {len(s.countries)} countries need at least {need} Apple requests a day "
+            f"(lists + one Lookup each) but radar.apple.daily_budget is {s.apple_budget}"
+        )
     s.params = {**DEFAULT_PARAMS, **{k: float(v) for k, v in (raw.get("params") or {}).items()}}
     unknown = set(s.params) - set(DEFAULT_PARAMS)
     if unknown:

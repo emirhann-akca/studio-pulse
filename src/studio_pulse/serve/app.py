@@ -335,6 +335,9 @@ def create_app(
     from ..radar.page import register as register_radar
 
     register_radar(app, cfg, templates, context)
+    from ..radar.estimate.page import register as register_radar_game  # /radar/oyun/<id>
+
+    register_radar_game(app, cfg, templates, context, open_db)
 
     from .studio import register as register_studio  # /studio: the one-window app view
 

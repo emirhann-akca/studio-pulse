@@ -30,6 +30,12 @@ NEED = [
     "studio_pulse/radar/models/fct_mr_breakout_daily.sql",
     "studio_pulse/radar/taxonomy.yaml",
     "studio_pulse/radar/checks.yaml",
+    "studio_pulse/radar/estimate/ios_android.yaml",
+    "studio_pulse/radar/estimate/revenue_anchors.yaml",
+    "studio_pulse/radar/estimate/schema.sql",
+    "studio_pulse/radar/estimate/checks.yaml",
+    "studio_pulse/radar/estimate/models/stg_mr_play_counter.sql",
+    "studio_pulse/serve/templates/radar_game.html",
 ]
 
 

@@ -1,0 +1,87 @@
+# iOS : Android download ratio per country, used to turn a game's worldwide Google Play
+# installs into an iOS download band (radar/estimate/downloads.py, docs/RADAR.md
+# "Market estimates"). Every figure below was read on the cited page on the retrieval date;
+# derived numbers say how they were derived. Nothing here is studio data.
+#
+# Method: the share s of game downloads that happen on the App Store in country c.
+#   - JP and KR: a published store split of game downloads (Sensor Tower) -> `download_ios`.
+#   - Elsewhere no public per-country split was found, so s = d x k, where d is StatCounter's
+#     iOS share of mobile OS usage (the range between the October 2026 month and the
+#     12-month mean Nov 2025-Oct 2026) and k = download share / usage share, taken over the
+#     three places where both are known: worldwide 2025 (0.58), JP H1 2024 (0.87),
+#     KR H2 2025 (1.17). That spread is wide on purpose: usage share is not download share.
+#   - ratio = s / (1 - s) iOS downloads per Android download; the band uses the extremes.
+version: 1
+retrieved: "2026-11-14"
+k_range: [0.58, 1.17]
+k_basis: >-
+  download share / usage share where both are published: worldwide 2025 15.5% / 26.94% = 0.58
+  (Sensor Tower game downloads incl. China on iOS, Google Play only on Android; StatCounter
+  calendar 2025); JP H1 2024 55% / 62.9% = 0.87; KR H2 2025 27% / 23.1% = 1.17.
+max_share: 0.9
+
+countries:
+  # d = StatCounter iOS % (October 2026 page table; 12-month mean of the monthly CSV)
+  us: {usage_ios: {oct_2026: 51.96, mean_12m: 59.22}}
+  jp:
+    usage_ios: {oct_2026: 53.8, mean_12m: 60.86}
+    download_ios: [0.50, 0.58]
+    download_basis: >-
+      Sensor Tower: "The App Store accounted for 55% of the total downloads" (games, H1 2024);
+      for the 12 months to Jul 2026 iOS keeps "a modest lead over Google Play" (no figure).
+    download_sources: [st_japan_2024, st_japan_2026]
+  kr:
+    usage_ios: {oct_2026: 39.32, mean_12m: 32.03}
+    download_ios: [0.25, 0.32]
+    download_basis: >-
+      Sensor Tower: Android's share of game downloads rose from 68% (H2 2024) to 73% (H2 2025);
+      Metro Seoul citing Sensor Tower: 70% of 2025 game downloads on Google Play.
+    download_sources: [st_korea_2h2025, metroseoul_2025]
+  de: {usage_ios: {oct_2026: 27.7, mean_12m: 36.63}}
+  gb: {usage_ios: {oct_2026: 50.14, mean_12m: 50.49}}
+  fr: {usage_ios: {oct_2026: 35.83, mean_12m: 34.44}}
+  ca: {usage_ios: {oct_2026: 64.74, mean_12m: 63.80}}
+  au: {usage_ios: {oct_2026: 62.09, mean_12m: 61.64}}
+  br: {usage_ios: {oct_2026: 26.23, mean_12m: 20.39}}
+  tr: {usage_ios: {oct_2026: 23.22, mean_12m: 24.33}}
+
+worldwide:
+  game_downloads_2025: {google_play_bn: 42.4, app_store_bn: 7.8}
+  basis: >-
+    Sensor Tower State of Gaming 2026: "Google Play accounted for 81% of game downloads,
+    followed by the App Store at 15%" (iOS includes China; Android counts Google Play only).
+  sources: [st_state_of_gaming_2026]
+
+sources:
+  statcounter:
+    title: StatCounter Global Stats, Mobile Operating System Market Share (per country)
+    url: https://gs.statcounter.com/os-market-share/mobile/united-states-of-america
+    url_pattern: https://gs.statcounter.com/os-market-share/mobile/<country-slug>
+    csv: https://gs.statcounter.com/chart.php?device=Mobile&device_hidden=mobile&statType_hidden=os_combined&region_hidden=US&granularity=monthly&statType=Operating%20System&fromInt=202511&toInt=202610&fromMonthYear=2025-11&toMonthYear=2026-10&csv=1
+    data: October 2026 page table and monthly CSV Nov 2025-Oct 2026
+    retrieved: "2026-11-14"
+    note: >-
+      Usage share of page views, not downloads. October 2026 differs from the year (US iOS
+      ~59-63% for most of the year, DE fell from ~40% to 27.7% from August 2026), so the
+      band spans both values.
+  st_japan_2024:
+    title: Sensor Tower, 2024 Japan Mobile Gaming Market Insights
+    url: https://sensortower.com/blog/2024-japan-mobile-gaming-market-insights
+    published: "2024-09"
+  st_japan_2026:
+    title: Sensor Tower, State of Japan Gaming 2026
+    url: https://sensortower.com/blog/state-of-japan-gaming-2026
+    published: "2026-09"
+  st_korea_2h2025:
+    title: Sensor Tower, 2H 2025 mobile games recap in Korea
+    url: https://sensortower.com/ko/blog/2H2025-mobile-games-recap-in-Korea
+    published: "2026-01"
+  metroseoul_2025:
+    title: Metro Seoul (citing Sensor Tower), 2025 Korea game download forecast
+    url: https://www.metroseoul.co.kr/article/20251104500337
+    published: "2025-11-04"
+  st_state_of_gaming_2026:
+    title: Sensor Tower, State of Gaming 2026 (report PDF, mirrored)
+    url: https://sensortower.com/blog/state-of-gaming-2026
+    pdf: https://investgame.net/wp-content/uploads/2026/02/2026-02-26-sensor_tower__state_of_gaming_2026__en_wp.pdf
+    published: "2026-02"

@@ -5,6 +5,7 @@ Used by `pulse radar run` (standalone) and by `pulse run` when `radar.enabled` i
 
 from __future__ import annotations
 
+import dataclasses
 import datetime as dt
 import json
 import secrets
@@ -25,6 +26,9 @@ from ..config import Config, ConfigError
 from ..llm import ImagePart, LLMClient, client_from_settings
 from ..llm import settings as llm_settings
 from . import apple, classify, digest, feed, play, store
+from .estimate import collect as est_collect
+from .estimate import settings as est_settings
+from .estimate import stage as est_stage
 from .http import BudgetExhausted, Fetcher, HostStopped, RobotsDisallowed, prune_cache
 from .settings import RadarSettings, from_config
 from .taxonomy import load as load_taxonomy
@@ -64,7 +68,8 @@ def checks_path() -> Path:
 
 
 def run_checks(con: duckdb.DuckDBPyConnection, day: dt.date) -> list[checks_mod.CheckResult]:
-    return checks_mod.run_checks(con, checks_mod.load_checks(checks_path()), None, day)
+    checks = checks_mod.load_checks(checks_path()) + checks_mod.load_checks(est_stage.checks_path())
+    return checks_mod.run_checks(con, checks, None, day)
 
 
 def _guard_out_dir(path: Path) -> None:
@@ -97,6 +102,7 @@ def run_radar(
     s: RadarSettings | None = None,
 ) -> RadarResult:
     s = s or from_config(cfg)
+    es = est_settings.from_config(cfg)
     day = day or s.as_of or cfg.as_of or dt.date.today()
     run_id = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%S") + "-" + secrets.token_hex(3)
     res = RadarResult(day=day, run_id=run_id)
@@ -107,6 +113,7 @@ def run_radar(
     tax = load_taxonomy()
     try:
         store.init_schema(con)
+        est_stage.init_schema(con)
         store.set_params(con, s.params)
         store.set_config(
             con, {"as_of": day.isoformat(), "country": s.countries, "trend_list": s.trend_list}
@@ -134,10 +141,14 @@ def run_radar(
         _charts(con, f, s, day, res, log)
         _lookups(con, f, s, day, res, log)
         _publishers(con, f, s, day, res, log)
+        est_collect.lookup_watched(con, f, s, day, res, log)
         _settle_ratings(con, f, s, day, res, log)
         res.counts["models_1"] = run_models(con)
         if s.play_enabled:
             _play(con, f, s, day, res, log)
+            # watched games and the calibration panel (estimates), within the Play budget
+            panel = es if es.enabled else dataclasses.replace(es, panel_size=0)
+            est_collect.collect_play(con, f, s, panel, day, res, log)
         run_models(con)
         charted = [
             r[0]
@@ -173,6 +184,14 @@ def run_radar(
             log=log,
         )
         res.counts["models"] = run_models(con)
+        res.counts["estimate_models"] = est_stage.run_models(con)
+        est_summary = None
+        if es.enabled:
+            try:
+                est_summary = est_stage.compute(con, s.countries, es, day, log)
+            except Exception as exc:  # the day's data is stored; say so instead of hiding it
+                res.errors.append(f"estimates: {type(exc).__name__}: {exc}")
+                log(f"    radar: estimates failed: {exc}")
         res.checks = run_checks(con, day)
         store.insert(
             con,
@@ -205,6 +224,8 @@ def run_radar(
             "notes": res.notes,
         }
         facts = digest.build_facts(con, s, day, tax, meta=meta, checks=res.checks)
+        if est_summary is not None:
+            est_stage.add_facts(con, facts, day, est_summary)
         if s.narrate and client is not None:
             facts["meta"]["narration"] = digest.narrate(facts, client, log)
             facts["meta"]["llm"] = client.summary()
@@ -253,6 +274,7 @@ def write_outputs(facts: dict[str, Any], s: RadarSettings, tax: Any) -> dict[str
     files = {}
     for lang in ("tr", "en"):
         text = digest.render(facts, lang, narr.get(lang) if narr.get("status") == "ok" else None)
+        text += est_stage.render_md(facts, lang)
         p = out / f"{day}.{lang}.md"
         p.write_text(text, encoding="utf-8")
         files[lang] = str(p)

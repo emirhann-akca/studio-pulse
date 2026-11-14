@@ -1,0 +1,100 @@
+# Data-quality checks for the market estimates and the watchlist (same engine and keys as
+# radar/checks.yaml). They run after every radar run together with the radar's own checks.
+defaults:
+  severity: warn
+  optional: true
+
+checks:
+  - name: radar_watch_unique
+    type: sql
+    severity: error
+    description: A game is on the watchlist at most once (re-adding an active entry is refused).
+    sql: >-
+      SELECT store, app_id, COUNT(*) AS n FROM raw_mr_watch WHERE removed_at IS NULL
+      GROUP BY 1, 2 HAVING COUNT(*) > 1
+
+  - name: radar_watch_not_read
+    type: sql
+    description: A watched game has no store row on the newest snapshot day (delisted, a wrong id, or the budget ran out).
+    sql: >-
+      SELECT w.store, w.app_id FROM raw_mr_watch AS w
+      WHERE w.removed_at IS NULL AND NOT EXISTS (
+        SELECT 1 FROM raw_mr_app AS a WHERE a.app_id = w.app_id AND a.store = w.store
+          AND a.snapshot_date = (SELECT MAX(snapshot_date) FROM raw_mr_chart))
+
+  - name: radar_est_window_valid
+    type: sql
+    severity: error
+    description: A usable install window has a positive rate, at least one day and a growing counter.
+    sql: >-
+      SELECT play_id, t0, t1, days, installs0, installs1, rate FROM raw_mr_est_window
+      WHERE status = 'ok' AND (rate IS NULL OR rate <= 0 OR days < 1 OR installs1 <= installs0)
+
+  - name: radar_est_band_order
+    type: sql
+    severity: error
+    description: Every estimate is a positive band with low <= middle <= high.
+    sql: >-
+      SELECT snapshot_date, app_id, country, kind, low, mid, high FROM raw_mr_est_game
+      WHERE NOT (low > 0 AND low <= mid AND mid <= high)
+
+  - name: radar_est_basis
+    type: sql
+    severity: error
+    description: Every estimate row says it is an estimate and carries its method and n.
+    sql: >-
+      SELECT snapshot_date, app_id, kind FROM raw_mr_est_game
+      WHERE basis <> 'estimate' OR method IS NULL OR method = '' OR n IS NULL OR n < 1
+
+  - name: radar_est_kind
+    type: accepted_values
+    table: raw_mr_est_game
+    column: kind
+    values: [android_installs_ww, ios_downloads_ww, ios_revenue]
+    severity: error
+
+  - name: radar_est_only_calibrated_lists
+    type: sql
+    severity: error
+    description: A download band is only given for a list whose curve has enough games (status ok).
+    sql: >-
+      SELECT g.snapshot_date, g.app_id, g.list_key FROM raw_mr_est_game AS g
+      WHERE g.kind IN ('android_installs_ww', 'ios_downloads_ww') AND NOT EXISTS (
+        SELECT 1 FROM raw_mr_est_fit AS f WHERE f.computed_on = g.snapshot_date
+          AND f.kind = 'downloads' AND f.list_key = g.list_key AND f.status = 'ok')
+
+  - name: radar_est_downloads_lost
+    type: sql
+    description: A top-free list had a download curve on the previous computation and has none now (fewer games with Play counter windows than min_games); its games show "insufficient data" again. Lists never calibrated are reported in the digest, not here.
+    sql: >-
+      WITH d AS (SELECT DISTINCT computed_on FROM raw_mr_est_fit ORDER BY 1 DESC LIMIT 2),
+      cur AS (SELECT * FROM raw_mr_est_fit WHERE kind = 'downloads' AND computed_on = (SELECT MAX(computed_on) FROM d)),
+      prev AS (SELECT * FROM raw_mr_est_fit WHERE kind = 'downloads' AND computed_on = (SELECT MIN(computed_on) FROM d)
+               AND computed_on < (SELECT MAX(computed_on) FROM d))
+      SELECT cur.list_key, cur.n_games, cur.min_games, cur.note FROM cur JOIN prev USING (list_key)
+      WHERE cur.status <> 'ok' AND prev.status = 'ok'
+
+  - name: radar_est_backtest_coverage
+    type: sql
+    description: A calibrated download curve whose held-out windows fell inside the band less than 60% of the time (nominal 80%).
+    sql: >-
+      SELECT list_key, scheme, n, coverage FROM raw_mr_est_backtest
+      WHERE kind = 'downloads' AND n >= 10 AND coverage < 0.6
+        AND computed_on = (SELECT MAX(computed_on) FROM raw_mr_est_backtest)
+
+  - name: radar_play_counter_stale
+    type: sql
+    description: Nine in ten of the newest day's Play reads kept the same install count while their rating count grew. Some staleness is normal (13-14 Nov 2026 - 18 of 30), this much suggests realInstalls stopped updating or the parser reads another field.
+    sql: >-
+      SELECT snapshot_date, COUNT(*) AS reads, COUNT(*) FILTER (WHERE stale) AS stale
+      FROM stg_mr_play_counter
+      WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM stg_mr_play_counter)
+        AND prev_installs IS NOT NULL
+      GROUP BY 1 HAVING COUNT(*) >= 10 AND COUNT(*) FILTER (WHERE stale) > 0.9 * COUNT(*)
+
+  - name: radar_version_date_future
+    type: sql
+    description: A store's version release date is after the snapshot that showed it.
+    sql: >-
+      SELECT store, app_id, country, version, version_date, first_seen
+      FROM fct_mr_version_timeline WHERE version_date > first_seen

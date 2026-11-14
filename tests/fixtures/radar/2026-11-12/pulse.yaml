@@ -19,5 +19,8 @@ radar:
     map_file: play_map.yaml
     watch: [com.dreamgames.royalmatch, com.block.juggle, com.ig.goods.jam, com.slg.policewar]
   llm: {max_apps: 25}
+  # The recorded day has no Play pages beyond the seven above: no calibration panel here
+  # (tests/fixtures/radar/estimates has the multi-day data the estimates are tested on).
+  estimates: {panel_size: 0}
 llm:
   provider: none

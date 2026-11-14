@@ -23,7 +23,7 @@
       {% set prim = (it.profile.claims | selectattr('dimension', 'equalto', 'mechanic_primary') | list) %}
       <tr>
         <td><span class="badge {{ 'good' if it['class'] == 'breakout' else 'warn' }}">{{ classes[it['class']] }}</span></td>
-        <td>{{ it.name }}<br><small>{{ it.developer }}</small></td>
+        <td><a href="/radar/oyun/{{ it.app_id }}">{{ it.name }}</a><br><small>{{ it.developer }}</small></td>
         <td>{{ '%.2f' % it.momentum.value }} <small>({{ labels[it.momentum.basis] }})</small></td>
         <td>{% for r in it.ranks[:4] %}{{ countries.get(r.country, r.country) }} {{ lists.get(r.list, r.list) }} #{{ r.rank }}{% if not loop.last %}<br>{% endif %}{% endfor %} <small>({{ labels['observed'] }})</small></td>
         <td>{{ it.age.value }} <small>({{ labels['observed'] }})</small></td>
