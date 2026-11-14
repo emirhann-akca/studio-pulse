@@ -1,0 +1,56 @@
+{
+ "data": [
+  {
+   "id": "900000000000001",
+   "page_id": "500000000000001",
+   "page_name": "Pebble Sort (synthetic)",
+   "ad_creation_time": "2026-10-25",
+   "ad_delivery_start_time": "2026-10-25",
+   "ad_delivery_stop_time": "2026-11-02",
+   "ad_creative_bodies": [
+    "Can you sort them all? Relax with Pebble Sort."
+   ],
+   "ad_creative_link_titles": [
+    "Pebble Sort"
+   ],
+   "ad_snapshot_url": "https://www.facebook.com/ads/archive/render_ad/?id=900000000000001",
+   "publisher_platforms": [
+    "facebook",
+    "instagram"
+   ],
+   "languages": [
+    "en"
+   ],
+   "eu_total_reach": 12000
+  },
+  {
+   "id": "900000000000002",
+   "page_id": "500000000000001",
+   "page_name": "Pebble Sort (synthetic)",
+   "ad_creation_time": "2026-11-05",
+   "ad_delivery_start_time": "2026-11-05",
+   "ad_creative_bodies": [
+    "Only 1% can finish this level!"
+   ],
+   "ad_creative_link_titles": [
+    "Pebble Sort"
+   ],
+   "ad_snapshot_url": "https://www.facebook.com/ads/archive/render_ad/?id=900000000000002",
+   "publisher_platforms": [
+    "instagram",
+    "audience_network"
+   ],
+   "languages": [
+    "en",
+    "de"
+   ],
+   "eu_total_reach": 30500
+  }
+ ],
+ "paging": {
+  "cursors": {
+   "after": "c2"
+  },
+  "next": "https://graph.facebook.com/v24.0/ads_archive?after=c2&search_terms=Pebble+Sort"
+ }
+}

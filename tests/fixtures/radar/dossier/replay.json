@@ -1,0 +1,69 @@
+{
+ "requests": [
+  {
+   "host": "itunes.apple.com",
+   "path": "/robots.txt",
+   "file": "robots/itunes_robots.txt",
+   "content_type": "text/plain"
+  },
+  {
+   "host": "play.google.com",
+   "path": "/robots.txt",
+   "file": "robots/play_robots.txt",
+   "content_type": "text/plain"
+  },
+  {
+   "path": "/lookup",
+   "pool": "apple/lookup_pool.json"
+  },
+  {
+   "host": "play.google.com",
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.example.pebblesort"
+   },
+   "play_page": {
+    "fields": "play/com.example.pebblesort.json",
+    "reviews": "play/com.example.pebblesort_reviews.json"
+   }
+  },
+  {
+   "host": "play.google.com",
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.example.arena"
+   },
+   "status": 404,
+   "body": {}
+  },
+  {
+   "host": "is1-ssl.mzstatic.com",
+   "path": "/image/thumb/Example/v4/pebble/s1/392x696bb.png",
+   "file": "shots/s1.png",
+   "content_type": "image/png"
+  },
+  {
+   "host": "is1-ssl.mzstatic.com",
+   "path": "/image/thumb/Example/v4/pebble/s2/392x696bb.png",
+   "file": "shots/s2.png",
+   "content_type": "image/png"
+  },
+  {
+   "host": "is1-ssl.mzstatic.com",
+   "path": "/image/thumb/Example/v4/pebble/s3/392x696bb.png",
+   "file": "shots/s3.png",
+   "content_type": "image/png"
+  },
+  {
+   "host": "play.google.com",
+   "path": "/store/apps/details",
+   "query": {
+    "id": "com.example.sorter0"
+   },
+   "play_page": {
+    "fields": "play/com.example.sorter0.json",
+    "reviews": "play/com.example.sorter0_reviews.json"
+   }
+  }
+ ]
+}

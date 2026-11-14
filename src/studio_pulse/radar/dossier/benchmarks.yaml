@@ -1,0 +1,181 @@
+# Benchmarks and assumptions used by the game dossier's "Yapmalı mıyız? / Should we make it?"
+# card (radar/dossier/rubric.py). Every block says where its numbers come from. Override any
+# block in the config under radar.dossier (docs/RADAR.md, "Game dossier").
+version: 1
+
+# Cost per install by genre, country and platform (USD).
+# Source: AppsFlyer, "Gaming app market benchmarks for Q3 2026" (published 5 Nov 2026),
+# https://www.appsflyer.com/blog/measurement-analytics/gaming-app-market-benchmarks-q3/
+# The page does not say whether a value is a median or an average, or whether organic installs
+# are excluded. Values were transcribed on 14 Nov 2026 and spot-checked against the page a second
+# time; "-" on the page (no value) is left out here. Turkey and South Korea are not on the page.
+cpi:
+  source: AppsFlyer, Gaming app market benchmarks for Q3 2026 (5 Nov 2026)
+  url: https://www.appsflyer.com/blog/measurement-analytics/gaming-app-market-benchmarks-q3/
+  period: 2026-Q3
+  checked: 2026-11-14
+  values:   # genre -> country -> [ios, android]; null = not on the page
+    puzzle:
+      us: [9.48, 4.81]
+      gb: [4.71, 3.45]
+      de: [4.23, 3.10]
+      fr: [2.85, 1.56]
+      ca: [5.37, 3.62]
+      au: [6.04, 4.54]
+      jp: [null, 2.40]
+      br: [null, 0.49]
+      mx: [null, 0.44]
+      in: [null, 0.10]
+      id: [null, 0.26]
+      ph: [null, 0.29]
+      vn: [null, 0.22]
+      th: [null, 0.61]
+      my: [null, 0.69]
+    match:
+      us: [21.63, 10.71]
+      gb: [13.54, 8.18]
+      de: [12.60, 8.21]
+      fr: [7.46, 3.87]
+      ca: [15.34, 8.42]
+      au: [16.77, 11.20]
+      jp: [13.39, 7.71]
+      br: [3.18, 1.05]
+      mx: [3.61, 0.88]
+      in: [null, 0.20]
+    hypercasual:
+      us: [1.96, 1.55]
+      gb: [1.14, 1.03]
+      de: [0.88, 0.73]
+      fr: [0.72, 0.41]
+      ca: [1.27, 1.19]
+      au: [1.43, 1.29]
+      jp: [1.31, 1.60]
+      br: [0.43, 0.14]
+      mx: [0.44, 0.14]
+      in: [0.13, 0.03]
+    simulation:
+      us: [4.23, 2.50]
+      gb: [2.78, 2.45]
+      de: [2.74, 2.05]
+      fr: [1.71, 1.10]
+      ca: [2.49, 1.69]
+      au: [3.35, 2.83]
+      jp: [3.24, 2.76]
+      br: [0.76, 0.12]
+      mx: [0.72, 0.14]
+      in: [0.55, 0.03]
+    action:
+      us: [5.06, 2.60]
+      br: [1.33, 0.33]
+      gb: [null, 1.45]
+      de: [null, 1.46]
+      fr: [null, 0.71]
+      jp: [null, 3.51]
+    rpg:
+      us: [7.93, 8.95]
+      jp: [3.52, 7.21]
+      gb: [null, 5.90]
+      de: [null, 6.79]
+      fr: [null, 4.13]
+      br: [null, 0.87]
+    strategy:
+      us: [18.45, 11.17]
+      gb: [null, 7.24]
+      de: [null, 6.68]
+      fr: [null, 4.27]
+      jp: [null, 10.50]
+      br: [null, 1.09]
+    sports:
+      us: [7.27, 3.71]
+      gb: [null, 2.87]
+      de: [null, 3.13]
+      fr: [null, 1.75]
+      br: [null, 0.17]
+    casino:
+      us: [24.45, 12.68]
+      gb: [20.85, 20.86]
+      de: [null, 9.38]
+      fr: [null, 6.99]
+
+# Radar mechanic (taxonomy.yaml) -> AppsFlyer genre. An approximation: AppsFlyer does not
+# publish its genre definitions. Mechanics not listed fall back to the Apple primary genre.
+mechanic_genre:
+  match-3: match
+  tile-match: puzzle
+  goods-sort: puzzle
+  color-sort: puzzle
+  hexa-sort: puzzle
+  screw-pin: puzzle
+  jam: puzzle
+  block-puzzle: puzzle
+  merge: puzzle
+  bubble-shooter: puzzle
+  word: puzzle
+  hidden-object: puzzle
+  solitaire-mahjong: puzzle
+  number-logic: puzzle
+  physics-draw: hypercasual
+  runner: hypercasual
+  idle-tycoon: simulation
+  cooking-sim: simulation
+apple_genre:
+  Puzzle: puzzle
+  Simulation: simulation
+  Action: action
+  Adventure: action
+  Racing: action
+  Role Playing: rpg
+  Strategy: strategy
+  Sports: sports
+  Casino: casino
+
+# Production effort for a soft-launchable first version, in person-months. A STUDIO ASSUMPTION
+# (no public source measures this): edit it under radar.dossier.effort for your own team.
+# The dossier multiplies the base by the adders the deconstruction found and shows a +-35 % range.
+effort:
+  base:
+    color-sort: 2.0
+    block-puzzle: 2.0
+    number-logic: 2.0
+    physics-draw: 2.0
+    screw-pin: 2.5
+    jam: 2.5
+    hexa-sort: 2.5
+    tile-match: 2.5
+    runner: 2.5
+    goods-sort: 3.0
+    bubble-shooter: 3.0
+    word: 3.0
+    solitaire-mahjong: 3.0
+    merge: 4.0
+    hidden-object: 4.0
+    idle-tycoon: 4.0
+    cooking-sim: 4.0
+    match-3: 5.0
+    unknown: 6.0
+  adders:          # multiplier added per signal found
+    meta_layer: 0.25     # each grounded meta-layer claim type (decorate, story, collection ...)
+    liveops: 0.20        # grounded LiveOps signals (events, seasons, leagues)
+    art_3d: 0.30         # a 3D art style
+    pvp: 0.60            # real-time or async PvP needs servers and matchmaking
+  range: 0.35
+
+# Review themes the review-mining step may assign (praise and complaint use the same list).
+review_themes:
+  fun-gameplay: {tr: "eğlenceli oynanış", en: "fun gameplay"}
+  relaxing: {tr: "rahatlatıcı", en: "relaxing"}
+  challenge: {tr: "zorluk dengesi", en: "difficulty balance"}
+  level-design: {tr: "bölüm tasarımı", en: "level design"}
+  visuals: {tr: "görseller", en: "visuals"}
+  sound: {tr: "ses ve müzik", en: "sound and music"}
+  ads: {tr: "reklamlar", en: "ads"}
+  pricing: {tr: "fiyat ve satın alma baskısı", en: "pricing and purchase pressure"}
+  rewards-economy: {tr: "ödül/coin dengesi", en: "rewards and coin economy"}
+  bugs-crashes: {tr: "hata ve çökme", en: "bugs and crashes"}
+  performance: {tr: "performans", en: "performance"}
+  controls-ux: {tr: "kontrol ve arayüz", en: "controls and UI"}
+  content-amount: {tr: "içerik miktarı", en: "amount of content"}
+  progression: {tr: "ilerleme hızı", en: "progression pace"}
+  offline: {tr: "çevrimdışı oynama", en: "offline play"}
+  updates: {tr: "güncelleme ve yeni içerik", en: "updates and new content"}
+  support: {tr: "destek", en: "support"}

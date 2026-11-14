@@ -492,11 +492,19 @@ def _radar(
     if not radar_run.enabled(cfg):
         return []
     try:
-        return radar_run.run_in_pipeline(con, cfg, log)
+        out = radar_run.run_in_pipeline(con, cfg, log)
     except Exception as exc:
         report.errors["radar"] = f"{type(exc).__name__}: {exc}"
         log(f"    ERROR radar: {report.errors['radar']}")
-        return []
+        out = []
+    try:  # weekly Ads Transparency extract (radar.adintel.enabled; skipped while fresh)
+        from .radar.adintel.google_atc import run_in_pipeline as adintel_weekly
+
+        adintel_weekly(con, cfg, log)
+    except Exception as exc:
+        report.errors["adintel"] = f"{type(exc).__name__}: {exc}"
+        log(f"    ERROR adintel: {report.errors['adintel']}")
+    return out
 
 
 def run_all(

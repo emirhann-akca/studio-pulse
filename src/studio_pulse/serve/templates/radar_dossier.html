@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}{{ t.title }}{% if d %} · {{ d.app.name }}{% endif %}{% endblock %}
+{% macro ev(e) %}{% if e.kind == 'screenshot' %}<a href="#{{ e.screenshot }}">{{ e.screenshot }}</a>: {{ e.what }}{% else %}“{{ e.quote }}” <small>({{ e.field }})</small>{% endif %}{% endmacro %}
+{% block body %}
+<p style="margin:0 0 10px"><a href="/radar/dosya">← {{ 'Oyun dosyaları' if lang == 'tr' else 'Game dossiers' }}</a></p>
+{% if error %}<div class="callout bad" role="alert">{{ error }}</div>{% endif %}
+{% if d %}
+{% set dc = d.decision %}
+<header class="page-head">
+  <h1>{{ t.title }} · {{ d.app.name }}</h1><span class="badge outline">{{ d.as_of }}</span>
+  <p class="sub">{{ t.intro }}</p>
+</header>
+
+<section class="card">
+  <header><h2>{{ t.decision }}</h2><span class="spacer"></span>
+    <span class="badge {{ 'good' if dc.verdict == 'YAP' else ('warn' if dc.verdict == 'BEKLE' else 'bad') }}" style="font-size:13px;line-height:22px">{{ verdicts[dc.verdict] }}</span>
+  </header>
+  <p>{{ fmt(dc.score.value, 2) }} <small>({{ labels['rule_score'] }}; {{ 'YAP' if lang == 'tr' else 'MAKE IT' }} ≥ {{ fmt(dc.thresholds.yap_min, 2) }}, {{ 'BEKLE' if lang == 'tr' else 'WAIT' }} ≥ {{ fmt(dc.thresholds.bekle_min, 2) }})</small></p>
+  {% if dc.capped and dc.verdict != 'YAPMA' %}<div class="callout warn">{{ t.capped.format(r=(dc.capped | map(attribute=lang) | join('; '))) }}</div>{% endif %}
+  <h3>{{ t.reasons }}</h3>
+  <ol>{% for r in dc.reasons %}<li><b>{% if r.kind == 'gate' %}{{ t.gate }}{% else %}{{ factor_names[r.factor] }} {{ r.sign }}{% endif %}</b>: {{ r.text[lang] }}</li>{% endfor %}</ol>
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ 'Faktör' if lang == 'tr' else 'Factor' }}</th><th class="num">{{ 'Puan' if lang == 'tr' else 'Score' }}</th><th class="num">{{ 'Ağırlık' if lang == 'tr' else 'Weight' }}</th><th>{{ 'Güven' if lang == 'tr' else 'Confidence' }}</th><th>{{ 'Neden' if lang == 'tr' else 'Why' }}</th></tr></thead>
+    <tbody>{% for f in dc.factors %}<tr><td>{{ factor_names[f.key] }}</td><td class="num">{{ fmt(f.score.value, 2) }}</td><td class="num">{{ fmt(f.weight.value, 2) }}</td><td>{{ t.conf[f.confidence] }}</td><td class="wrap">{{ f.reason[lang] }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <details><summary>{{ t.assumptions }}</summary><ul>{% for a in dc.assumptions %}<li>{{ a[lang] }}</li>{% endfor %}</ul></details>
+</section>
+
+{% set ft = d.first_test %}
+<section class="card">
+  <h2>{{ t.test }}</h2>
+  {% if dc.verdict == 'YAPMA' %}<div class="callout warn">{{ t.not_advised }}</div>{% endif %}
+  <p>{{ t.test_kind.get(ft.kind, ft.kind) }}: {{ ft.n_variants.value }} · {{ countries.get(ft.geo, ft.geo|upper) }} {{ ft.platform }} · {{ ft.days.value }} {{ 'gün' if lang == 'tr' else 'days' }}
+  {% if ft.budget_usd %} · ≈{{ ft.budget_usd.value }} USD <small>({{ labels['estimate'] }} {{ ft.budget_usd.low }}–{{ ft.budget_usd.high }})</small>{% endif %}</p>
+  <p>IPM ≥ {{ fmt(ft.ipm_gate.value) }} <small>({{ labels['assumption'] }})</small>{% if ft.cpi_gate %} · CPI ≤ {{ fmt(ft.cpi_gate.value, 2) }} USD <small>({{ labels['benchmark'] }}: {{ ft.cpi_reference.source }})</small>{% endif %}</p>
+  <ul>{% for v in ft.variants %}{% set show = v.show_tr if lang == 'tr' else v.show %}<li>{{ v.id }}: {{ v.hook }}{% if show %} — {{ show }}{% endif %}</li>{% endfor %}</ul>
+  {% if ft.over_budget %}<div class="callout warn">{{ t.over_budget }}</div>{% endif %}
+</section>
+
+<div class="grid c2">
+<section class="card">
+  <h2>{{ t.identity }} · {{ t.store }}</h2>
+  <p>{{ t.developer }}: {{ d.app.developer }}{% if d.app.seller %} · {{ t.seller }}: {{ d.app.seller }}{% endif %}</p>
+  <p>{% if d.app.store_url %}<a href="{{ d.app.store_url }}" rel="noopener noreferrer">App Store</a>{% endif %}{% if d.app.play_url %} · <a href="{{ d.app.play_url }}" rel="noopener noreferrer">Google Play</a>{% endif %}</p>
+  {% if d.store.apple %}<ul>{% for sf in d.store.apple.storefronts %}<li>{{ countries.get(sf.country, sf.country|upper) }}: {{ fmt(sf.rating_count) }} · {{ fmt(sf.rating_avg, 2) }}★ · v{{ sf.version }} ({{ sf.current_version_date }}) <small>({{ labels['observed'] }})</small></li>{% endfor %}</ul>{% endif %}
+  {% set p = d.store.play %}
+  {% if p %}<p>Play: {{ p.bucket }} · {{ fmt(p.real_installs) }} · {{ fmt(p.rating_avg, 2) }}★ ({{ fmt(p.rating_count) }}) · {{ 'reklam' if lang == 'tr' else 'ads' }} {{ t.yes if p.contains_ads else t.no }} · IAP {{ t.yes if p.offers_iap else t.no }}{% if p.iap_range %} ({{ p.iap_range }}){% endif %} <small>({{ labels['store_reported'] }})</small></p>{% endif %}
+  {% set w = d.warehouse %}
+  {% if w.ranks_today %}<p>{{ t.lists }}: {% for r in w.ranks_today[:8] %}{{ countries.get(r.country, r.country) }} {{ lists.get(r.list, r.list) }} #{{ r.rank }}{% if not loop.last %}; {% endif %}{% endfor %} <small>({{ labels['observed'] }})</small></p>{% endif %}
+  {% if w.breakout %}<p>{{ t['class'].format(c=w.breakout['class'] or '-', m=fmt(w.breakout.momentum, 2)) }} <small>({{ labels['rule_score'] }})</small></p>{% endif %}
+  {% set cad = d.cadence %}
+  <h3>{{ t.cadence }}</h3>
+  {% if cad.days_since_update is defined %}<p>{{ t.cad_line.format(d=(cad.apple_current_version_date or cad.play_updated), n=cad.days_since_update, age=cad.get('days_since_release', '-')) }} <small>({{ labels['observed'] }})</small></p>{% endif %}
+  {% if cad.versions_known %}<p>{{ t.cad_versions.format(v=(cad.versions_known[-8:] | map(attribute='version') | join(' → '))) }}</p>{% endif %}
+</section>
+<section class="card">
+  <h2>{{ t.ads }}</h2>
+  {% set g = d.ads.google_atc %}
+  <h3>{{ t.atc }}</h3>
+  {% if g.status == 'no_extract' %}<p>{{ t.atc_no_extract }}</p>
+  {% elif g.status == 'ok' %}
+  <p><small>{{ t.atc_src.format(d=g.extract.extract_date, n=fmt(g.extract.advertisers), b=fmt(g.extract.billed_gb, 2), p=(g.patterns | join(', '))) }}</small></p>
+  {% set strong = g.advertisers | selectattr('match', 'equalto', 'name') | list %}
+  {% if not strong and g.advertisers %}<p><small>{{ t.atc_partial }}</small></p>{% endif %}
+  {% if g.advertisers %}<ul>{% for a in (strong or g.advertisers[:3]) %}<li><a href="{{ a.url }}" rel="noopener noreferrer">{{ a.name }}</a>: {{ fmt(a.creatives) }} ({{ fmt(a.games_creatives) }} {{ 'oyun konulu' if lang == 'tr' else 'games-topic' }}) · video {{ fmt(a.formats.video) }} · {{ 'son 30 gün' if lang == 'tr' else 'last 30 days' }} {{ fmt(a.active_30d) }} · {{ a.first_shown }} → {{ a.last_shown }} <small>({{ labels['platform_reported'] }})</small></li>{% endfor %}</ul>
+  {% else %}<p>{{ t.atc_none.format(p=(g.patterns | join(', '))) }}</p>{% endif %}
+  {% else %}<p>{{ g.status }}{% if g.message %}: {{ g.message }}{% endif %}</p>{% endif %}
+  {% set mt = d.ads.meta %}
+  <h3>{{ t.meta }}</h3>
+  {% if mt.status == 'ok' %}<ul>{% for pg in mt.pages %}<li>{{ pg.page_name }}: {{ pg.ads }} · {{ pg.active }} {{ 'etkin' if lang == 'tr' else 'active' }} · {{ pg.first_start }} → {{ pg.last_start }} <small>({{ labels['platform_reported'] }})</small></li>{% endfor %}</ul>
+  {% elif mt.status == 'not_configured' %}<p>{{ t.meta_nc.format(m='PULSE_META_AD_LIBRARY_TOKEN') }}</p>
+  {% else %}<p>{{ mt.status }}{% if mt.message %}: {{ mt.message }}{% endif %}</p>{% endif %}
+</section>
+</div>
+
+{% set dec = d.deconstruction %}
+<section class="card">
+  <h2>{{ t.decon }}</h2>
+  {% set m = d.mechanic %}
+  <p>{{ t.mechanic }}: <b>{{ m.value or t.unknown }}</b>{% if m.source %} <small>({{ t.mech_src.get(m.source, m.source) }})</small>{% endif %}</p>
+  {% if dec.status != 'ok' %}<p>{{ t.decon_off.format(r=(dec.reason or dec.status)) }}</p>
+  {% else %}
+  {% for sec, title in t.sections.items() %}{% if dec[sec] %}
+  <h3>{{ title }}</h3>
+  <ul>{% for c in dec[sec] %}<li>{% if c.kind %}<span class="badge">{{ c.kind }}</span> {% endif %}{{ (c.text_tr if lang == 'tr' and c.text_tr else c.text) }} <small class="muted">— LLM{% if c.visual_only %}, {{ t.visual }}{% endif %}; {% for e in c.evidence[:2] %}{{ ev(e) }}{% if not loop.last %}; {% endif %}{% endfor %}</small></li>{% endfor %}</ul>
+  {% endif %}{% endfor %}
+  {% if dec.proposed_tags %}<h3>{{ t.proposed }}</h3><ul>{% for pt in dec.proposed_tags %}<li><code>{{ pt.name }}</code>: {{ pt.why }} <small class="muted">— LLM; {% for e in pt.evidence[:2] %}{{ ev(e) }}{% if not loop.last %}; {% endif %}{% endfor %}</small></li>{% endfor %}</ul>{% endif %}
+  {% if dec.unknowns %}<h3>{{ t.unknowns }}</h3><ul>{% for u in dec.unknowns %}<li>{{ u }} <small class="muted">(LLM)</small></li>{% endfor %}</ul>{% endif %}
+  {% if dec.support and dec.support.status == 'ok' %}<p><small>{{ t.support.format(n=dec.support['items'], k=dec.support.unsupported_items) }}</small></p>{% elif dec.support %}<p><small>{{ t.support_off.format(r=dec.support.reason) }}</small></p>{% endif %}
+  <details><summary>{{ t.rejected.format(n=(dec.rejected | length)) }}</summary><ul>{% for r in dec.rejected %}<li>[{{ r.section }}] {{ r.text }} — {{ r.reason }}</li>{% endfor %}</ul></details>
+  {% endif %}
+</section>
+
+{% set pe = d.peers %}
+<section class="card">
+  <h2>{{ t.peers }}</h2>
+  {% if not pe or pe.status != 'ok' %}<p>{{ t.peer_none }}</p>
+  {% else %}
+  <p><small>{{ t.peer_set[pe.peer_set].format(m=pe.mechanic, n=pe.n_peers, d=pe.day) }} {{ pe.peers[:6] | map(attribute='name') | join(', ') }}</small></p>
+  {% if pe.review_peers %}<p><small>{{ t.peer_rev.format(k=(pe.review_peers | length), n=(pe.review_peers | sum(attribute='reviews')), p=(pe.review_peers | map(attribute='package') | join(', '))) }}</small></p>{% endif %}
+  {% for title, flag in [(t.better, true), (t.worse, false), (t.context, none)] %}
+    {% set rows = pe['items'] | selectattr('better', 'sameas', flag) | list %}
+    {% if rows %}<h3>{{ title }}</h3><ul>{% for i in rows %}<li>{{ i.text[lang] }} <small>({{ labels[i.basis] }})</small></li>{% endfor %}</ul>{% endif %}
+  {% endfor %}
+  {% if pe.age and pe.age.value is not none %}<p><small>{{ t.peer_age.format(a=fmt(pe.age.value), m=fmt(pe.age.peer_median)) }}</small></p>{% endif %}
+  {% endif %}
+</section>
+
+{% if d.screenshots %}
+<section class="card">
+  <h2>{{ t.shots }}</h2>
+  <div style="display:flex;gap:8px;overflow-x:auto">{% for sh in d.screenshots %}<figure id="{{ sh.id }}" style="margin:0;flex:none"><img src="/radar/dosya/{{ d.key }}/shot/{{ sh.id }}" alt="{{ sh.id }}" loading="lazy" style="height:280px;border-radius:8px;border:1px solid var(--line)"><figcaption><small>{{ sh.id }}</small></figcaption></figure>{% endfor %}</div>
+</section>
+{% endif %}
+
+{% set rv = d.reviews %}
+<section class="card">
+  <h2>{{ t.reviews }}</h2>
+  {% set ap_r = rv.sources.apple %}
+  <p>{{ t.rev_src.format(n=rv.sources.play.n, a=(t.apple_refused.format(r=ap_r.reason) if ap_r.status == 'refused' else ap_r.status)) }}</p>
+  {% if rv.status == 'ok' %}
+  <div class="grid c2">
+  {% for side in ['praise', 'complaints'] %}
+    <div><h3>{{ t[side] }}</h3><ul>{% for r in rv.themes[side][:5] %}<li><b>{{ r[lang] }}</b>: {{ r.count }}/{{ r.of }} <small>(LLM; {{ fmt(r.mean_stars, 1) }}★)</small>{% for q in r.quotes %}<br><small>“{{ q.text }}” ({{ q.stars }}★)</small>{% endfor %}</li>{% else %}<li>-</li>{% endfor %}</ul></div>
+  {% endfor %}
+  </div>
+  {% elif rv.n %}<p>{{ t.rev_off.format(r=(rv.reason or rv.status)) }}</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ t.quality }}</h2>
+  {% set meta = d.meta %}
+  <p>{{ t.q_req.format(n=meta.requests.sent, h=(meta.requests.by_host.items() | map('join', ' ') | join(', ')), c=meta.requests.cache_hits) }}</p>
+  {% if meta.llm %}<p>{{ t.q_llm.format(p=meta.llm.provider, m=meta.llm.model, r=meta.llm.requests, cost=fmt(meta.llm.cost_usd, 4), cap=meta.llm.budget_usd) }}</p>{% else %}<p>{{ t.q_llm_none }}</p>{% endif %}
+  {% if meta.bigquery_billed_gb is not none %}<p>{{ t.q_bq.format(g=fmt(meta.bigquery_billed_gb, 3)) }}</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

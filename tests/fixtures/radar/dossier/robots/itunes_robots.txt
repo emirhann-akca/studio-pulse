@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /WebObjects/MZFastFinance.woa
+Disallow: /WebObjects/*
+Allow: /WebObjects/MZStore.woa/wa/viewMultiRoom?*
+Disallow: /search*
+Disallow: /*/rss/*
+Disallow: /*/lookup?
