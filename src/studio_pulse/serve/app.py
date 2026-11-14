@@ -336,6 +336,10 @@ def create_app(
 
     register_radar(app, cfg, templates, context)
 
+    from ..radar.dossier.page import register as register_dossier  # /radar/dosya
+
+    register_dossier(app, cfg, templates, context)
+
     from .studio import register as register_studio  # /studio: the one-window app view
 
     register_studio(app, cfg, templates, context=context, open_db=open_db, rows=_rows, hosts=hosts)

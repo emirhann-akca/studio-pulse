@@ -1,0 +1,27 @@
+{
+ "data": [
+  {
+   "id": "900000000000003",
+   "page_id": "500000000000001",
+   "page_name": "Pebble Sort (synthetic)",
+   "ad_creation_time": "2026-11-09",
+   "ad_delivery_start_time": "2026-11-09",
+   "ad_creative_bodies": [
+    "Pour, sort, relax."
+   ],
+   "ad_snapshot_url": "https://www.facebook.com/ads/archive/render_ad/?id=900000000000003",
+   "publisher_platforms": [
+    "facebook"
+   ],
+   "languages": [
+    "fr"
+   ],
+   "eu_total_reach": 800
+  }
+ ],
+ "paging": {
+  "cursors": {
+   "after": "c3"
+  }
+ }
+}

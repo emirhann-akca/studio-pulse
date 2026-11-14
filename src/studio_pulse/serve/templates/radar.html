@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Pazar Radarı' if lang == 'tr' else 'Market Radar' }}{% endblock %}
 {% block body %}
-<p style="margin:0 0 10px"><a href="/studio/market">← {{ s.radar }}</a></p>
+<p style="margin:0 0 10px"><a href="/studio/market">← {{ s.radar }}</a> · <a href="/radar/dosya">{{ 'Oyun dosyaları' if lang == 'tr' else 'Game dossiers' }} →</a></p>
 <header class="page-head">
   <h1>{{ s.r_full }}</h1>{% if facts %}<span class="badge outline">{{ facts.as_of }}</span>{% endif %}
   <p class="sub">{% if lang == 'tr' %}Yerel sayfa: mağaza verisi bu bilgisayarda kalır, panoya ve herkese açık demoya yazılmaz.{% else %}Local page: store data stays on this computer; it is not written to the dashboard or the public demo.{% endif %}</p>

@@ -1,0 +1,31 @@
+{
+ "appId": "com.example.pebblesort",
+ "title": "Pebble Sort: Color Puzzle",
+ "description": "Sort the pebbles by color! A calm color sort puzzle with hundreds of handmade levels. Boosters help when you are stuck. Watch an ad to get an extra tube.",
+ "summary": "Pour, sort and relax with a colorful pebble puzzle.",
+ "installs": "100,000+",
+ "minInstalls": 100000,
+ "realInstalls": 254321,
+ "score": 4.6,
+ "ratings": 3210,
+ "offersIAP": true,
+ "inAppProductPrice": "$0.99 - $9.99 per item",
+ "developer": "Example Pebbleworks Ltd",
+ "developerEmail": "contact@example.invalid",
+ "developerAddress": "1 Example Street, Nowhere",
+ "genre": "Puzzle",
+ "genreId": "GAME_PUZZLE",
+ "categories": [
+  {
+   "name": "Puzzle",
+   "id": "GAME_PUZZLE"
+  },
+  {
+   "name": "Casual",
+   "id": "GAME_CASUAL"
+  }
+ ],
+ "containsAds": true,
+ "released": "Oct 21, 2026",
+ "version": "1.0.6"
+}

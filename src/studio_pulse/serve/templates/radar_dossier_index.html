@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Oyun dosyaları' if lang == 'tr' else 'Game dossiers' }}{% endblock %}
+{% block body %}
+<p style="margin:0 0 10px"><a href="/radar">← {{ s.radar }}</a></p>
+<header class="page-head">
+  <h1>{{ 'Oyun dosyaları' if lang == 'tr' else 'Game dossiers' }}</h1>
+  <p class="sub">{% if lang == 'tr' %}Yükselen bir oyun ne yapıyor, neyi doğru yapıyor ve biz de yapmalı mıyız? Yeni dosya: <code>pulse radar dossier &lt;Apple id | Play paketi&gt;</code>. Yerel sayfa: mağaza verisi bu bilgisayarda kalır.{% else %}What a rising game does, what it does right and whether we should make one. New dossier: <code>pulse radar dossier &lt;Apple id | Play package&gt;</code>. Local page: store data stays on this computer.{% endif %}</p>
+</header>
+{% if error %}<div class="callout bad" role="alert">{{ error }}</div>{% endif %}
+<section class="card">
+  {% if not rows %}
+    <div class="empty"><div class="ic">{{ icon('radar')|safe }}</div><p>{{ 'Henüz dosya yok: pulse radar dossier <id>' if lang == 'tr' else 'No dossier yet: pulse radar dossier <id>' }}</p></div>
+  {% else %}
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ 'Oyun' if lang == 'tr' else 'Game' }}</th><th>{{ 'Tarih' if lang == 'tr' else 'Date' }}</th><th>{{ 'Mekanik' if lang == 'tr' else 'Mechanic' }}</th><th>{{ 'Karar' if lang == 'tr' else 'Verdict' }}</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><a href="/radar/dosya/{{ r.key }}">{{ r.name }}</a><br><small>{{ r.developer }}</small></td>
+        <td class="nowrap">{{ r.as_of }}</td>
+        <td>{{ r.mechanic or '-' }}</td>
+        <td><span class="badge {{ 'good' if r.verdict == 'YAP' else ('warn' if r.verdict == 'BEKLE' else 'bad') }}">{{ verdicts[r.verdict] }}</span> <small>{{ fmt(r.score, 2) }} ({{ labels['rule_score'] }})</small></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+{% endblock %}
