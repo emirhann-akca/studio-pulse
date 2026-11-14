@@ -1,0 +1,170 @@
+# Generated from docs/METRICS.md by `python -m studio_pulse.brain.semantic --write`.
+# Do not edit: tests/brain/test_brain_semantic.py fails when it differs.
+columns:
+  fct_app_daily.ad_revenue_usd:
+    formula: AdMob `ESTIMATED_EARNINGS` (converted to USD) when AdMob is connected; otherwise the sum of GA4 `ad_impression` `event_value_in_usd`
+    metric: Ad revenue per day
+  fct_app_daily.arpdau:
+    formula: net revenue / DAU
+    metric: ARPDAU
+  fct_app_daily.crash_free_sessions:
+    formula: 1 - min(fatal crash events, sessions) / sessions (Crashlytics); 1 - sessions with a fatal `app_exception` / sessions (GA4)
+    metric: Crash-free sessions
+  fct_app_daily.crash_free_users:
+    formula: 1 - min(crashed users, DAU) / DAU; unknown (not 100%) when no crash source covers the day
+    metric: Crash-free users
+  fct_app_daily.crashed_users:
+    formula: 'Per platform, then summed. Where the platform''s Crashlytics export is connected: distinct `installation_uuid` with an `is_fatal` event that day (`event_timestamp` converted to the app''s
+      time zone); otherwise GA4 users with `app_exception` and `fatal = 1`. `crash_basis` says which (`crashlytics`, `ga4_app_exception` or both)'
+    metric: Crashed users
+  fct_app_daily.dau:
+    formula: distinct active users on d
+    metric: DAU
+  fct_app_daily.ecpm_usd:
+    formula: AdMob earnings x 1000 / impressions
+    metric: eCPM
+  fct_app_daily.engagement_min_per_dau:
+    formula: sum(`engagement_time_msec`) / 60 000 / DAU
+    metric: Engagement minutes per DAU
+  fct_app_daily.iap_revenue_usd:
+    formula: RevenueCat proceeds by purchase date (`start_time`) when the app has RevenueCat data; otherwise the sum of GA4 `event_value_in_usd` of the configured purchase events (gross, before store fees)
+    metric: IAP revenue per day
+  fct_app_daily.mau:
+    formula: distinct active users in [d-29, d]; shown only with >= 30 days of history
+    metric: MAU
+  fct_app_daily.new_users:
+    formula: active users on d who logged `first_open` (or `first_visit`) on d
+    metric: New users
+  fct_app_daily.payer_conversion:
+    formula: payers / DAU
+    metric: Payer conversion (daily)
+  fct_app_daily.payers:
+    formula: 'RevenueCat: distinct customers with a transaction with revenue > 0 that day (renewals and trial conversions included, so for subscription apps this is "customers charged", not only users who
+      bought in-app); GA4: distinct users with a purchase event of value > 0'
+    metric: Payers
+  fct_app_daily.revenue_usd:
+    formula: IAP revenue + ad revenue
+    metric: Net revenue
+  fct_app_daily.sessions:
+    formula: distinct (`user_pseudo_id`, `ga_session_id`) pairs on d
+    metric: Sessions
+  fct_app_daily.sessions_per_dau:
+    formula: sessions / DAU
+    metric: Sessions per DAU
+  fct_app_daily.stickiness:
+    formula: DAU / MAU
+    metric: Stickiness
+  fct_app_daily.store_installs:
+    formula: 'Play: `Daily User Installs` (fallback `Install events`, `Daily Device Installs`); App Store: Sales units with product types 1, 1F, 1T, 1E, 1EP, 1EU, F1'
+    metric: Store installs
+  fct_app_daily.wau:
+    formula: distinct active users in [d-6, d]; shown only with >= 7 days of history
+    metric: WAU
+  fct_app_summary.crash_free_users_7d:
+    formula: 1 - sum(min(crashed users, DAU)) / sum(DAU) over 7 days
+    metric: 7-day crash-free users
+  fct_level_funnel.attempts_per_completion:
+    formula: starts / completes
+    metric: Attempts per completion
+  fct_level_funnel.churn_rate:
+    formula: users whose highest started level is this level and who were not active in the last `churn_window_days` (default 7) before the window end / users reached
+    metric: Churn at level
+  fct_level_funnel.users_reached:
+    formula: users whose highest started level in the window is >= level
+    metric: Users reached
+  fct_level_funnel.win_rate:
+    formula: completes / (completes + fails)
+    metric: Win rate
+  fct_perf_by_tier.cpu_main_p95_ms:
+    formula: median over windows of the window's p95 FrameTimingManager CPU main-thread / GPU time. A GPU p95 close to the frame p95 means GPU-bound
+    metric: CPU main thread / GPU p95
+  fct_perf_by_tier.ft_p50_ms:
+    formula: median over windows of the window's `ft_p50_ms`
+    metric: Frame time p50 (tier, period)
+  fct_perf_by_tier.ftm_share:
+    formula: share of windows whose frame times came from FrameTimingManager (`ft_src = 'ftm'`) rather than `Time.unscaledDeltaTime`
+    metric: Frame timing coverage
+  fct_perf_by_tier.gpu_p95_ms:
+    formula: median over windows of the window's p95 FrameTimingManager CPU main-thread / GPU time. A GPU p95 close to the frame p95 means GPU-bound
+    metric: CPU main thread / GPU p95
+  fct_perf_by_tier.mem_alloc_p95_mb:
+    formula: 95th percentile over windows of peak allocated MB (and reserved MB)
+    metric: Memory p95
+  fct_perf_by_tier.mem_reserved_p95_mb:
+    formula: 95th percentile over windows of peak allocated MB (and reserved MB)
+    metric: Memory p95
+  fct_perf_by_tier.sys_used_p95_mb:
+    formula: the same for System Used Memory, the OS view that low-memory kills act on
+    metric: Process memory p95
+  fct_perf_daily.ft_p50_ms:
+    formula: median over windows of the window's `ft_p50_ms`
+    metric: Frame time p50 (tier, period)
+  fct_perf_daily.ft_p95_ms:
+    formula: median over windows of the window's `ft_p95_ms` (the typical session's tail)
+    metric: Frame time p95 (tier, period)
+  fct_perf_daily.slow_frame_share:
+    formula: sum(`slow_frames`) / sum(`frames`) - exact share of frames slower than 33.3 ms
+    metric: Slow-frame share
+  fct_retention.cohort_size:
+    formula: users of the cohort active on day 0
+    metric: Cohort size
+  fct_retention.is_complete:
+    formula: cohort_date + N <= last day with data
+    metric: Complete cell
+  fct_retention.retention:
+    formula: users of the cohort active on cohort_date + N / cohort size
+    metric: Retention D*N* (one cohort)
+  fct_retention_summary.retention:
+    formula: sum of retained users / sum of cohort sizes over the 28 most recent cohorts that are complete for that N (a cohort-size weighted mean)
+    metric: Headline D1 / D7 / D14 / D30
+  fct_review_daily.avg_rating:
+    formula: mean stars of the reviews written (or last edited) that day; the dashboard shows a 7-day review-weighted mean
+    metric: Rating of new reviews
+  fct_review_daily.low_star_share:
+    formula: share of 1- and 2-star reviews
+    metric: Low-star share
+  fct_ua_cohort_roas.roas_d0:
+    formula: cohort revenue by day N / spend of that day; empty until day N is complete
+    metric: Cohort ROAS DN
+  fct_ua_cohort_roas.roas_d30:
+    formula: cohort revenue by day N / spend of that day; empty until day N is complete
+    metric: Cohort ROAS DN
+  fct_ua_cohort_roas.roas_d7:
+    formula: cohort revenue by day N / spend of that day; empty until day N is complete
+    metric: Cohort ROAS DN
+  fct_ua_daily.cpi_usd:
+    formula: spend_usd / network-reported installs
+    metric: CPI (network)
+  fct_ua_daily.ctr:
+    formula: clicks / impressions
+    metric: CTR
+  fct_ua_daily.ipm:
+    formula: network installs / impressions x 1000
+    metric: IPM
+  fct_ua_daily.spend_share:
+    formula: the campaign's spend / the app's spend that day
+    metric: Spend share
+  fct_ua_roas_curve.blended_roas:
+    formula: revenue of *all* new users (paid and organic) of the spend days / spend
+    metric: Blended ROAS
+  fct_ua_roas_curve.roas:
+    formula: sum over the cohorts that have reached day N of revenue by day N / their spend; points backed by fewer than 7 cohorts are dropped
+    metric: Pooled ROAS curve
+  fct_ua_summary.cpi_30d_usd:
+    formula: spend / installs on the network's attribution basis, 30 days
+    metric: CPI (basis)
+  fct_ua_summary.network_cpi_30d_usd:
+    formula: spend_usd / network-reported installs
+    metric: CPI (network)
+  fct_ua_summary.payback_day:
+    formula: the first N whose pooled ROAS reaches 100%; empty when the curve has not reached it within its observed days
+    metric: Payback day (observed)
+  stg_rc_transactions.proceeds_usd:
+    formula: 'revenue x (1 - `tax_percentage` - `commission_percentage`); with older exports that only have `takehome_percentage`: revenue x takehome; unknown otherwise'
+    metric: IAP proceeds
+  stg_rc_transactions.revenue_usd:
+    formula: '`price_in_usd` (net of full and partial refunds); when it is missing, `price_in_purchased_currency` x the fallback FX rate of the purchase day'
+    metric: IAP revenue (RevenueCat)
+  stg_ua_cohort_cum.cum_revenue_usd:
+    formula: see the two bases below; cumulative over days 0..N of the install cohort of the spend day
+    metric: Cohort revenue by day N

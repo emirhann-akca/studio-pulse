@@ -233,18 +233,20 @@ queries:
     phrasings:
       en: ["What do reviews complain about in {app}?", "review topics for {app}", "What are players saying about {app}?"]
       tr: ["{app} yorumlarında en çok ne şikâyet ediliyor?", "{app} yorum konuları", "Oyuncular {app} hakkında ne diyor?"]
-    must: [[review, reviews, complain, saying, yorum, yorumlarinda, sikayet, diyor]]
+    must: [[complain, complains, complaint, complaints, saying, topic, topics, konu, konulari, konusu, sikayet, diyor]]
     params: [app]
     sql: |
       SELECT topic, label, reviews_30d, share_30d, low_star_share_30d, share_prior_30d
-      FROM fct_review_topics WHERE app_id = $app ORDER BY share_30d DESC, topic
+      FROM fct_review_topics WHERE app_id = $app
+      ORDER BY topic = 'praise', share_30d DESC NULLS LAST, topic
     units: {topic: text, label: data, reviews_30d: count, share_30d: pct, low_star_share_30d: pct, share_prior_30d: pct}
     answer:
-      en: "Most mentioned topic in the last {window} days of {app} reviews: {first.label}, in {first.share_30d} of reviews ({first.reviews_30d}; {first.share_prior_30d} the {window} days before). Topics are counts of keyword matches, not the review text."
-      tr: "{app} yorumlarında son {window} günde en çok geçen konu: {first.label}, yorumların {first.share_30d} kadarı ({first.reviews_30d}; önceki {window} günde {first.share_prior_30d}). Konular anahtar kelime eşleşmesi sayılarıdır, yorum metni değil."
+      en: "Most mentioned complaint in the last {window} days of {app} reviews: {first.label}, in {first.share_30d} of reviews ({first.reviews_30d}; {first.share_prior_30d} the {window} days before); praise and the other topics are in the table. Topics are counts of keyword matches, not the review text."
+      tr: "{app} yorumlarında son {window} günde en çok geçen şikâyet: {first.label}, yorumların {first.share_30d} kadarı ({first.reviews_30d}; önceki {window} günde {first.share_prior_30d}); övgü ve diğer konular tabloda. Konular anahtar kelime eşleşmesi sayılarıdır, yorum metni değil."
     consts: {window: [30, id]}
     verified_by: owner
     verified_at: 2026-11-12
+    changed_at: 2026-11-14  # complaints first: "what do reviews complain about" answered "Praise"
 
   - id: experiment_result
     phrasings:

@@ -1,0 +1,444 @@
+# Development questions for the analyst: the half of the 14 Nov 2026 question
+# bank the router may be improved against (the other half is holdout.yaml, frozen).
+# Same format and grading as holdout.yaml (studio_pulse/brain/accuracy.py).
+
+version: 1
+as_of: 2026-11-01
+
+groups:
+  - group: avg_dau_14d_pacer
+    kind: value
+    truth:
+      - "SELECT AVG(dau) FROM fct_app_daily WHERE app_id = 'pacer_pal' AND date BETWEEN DATE '2026-10-18' AND DATE '2026-10-31'"
+    q:
+      - [en, "Average daily active users of pacer_pal over the last 14 days"]
+  - group: mau_mossy
+    kind: value
+    truth:
+      - "SELECT mau FROM fct_app_daily WHERE app_id = 'mossy_match' AND date = DATE '2026-10-31'"
+    q:
+      - [tr, "mossy_match'in aylık aktif kullanıcısı (MAU) ne kadar?"]
+  - group: new_users_sept_mossy
+    kind: value
+    truth:
+      - "SELECT SUM(new_users) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date BETWEEN DATE '2026-09-01' AND DATE '2026-09-30'"
+    q:
+      - [en, "How many new users did mossy_match get in September?"]
+      - [tr, "mossy_match Eylül ayında kaç yeni kullanıcı kazandı?"]
+  - group: store_installs_oct_pacer
+    kind: value
+    truth:
+      - "SELECT SUM(store_installs) FROM fct_app_daily WHERE app_id = 'pacer_pal' AND date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'"
+    q:
+      - [en, "Store installs for pacer_pal in October"]
+      - [tr, "pacer_pal Ekim'de mağazadan kaç kez indirildi?"]
+  - group: engagement_pebble
+    kind: value
+    truth:
+      - "SELECT SUM(engagement_sec) / 60.0 / SUM(dau) FROM fct_app_daily WHERE app_id = 'pebble_pop' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'"
+      - "SELECT AVG(engagement_min_per_dau) FROM fct_app_daily WHERE app_id = 'pebble_pop' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'"
+    q:
+      - [tr, "pebble_pop'ta son 7 günde günlük kullanıcı başına kaç dakika oynanıyor?"]
+      - [en, "Engagement minutes per DAU for pebble_pop, last 7 days"]
+  - group: dau_ios_mossy
+    kind: value
+    truth:
+      - "SELECT dau FROM stg_active_users WHERE app_id = 'mossy_match' AND platform = 'IOS' AND date = DATE '2026-10-31'"
+    q:
+      - [en, "How many iOS users did mossy_match have yesterday?"]
+      - [tr, "mossy_match iOS'ta dün kaç aktif kullanıcı vardı?"]
+  - group: portfolio_dau_yesterday
+    kind: value
+    truth:
+      - "SELECT SUM(dau) FROM fct_app_daily WHERE date = DATE '2026-10-31'"
+    q:
+      - [en, "What was total DAU across all our apps yesterday?"]
+      - [tr, "Dün tüm uygulamalarımızda toplam kaç aktif kullanıcı vardı?"]
+  - group: dau_typo_quartz
+    kind: value
+    truth:
+      - "SELECT dau FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date = DATE '2026-10-31'"
+    q:
+      - [en, "quartz_merg DAU yesterday"]
+  - group: dau_display_name_pebble
+    kind: value
+    truth:
+      - "SELECT dau FROM fct_app_daily WHERE app_id = 'pebble_pop' AND date = DATE '2026-10-31'"
+    q:
+      - [en, "How many people played Pebble Pop yesterday?"]
+  - group: dau_before_window
+    kind: refuse
+    absent: "SELECT COUNT(*) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date = DATE '2026-03-01'"
+    q:
+      - [en, "What was mossy_match's DAU on 1 March 2026?"]
+      - [tr, "mossy_match'in 1 Mart 2026'daki DAU'su kaçtı?"]
+  - group: dau_wow_quartz
+    kind: value
+    truth:
+      - "SELECT (SELECT AVG(dau) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'), (SELECT AVG(dau) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-18' AND DATE '2026-10-24')"
+      - "SELECT (SELECT SUM(dau) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'), (SELECT SUM(dau) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-18' AND DATE '2026-10-24')"
+    q:
+      - [en, "How did quartz_merge DAU change week over week?"]
+      - [tr, "quartz_merge DAU'su geçen haftaya göre nasıl değişti?"]
+  - group: uninstalls_week_mossy
+    kind: value
+    truth:
+      - "SELECT SUM(store_uninstalls) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'"
+      - "SELECT SUM(store_uninstalls) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date BETWEEN DATE '2026-10-19' AND DATE '2026-10-25'"
+      - "SELECT SUM(store_uninstalls) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date BETWEEN DATE '2026-10-26' AND DATE '2026-10-31'"
+    q:
+      - [en, "How many store uninstalls did mossy_match have last week?"]
+  - group: d14_mossy
+    kind: value
+    truth:
+      - "SELECT retention FROM fct_retention_summary WHERE app_id = 'mossy_match' AND day_n = 14"
+    q:
+      - [tr, "mossy_match'in 14. gün retention'ı ne?"]
+  - group: d1_india_pacer_absent
+    kind: refuse
+    absent: "SELECT COUNT(*) FROM stg_cohort_dims WHERE app_id = 'pacer_pal' AND country IN ('India', 'IN')"
+    q:
+      - [tr, "Hindistan'daki pacer_pal kullanıcılarının D1 oranı"]
+  - group: d1_germany_absent
+    kind: refuse
+    absent: "SELECT COUNT(*) FROM stg_cohort_dims WHERE country IN ('Germany', 'DE')"
+    q:
+      - [en, "What's D1 retention in Germany for mossy_match?"]
+  - group: retention_japan_absent
+    kind: refuse
+    absent: "SELECT COUNT(*) FROM stg_cohort_dims WHERE country IN ('Japan', 'JP')"
+    q:
+      - [en, "quartz_merge D7 retention in Japan"]
+      - [tr, "quartz_merge Japonya'da 7. gün elde tutma"]
+  - group: d1_platform_compare_pebble
+    kind: value
+    truth:
+      - "SELECT SUM(CASE WHEN platform = 'IOS' AND day_n = 1 THEN users END)::DOUBLE / SUM(CASE WHEN platform = 'IOS' AND day_n = 0 THEN users END), SUM(CASE WHEN platform = 'ANDROID' AND day_n = 1 THEN users END)::DOUBLE / SUM(CASE WHEN platform = 'ANDROID' AND day_n = 0 THEN users END) FROM stg_cohort_days WHERE app_id = 'pebble_pop' AND cohort_date BETWEEN DATE '2026-10-03' AND DATE '2026-10-30'"
+      - "SELECT SUM(CASE WHEN platform = 'IOS' AND day_n = 1 THEN users END)::DOUBLE / SUM(CASE WHEN platform = 'IOS' AND day_n = 0 THEN users END), SUM(CASE WHEN platform = 'ANDROID' AND day_n = 1 THEN users END)::DOUBLE / SUM(CASE WHEN platform = 'ANDROID' AND day_n = 0 THEN users END) FROM stg_cohort_days WHERE app_id = 'pebble_pop' AND cohort_date <= DATE '2026-10-30'"
+      - "SELECT SUM(CASE WHEN platform = 'IOS' AND day_n = 1 THEN users END)::DOUBLE / SUM(CASE WHEN platform = 'IOS' AND day_n = 0 THEN users END), SUM(CASE WHEN platform = 'ANDROID' AND day_n = 1 THEN users END)::DOUBLE / SUM(CASE WHEN platform = 'ANDROID' AND day_n = 0 THEN users END) FROM stg_cohort_days WHERE app_id = 'pebble_pop' AND cohort_date BETWEEN DATE '2026-10-17' AND DATE '2026-10-30'"
+    q:
+      - [en, "Compare iOS and Android D1 retention for pebble_pop"]
+      - [tr, "pebble_pop için iOS ve Android D1 elde tutmasını karşılaştır"]
+  - group: d1_organic_mossy
+    kind: value
+    truth:
+      - "SELECT SUM(d1_users)::DOUBLE / SUM(users) FROM stg_cohort_dims WHERE app_id = 'mossy_match' AND grouping_set = 'network' AND network = 'organic' AND cohort_date <= DATE '2026-10-30'"
+      - "SELECT SUM(d1_users)::DOUBLE / SUM(users) FROM stg_cohort_dims WHERE app_id = 'mossy_match' AND grouping_set = 'network' AND network = 'organic' AND cohort_date BETWEEN DATE '2026-10-03' AND DATE '2026-10-30'"
+      - "SELECT SUM(d1_users)::DOUBLE / SUM(users) FROM stg_cohort_dims WHERE app_id = 'mossy_match' AND grouping_set = 'network' AND network = 'organic' AND cohort_date BETWEEN DATE '2026-10-17' AND DATE '2026-10-30'"
+    q:
+      - [en, "D1 retention of organic installs in mossy_match"]
+      - [tr, "mossy_match organik kullanıcıların D1 oranı"]
+  - group: d7_compare_pacer_pebble
+    kind: value
+    truth:
+      - "SELECT (SELECT retention FROM fct_retention_summary WHERE app_id = 'pacer_pal' AND day_n = 7), (SELECT retention FROM fct_retention_summary WHERE app_id = 'pebble_pop' AND day_n = 7)"
+    q:
+      - [tr, "pacer_pal ile pebble_pop'un D7 elde tutmasını karşılaştır"]
+  - group: ambiguous_puzzle_d7
+    kind: value
+    accept_refusal: true
+    truth:
+      - "SELECT (SELECT retention FROM fct_retention_summary WHERE app_id = 'mossy_match' AND day_n = 7), (SELECT retention FROM fct_retention_summary WHERE app_id = 'pebble_pop' AND day_n = 7)"
+    q:
+      - [en, "What's the D7 retention of our puzzle game?"]
+  - group: rev_oct_mossy
+    kind: value
+    truth:
+      - "SELECT SUM(revenue_usd) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'"
+    q:
+      - [en, "Total revenue of mossy_match in October 2026"]
+      - [tr, "mossy_match Ekim 2026 toplam geliri"]
+  - group: payers_yesterday_pacer
+    kind: value
+    truth:
+      - "SELECT payers FROM fct_app_daily WHERE app_id = 'pacer_pal' AND date = DATE '2026-10-31'"
+    q:
+      - [en, "How many paying users did pacer_pal have yesterday?"]
+  - group: payer_conv_7d_mossy
+    kind: value
+    truth:
+      - "SELECT SUM(payers)::DOUBLE / SUM(dau) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'"
+      - "SELECT AVG(payer_conversion) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'"
+    q:
+      - [tr, "mossy_match son 7 günde ödeme yapan kullanıcı oranı"]
+      - [en, "Payer conversion for mossy_match in the last week"]
+  - group: ecpm_pacer_absent
+    kind: refuse
+    absent: "SELECT COUNT(ecpm_usd) FROM fct_app_daily WHERE app_id = 'pacer_pal'"
+    q:
+      - [tr, "pacer_pal'ın eCPM değeri nedir?"]
+  - group: ad_share_quartz
+    kind: value
+    truth:
+      - "SELECT SUM(ad_revenue_usd) / SUM(revenue_usd) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-02' AND DATE '2026-10-31'"
+    q:
+      - [en, "What share of quartz_merge revenue came from ads in the last 30 days?"]
+  - group: rev_country_quartz_absent
+    kind: refuse
+    absent: "SELECT (SELECT COUNT(*) FROM stg_rc_transactions WHERE app_id = 'quartz_merge') + (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'fct_app_daily' AND column_name = 'country')"
+    q:
+      - [en, "How much revenue did quartz_merge make in Brazil?"]
+      - [tr, "quartz_merge Brezilya'dan ne kadar gelir elde etti?"]
+  - group: rev_mixed_lang_pebble
+    kind: value
+    truth:
+      - "SELECT SUM(revenue_usd) FROM fct_app_daily WHERE app_id = 'pebble_pop' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'"
+    q:
+      - [tr, "pebble_pop revenue last 7 days ne kadar?"]
+  - group: dau_and_rev_pacer
+    kind: value
+    truth:
+      - "SELECT dau, revenue_usd FROM fct_app_daily WHERE app_id = 'pacer_pal' AND date = DATE '2026-10-31'"
+    q:
+      - [en, "Give me DAU and revenue for pacer_pal yesterday"]
+  - group: ltv_d90_tidy_absent
+    kind: refuse
+    absent: "SELECT COUNT(*) FROM fct_ltv_curve WHERE app_id = 'demo_tidyhabit' AND day_n = 90"
+    q:
+      - [en, "What is the observed 90-day LTV of Tidy Habit?"]
+  - group: crash_free_7d_mossy
+    kind: value
+    truth:
+      - "SELECT crash_free_users_7d FROM fct_app_summary WHERE app_id = 'mossy_match'"
+    q:
+      - [en, "7-day crash-free users rate of mossy_match"]
+  - group: vitals_crash_quartz
+    kind: value
+    truth:
+      - "SELECT user_perceived_crash_rate FROM fct_android_vitals_daily WHERE app_id = 'quartz_merge' AND date = DATE '2026-10-31'"
+    q:
+      - [en, "What was the user-perceived crash rate on Google Play for quartz_merge yesterday?"]
+  - group: anr_mossy
+    kind: value
+    truth:
+      - "SELECT user_perceived_anr_rate FROM fct_android_vitals_daily WHERE app_id = 'mossy_match' AND date = DATE '2026-10-31'"
+      - "SELECT anr_rate FROM fct_android_vitals_daily WHERE app_id = 'mossy_match' AND date = DATE '2026-10-31'"
+    q:
+      - [tr, "mossy_match'in en son ANR oranı (Android vitals) ne?"]
+  - group: crash_free_ios_pebble
+    kind: value
+    truth:
+      - "SELECT 1 - LEAST(crashed_users, dau)::DOUBLE / dau FROM stg_active_users WHERE app_id = 'pebble_pop' AND platform = 'IOS' AND date = DATE '2026-10-31'"
+    q:
+      - [en, "Crash-free users on iOS for pebble_pop yesterday"]
+  - group: scene_load_mossy
+    kind: value
+    truth:
+      - "SELECT p50_ms FROM fct_load_times WHERE app_id = 'mossy_match' AND kind = 'scene_load'"
+    q:
+      - [tr, "mossy_match sahne yükleme süresi medyanı ne?"]
+  - group: ft_version_quartz
+    kind: value
+    truth:
+      - "SELECT ft_p95_ms FROM fct_perf_by_version WHERE app_id = 'quartz_merge' AND app_version = '1.8.0' AND device_tier = 'low'"
+    q:
+      - [en, "Frame time p95 of quartz_merge version 1.8.0 on low-tier phones"]
+  - group: perf_tablet_absent
+    kind: refuse
+    absent: "SELECT COUNT(*) FROM fct_perf_by_tier WHERE device_tier ILIKE '%tablet%'"
+    q:
+      - [en, "Frame time on tablets for mossy_match"]
+      - [tr, "mossy_match tabletlerde kare süresi"]
+  - group: win_rate_l10_pebble
+    kind: value
+    truth:
+      - "SELECT win_rate FROM fct_level_funnel WHERE app_id = 'pebble_pop' AND level = 10"
+      - "SELECT 1 - fail_rate FROM fct_sdk_level_funnel WHERE app_id = 'pebble_pop' AND level = 10"
+    q:
+      - [en, "Win rate of level 10 in pebble_pop"]
+      - [tr, "pebble_pop 10. seviyenin kazanma oranı"]
+  - group: attempts_l21_mossy
+    kind: value
+    truth:
+      - "SELECT attempts_per_completion FROM fct_level_funnel WHERE app_id = 'mossy_match' AND level = 21"
+    q:
+      - [tr, "mossy_match 21. bölümü geçmek için ortalama kaç deneme gerekiyor?"]
+  - group: reached_l30_pebble
+    kind: value
+    truth:
+      - "SELECT users_reached FROM fct_level_funnel WHERE app_id = 'pebble_pop' AND level = 30"
+      - "SELECT players_reached FROM fct_sdk_level_funnel WHERE app_id = 'pebble_pop' AND level = 30"
+    q:
+      - [en, "How many players reached level 30 in pebble_pop?"]
+  - group: churn_l14_mossy
+    kind: value
+    truth:
+      - "SELECT churn_rate FROM fct_level_funnel WHERE app_id = 'mossy_match' AND level = 14"
+    q:
+      - [en, "What share of mossy_match players who reach level 14 quit there?"]
+  - group: cpi_meta_mossy_30d
+    kind: value
+    truth:
+      - "SELECT SUM(spend_usd) / SUM(network_installs) FROM stg_ua_spend WHERE app_id = 'mossy_match' AND network = 'meta' AND date BETWEEN DATE '2026-10-02' AND DATE '2026-10-31'"
+    q:
+      - [en, "What's the CPI on Meta for mossy_match over the last 30 days?"]
+      - [tr, "mossy_match Meta'da son 30 gün kurulum başı maliyet"]
+  - group: spend_tiktok_oct_quartz
+    kind: value
+    truth:
+      - "SELECT SUM(spend_usd) FROM stg_ua_spend WHERE app_id = 'quartz_merge' AND network = 'tiktok' AND date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'"
+    q:
+      - [tr, "quartz_merge TikTok'a Ekim'de ne kadar harcadı?"]
+      - [en, "TikTok spend for quartz_merge in October"]
+  - group: ctr_applovin_mossy
+    kind: value
+    truth:
+      - "SELECT SUM(clicks)::DOUBLE / SUM(impressions) FROM stg_ua_spend WHERE app_id = 'mossy_match' AND network = 'applovin' AND date BETWEEN DATE '2026-10-02' AND DATE '2026-10-31'"
+      - "SELECT SUM(clicks)::DOUBLE / SUM(impressions) FROM stg_ua_spend WHERE app_id = 'mossy_match' AND network = 'applovin'"
+    q:
+      - [en, "Click-through rate on AppLovin for mossy_match"]
+      - [tr, "mossy_match AppLovin tıklama oranı"]
+  - group: cheapest_network_mossy
+    kind: value
+    truth:
+      - "SELECT network FROM fct_ua_summary WHERE app_id = 'mossy_match' AND campaign_key = '(all)' AND network <> '(all)' ORDER BY network_cpi_30d_usd LIMIT 1"
+    q:
+      - [tr, "mossy_match için en ucuz CPI hangi ağda?"]
+      - [en, "Which network gives mossy_match the cheapest installs?"]
+  - group: cpi_ironsource_absent
+    kind: refuse
+    absent: "SELECT COUNT(*) FROM stg_ua_spend WHERE app_id = 'quartz_merge' AND network ILIKE '%iron%'"
+    q:
+      - [tr, "quartz_merge ironSource CPI'ı ne?"]
+  - group: installs_tiktok_7d_quartz
+    kind: value
+    truth:
+      - "SELECT SUM(network_installs) FROM stg_ua_spend WHERE app_id = 'quartz_merge' AND network = 'tiktok' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'"
+    q:
+      - [en, "How many installs did TikTok bring quartz_merge in the last 7 days?"]
+  - group: spend_yesterday_all
+    kind: value
+    truth:
+      - "SELECT SUM(spend_usd) FROM stg_ua_spend WHERE date = DATE '2026-10-31'"
+    q:
+      - [en, "How much did we spend on ads yesterday across all apps?"]
+  - group: best_creative_quartz
+    kind: value
+    truth:
+      - "SELECT creative_key FROM fct_creative_scorecard WHERE app_id = 'quartz_merge' AND network = '(all)' AND ipm_rank = 1"
+    q:
+      - [en, "Which creative has the best IPM for quartz_merge?"]
+  - group: low_star_30d_pacer
+    kind: value
+    truth:
+      - "SELECT SUM(low_star_share * reviews) / SUM(reviews) FROM fct_review_daily WHERE app_id = 'pacer_pal' AND store = 'all' AND date BETWEEN DATE '2026-10-02' AND DATE '2026-10-31'"
+    q:
+      - [tr, "pacer_pal son 30 günde 1-2 yıldızlı yorum oranı"]
+  - group: store_rating_pacer
+    kind: value
+    truth:
+      - "SELECT total_avg_rating FROM stg_store_daily WHERE app_id = 'pacer_pal' AND store = 'google_play' AND date = DATE '2026-10-31'"
+    q:
+      - [en, "What is pacer_pal's overall Google Play rating?"]
+  - group: best_product_pebble
+    kind: value
+    truth:
+      - "SELECT product_id FROM fct_sdk_purchases WHERE app_id = 'pebble_pop' ORDER BY revenue_usd DESC LIMIT 1"
+    q:
+      - [tr, "pebble_pop'ta en çok gelir getiren ürün hangisi?"]
+  - group: rewarded_rev_pebble
+    kind: value
+    truth:
+      - "SELECT SUM(revenue_usd) FROM fct_sdk_ad_revenue_daily WHERE app_id = 'pebble_pop' AND ad_format = 'rewarded' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'"
+    q:
+      - [en, "Rewarded ad revenue for pebble_pop over the last 7 days"]
+  - group: interstitial_ecpm_pebble
+    kind: value
+    truth:
+      - "SELECT SUM(revenue_usd) * 1000 / SUM(impressions) FROM fct_sdk_ad_revenue_daily WHERE app_id = 'pebble_pop' AND ad_format = 'interstitial'"
+      - "SELECT SUM(revenue_usd) * 1000 / SUM(impressions) FROM fct_sdk_ad_revenue_daily WHERE app_id = 'pebble_pop' AND ad_format = 'interstitial' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'"
+      - "SELECT SUM(revenue_usd) * 1000 / SUM(impressions) FROM fct_sdk_ad_revenue_daily WHERE app_id = 'pebble_pop' AND ad_format = 'interstitial' AND date BETWEEN DATE '2026-10-02' AND DATE '2026-10-31'"
+    q:
+      - [en, "eCPM of interstitial ads in pebble_pop"]
+  - group: nps_absent
+    kind: refuse
+    absent: "SELECT COUNT(*) FROM information_schema.columns WHERE column_name ILIKE '%nps%'"
+    q:
+      - [en, "What's the NPS of mossy_match?"]
+  - group: why_crash_quartz
+    kind: why
+    driver: "SELECT app_version FROM fct_perf_by_version WHERE app_id = 'quartz_merge' ORDER BY first_seen DESC LIMIT 1"
+    q:
+      - [en, "What caused quartz_merge's crash-free rate to fall?"]
+      - [tr, "quartz_merge çökmesiz kullanıcı oranı neden azaldı?"]
+  - group: audit_dau_yesterday_quartz
+    kind: value
+    truth:
+      - "SELECT dau FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date = DATE '2026-10-31'"
+    q:
+      - [en, "What was quartz_merge's DAU yesterday?"]
+      - [tr, "quartz_merge dün kaç aktif kullanıcı vardı?"]
+  - group: audit_revenue_last_week_mossy
+    kind: value
+    truth:
+      - "SELECT SUM(revenue_usd) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'"
+      - "SELECT SUM(revenue_usd) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date BETWEEN DATE '2026-10-19' AND DATE '2026-10-25'"
+      - "SELECT SUM(revenue_usd) FROM fct_app_daily WHERE app_id = 'mossy_match' AND date BETWEEN DATE '2026-10-26' AND DATE '2026-10-31'"
+    q:
+      - [en, "How much revenue did mossy_match make last week?"]
+      - [tr, "mossy_match geçen hafta ne kadar gelir getirdi?"]
+  - group: audit_crash_trend_quartz
+    kind: value
+    truth:
+      - "SELECT (SELECT 1 - SUM(LEAST(crashed_users, dau))::DOUBLE / SUM(dau) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'), (SELECT 1 - SUM(LEAST(crashed_users, dau))::DOUBLE / SUM(dau) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-18' AND DATE '2026-10-24')"
+      - "SELECT (SELECT 1 - SUM(LEAST(crashed_users, dau))::DOUBLE / SUM(dau) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-18' AND DATE '2026-10-31'), (SELECT 1 - SUM(LEAST(crashed_users, dau))::DOUBLE / SUM(dau) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-04' AND DATE '2026-10-17')"
+      - "SELECT (SELECT AVG(crash_free_users) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-25' AND DATE '2026-10-31'), (SELECT AVG(crash_free_users) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-18' AND DATE '2026-10-24')"
+    q:
+      - [en, "Is quartz_merge's crash-free rate getting worse?"]
+      - [tr, "quartz_merge çökme oranı kötüleşiyor mu?"]
+  - group: audit_d7_compare
+    kind: value
+    truth:
+      - "SELECT (SELECT retention FROM fct_retention_summary WHERE app_id = 'mossy_match' AND day_n = 7), (SELECT retention FROM fct_retention_summary WHERE app_id = 'quartz_merge' AND day_n = 7)"
+    q:
+      - [en, "Compare D7 retention of mossy_match and quartz_merge"]
+  - group: audit_arpdau_30d_pebble
+    kind: value
+    truth:
+      - "SELECT SUM(revenue_usd) / SUM(dau) FROM fct_app_daily WHERE app_id = 'pebble_pop' AND date BETWEEN DATE '2026-10-02' AND DATE '2026-10-31'"
+      - "SELECT AVG(arpdau) FROM fct_app_daily WHERE app_id = 'pebble_pop' AND date BETWEEN DATE '2026-10-02' AND DATE '2026-10-31'"
+    q:
+      - [en, "What's the ARPDAU of pebble_pop over the last 30 days?"]
+      - [tr, "pebble_pop son 30 günde ARPDAU nedir?"]
+  - group: audit_installs_oct_quartz
+    kind: value
+    truth:
+      - "SELECT SUM(new_users) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'"
+      - "SELECT SUM(store_installs) FROM fct_app_daily WHERE app_id = 'quartz_merge' AND date BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'"
+    q:
+      - [en, "How many installs did quartz_merge get in October 2026?"]
+  - group: audit_quit_level_mossy
+    kind: value
+    label_kind: level
+    truth:
+      - "SELECT CAST(level AS VARCHAR) FROM fct_level_funnel WHERE app_id = 'mossy_match' ORDER BY users_churned DESC LIMIT 1"
+      - "SELECT CAST(level AS VARCHAR) FROM fct_level_funnel WHERE app_id = 'mossy_match' AND users_reached >= 100 AND level < (SELECT MAX(level) FROM fct_level_funnel WHERE app_id = 'mossy_match') ORDER BY churn_rate DESC LIMIT 1"
+    q:
+      - [en, "Which level do most players quit at in mossy_match?"]
+      - [tr, "mossy_match oyuncuları en çok hangi seviyede bırakıyor?"]
+  - group: audit_why_d1_quartz
+    kind: why
+    driver: "SELECT app_version FROM stg_cohort_dims WHERE app_id = 'quartz_merge' AND grouping_set = 'app_version' AND cohort_date BETWEEN DATE '2026-10-17' AND DATE '2026-10-30' GROUP BY app_version HAVING SUM(users) >= 200 ORDER BY SUM(d1_users)::DOUBLE / SUM(users) LIMIT 1"
+    q:
+      - [en, "Why did D1 drop in quartz_merge?"]
+  - group: audit_cpi_meta_quartz
+    kind: refuse
+    absent: "SELECT COUNT(*) FROM stg_ua_spend WHERE app_id = 'quartz_merge' AND network = 'meta'"
+    q:
+      - [en, "What is the CPI on Meta for quartz_merge?"]
+  - group: audit_puzzle_retention
+    kind: value
+    accept_refusal: true
+    truth:
+      - "SELECT (SELECT retention FROM fct_retention_summary WHERE app_id = 'mossy_match' AND day_n = 1), (SELECT retention FROM fct_retention_summary WHERE app_id = 'pebble_pop' AND day_n = 1)"
+      - "SELECT (SELECT retention FROM fct_retention_summary WHERE app_id = 'mossy_match' AND day_n = 7), (SELECT retention FROM fct_retention_summary WHERE app_id = 'pebble_pop' AND day_n = 7)"
+    q:
+      - [en, "Give me the retention of the puzzle game"]
+  - group: audit_best_d7_game
+    kind: value
+    truth:
+      - "SELECT app_id FROM fct_retention_summary WHERE day_n = 7 ORDER BY retention DESC LIMIT 1"
+      - "SELECT s.app_id FROM fct_retention_summary s JOIN meta_apps m USING (app_id) WHERE s.day_n = 7 AND m.genre NOT IN ('app', 'fitness', 'health') ORDER BY s.retention DESC LIMIT 1"
+      - "SELECT s.app_id FROM fct_retention_summary s JOIN meta_apps m USING (app_id) WHERE s.day_n = 7 AND s.cohorts >= 28 AND m.genre NOT IN ('app', 'fitness', 'health') ORDER BY s.retention DESC LIMIT 1"
+    q:
+      - [tr, "Hangi oyunun D7 elde tutması en iyi?"]

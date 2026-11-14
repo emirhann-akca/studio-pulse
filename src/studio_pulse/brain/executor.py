@@ -44,6 +44,9 @@ ALLOWED_TABLES = (
     "fct_rating_by_version", "fct_android_vitals_daily", "fct_source_freshness",
     "fct_experiment_arms", "fct_experiment_tests", "fct_pltv_summary", "fct_pltv_curve",
     "stg_cohort_days", "stg_cohort_dims", "stg_segment_retention", "meta_apps",
+    # per-platform daily activity and per-ad daily spend (aggregates; campaign and ad names are
+    # untrusted text, as in fct_ua_daily): the platform and country filters of the semantic layer
+    "stg_active_users", "stg_ua_spend",
     # studio SDK aggregates (collector): apps and store status, level funnel with quits,
     # where players fail, settings turned off, purchases, ad revenue, crash-free sessions
     "fct_sdk_apps", "fct_sdk_level_funnel", "fct_sdk_fail_heatmap", "fct_sdk_settings",
