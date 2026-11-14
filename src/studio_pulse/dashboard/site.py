@@ -51,6 +51,8 @@ SOURCE_LABELS = {
     "meta_ads": "Meta Marketing API (Insights)",
     "google_ads": "Google Ads API (GAQL)",
     "tiktok_ads": "TikTok API for Business (reports)",
+    "applovin_ads": "AppLovin Reporting API (advertiser)",
+    "unity_ads": "Unity Ads Statistics API v2 (acquisitions)",
     "ua_csv": "Ad-network CSV export",
     "play_reviews": "Google Play reviews",
     "app_store_reviews": "App Store Connect customer reviews",

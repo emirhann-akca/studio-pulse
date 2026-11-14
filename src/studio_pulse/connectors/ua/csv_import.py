@@ -1,7 +1,8 @@
 """UA spend from CSV exports: the floor for any network without an API connector.
 
-AppLovin, Unity Ads, Mintegral (or any other network) report exports are read
-from a file or a folder of `*.csv` / `*.tsv` / `*.txt` files. Headers are
+Mintegral, ironSource (or any other network) report exports, and AppLovin or
+Unity Ads exports where the API sources (applovin_ads, unity_ads) are not used,
+are read from a file or a folder of `*.csv` / `*.tsv` / `*.txt` files. Headers are
 matched case-insensitively against the aliases below (the usual names in those
 dashboards' exports); anything else is mapped with `columns:`. UTF-8, UTF-8
 with BOM and UTF-16 files are read; the delimiter (`,` `;` tab) is detected.

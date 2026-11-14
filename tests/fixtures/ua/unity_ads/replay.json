@@ -1,0 +1,49 @@
+{
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/advertise/stats/v2/organizations/1234567890123/reports/acquisitions",
+   "query": {
+    "start": "2026-10-01T00:00:00.000Z",
+    "end": "2026-10-06T00:00:00.000Z"
+   },
+   "file": "c1.csv",
+   "content_type": "text/csv"
+  },
+  {
+   "method": "GET",
+   "path": "/advertise/stats/v2/organizations/1234567890123/reports/acquisitions",
+   "query": {
+    "start": "2026-10-06T00:00:00.000Z",
+    "end": "2026-10-11T00:00:00.000Z"
+   },
+   "file": "c2.csv",
+   "content_type": "text/csv"
+  },
+  {
+   "method": "GET",
+   "path": "/advertise/stats/v2/organizations/1111/reports/acquisitions",
+   "status": 204,
+   "body": ""
+  },
+  {
+   "method": "GET",
+   "path": "/advertise/stats/v2/organizations/2222/reports/acquisitions",
+   "file": "partial.csv",
+   "content_type": "text/csv"
+  },
+  {
+   "method": "GET",
+   "path": "/advertise/stats/v2/organizations/3333/reports/acquisitions",
+   "file": "mismatch.csv",
+   "content_type": "text/csv"
+  },
+  {
+   "method": "GET",
+   "path": "/advertise/stats/v2/organizations/4444/reports/acquisitions",
+   "status": 401,
+   "file": "error_401.json",
+   "content_type": "application/problem+json"
+  }
+ ]
+}

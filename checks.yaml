@@ -20,7 +20,7 @@ checks:
     overrides: {play_console: 4, android_vitals: 4}   # Play statistics and vitals land ~2 days late
     # A paused campaign or a day without reviews is not a broken source either.
     sparse: [crashlytics_bigquery, crashlytics_files, revenuecat, app_store, play_reviews, app_store_reviews,
-             ua_csv, meta_ads, google_ads, tiktok_ads]
+             ua_csv, meta_ads, google_ads, tiktok_ads, applovin_ads, unity_ads]
     # An app whose SDK no build ships yet has no SDK rows at all: that is waiting, not stale.
     # Once its first event arrives, a silent SDK source is judged like any other.
     awaiting_first_data: [pulse_sdk]

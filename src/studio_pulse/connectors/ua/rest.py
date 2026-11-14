@@ -19,7 +19,7 @@ from collections.abc import Callable
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from .common import Redactor, UAError
+from .common import Redactor, UAError, check_host
 
 INSTALL_HINT = 'ad-network API sources need dlt: pip install "studio-pulse[ua]"'
 
@@ -53,13 +53,16 @@ def link_paginator(next_url_path: str, strip: str | None = None) -> Any:
 
     Meta writes `access_token` into `paging.next`; the token is sent as a
     header instead, so it is removed from the URL before the next request
-    (URLs end up in error messages and logs).
+    (URLs end up in error messages and logs). The link comes from a response,
+    so its host is checked against the UA hosts before it is followed.
     """
     from dlt.sources.helpers.rest_client.paginators import JSONLinkPaginator
 
     class _Link(JSONLinkPaginator):
         def update_state(self, response: Any, data: Any = None) -> None:
             super().update_state(response, data)
+            if self._next_reference:
+                check_host(str(self._next_reference), "next-page link")
             if strip and self._next_reference:
                 self._next_reference = strip_query_param(str(self._next_reference), strip)
 
@@ -78,6 +81,7 @@ def fetch(
     response_actions: list[Callable[..., Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """All records of one endpoint, every page. Errors are re-raised redacted."""
+    check_host(base_url, what)
     try:
         from dlt.sources.rest_api import rest_api_source
     except ImportError as exc:  # pragma: no cover - exercised without the extra

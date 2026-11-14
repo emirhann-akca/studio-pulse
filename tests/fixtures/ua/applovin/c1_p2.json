@@ -1,0 +1,21 @@
+{
+ "code": 200,
+ "count": 1,
+ "results": [
+  {
+   "day": "2026-10-03",
+   "campaign": "AL_Other_US",
+   "campaign_id_external": "c-al-9",
+   "campaign_package_name": "com.example.other",
+   "campaign_store_id": "com.example.other",
+   "platform": "android",
+   "country": "us",
+   "creative_set": "Other set",
+   "creative_set_id": "cs7",
+   "impressions": "5000",
+   "clicks": "50",
+   "conversions": "12",
+   "cost": "99.00"
+  }
+ ]
+}

@@ -1,0 +1,36 @@
+{
+ "code": 200,
+ "count": 2,
+ "results": [
+  {
+   "day": "2026-10-01",
+   "campaign": "AL_Puzzle_US",
+   "campaign_id_external": "c-al-1",
+   "campaign_package_name": "com.example.puzzle",
+   "campaign_store_id": "com.example.puzzle",
+   "platform": "android",
+   "country": "us",
+   "creative_set": "cf1.puzzle-ads.dust-blower.main.main.main.9x16.en.6453fdb366",
+   "creative_set_id": "cs1",
+   "impressions": "12000",
+   "clicks": "240",
+   "conversions": "30",
+   "cost": "24.30"
+  },
+  {
+   "day": "2026-10-02",
+   "campaign": "AL_Puzzle_US",
+   "campaign_id_external": "c-al-1",
+   "campaign_package_name": "com.example.puzzle",
+   "campaign_store_id": "com.example.puzzle",
+   "platform": "android",
+   "country": "de",
+   "creative_set": "cf1.puzzle-ads.dust-blower.main.main.main.9x16.en.6453fdb366",
+   "creative_set_id": "cs1",
+   "impressions": 4000,
+   "clicks": 70,
+   "conversions": 9,
+   "cost": 8.7
+  }
+ ]
+}

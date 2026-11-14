@@ -250,7 +250,9 @@ BigQuery bytes billed by the last load. The dashboard marks a source fresh
 ## User acquisition (UA)
 
 Spend comes from the ad networks (`raw_ua_spend`, one contract for every
-network, see `src/studio_pulse/connectors/ua/common.py`). Amounts are kept in
+network, see `src/studio_pulse/connectors/ua/common.py`): Meta, Google Ads,
+TikTok, AppLovin and Unity Ads through their reporting APIs, any other network
+through CSV exports. Amounts are kept in
 the account currency and converted in `stg_ua_spend`: `spend_usd = spend` for
 USD accounts, otherwise `spend x usd_per_unit` of the fallback FX table on that
 day (`fx_rates` in the config); a currency without a rate leaves `spend_usd`

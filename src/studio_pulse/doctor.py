@@ -221,11 +221,13 @@ def check_config(path: str | None) -> list[Result]:
     return out
 
 
-# Environment variables each API source needs (any one of a tuple suffices); only
-# whether they are set is reported, never their values.
+# Environment variables each API source needs (any one of a tuple suffices; "A+B" needs
+# both); only whether they are set is reported, never their values.
 API_CREDENTIALS = {
     "meta_ads": (("PULSE_META_ACCESS_TOKEN",), "ua", "dlt"),
     "tiktok_ads": (("PULSE_TIKTOK_ACCESS_TOKEN",), "ua", "dlt"),
+    "applovin_ads": (("PULSE_APPLOVIN_REPORT_KEY",), None, None),
+    "unity_ads": (("PULSE_UNITY_ADS_KEY_ID+PULSE_UNITY_ADS_SECRET_KEY",), None, None),
     "google_ads": (("PULSE_GOOGLE_ADS_ACCESS_TOKEN", "@adc"), "ua", "dlt"),
     "play_reviews": (("PULSE_PLAY_ACCESS_TOKEN", "@adc"), None, None),
     "android_vitals": (("PULSE_PLAY_ACCESS_TOKEN", "@adc"), None, None),
@@ -250,6 +252,12 @@ def check_api_sources(cfg) -> list[Result]:
             envs, extra, module = API_CREDENTIALS[kind]
             if src.get("token_env"):
                 envs = (str(src["token_env"]),)
+            if kind == "unity_ads" and (src.get("key_id_env") or src.get("secret_env")):
+                envs = (
+                    str(src.get("key_id_env") or "PULSE_UNITY_ADS_KEY_ID")
+                    + "+"
+                    + str(src.get("secret_env") or "PULSE_UNITY_ADS_SECRET_KEY"),
+                )
             if module and importlib.util.find_spec(module) is None:
                 needs_module = not (
                     kind == "app_store_reviews" and os.environ.get("PULSE_ASC_TOKEN")
@@ -259,13 +267,17 @@ def check_api_sources(cfg) -> list[Result]:
                         Result(name, "fail", f"install studio-pulse[{extra}] ({module} is missing)")
                     )
                     continue
-            found = [e for e in envs if e != "@adc" and os.environ.get(e)]
+            found = [
+                e for e in envs if e != "@adc" and all(os.environ.get(x) for x in e.split("+"))
+            ]
             if not found and "@adc" in envs and adc_status()[0] == "present":
                 found = ["Application Default Credentials"]
             if found:
-                out.append(Result(name, "ok", f"credential present: {found[0]}"))
+                out.append(
+                    Result(name, "ok", f"credential present: {found[0].replace('+', ' and ')}")
+                )
             else:
-                want = " or ".join(e if e != "@adc" else "ADC" for e in envs)
+                want = " or ".join(e.replace("+", " and ") if e != "@adc" else "ADC" for e in envs)
                 out.append(Result(name, "fail", f"no credential: set {want}"))
     return out
 

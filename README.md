@@ -414,7 +414,9 @@ and sources. No secrets go in the file; values can reference `${ENV_VARS}`.
 | `meta_ads` | Marketing API Insights, ad x country x day | `$PULSE_META_ACCESS_TOKEN` (system user, ads_read) |
 | `google_ads` | `googleAds:search` GAQL, ad x day | ADC with the adwords scope or `$PULSE_GOOGLE_ADS_ACCESS_TOKEN`; Cloud-project access (developer tokens were retired on 9 Sep 2026); not verified against a live account |
 | `tiktok_ads` | `report/integrated/get`, ad x country x day | `$PULSE_TIKTOK_ACCESS_TOKEN` |
-| `ua_csv` | AppLovin, Unity Ads, Mintegral or any network's report export | files you copy |
+| `applovin_ads` | Reporting API `report_type=advertiser`, creative set x country x day (last 45 days, UTC) | `$PULSE_APPLOVIN_REPORT_KEY` (Report Key); not verified against a live account |
+| `unity_ads` | Statistics API v2 `reports/acquisitions` (CSV), creative pack x country x day | service account key: `$PULSE_UNITY_ADS_KEY_ID` + `$PULSE_UNITY_ADS_SECRET_KEY`; not verified against a live account |
+| `ua_csv` | Mintegral, ironSource or any network's report export | files you copy |
 | `play_reviews` | monthly `reviews/` CSVs from the Play Console bucket (+ the Play API's last 7 days) | ADC for GCS / androidpublisher |
 | `app_store_reviews` | App Store Connect `customerReviews` | API key in `PULSE_ASC_*` env variables |
 | `android_vitals` | Play Developer Reporting API crash and ANR rates | ADC (playdeveloperreporting) |

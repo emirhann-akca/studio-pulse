@@ -42,7 +42,13 @@ def source_kind(key: str) -> str:
     return key.split("@", 1)[0]
 
 
-UA_NETWORK = {"meta_ads": "meta", "google_ads": "google_ads", "tiktok_ads": "tiktok"}
+UA_NETWORK = {
+    "meta_ads": "meta",
+    "google_ads": "google_ads",
+    "tiktok_ads": "tiktok",
+    "applovin_ads": "applovin",
+    "unity_ads": "unity_ads",
+}
 
 
 def experiment_settings(cfg: Config) -> list[tuple[Any, ...]]:
@@ -354,7 +360,7 @@ def _ingest_ua(
     end: dt.date,
     log: Any,
 ) -> Any:
-    from .connectors.ua import csv_import, google_ads, meta, rest, tiktok
+    from .connectors.ua import applovin, csv_import, google_ads, meta, rest, tiktok, unity_ads
     from .connectors.ua.common import UAError
 
     parser = cfg.ua.get("creative_parser")
@@ -368,12 +374,18 @@ def _ingest_ua(
             creative_parser=parser,
             log=log,
         )
-    if not rest.dlt_available():
+    if kind in ua_pkg.DLT_SOURCES and not rest.dlt_available():
         raise UAError(rest.INSTALL_HINT)
     src = dict(src)
     if src.get("replay"):
         src["replay"] = str(cfg.resolve(src["replay"]))
-    module = {"meta_ads": meta, "google_ads": google_ads, "tiktok_ads": tiktok}[kind]
+    module = {
+        "meta_ads": meta,
+        "google_ads": google_ads,
+        "tiktok_ads": tiktok,
+        "applovin_ads": applovin,
+        "unity_ads": unity_ads,
+    }[kind]
     return module.ingest(
         con,
         app_id=app.id,

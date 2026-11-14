@@ -1,0 +1,50 @@
+{
+ "requests": [
+  {
+   "method": "GET",
+   "path": "/report",
+   "query": {
+    "start": "2026-10-01",
+    "end": "2026-10-05",
+    "offset": "0"
+   },
+   "file": "c1_p1.json"
+  },
+  {
+   "method": "GET",
+   "path": "/report",
+   "query": {
+    "start": "2026-10-01",
+    "end": "2026-10-05",
+    "offset": "2"
+   },
+   "file": "c1_p2.json"
+  },
+  {
+   "method": "GET",
+   "path": "/report",
+   "query": {
+    "start": "2026-10-06",
+    "end": "2026-10-10",
+    "offset": "0"
+   },
+   "file": "c2_p1.json"
+  },
+  {
+   "method": "GET",
+   "path": "/report",
+   "query": {
+    "start": "2026-09-01"
+   },
+   "file": "empty.json"
+  },
+  {
+   "method": "GET",
+   "path": "/report",
+   "query": {
+    "start": "2026-08-01"
+   },
+   "file": "code_400.json"
+  }
+ ]
+}

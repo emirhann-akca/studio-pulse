@@ -66,9 +66,13 @@ apps:
         attribution: ga4                    # GA4 first-touch campaign (default for Google Ads)
       tiktok_ads:
         advertiser_id: "0000000000000000000"  # PULSE_TIKTOK_ACCESS_TOKEN
+      applovin_ads:                         # PULSE_APPLOVIN_REPORT_KEY (Account > Keys)
+        package_names: [com.example.puzzle] # the key covers every app of the account
+      unity_ads:                            # PULSE_UNITY_ADS_KEY_ID + PULSE_UNITY_ADS_SECRET_KEY
+        organization_id: "0000000000000"    # Organization core ID (service account key)
       ua_csv:
-        network: applovin
-        path: local/reports/applovin        # report exports you download
+        network: mintegral                  # any network without an API source
+        path: local/reports/mintegral       # report exports you download
       play_reviews:
         path: gs://pubsite_prod_rev_00000000000000000000/reviews/
         package: com.example.puzzle

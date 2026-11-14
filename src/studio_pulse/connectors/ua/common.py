@@ -10,13 +10,19 @@ campaign, ad set, ad, country, platform):
 Amounts stay in the account currency; `stg_ua_spend` converts them to USD with
 the configured FX table. `network_installs` is what the network itself
 reports (Meta app-install actions, Google Ads app-install conversions, TikTok
-app installs, the "installs" column of a CSV export): an ad network's claim,
+app installs, AppLovin `conversions`, Unity Ads `installs`, the "installs"
+column of a CSV export): an ad network's claim,
 not an attributed install, and labelled as such everywhere.
 
 Credentials come from environment variables (or Google's Application Default
 Credentials) only. A config that holds a secret is refused, and every error
 message passes through a redactor that removes the secret values the
 connector knows about.
+
+Outbound requests go only to the ad-network API hosts in `UA_HOSTS` (exact
+names, https, default port): `check_host` refuses anything else before a
+credential is sent, including a next-page link or a redirect taken from a
+response.
 """
 
 from __future__ import annotations
@@ -25,10 +31,22 @@ import datetime as dt
 import os
 from collections.abc import Iterable, Iterator
 from typing import Any
+from urllib.parse import urlsplit
 
 import duckdb
 
 from ...warehouse import record_load, replace_slice
+
+# The API hosts of the ad-network connectors (exact names; no wildcards, no subdomains).
+UA_HOSTS = frozenset(
+    {
+        "graph.facebook.com",  # meta.py
+        "googleads.googleapis.com",  # google_ads.py
+        "business-api.tiktok.com",  # tiktok.py
+        "r.applovin.com",  # applovin.py
+        "services.api.unity.com",  # unity_ads.py
+    }
+)
 
 NETWORKS = (
     "meta",
@@ -52,6 +70,9 @@ SECRET_KEYS = (
     "api_key",
     "private_key",
     "refresh_token",
+    "report_key",
+    "key_id",
+    "secret_key",
 )
 
 
@@ -70,6 +91,31 @@ def reject_inline_secrets(src: dict[str, Any], kind: str) -> None:
             f"{kind}: {', '.join(bad)} must not be in the config file; "
             "put the credential in an environment variable (see docs/OPERATIONS.md)"
         )
+
+
+def check_host(url: str, what: str) -> str:
+    """Return `url` if it is https on a UA API host's default port; raise UAError otherwise.
+
+    The message names the host only: a URL can carry a credential in its query string.
+    """
+    p = urlsplit(str(url))
+    try:
+        port = p.port
+    except ValueError:
+        port = -1
+    host = (p.hostname or "").lower()
+    if (
+        p.scheme != "https"
+        or p.username is not None
+        or p.password is not None
+        or port not in (None, 443)
+        or host not in UA_HOSTS
+    ):
+        raise UAError(
+            f"{what}: refused a request to {p.scheme or '?'}://{host or '?'} "
+            f"(UA connectors call only {', '.join(sorted(UA_HOSTS))})"
+        )
+    return url
 
 
 def env_secret(name: str, kind: str) -> str:

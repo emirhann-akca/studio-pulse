@@ -142,13 +142,20 @@ Default Credentials) and never from the config: a source that contains
 `access_token`, `token`, `api_key`, `secret`, `password` or a similar key is
 refused. Every error message is passed through a redactor that removes the
 secret values the connector holds, and tokens travel only in headers, never in
-URLs (Meta's `paging.next` links have their `access_token` removed).
+URLs (Meta's `paging.next` links have their `access_token` removed). The one
+exception is AppLovin's Report Key, which its API accepts only as the
+`api_key` query parameter: that request URL is never logged or put into an
+error message (urllib3's DEBUG line has the key masked). UA requests go only to
+the API hosts in `connectors/ua/common.py` `UA_HOSTS` (https, exact names), and
+redirects or next-page links to any other host are refused.
 
 | Source | Config | Credential |
 |---|---|---|
 | `meta_ads` | `account_id`, optional `platform`, `api_version` (v27.0), `lookback_days` (30) | `$PULSE_META_ACCESS_TOKEN` (or `token_env`) |
 | `google_ads` | `customer_id`, optional `login_customer_id` (MCC), `quota_project`, `api_version` (v26) | `$PULSE_GOOGLE_ADS_ACCESS_TOKEN` or ADC with the `adwords` scope; `$PULSE_GOOGLE_ADS_DEVELOPER_TOKEN` only for accounts still on developer tokens |
 | `tiktok_ads` | `advertiser_id` | `$PULSE_TIKTOK_ACCESS_TOKEN` |
+| `applovin_ads` | `package_names` (the promoted apps' package / bundle ids or App Store ids to keep: one key covers the whole account), optional `currency` (USD), `page_size` (10000), `lookback_days` (30) | `$PULSE_APPLOVIN_REPORT_KEY` (or `token_env`) |
+| `unity_ads` | `organization_id` (Organization core ID), optional `app_ids`, `currency` (USD), `chunk_days` (7), `lookback_days` (30) | `$PULSE_UNITY_ADS_KEY_ID` and `$PULSE_UNITY_ADS_SECRET_KEY` (or `key_id_env` / `secret_env`): a service account with the Advertise Stats API Viewer role |
 | `ua_csv` | `network`, `path`, optional `currency`, `platform`, `date_format`, `columns` | - |
 | `play_reviews` | `path` (folder or `gs://pubsite_prod_rev_<id>/reviews/`), `package`, `api: true` | ADC (GCS, androidpublisher) or `$PULSE_PLAY_ACCESS_TOKEN` |
 | `app_store_reviews` | `apple_id` | `PULSE_ASC_KEY_ID`, `PULSE_ASC_ISSUER_ID`, `PULSE_ASC_PRIVATE_KEY` or `..._PATH` (ES256, extra `stores`), or `$PULSE_ASC_TOKEN` |
@@ -158,6 +165,19 @@ Google Ads access: Google retired developer tokens on 9 September 2026 and
 grants API access per Google Cloud project; the connector therefore sends an
 OAuth token and, when set, the Cloud project as `x-goog-user-project`. This
 model has not been verified against a live account.
+
+AppLovin and Unity Ads, as their documentation states them (read 15 Nov 2026):
+AppLovin's Reporting API serves the last 45 days in UTC, so days older than that
+are not re-read and keep the rows of earlier runs; installs are its `conversions`
+column and there is no ad id, so a creative set is the ad (as in a CSV export).
+Unity's Statistics API allows 1 request per second and 30 per 30 minutes: the
+window is read in `chunk_days` pieces 1.1 s apart, a window that needs more than
+25 requests is refused before anything is sent, a `Retry-After` longer than two
+minutes ends the source for this run, and a CSV answer without its end-of-file
+marker is refused as a partial download. Neither API documents the currency of
+spend: USD is assumed unless the source sets `currency:`. Do not configure a
+`ua_csv` export of the same network and days next to an API source (the
+`ua_spend_unique` check fails on the overlap).
 
 Two sources of one type for one app: suffix the key, `meta_ads@ios:`.
 Recorded responses: `replay: <folder>` makes an API source read

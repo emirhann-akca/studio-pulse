@@ -1,0 +1,4 @@
+timestamp,campaign id,campaign name,creative pack id,creative pack name,country,platform,starts,clicks,installs,spend
+2026-10-01,"5f0000000000000000000001","UA_Puzzle_TR","6a0000000000000000000001","cf1.puzzle-ads.dust-blower.blower.lvl21.fill.9x16.tr.91c97d00dc",TR,android,9000,100,20,10.10
+2026-10-02,"5f0000000000000000000001","UA_Puzzle_TR","6a0000000000000000000002","Pack, with comma",TR,android,2000,21,4,2.02
+#__EOF__,rows=2,,,,,,,,,

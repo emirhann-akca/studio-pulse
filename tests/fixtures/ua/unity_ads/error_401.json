@@ -1,0 +1,7 @@
+{
+ "title": "Unauthorized",
+ "status": 401,
+ "code": 51,
+ "type": "https://services.docs.unity.com/docs/errors#51",
+ "detail": "Invalid credentials"
+}

@@ -1,0 +1,21 @@
+{
+ "code": 200,
+ "count": 1,
+ "results": [
+  {
+   "day": "2026-10-06",
+   "campaign": "AL_Puzzle_iOS_GB",
+   "campaign_id_external": "c-al-2",
+   "campaign_package_name": "com.example.puzzleios",
+   "campaign_store_id": "1234567890",
+   "platform": "ios",
+   "country": "gb",
+   "creative_set": "Summer promo",
+   "creative_set_id": "cs9",
+   "impressions": "1000",
+   "clicks": "10",
+   "conversions": "2",
+   "cost": "3.50"
+  }
+ ]
+}

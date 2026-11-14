@@ -85,7 +85,8 @@ def ua_page(con: duckdb.DuckDBPyConnection, apps: list[dict[str, Any]]) -> tuple
     if not summ:
         return "UA", intro + (
             '<p class="note">No ad-network spend loaded yet. Add a <code>meta_ads</code>, '
-            "<code>google_ads</code>, <code>tiktok_ads</code> or <code>ua_csv</code> source to an "
+            "<code>google_ads</code>, <code>tiktok_ads</code>, <code>applovin_ads</code>, "
+            "<code>unity_ads</code> or <code>ua_csv</code> source to an "
             "app (pulse.example.yaml).</p>"
         )
     names = {a["app_id"]: a["name"] for a in apps}

@@ -59,6 +59,8 @@ KINDS = {
     "meta_ads": ("Meta reklam harcaması", "Meta ad spend"),
     "google_ads": ("Google Ads harcaması", "Google Ads spend"),
     "tiktok_ads": ("TikTok reklam harcaması", "TikTok ad spend"),
+    "applovin_ads": ("AppLovin reklam harcaması", "AppLovin ad spend"),
+    "unity_ads": ("Unity Ads reklam harcaması", "Unity Ads ad spend"),
     "ua_csv": ("Reklam harcaması (CSV)", "Ad spend (CSV)"),
 }
 

@@ -34,7 +34,8 @@ PRIMARY = {**dict.fromkeys(GA4_SOURCES, "GA4"), **dict.fromkeys(SDK_SOURCES, "SD
 # Rows exist only when something happens (checks.yaml `sparse`): not judged by data date.
 SPARSE = (
     "crashlytics_bigquery", "crashlytics_files", "revenuecat", "app_store", "play_reviews",
-    "app_store_reviews", "meta_ads", "google_ads", "tiktok_ads", "ua_csv", "admob",
+    "app_store_reviews", "meta_ads", "google_ads", "tiktok_ads", "applovin_ads", "unity_ads",
+    "ua_csv", "admob",
 )  # fmt: skip
 STALE_DAYS = 3
 OLD_DAYS = 7
