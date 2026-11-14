@@ -260,6 +260,17 @@ and KR). The band uses the extremes, so a game charting in Turkey and the US get
 
 The money is the store's gross: the developer receives roughly 70-85% of it.
 
+### Data-quality checks of the estimates
+
+`radar/estimate/checks.yaml`, run with the radar's own checks: a watchlist entry at most once,
+a usable window has a positive rate, every band has low <= middle <= high with basis, method
+and n, and download bands only for lists whose curve is `ok` (errors); watched games not read
+today, a list that lost its download curve since the previous computation, a curve whose
+held-out windows fell inside its band less than 60% of the time, a day where nine in ten Play
+counters were not refreshed (the field may have stopped updating), and a version date after its
+first sighting (warnings). Lists that were never calibrated are listed in the digest's
+Estimates section, not as a daily warning.
+
 ## How accurate is this
 
 What ran where (14 Nov 2026):
@@ -370,12 +381,3 @@ request and the 200-a-day Play budget (error); a stale snapshot, a frozen feed t
 (36 h), a feed over its limit or with non-games in a games list, missing countries, short
 lists, Lookup coverage below 90 %, disagreeing Lookup reads, unconfirmed drops, confirmed
 rating resets, `realInstalls >= minInstalls` and Play field fill below 95 % (warnings).
-
-Estimates (`radar/estimate/checks.yaml`): a watchlist entry at most once, a usable window has a
-positive rate, every band has low <= middle <= high with basis, method and n, and download bands
-only for lists whose curve is `ok` (errors); watched games not read today, a list that lost its
-download curve since the previous computation, a curve whose held-out windows fell inside its
-band less than 60% of the time, a day where nine in ten Play counters were not refreshed (the
-field may have stopped updating), and a version date after its first sighting (warnings).
-Lists that were never calibrated are listed in the digest's Estimates section, not as a
-daily warning.

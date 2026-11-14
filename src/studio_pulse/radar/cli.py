@@ -104,10 +104,10 @@ def add_parser(sub: argparse._SubParsersAction, with_config) -> None:
     run.add_argument("--no-llm", action="store_true", help="keyword tags only, no LLM call")
     run.add_argument("--max-requests", type=int, help="cap on network requests for this run")
     run.set_defaults(func=cmd_radar_run)
+    from .estimate.cli import add_parsers as add_estimate_parsers  # watch, plan
+
+    add_estimate_parsers(rs, with_config)
     show = with_config(rs.add_parser("show", help="print the newest digest"))
     show.add_argument("--lang", choices=["tr", "en"], default="tr")
     show.add_argument("--date")
     show.set_defaults(func=cmd_radar_show)
-    from .estimate.cli import add_parsers as add_estimate_parsers  # watch, plan
-
-    add_estimate_parsers(rs, with_config)
