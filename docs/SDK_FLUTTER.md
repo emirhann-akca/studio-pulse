@@ -45,6 +45,7 @@ Static on `StudioPulse`; no-ops before `init`; nothing throws into the app.
 | `adImpression(adPlatform, adFormat, value, currency:, adSource:, adUnitName:, placement:, precision:)` | `ad_impression` |
 | `adEvent(action, adFormat, placement:, errorCode:)` | `ad_event` |
 | `screen(name, screenClass:)` | `screen_view` |
+| `experiment(key, variations:, weights:, coverage:)` | the variation to show and one `experiment_exposure` per session (as in the Unity SDK) |
 | `track(name, {params})` | a custom event (names and limits as in the Unity SDK) |
 | `reportError(error, stack, fatal:)` | `pulse_error` for a handled error |
 | `setUserId`, `setConsent`, `optOut`, `requestDataDeletion`, `resetInstallId`, `installId`, `stats`, `flush` | as in the Unity SDK |
@@ -90,7 +91,7 @@ SDK.
 
 ```bash
 cd flutter/studio_pulse
-dart analyze && flutter test                  # 42 tests
+dart analyze && flutter test                  # 45 tests
 flutter pub publish --dry-run
 dart run tool/e2e_driver.dart http://127.0.0.1:8787 sp_pub_local /tmp/pulse-e2e   # against `pulse collect`
 ```
@@ -103,6 +104,8 @@ dart run tool/e2e_driver.dart http://127.0.0.1:8787 sp_pub_local /tmp/pulse-e2e 
 - `test/core_test.dart`: sessions, heartbeat, `seq` across restarts, update and exit
   reasons, restores, attempts, flush triggers, queue cap, torn lines, opt-out, consent,
   deletion, child mode, errors, validation, string escaping.
+- `test/assign_test.dart`: GrowthBook's assignment cases (`contract/golden/assign_growthbook.json`)
+  and the exposure event.
 - `test/conformance_test.dart`: the shared script and golden (byte for byte with C#) and
   3,093 doubles against Python's shortest repr.
 - `test/flutter_adapter_test.dart`: the facade with a mocked channel, real lifecycle

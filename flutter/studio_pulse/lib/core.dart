@@ -4,6 +4,7 @@
 library;
 
 export 'src/contract.g.dart';
+export 'src/core/assign.dart';
 export 'src/core/core.dart';
 export 'src/core/environment.dart';
 export 'src/core/json_writer.dart';

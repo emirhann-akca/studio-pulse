@@ -208,6 +208,12 @@ class StudioPulse {
     return PulseExitInfo(reason, timestampMs: ts is int ? ts : 0, rssKb: rss is int ? rss : -1);
   }
 
+  /// Which variation of experiment [key] to show this install (0 = control). Deterministic
+  /// from the install id; -1 means outside the experiment (show the control). Logs one
+  /// `experiment_exposure` per session.
+  static int experiment(String key, {int variations = 2, List<double>? weights, double coverage = 1}) =>
+      _core?.experiment(key, variations: variations, weights: weights, coverage: coverage) ?? -1;
+
   // ---------------------------------------------------------------- game and app events
 
   static void levelStart(int level, {String? levelName, String? world, String? mode}) =>

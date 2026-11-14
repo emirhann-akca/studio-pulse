@@ -21,7 +21,7 @@ mkdir -p "$out"
   -out:"$out/Studio.Pulse.Core.dll" -r:"$ns" "$repo"/unity/com.studio.pulse/Runtime/Core/*.cs
 "$mono" "$csc" -nologo -langversion:9 -warnaserror -out:"$out/Studio.Pulse.Core.Tests.exe" \
   -r:"$out/Studio.Pulse.Core.dll" -r:"$facade" -r:System.Net.Http.dll -r:System.IO.Compression.dll \
-  "$here"/Studio.Pulse.Core.Tests/{TestKit,CoreTests,ConformanceTests,E2EScenario,MonoMain}.cs
+  "$here"/Studio.Pulse.Core.Tests/{TestKit,CoreTests,ConformanceTests,AssignTests,E2EScenario,MonoMain}.cs
 "$mono" "$csc" -nologo -langversion:9 -warnaserror -out:"$out/Studio.Pulse.Driver.exe" \
   -r:"$out/Studio.Pulse.Core.dll" -r:"$facade" -r:System.Net.Http.dll -r:System.IO.Compression.dll \
   -main:Studio.Pulse.Driver.Program \

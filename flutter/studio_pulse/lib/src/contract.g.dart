@@ -75,6 +75,7 @@ class PulseEvents {
   static const String purchase = 'purchase';
   static const String adImpression = 'ad_impression';
   static const String adEvent = 'ad_event';
+  static const String experimentExposure = 'experiment_exposure';
   static const String screenView = 'screen_view';
 }
 
@@ -155,6 +156,10 @@ class PulseParams {
   static const String precision = 'precision';
   static const String action = 'action';
   static const String errorCode = 'error_code';
+  static const String experimentKey = 'experiment_key';
+  static const String variation = 'variation';
+  static const String inExperiment = 'in_experiment';
+  static const String hashValue = 'hash_value';
   static const String screenName = 'screen_name';
   static const String screenClass = 'screen_class';
 }

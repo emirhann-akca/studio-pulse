@@ -47,6 +47,7 @@ called from any thread (network requests start on the main thread).
 | `AdImpression(adPlatform, adFormat, value, currency, adSource, adUnitName, placement, precision)` | `ad_impression` (MAX `adInfo.Revenue`, LevelPlay `impressionData.revenue`) |
 | `AdEvent(action, adFormat, placement, errorCode)` | `ad_event` (`request`, `fill`, `show`, `click`, `reward`, `fail`) |
 | `Screen(name, screenClass)` | `screen_view` |
+| `Experiment(key, variations, weights, coverage)` | returns the variation to show (0 = control, -1 = outside the experiment or before consent: show the control) and sends `experiment_exposure` once per session and key. The assignment is GrowthBook's hash v2 of the key and install id (MIT), the same in C#, Dart and Python, so the warehouse can recompute every install's variation from its id |
 | `Track(name, PulseParams)` | a custom event: name `[a-z][a-z0-9_]{0,39}`, not `pulse_*`, not a Firebase-reserved name or prefix, at most 25 int / double / bool / string params. Reuse one `PulseParams` (`Clear()`) and it allocates nothing |
 | `ReportException(ex, fatal)` | `pulse_error` for a handled exception |
 | `SetUserId(gameAccountId)` | `uid` on later events (refused if it looks like an e-mail; never in child mode) |
@@ -170,7 +171,7 @@ unity/dotnet/unity-compile.sh      # the adapter against UnityEngine*.dll for st
 dotnet test unity/dotnet/Studio.Pulse.Core.Tests   # what CI runs on Windows, macOS, Linux
 ```
 
-35 cases: kill mid-flush (no loss, the re-sent batch deduped), a torn line, 24 h
+40 cases: GrowthBook's own assignment cases and the exposure event, kill mid-flush (no loss, the re-sent batch deduped), a torn line, 24 h
 offline replay, 413 halving, 400 drop, 401 disable, 429/5xx backoff timings and
 Retry-After with a fake clock, flush triggers, gzip threshold, queue cap, 30-minute and
 24-hour session rules, heartbeat, `seq` across six restarts, install / update / exit

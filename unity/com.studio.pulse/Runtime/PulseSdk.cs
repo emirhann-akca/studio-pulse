@@ -98,6 +98,12 @@ namespace Studio.Pulse
 
         // ---------------------------------------------------------------- game events
 
+        /// <summary>Which variation of experiment <paramref name="key"/> to show this install (0 = control); -1 = outside it, show the control. Logs one experiment_exposure per session.</summary>
+        public static int Experiment(string key, int variations = 2, double[] weights = null, double coverage = 1)
+        {
+            return _core != null ? _core.Experiment(key, variations, weights, coverage) : -1;
+        }
+
         public static void LevelStart(long level, string levelName = null, string world = null, string mode = null)
         {
             if (_core != null) _core.LevelStart(level, levelName, world, mode);

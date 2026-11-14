@@ -1174,6 +1174,39 @@
     }
    }
   },
+  "experiment_exposure": {
+   "category": "app",
+   "doc": "The player saw an experiment's variation. Sent once per session and experiment by Pulse.Experiment / StudioPulse.experiment, which assign deterministically from the install id with GrowthBook's hash (v2), so the warehouse can check the split (SRM).",
+   "firebase": true,
+   "params": {
+    "experiment_key": {
+     "type": "string",
+     "required": true,
+     "max_len": 64,
+     "nullable": false
+    },
+    "variation": {
+     "type": "int",
+     "required": true,
+     "min": 0,
+     "max": 31,
+     "nullable": false
+    },
+    "in_experiment": {
+     "type": "bool",
+     "required": true,
+     "nullable": false
+    },
+    "hash_value": {
+     "type": "double",
+     "required": false,
+     "min": 0,
+     "max": 1,
+     "nullable": false,
+     "doc": "the 0..1 bucket the install fell into"
+    }
+   }
+  },
   "screen_view": {
    "category": "app",
    "doc": "A screen was shown (GA4 parameter names).",

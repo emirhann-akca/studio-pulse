@@ -461,6 +461,40 @@ namespace Studio.Pulse
 
         // ---------------------------------------------------------------- public API: game events
 
+        readonly HashSet<string> _exposures = new HashSet<string>();
+
+        /// <summary>
+        /// The variation of experiment <paramref name="key"/> for this install: deterministic from
+        /// the install id (GrowthBook's hash v2), so the warehouse can recompute it and check the
+        /// split. -1 outside the coverage, before consent or while the SDK is off (show the control).
+        /// One experiment_exposure event per session and key.
+        /// </summary>
+        public int Experiment(string key, int variations = 2, double[] weights = null, double coverage = 1)
+        {
+            lock (_gate)
+            {
+                try
+                {
+                    if (_pendingConsent || _state == null || _state.InstallId == null) return -1;
+                    if (string.IsNullOrEmpty(key) || variations < 1 || variations > 32) return -1;
+                    int v = PulseAssign.Assign(key, _state.InstallId, out double bucket, variations, weights, coverage);
+                    if (!_collecting) return v;
+                    string mark = (_state.Sid ?? "") + "|" + key;
+                    if (_exposures.Contains(mark)) return v;
+                    if (_exposures.Count >= 256) _exposures.Clear();
+                    _exposures.Add(mark);
+                    if (!Begin(PulseContract.Events.ExperimentExposure)) return v;
+                    PStr("experiment_key", key, 64);
+                    PLong("variation", Math.Max(0, v));
+                    PBool("in_experiment", v >= 0);
+                    PDouble("hash_value", bucket);
+                    Commit();
+                    return v;
+                }
+                catch (Exception ex) { Warn("Experiment: " + ex.Message); return -1; }
+            }
+        }
+
         public void LevelStart(long level, string levelName = null, string world = null, string mode = null, int attempt = 0)
         {
             lock (_gate)

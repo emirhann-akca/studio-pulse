@@ -90,6 +90,7 @@ EVENT_SPEND_VIRTUAL_CURRENCY = "spend_virtual_currency"
 EVENT_PURCHASE = "purchase"
 EVENT_AD_IMPRESSION = "ad_impression"
 EVENT_AD_EVENT = "ad_event"
+EVENT_EXPERIMENT_EXPOSURE = "experiment_exposure"
 EVENT_SCREEN_VIEW = "screen_view"
 AUTOMATIC_EVENTS = (
     "pulse_install",
@@ -119,7 +120,10 @@ GAME_EVENTS = (
     "ad_impression",
     "ad_event",
 )
-APP_EVENTS = ("screen_view",)
+APP_EVENTS = (
+    "experiment_exposure",
+    "screen_view",
+)
 
 # Event parameters
 PARAM_INSTALL_STORE = "install_store"
@@ -195,6 +199,10 @@ PARAM_PLACEMENT = "placement"
 PARAM_PRECISION = "precision"
 PARAM_ACTION = "action"
 PARAM_ERROR_CODE = "error_code"
+PARAM_EXPERIMENT_KEY = "experiment_key"
+PARAM_VARIATION = "variation"
+PARAM_IN_EXPERIMENT = "in_experiment"
+PARAM_HASH_VALUE = "hash_value"
 PARAM_SCREEN_NAME = "screen_name"
 PARAM_SCREEN_CLASS = "screen_class"
 

@@ -116,7 +116,7 @@ def test_dart_identifiers_avoid_reserved_words():
 def test_golden_batch_is_valid():
     body = json.loads((GOLDEN / "batch_ok.json").read_text(encoding="utf-8"))
     sent_at, schema, ctx, events = check_envelope(body)
-    assert schema == "2.0" and ctx["platform"] == "android" and len(events) == 28
+    assert schema == "2.0" and ctx["platform"] == "android" and len(events) == 29
     for ev in events:
         out, reason = check_event(ev)
         assert reason is None, (ev["name"], reason)

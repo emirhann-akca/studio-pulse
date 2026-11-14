@@ -454,6 +454,22 @@
    "p": {
     "state": "granted"
    }
+  },
+  {
+   "id": "0190f0e2-7c1a-7cc3-9b1e-00000000001d",
+   "seq": 29,
+   "name": "experiment_exposure",
+   "ts": 1794499900450,
+   "sid": "0190f0e0-0000-7000-8000-000000000001",
+   "snum": 17,
+   "fg_ms": 450,
+   "uid": null,
+   "p": {
+    "experiment_key": "booster_offer",
+    "variation": 1,
+    "in_experiment": true,
+    "hash_value": 0.5501
+   }
   }
  ]
 }

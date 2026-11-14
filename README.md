@@ -39,7 +39,10 @@ question box, no polling) with an invented market-radar day; Turkish under
   BigQuery (no user rows leave it) and reports a sample-ratio-mismatch check,
   z and Welch tests, CUPED and an always-valid (sequential) interval, ported
   from GrowthBook's MIT stats engine and checked against scipy, statsmodels and
-  the NIST handbook.
+  the NIST handbook. The SDKs assign the variations themselves
+  (`Pulse.Experiment("key")` / `StudioPulse.experiment('key')`, GrowthBook's
+  hash v2 of key + install id, identical in C#, Dart and Python against
+  GrowthBook's own cases) and log one `experiment_exposure` per session.
 - **Seasonality-aware alerts** (`forecast_band`: trend + weekday regression,
   or Nixtla statsforecast as an optional extra), **store reviews and Android
   vitals** (Play CSV + API, App Store Connect, Play Reporting API; rating by
@@ -98,7 +101,7 @@ question box, no polling) with an invented market-radar day; Turkish under
   `/ask` in the local UI): deterministic statistics find and explain the
   changes, every number in a sentence is formatted by code and checked against
   its evidence, and a language model may only rephrase (see below).
-- 738 Python tests, 42 Flutter tests and 35 C# SDK tests (`dotnet test`), ruff,
+- 798 Python tests, 45 Flutter tests and 40 C# SDK tests (`dotnet test`), ruff,
   dart analyze; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install

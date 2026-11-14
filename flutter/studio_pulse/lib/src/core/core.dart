@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../contract.g.dart';
+import 'assign.dart';
 import 'environment.dart';
 import 'json_writer.dart';
 import 'options.dart';
@@ -478,6 +479,36 @@ class PulseCore {
     } on Object catch (e) {
       _warn('$what: $e');
     }
+  }
+
+  // ---------------------------------------------------------------- experiments
+  final Set<String> _exposures = <String>{};
+
+  /// The variation of experiment [key] for this install: deterministic from the install id
+  /// (GrowthBook's hash v2), so the warehouse can recompute it and check the split. Returns
+  /// -1 when the install is outside [coverage], or before consent / while the SDK is off (show
+  /// the control then). An `experiment_exposure` event is sent once per session and key.
+  int experiment(String key, {int variations = 2, List<double>? weights, double coverage = 1}) {
+    var out = -1;
+    _guard('experiment', () {
+      final id = installId;
+      if (id == null || key.isEmpty || variations < 1 || variations > 32) return;
+      final (variation, bucket) =
+          pulseAssign(key, id, variations: variations, weights: weights, coverage: coverage);
+      out = variation;
+      if (!_collecting) return;
+      final mark = '${sessionId ?? ''}|$key';
+      if (_exposures.contains(mark)) return;
+      if (_exposures.length >= 256) _exposures.clear();
+      _exposures.add(mark);
+      if (!_begin(PulseEvents.experimentExposure)) return;
+      _pStr('experiment_key', key, 64);
+      _pInt('variation', variation < 0 ? 0 : variation);
+      _pBool('in_experiment', variation >= 0);
+      _pDouble('hash_value', bucket);
+      _commit();
+    });
+    return out;
   }
 
   // ---------------------------------------------------------------- game events

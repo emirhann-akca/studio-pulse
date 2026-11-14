@@ -67,6 +67,7 @@ namespace Studio.Pulse
             public const string Purchase = "purchase";
             public const string AdImpression = "ad_impression";
             public const string AdEvent = "ad_event";
+            public const string ExperimentExposure = "experiment_exposure";
             public const string ScreenView = "screen_view";
         }
 
@@ -145,6 +146,10 @@ namespace Studio.Pulse
             public const string Precision = "precision";
             public const string Action = "action";
             public const string ErrorCode = "error_code";
+            public const string ExperimentKey = "experiment_key";
+            public const string Variation = "variation";
+            public const string InExperiment = "in_experiment";
+            public const string HashValue = "hash_value";
             public const string ScreenName = "screen_name";
             public const string ScreenClass = "screen_class";
         }

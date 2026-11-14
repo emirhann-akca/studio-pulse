@@ -101,12 +101,12 @@ def golden_now() -> dict:
 def test_events_are_appended_as_arrow_to_the_default_stream(cloud):
     client, w, q, _ = cloud
     r = client.post("/v2/batch", json=golden_now(), headers={"X-Pulse-Key": DEFAULT_LOCAL_KEY})
-    assert r.status_code == 200 and r.json()["accepted"] == 28
+    assert r.status_code == 200 and r.json()["accepted"] == 29
     assert w.requests[0].write_stream == (
         "projects/proj/datasets/pulse_raw/tables/events/streams/_default"
     )
     rows = w.rows("events")
-    assert len(rows) == 28
+    assert len(rows) == 29
     cols = [c["name"] for c in spec()["storage"]["events"]["columns"]]
     assert list(rows[0]) == cols
     schema = arrow_schema("events")
@@ -118,7 +118,7 @@ def test_events_are_appended_as_arrow_to_the_default_stream(cloud):
     # the same batch again: in-memory dedupe, nothing appended
     n = len(w.requests)
     again = client.post("/v2/batch", json=golden_now(), headers={"X-Pulse-Key": DEFAULT_LOCAL_KEY})
-    assert again.json()["duplicates"] == 28 and len(w.requests) == n
+    assert again.json()["duplicates"] == 29 and len(w.requests) == n
 
 
 def test_registry_merge_runs_once_under_fifty_parallel_first_batches(cloud):
@@ -158,7 +158,7 @@ def test_deletion_requests_are_appended_and_honoured(cloud):
     (row,) = w.rows("deletion_requests")
     assert row["install_id"] == inst and row["status"] == "pending"
     r = client.post("/v2/batch", json=body, headers={"X-Pulse-Key": DEFAULT_LOCAL_KEY})
-    assert r.json()["ignored"] == 28 and w.rows("events") == []
+    assert r.json()["ignored"] == 29 and w.rows("events") == []
 
 
 def test_deploy_files_pin_one_instance_and_hold_no_secret():

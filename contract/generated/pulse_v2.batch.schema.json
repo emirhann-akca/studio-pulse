@@ -979,6 +979,38 @@
       },
       "maxProperties": 25
     },
+    "p_experiment_exposure": {
+      "type": "object",
+      "required": [
+        "experiment_key",
+        "variation",
+        "in_experiment"
+      ],
+      "properties": {
+        "experiment_key": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "variation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "in_experiment": {
+          "type": "boolean"
+        },
+        "hash_value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "the 0..1 bucket the install fell into"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/scalar"
+      },
+      "maxProperties": 25
+    },
     "p_screen_view": {
       "type": "object",
       "required": [
@@ -1521,6 +1553,25 @@
             "properties": {
               "p": {
                 "$ref": "#/$defs/p_ad_event"
+              }
+            },
+            "required": [
+              "p"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "name": {
+                "const": "experiment_exposure"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "p": {
+                "$ref": "#/$defs/p_experiment_exposure"
               }
             },
             "required": [

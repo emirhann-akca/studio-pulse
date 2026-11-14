@@ -380,6 +380,17 @@ Ad lifecycle step.
 
 ### App
 
+#### `experiment_exposure`
+
+The player saw an experiment's variation. Sent once per session and experiment by Pulse.Experiment / StudioPulse.experiment, which assign deterministically from the install id with GrowthBook's hash (v2), so the warehouse can check the split (SRM).
+
+| Key | Type | Required | Rule | Meaning |
+|---|---|---|---|---|
+| `experiment_key` | string | yes | <= 64 chars |  |
+| `variation` | int | yes | >= 0, <= 31 |  |
+| `in_experiment` | bool | yes |  |  |
+| `hash_value` | double |  | >= 0, <= 1 | the 0..1 bucket the install fell into |
+
 #### `screen_view`
 
 A screen was shown (GA4 parameter names).
