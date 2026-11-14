@@ -195,11 +195,11 @@ list or country without enough data gets no number: the digest and the game page
 ### Downloads: rank -> installs per day, calibrated on our own Play reads
 
 **Ground truth.** Google Play's details page carries `realInstalls`, one worldwide counter per
-package. It is refreshed irregularly. Between the radar's reads of 13 and 14 Nov 2026 (29
-hours apart) 18 of 30 packages kept exactly the same count, 13 of them while their Play
-rating count grew (one gained 644 ratings and 0 installs), and four of the 12 that changed
-moved by only 26-87 installs, two of them while gaining 1,700-2,000 ratings. A day-over-day difference therefore measures the
-counter's refresh, not the installs, and is never used. Instead
+package. It is refreshed irregularly. Between the radar's reads of 13 and 14 Nov 2026 (29 hours
+apart) 18 of 30 packages kept exactly the same count, 13 of them while their Play rating count
+grew (one gained 644 ratings and 0 installs), and four of the 12 that changed moved by only
+26-87 installs, two of them while gaining 1,700-2,000 ratings. A day-over-day difference
+therefore measures the counter's refresh, not the installs, and is never used. Instead
 (`estimate/downloads.py`, `stg_mr_play_counter`, `raw_mr_est_window`):
 
 - a **window** runs between two observed refreshes (reads where the count changed), at least
