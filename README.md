@@ -100,8 +100,11 @@ question box, no polling) with an invented market-radar day; Turkish under
 - **A grounded insight engine** (`pulse insights`, `pulse ask`, `/insights` and
   `/ask` in the local UI): deterministic statistics find and explain the
   changes, every number in a sentence is formatted by code and checked against
-  its evidence, and a language model may only rephrase (see below).
-- 805 Python tests, 45 Flutter tests and 40 C# SDK tests (`dotnet test`), ruff,
+  its evidence, every answer must cover the filters and the period the question
+  names (or it is refused with the reason), and a language model may only
+  rephrase or propose a checked SELECT (see below and
+  [docs/ANALYST.md](docs/ANALYST.md)).
+- 837 Python tests, 45 Flutter tests and 40 C# SDK tests (`dotnet test`), ruff,
   dart analyze; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install
@@ -228,6 +231,7 @@ interval says to keep running.
 | `pulse doctor [--json]` | Python, time zones, DuckDB, config, writable folders, Google credentials (present or not, never their contents), schedule state |
 | `pulse insights [--lang tr]` | the deterministic insight jobs (also run at the end of every refresh, stored in `meta_insights`) |
 | `pulse ask "..." [--lang tr]` | a question in English or Turkish; the answer names its route and shows its SQL and rows |
+| `pulse ask --eval [--set holdout\|holdout_b\|dev\|all] [--no-llm]` | held-out accuracy on the demo warehouse: right / partial / refused / confidently wrong with Wilson intervals; exit 1 on any confidently wrong answer |
 | `pulse brain eval` | the router's golden, refusal and prompt-injection sets against the warehouse |
 
 Details, file locations and Windows notes: [docs/OPERATIONS.md](docs/OPERATIONS.md).
@@ -262,11 +266,35 @@ phrases - and `src/studio_pulse/brain/` follows it:
   code (`%60,9` in Turkish, `60.9%` in English) and must match a value of the
   cited evidence; recommendations cite evidence ids; text written by players
   or ad networks is quoted as data.
-- **Questions**: a verified-query library first, then the catalog, then
-  (only with a model configured) a model-written SELECT that passes a sqlglot
-  AST guard and runs on the local warehouse in a read-only, locked DuckDB
-  session with row and time limits - never on BigQuery - and otherwise a
-  refusal that names what is missing.
+- **Questions**: a verified-query library first, then the catalog with every
+  filter of the question applied (network, platform, country, version, tier,
+  store, level, period), then (only with a model configured) a model-written
+  SELECT that passes a sqlglot AST guard and runs on the local warehouse in a
+  read-only, locked DuckDB session with row and time limits - never on
+  BigQuery - and otherwise a refusal that names what is missing.
+- **Question-evidence consistency** (`brain/consistency.py`): verifying that
+  a number equals its evidence is not enough - the evidence must answer the
+  question. Every answer's SQL and rows are checked against the filters and
+  period the question names; "CPI on Meta" for an app with no Meta spend is
+  refused ("quartz_merge has no data for network = Meta"), never answered with
+  the blend of its other networks.
+- **Why questions** (`brain/drivers.py`): the change against the previous
+  period, split by platform, country, app version, first-touch source, device
+  tier, network or revenue type (Kitagawa mix/rate, Adtributor, DIFF-lite);
+  the segment that moved it most and by how much, a release that appeared in
+  the period, and the association-not-causation caveat.
+- **Semantic layer** (`brain/semantic.py`): metric definitions, grain, valid
+  filters with their stored values, windows, join paths and the METRICS.md
+  formulas, generated from the catalog and METRICS.md; it is the model's view
+  of the warehouse, and a test proves every METRICS.md metric is reachable by
+  a question.
+- **Held-out evaluation** (`pulse ask --eval`, [docs/ANALYST.md](docs/ANALYST.md)):
+  questions written from METRICS.md and the schema, ground truth computed by
+  SQL, a frozen held-out split never tuned on. On the held-out set (124
+  questions, demo warehouse, 14 Nov 2026) the router went from 35% right / 36%
+  confidently wrong to 83% / 3% on its first clean run (with
+  gemini-3.5-flash-lite: 39% / 49% to 88% / 7%), and to 0 confidently wrong
+  after the remaining error classes were fixed.
 
 The language model is optional and narrow (`brain/llm.py`): tests and CI use
 a deterministic fake; a real one comes from the shared layer (`studio_pulse.llm`)
@@ -472,10 +500,9 @@ Mono to produce the fixtures the Python tests parse.
   (the demo's fitness app backtests at about 35% error, shown on its page).
 - The insight engine explains changes by association in time (a cohort
   split, a release date), never by experiment, and says so in every such
-  sentence. With a real model (checked with gemini-3.5-flash-lite on the demo
-  warehouse) routing is still imperfect: a product question can get the total
-  revenue, and "where do players quit" ranks a game's last level first,
-  because players who finish the game also stop there.
+  sentence. The analyst is measured on the synthetic demo only; on held-out
+  questions it still refuses some answerable ones and is occasionally wrong
+  (numbers in [docs/ANALYST.md](docs/ANALYST.md)).
 
 ## Development
 

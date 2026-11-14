@@ -86,8 +86,14 @@ SYSTEM_ROUTE = (
 )
 SYSTEM_SQL = (
     "Write one DuckDB SELECT over the listed tables and columns that answers the question. "
-    "Every table has an app_id column holding one of the ids in `apps`: filter on it directly. "
-    'Read only; no other statements. Answer as JSON {"sql": "..."} or {"sql": null}.'
+    "The request is a semantic layer: `metrics` say which table and column hold each metric, "
+    "how rows combine, the grain and which filters exist; `tables` list columns, grain, the "
+    "window of snapshot tables and the stored values of filter columns; `rules` must be "
+    "followed. Every table has an app_id column holding one of the ids in `apps`: filter on it "
+    "directly. Apply every filter and the period the question names, relative to "
+    "`newest_data_day`. If a filter, value or period cannot be applied with these tables, "
+    'answer {"sql": null}: never answer a broader question. Read only; no other statements. '
+    'Answer as JSON {"sql": "..."} or {"sql": null}.'
 )
 
 

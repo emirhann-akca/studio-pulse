@@ -28,15 +28,35 @@ from typing import Any
 import duckdb
 import yaml
 
-from . import fmt, guard, llm, narrate, verify
-from .catalog import Catalog, CatalogError, Metric, load, normalize
+from . import consistency, drivers, fmt, guard, intent, llm, narrate, semantic, verify
+from .answer import (  # noqa: F401  (Answer is part of this module's API)
+    _BREAKDOWN,
+    _COLUMN,
+    _LIST_WORD,
+    _OVERALL,
+    _PEOPLE,
+    _PER_UNIT,
+    _QUIT_WORD,
+    _RETENTION_IDS,
+    _RETENTION_WORD,
+    _TREND,
+    _UNCOLLECTED,
+    _WHY,
+    AGG_TEXT,
+    MIN_RANK_N,
+    TEXTS,
+    Answer,
+    _guess_unit,
+)  # fmt: skip
+from .catalog import Catalog, load, normalize
+from .catalog_answers import CatalogAnswers
 from .evidence import Evidence, Fact
 from .executor import LockedSession, QueryTimeout, Result
 
 ROUTES = ("verified_query", "catalog", "sql", "refused")
 
 _PII = re.compile(
-    r"\b(user ?ids?|user pseudo id|pseudo ?ids?|e ?-?mails?|e ?-?posta\w*|phone\w*|telefon "
+    r"\b(user ?ids?|user pseudo id|pseudo ?ids?|e ?-?mails?|e ?-?posta\w*|phone numbers?|telefon "
     r"numara\w*|ip address\w*|ip adres\w*|device ids?|cihaz kimli\w*|kullanici kimli\w*|"
     r"kullanici id\w*|names? of (the )?(users|players)|oyuncu(larin)? isim\w*|kullanici(larin)? "
     r"isim\w*|advertising id\w*|idfa|gaid|kisisel veri\w*|personal data)\b"
@@ -47,10 +67,13 @@ _FUTURE = re.compile(
 )
 _YEAR = re.compile(r"\b(20\d\d)\b")
 # Filters, counts and "which day" need a query, not one metric over a period.
+# "how many levels / campaigns / days": a count of rows, not a metric (B10 handles "how many
+# users" as the metric itself)
 _LONG_TAIL = re.compile(
-    r"\b(how many|count of|number of|below|above|less than|more than|at least|at most|"
-    r"which day|what day|when did|kac (?:seviye|tane|kampanya|gun|uygulama|surum)\w*|"
-    r"altinda|ustunde|fazla olan|az olan|hangi gun\w*)\b"
+    r"\b(how many (?:levels|campaigns|days|apps|versions|countries|creatives)|count of (?:levels|"
+    r"campaigns|days)|number of (?:levels|campaigns|days)|below|above|less than|more than|"
+    r"at least|at most|which day|what day|when did|kac (?:seviye|tane|kampanya|gun|uygulama|"
+    r"surum)\w*|altinda|ustunde|fazla olan|az olan|hangi gun\w*)\b"
 )
 _LEVEL = re.compile(
     r"\b(?:level|seviye|bolum)\s*(\d{1,4})\b|\b(\d{1,4})\s*\.?\s*(?:seviye|bolum)\w*"
@@ -59,15 +82,6 @@ _DAYS = re.compile(r"\b(?:last|past|son|gecen)\s+(\d{1,3})\s*(?:days?|gun\w*)\b"
 _WEEK = re.compile(r"\b(last week|past week|this week|son hafta\w*|gecen hafta\w*|bu hafta\w*)\b")
 _MONTH = re.compile(r"\b(last month|past month|son ay\w*|gecen ay\w*|son bir ay\w*)\b")
 _YESTERDAY = re.compile(r"\b(yesterday|dun|dunku)\b")
-# "average rating", "overall D7", "ortalama puan": with no period named, the whole history
-_OVERALL = re.compile(
-    r"\b(?:average|overall|all time|ever|lifetime|ortalama\w*|genel|tum zaman\w*|butun)\b"
-)
-_WHY = re.compile(r"\b(?:why|neden|niye|nicin)\b")
-_TREND = re.compile(
-    r"\b(trend\w*|going up|going down|up or down|increas\w*|decreas\w*|grow\w*|declin\w*"
-    r"|artiyor\w*|azaliyor\w*|dusuyor\w*|yukseliyor\w*|egilim\w*|gidisat\w*)\b"
-)
 _DAY_N = re.compile(r"\bd(\d{1,3})\b")
 _ISO_DAY = re.compile(r"\b(20\d\d)-(\d\d)-(\d\d)\b")
 _MONTHS = {
@@ -80,160 +94,11 @@ _MONTH_YEAR = re.compile(
     r"\b(" + "|".join(_MONTHS) + r")\w*\s+(20\d\d)\b|\b(20\d\d)\s+(" + "|".join(_MONTHS) + r")\b"
 )
 _MONTH_ALONE = re.compile(r"\b(" + "|".join(m for m in _MONTHS if m != "may") + r")\w*\b")
-# Dimensions people ask for that the warehouse does not collect at all.
-_UNCOLLECTED = {
-    "age": ("age", "yaş"),
-    "yas": ("age", "yaş"),
-    "yasa": ("age", "yaş"),
-    "gender": ("gender", "cinsiyet"),
-    "cinsiyet": ("gender", "cinsiyet"),
-    "cinsiyete": ("gender", "cinsiyet"),
-    "language": ("device language", "cihaz dili"),
-    "dil": ("device language", "cihaz dili"),
-    "dile": ("device language", "cihaz dili"),
-    "city": ("city", "şehir"),
-    "sehir": ("city", "şehir"),
-    "sehre": ("city", "şehir"),
-    "income": ("income", "gelir düzeyi"),
-}
-_COLUMN = {"network_campaign": "campaign_name"}
 _STOP = set(
     "the a an of in for is are was were what which how did do does to by and or on at with "
     "per each from our we me show give tell bir ve ile icin mi mu mi nedir ne nasil hangi "
     "hangisi kac kadar en ya da".split()
 )
-
-TEXTS: dict[str, dict[str, str]] = {
-    "pii": {
-        "en": "This cannot be answered: the warehouse holds aggregates only; user ids, e-mails and other personal data never leave BigQuery.",
-        "tr": "Bu soru cevaplanamaz: ambar yalnız toplulaştırılmış veri tutar; kullanıcı kimlikleri, e-postalar ve diğer kişisel veriler BigQuery'den hiç çıkmaz.",
-    },
-    "future": {
-        "en": "There is no data for the future: the newest data day is {last_day}. A forecast is not an answer from data.",
-        "tr": "Gelecek için veri yok: en yeni veri günü {last_day}. Bir tahmin, veriden gelen bir cevap değildir.",
-    },
-    "no_metric": {
-        "en": "This question does not map to a metric in the catalog.[[ Close metrics: {suggestions}.]]",
-        "tr": "Bu soru katalogdaki bir metriğe eşlenemedi.[[ Yakın metrikler: {suggestions}.]]",
-    },
-    "no_dimension": {
-        "en": "{metric} has no breakdown by {dimension} in this warehouse.[[ Available: {available}.]]",
-        "tr": "Bu ambarda {metric} için {dimension} kırılımı yok.[[ Mevcut: {available}.]]",
-    },
-    "dim_needs_pull": {
-        "en": "{dimension} comes from the cohort_dims pull, which has no rows for {app} yet; enable it on the GA4 source and refresh.",
-        "tr": "{dimension} kırılımı cohort_dims çekmesinden gelir ve {app} için henüz satırı yok; GA4 kaynağında açıp yenileyin.",
-    },
-    "dim_small_sdk": {
-        "en": "{app} sends SDK data, but no {dimension} cell has reached {min_n} installs on one day yet, so there is no breakdown to show.",
-        "tr": "{app} SDK verisi gönderiyor ama hiçbir {dimension} hücresi bir günde {min_n} kuruluma ulaşmadı; gösterilecek kırılım yok.",
-    },
-    "uncollected": {
-        "en": "{dimension} is not collected: no table in the warehouse carries it.",
-        "tr": "{dimension} toplanmıyor: ambardaki hiçbir tablo bu boyutu taşımıyor.",
-    },
-    "need_app": {
-        "en": "Which app? This question needs one of: {apps}.",
-        "tr": "Hangi uygulama? Bu soru şunlardan birini gerektirir: {apps}.",
-    },
-    "stale": {
-        "en": "{primary_source} data for {app} ends {data_through}, {lag_days} days before {as_of}: refresh the data before reading answers from it.",
-        "tr": "{app} için {primary_source} verisi {data_through} tarihinde bitiyor, {as_of} tarihinden {lag_days} gün önce: cevap okumadan önce veriyi yenileyin.",
-    },
-    "no_data": {
-        "en": "{metric} has no rows{app_part} in this warehouse.",
-        "tr": "Bu ambarda {metric} için{app_part} satır yok.",
-    },
-    "long_tail": {
-        "en": "This needs a filtered or counted query; the catalog tool answers one metric over a period. Ask for the metric itself, or configure a model for checked SQL.",
-        "tr": "Bu soru filtreli ya da sayımlı bir sorgu gerektiriyor; katalog aracı bir dönem için tek bir metrik cevaplar. Metriğin kendisini sorun ya da denetimli SQL için bir model yapılandırın.",
-    },
-    "schema": {
-        "en": "This warehouse lacks a table or column the query needs; refresh it with the current version of studio-pulse.",
-        "tr": "Bu ambarda sorgunun gerektirdiği bir tablo ya da sütun yok; ambarı studio-pulse'ın güncel sürümüyle yenileyin.",
-    },
-    "small": {
-        "en": "Small sample: treat these numbers as directional.",
-        "tr": "Küçük örneklem: bu sayılar yalnız yön gösterir.",
-    },
-    "why": {
-        "en": "The cause is not something one metric can show; compare it with the release dates and the campaigns of that week.",
-        "tr": "Nedeni tek bir metrikten çıkmaz; o haftanın sürüm tarihleri ve kampanyalarıyla karşılaştırın.",
-    },
-    "why_split": {
-        "en": "The cause is not something one metric can show; to see where it moved, ask for {metric} of {app} by {dim}.",
-        "tr": "Nedeni tek bir metrikten çıkmaz; nerede değiştiğini görmek için {app} {metric} değerini {dim} kırılımında sorun.",
-    },
-    "small_some": {
-        "en": "Small sample for {apps}: treat that app's numbers as directional.",
-        "tr": "{apps} için örneklem küçük: o uygulamanın sayıları yalnız yön gösterir.",
-    },
-    "sql_refused": {
-        "en": "The generated SQL was refused by the guard: {reason}.",
-        "tr": "Üretilen SQL koruma tarafından reddedildi: {reason}.",
-    },
-    "timeout": {
-        "en": "The query was stopped by the time limit.",
-        "tr": "Sorgu zaman sınırında durduruldu.",
-    },
-    "sql_rows": {
-        "en": "The checked query returned {rows} row(s).",
-        "tr": "Denetlenen sorgu {rows} satır döndürdü.",
-    },
-    "catalog_one": {
-        "en": "{metric}{label_part}[[, {first_day} to {last_day}]]: {value}[[ (n = {n})]], {aggregation_text}.",
-        "tr": "{metric}{label_part}[[, {first_day} ile {last_day} arası]]: {value}[[ (n = {n})]], {aggregation_text}.",
-    },
-    "catalog_many": {
-        "en": "{metric}[[, {first_day} to {last_day}]] ({aggregation_text}): highest {top_label} {top_value}, lowest {bottom_label} {bottom_value}; {rows} rows.",
-        "tr": "{metric}[[, {first_day} ile {last_day} arası]] ({aggregation_text}): en yüksek {top_label} {top_value}, en düşük {bottom_label} {bottom_value}; {rows} satır.",
-    },
-    "catalog_snapshot": {
-        "en": "{metric}{label_part}: {value}[[ (n = {n})]] in the latest snapshot; {rows} rows in the table.",
-        "tr": "{metric}{label_part}: son anlık görüntüde {value}[[ (n = {n})]]; tabloda {rows} satır.",
-    },
-}
-AGG_TEXT = {
-    "pooled": {"en": "pooled over the period", "tr": "dönem boyunca havuzlanmış"},
-    "sum": {"en": "summed over the period", "tr": "dönem toplamı"},
-    "mean_of_daily": {"en": "mean of the daily values", "tr": "günlük değerlerin ortalaması"},
-    "latest": {"en": "latest value", "tr": "son değer"},
-}
-
-
-@dataclass
-class Answer:
-    question: str
-    lang: str
-    route: str
-    text: str = ""
-    sql: str = ""
-    params: list[Any] = field(default_factory=list)
-    columns: list[str] = field(default_factory=list)
-    rows: list[list[Any]] = field(default_factory=list)
-    units: dict[str, str] = field(default_factory=dict)
-    evidence: Evidence | None = None
-    matched: str | None = None
-    refusal: str | None = None
-    missing: str | None = None
-    truncated: bool = False
-    verified: bool = True
-    source: str = "template"
-    notes: list[str] = field(default_factory=list)
-
-    def cells(self) -> list[list[str]]:
-        """Rows formatted by code for display (units from the query or the metric)."""
-        out = []
-        for r in self.rows:
-            out.append(
-                [
-                    fmt.number(v, self.units.get(c, _guess_unit(v)), self.lang)
-                    if v is not None
-                    else "—"
-                    for c, v in zip(self.columns, r, strict=False)
-                ]
-            )
-        return out
 
 
 _COUNT_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "iki": 2, "uc": 3, "dort": 4, "bes": 5}
@@ -256,14 +121,6 @@ def _wanted_count(norm: str) -> int:
             n = int(w) if w.isdigit() else _COUNT_WORDS[w]
             return max(1, min(n, 10))
     return 3 if _PLURAL.search(norm) else 1
-
-
-def _guess_unit(v: Any) -> str:
-    if isinstance(v, (dt.date, str)):
-        return "text" if isinstance(v, str) else "date"
-    if isinstance(v, int):
-        return "count"
-    return "ratio"
 
 
 @dataclass
@@ -324,7 +181,7 @@ def _hit(word: str, tokens: list[str]) -> bool:
     return any(t.startswith(word) or (len(t) >= 4 and word.startswith(t)) for t in tokens)
 
 
-class Router:
+class Router(CatalogAnswers):
     def __init__(
         self,
         session: LockedSession,
@@ -347,6 +204,15 @@ class Router:
                 "SELECT DISTINCT app_id FROM fct_app_daily ORDER BY 1"
             ).rows:
                 self.apps[app_id] = app_id
+        self.genres: dict[str, str] = {}
+        if "meta_apps" in self.schema and "genre" in self.schema["meta_apps"]:
+            self.genres = {
+                a: g
+                for a, g in session.run_trusted("SELECT app_id, genre FROM meta_apps").rows
+                if g
+            }
+        self._known: tuple[set[str], set[str]] | None = None
+        self._layer: semantic.Layer | None = None
 
     # -- slots ---------------------------------------------------------------
     def find_apps(self, norm: str) -> list[str]:
@@ -424,6 +290,51 @@ class Router:
         return rows[0][0] if rows else None
 
     # -- entry -----------------------------------------------------------------
+    def intent(self, question: str) -> intent.Intent:
+        terms, ids = self._known_words(question)
+        return intent.parse(
+            question,
+            apps=self.apps,
+            as_of=self.as_of,
+            genres=self.genres,
+            known_terms=terms,
+            known_ids=ids,
+        )
+
+    def _known_words(self, question: str) -> tuple[set[str], set[str]]:
+        """Words that are not an app name: catalog phrases, dimension values, identifiers."""
+        if self._known is None:
+            words: set[str] = set(intent.COMMON_WORDS)
+            for phrase, _kind, _id in self.catalog.terms():
+                words.update(phrase.split())
+            for phrases in intent.NETWORKS.values():
+                words.update(" ".join(phrases).split())
+            for en, others, trs in intent.COUNTRIES.values():
+                words.update(normalize(" ".join([en, *others, *trs])).split())
+            for name in self.apps.values():
+                words.update(normalize(name).split())
+            ids: set[str] = set(self.catalog.metrics) | set(self.schema)
+            for cols in self.schema.values():
+                ids.update(cols)
+            if "_" in question:
+                for table, col in (
+                    ("fct_experiment_tests", "experiment_id"),
+                    ("fct_sdk_purchases", "product_id"),
+                    ("fct_sdk_settings", "setting"),
+                    ("fct_review_topics", "topic"),
+                    ("fct_source_freshness", "source"),
+                    ("fct_ua_daily", "campaign_key"),
+                    ("fct_creative_scorecard", "creative_key"),
+                ):
+                    if table in self.schema:
+                        ids.update(
+                            str(r[0]).lower()
+                            for r in self.s.run_trusted(f"SELECT DISTINCT {col} FROM {table}").rows
+                            if r[0] is not None
+                        )
+            self._known = (words, ids)
+        return self._known
+
     def ask(self, question: str, lang: str = "en") -> Answer:
         lang = lang if lang in fmt.LANGS else "en"
         q = (question or "").strip()[:500]
@@ -433,25 +344,106 @@ class Router:
         if _PII.search(norm):
             return self._refuse(q, lang, "pii", {}, missing="personal data")
         last = self._last_day()
+        it = self.intent(q)
+        found = self.catalog.find(q)["metric"]
+        predicted = "pltv_usd" in found
         future_year = any(int(y) > (last or self.as_of).year for y in _YEAR.findall(norm))
-        if _FUTURE.search(norm) or future_year:
+        if (_FUTURE.search(norm) and not predicted) or future_year or it.future:
             facts = {"last_day": Fact(last, "date")} if last else {}
             return self._refuse(q, lang, "future", facts, missing="future data")
-        app = self.find_app(norm)
-        named = self.find_apps(norm)
+        early = self._early(q, norm, lang, it, found)
+        if early is not None:
+            return early
+        ans = self._route(q, norm, lang, it, last)
+        ans = self._gate(ans, it)
+        if it.typo_apps and ans.route != "refused":
+            written, app = next(iter(it.typo_apps.items()))
+            note = narrate.render(
+                TEXTS["typo"][lang],
+                {"written": Fact(written, "data"), "app": Fact(app, "text")},
+                lang,
+            )
+            ans.text = f"{ans.text} {note}"
+            ans.notes.append("typo_app")
+        return ans
+
+    def _early(
+        self, q: str, norm: str, lang: str, it: intent.Intent, found: list[str]
+    ) -> Answer | None:
+        """Refusals that need no query: an app that does not exist, an ambiguous genre, a
+        metric nobody collects, a filter value with no rows for the app."""
+        if it.unknown_apps and not it.apps:
+            facts = {
+                "name": Fact(it.unknown_apps[0], "data"),
+                "apps": Fact(", ".join(self.apps), "text"),
+            }
+            return self._refuse(q, lang, "unknown_app", facts, missing="app")
+        if it.genre_apps and len(it.genre_apps) > 1 and not it.total and not it.compare:
+            facts = {"apps": Fact(", ".join(it.genre_apps), "text")}
+            return self._refuse(q, lang, "ambiguous_app", facts, missing="app")
+        if it.genre_apps and len(it.genre_apps) == 1:
+            it.apps = list(it.genre_apps)
+        if it.unknown_metrics and not found:
+            sug = self._suggest(norm, lang)
+            facts = {"metric": Fact(it.unknown_metrics[0], "text")}
+            if sug:
+                facts["suggestions"] = Fact(sug, "text")
+            # the refusal key stays no_metric: the refusal set asks "names what is missing"
+            r = self._refuse(q, lang, "unknown_metric", facts, missing=it.unknown_metrics[0])
+            r.refusal = "no_metric"
+            return r
+        app = it.apps[0] if len(it.apps) == 1 else None
+        for dim, vals in it.filters().items():
+            have = semantic.values_for(self.s, dim, app)
+            if not have:
+                continue  # no table carries the dimension for this app: the gate decides
+            have_l = {h.lower() for h in have}
+            missing = [v for v in vals if not (consistency.aliases(dim, v) & have_l)]
+            if missing:
+                shown = have if len(have) <= 12 else [*have[:3], "…", *have[-3:]]
+                facts = {
+                    "app_part": Fact(
+                        f"{app} " if app else {"en": "This warehouse ", "tr": "Ambarın "}[lang],
+                        "text",
+                    ),
+                    "filter": Fact(
+                        f"{dim} = {', '.join(consistency.display(dim, m) for m in missing)}", "text"
+                    ),
+                    "values": Fact(", ".join(shown), "text"),
+                }
+                return self._refuse(q, lang, "no_such_value", facts, missing=dim)
+        return None
+
+    def _route(
+        self, q: str, norm: str, lang: str, it: intent.Intent, last: dt.date | None
+    ) -> Answer:
+        app = it.apps[0] if len(it.apps) == 1 else self.find_app(norm)
+        named = it.apps if it.apps else self.find_apps(norm)
         compare = named if len(named) >= 2 else None
         if compare:
             app = None  # "compare A and B": one row per named app
         rng = self.find_range(norm, last)
         n_days = self.find_days(norm)
+        if it.period is not None and it.period.latest and not n_days and not rng:
+            n_days = 1  # "latest", "en son": the newest day of a daily metric
+        if it.period is not None and it.period.start and it.period.end and not it.period.latest:
+            rng = (it.period.start, it.period.end)
+        elif it.period is not None and it.period.days:
+            n_days = it.period.days
         if rng and n_days and (rng[1] - rng[0]).days + 1 > n_days:
             rng = (rng[1] - dt.timedelta(days=n_days - 1), rng[1])  # "last 7 days of October"
+        if it.why and app is not None:
+            why = self._why(q, lang, it, app)
+            if why is not None:
+                return why
         # verified queries have fixed windows: an explicit period goes to the catalog / SQL
-        vq = None if (rng or compare) else self._verified(q, norm, lang, app)
-        if vq is not None:
-            return vq
-        long_tail = bool(_LONG_TAIL.search(norm))
-        cat = None if long_tail else self._catalog(q, norm, lang, app, rng, compare)
+        vq = None if (rng or compare) else self._verified(q, norm, lang, app, it)
+        if vq is not None and (vq.route == "refused" or not self._gaps(vq, it)):
+            return vq  # a library query that does not cover the filters leaves it to the catalog
+        long_tail = bool(_LONG_TAIL.search(norm)) and not any(
+            self.catalog.get(m).unit == "date" for m in self.catalog.find(q)["metric"]
+        )
+        cat = None if long_tail else self._catalog(q, norm, lang, app, rng, compare, it)
         if cat is not None:
             return cat
         if self.client is not None:
@@ -460,9 +452,210 @@ class Router:
             return self._refuse(q, lang, "long_tail", {}, missing="query")
         return self._no_metric(q, norm, lang)
 
+    def _gaps(self, ans: Answer, it: intent.Intent) -> list[consistency.Gap]:
+        skip: set[str] = set()
+        if ans.matched in ("hardest_levels",):
+            skip.add("level")
+        newest, first = self._span_of(ans, it)
+        gaps = consistency.check(
+            it,
+            sql=ans.sql,
+            params=ans.params,
+            columns=ans.columns,
+            rows=ans.rows,
+            n_apps=len(self.apps),
+            newest=newest,
+            first=first,
+            skip=skip,
+        )
+        cols = [c.lower() for c in ans.columns]
+        m = self.catalog.metrics.get((ans.matched or "").split(":")[0])
+        if m is not None and _PER_UNIT.search(it.norm) and m.aggregation == "sum":
+            gaps.append(consistency.Gap("metric", ["a rate per user"], "not_applied"))
+        if it.total and not it.apps and ans.route == "catalog" and "app_id" in cols:
+            if len({str(r[cols.index("app_id")]) for r in ans.rows}) > 1:
+                gaps.append(consistency.Gap("total", ["all apps"], "not_applied"))
+        for dim in it.by:
+            if dim == "app_id" and it.apps:
+                continue
+            col = semantic.DIM_COLUMNS.get(dim, dim)
+            if col not in cols and not (dim == "level" and any("level" in c for c in cols)):
+                gaps.append(consistency.Gap("breakdown", [dim], "not_applied"))
+        return gaps
+
+    def _gate(self, ans: Answer, it: intent.Intent) -> Answer:
+        """Refuse an answer whose evidence does not cover the question's filters and period."""
+        if ans.route == "refused" or "drivers" in ans.notes:
+            return ans
+        gaps = self._gaps(ans, it)
+        if not gaps:
+            return ans
+        metric = self._metric_label(ans)
+        g = gaps[0]
+        if g.dim == "period":
+            spec = next(
+                (semantic.MODELS[t] for t in self._tables_of(ans) if t in semantic.MODELS), None
+            )
+            fixed = {"en": "a fixed window", "tr": "sabit bir dönem"}[ans.lang]
+            facts = {
+                "metric": Fact(metric, "text"),
+                "window": Fact((spec.window_text(ans.lang) if spec else None) or fixed, "text"),
+                "period": Fact(", ".join(g.asked), "text"),
+            }
+            key = "period_unchecked" if spec is not None and spec.time else "period_not_applied"
+            r = self._refuse(ans.question, ans.lang, key, facts, missing="period")
+        else:
+            facts = {
+                "metric": Fact(metric, "text"),
+                "filters": Fact("; ".join(x.label() for x in gaps if x.dim != "period"), "text"),
+            }
+            r = self._refuse(ans.question, ans.lang, "filter_not_applied", facts, missing=g.dim)
+        r.sql, r.params, r.matched = ans.sql, ans.params, ans.matched
+        r.notes.append("consistency:" + ",".join(f"{x.dim}:{x.reason}" for x in gaps))
+        return r
+
+    def _tables_of(self, ans: Answer) -> list[str]:
+        if not ans.sql:
+            return []
+        return sorted(consistency.coverage_of(ans.sql, ans.params, [], []).tables)
+
+    def _span_of(self, ans: Answer, it: intent.Intent) -> tuple[dt.date | None, dt.date | None]:
+        """Newest and oldest day of the answer's main table for the asked app."""
+        for t in self._tables_of(ans):
+            spec = semantic.MODELS.get(t)
+            if not spec or not spec.time:
+                continue
+            app = it.apps[0] if len(it.apps) == 1 else None
+            got = self._trusted(
+                f"SELECT MAX({spec.time}), MIN({spec.time}) FROM {t}"
+                + (" WHERE app_id = ?" if app else ""),
+                [app] if app else [],
+            )
+            if got and got.rows:
+                return got.rows[0][0], got.rows[0][1]
+        return None, None
+
+    def _metric_label(self, ans: Answer) -> str:
+        m = self.catalog.metrics.get((ans.matched or "").split(":")[0])
+        if m:
+            return m.label(ans.lang)
+        return ans.matched or ("this question" if ans.lang == "en" else "bu soru")
+
+    def _suggest(self, norm: str, lang: str) -> str:
+        toks = set(_tokens(norm))
+        scored = []
+        for m in self.catalog.metrics.values():
+            words = set(_tokens(" ".join([m.name["en"], m.name["tr"]])))
+            overlap = len(toks & words)
+            if overlap:
+                scored.append((-overlap, m.id))
+        return ", ".join(self.catalog.get(i).label(lang) for _, i in sorted(scored)[:3])
+
+    # -- why: driver analysis -----------------------------------------------------
+    def _why(self, q: str, lang: str, it: intent.Intent, app: str) -> Answer | None:
+        found = self.catalog.find(q)["metric"]
+        if not found:
+            return None
+        metric = self._pick(found, it, normalize(q))[0]
+        stale = self._stale(q, lang, app)
+        if stale is not None:
+            return stale
+        tier = it.tiers[0] if it.tiers else None
+        try:
+            res = drivers.explain(self.s, self.catalog, metric, app, as_of=self.as_of, tier=tier)
+        except (duckdb.Error, KeyError, IndexError, ValueError):
+            res = None
+        if res is None or res.value0 is None or res.value1 is None:
+            return None
+        unit = res.unit
+        change = (res.value1 - res.value0) / abs(res.value0) if res.value0 else None
+        facts: dict[str, Fact] = {
+            "metric": Fact(metric.label(lang), "text"),
+            "app": Fact(app, "text"),
+            "value0": Fact(res.value0, unit),
+            "value1": Fact(res.value1, unit),
+            "cur_start": Fact(res.current[0], "date"),
+            "cur_end": Fact(res.current[1], "date"),
+            "base_start": Fact(res.baseline[0], "date"),
+            "base_end": Fact(res.baseline[1], "date"),
+        }
+        word_i = 2
+        if change is not None:
+            facts["change"] = Fact(abs(change), "pct")
+            word_i = 0 if change > 0.005 else (1 if change < -0.005 else 2)
+        direction = drivers.DIRECTION[lang][word_i]
+        if "{change}" in direction and "change" in facts:
+            direction = direction.replace(
+                "{change}", fmt.number(facts["change"].value, "pct", lang)
+            )
+        facts["direction"] = Fact(direction, "text")
+        text = narrate.render(drivers.TEXTS["head"][lang], facts, lang)
+        asked = drivers.asked_direction(normalize(q), metric.better)
+        if asked and word_i in (0, 1) and asked != ("up" if word_i == 0 else "down"):
+            text += drivers.TEXTS["not_moved"][lang]
+        if res.dimension and res.segment is not None:
+            dim_name = drivers.SEGMENT_TEXT[lang].get(res.dimension.split(",")[0], res.dimension)
+            seg = res.segment
+            if res.dimension == "component":
+                seg = drivers.COMPONENT_NAMES.get(seg, {}).get(lang, seg)
+            sunit = "pp" if unit == "pct" else unit
+            seg_facts = {
+                "dim": Fact(dim_name, "text"),
+                "segment": Fact(seg, "version"),
+            }
+            if res.seg0_label:
+                label = (
+                    drivers.REST_TEXT[lang] if res.seg0_label == drivers.REST else res.seg0_label
+                )
+                seg_facts["seg0_label"] = Fact(label, "version")
+            if res.seg0 is not None:
+                seg_facts["seg0"] = Fact(res.seg0, unit)
+            if res.seg1 is not None:
+                seg_facts["seg1"] = Fact(res.seg1, unit)
+            if res.contribution is not None:
+                seg_facts["contribution"] = Fact(abs(res.contribution), sunit)
+            if res.ep is not None and 0 < res.ep <= 1:
+                seg_facts["ep"] = Fact(res.ep, "pct")
+            facts.update(seg_facts)
+            key = "segment_vs" if res.seg0_label else "segment"
+            text += narrate.render(drivers.TEXTS[key][lang], seg_facts, lang)
+        if res.release and not (
+            res.dimension == "app_version" and str(res.segment).split(" ")[0] == res.release[0]
+        ):
+            rel = {"version": Fact(res.release[0], "version"), "first_seen": Fact(res.release[1], "date"),
+                   "metric": Fact(metric.label(lang), "text")}  # fmt: skip
+            facts.update({"version": rel["version"], "first_seen": rel["first_seen"]})
+            key = "release" if res.dimension else "release_only"
+            text += narrate.render(drivers.TEXTS[key][lang], rel, lang)
+        text += drivers.TEXTS["caveat"][lang]
+        main = res.evidence[0]
+        ev = Evidence(
+            id=f"why:{metric.id}:{app}",
+            kind="answer",
+            app_id=app,
+            method=res.method,
+            sql=main.sql,
+            params=main.params,
+            columns=main.columns,
+            rows=main.rows,
+            facts=facts,
+            caveats=["association_in_time"],
+        )
+        ans = Answer(q, lang, "catalog", matched=f"{metric.id}:why", units={})
+        ans.sql, ans.params, ans.columns, ans.rows = main.sql, main.params, main.columns, main.rows
+        ans.evidence = ev
+        evs = [ev, *res.evidence]
+        ans.text, _src = narrate.restyle(text, evs, facts, lang, self.client)
+        ans.verified = verify.verified(ans.text, evs, lang)
+        ans.notes += ["drivers", "association_in_time"]
+        return self._small(ans, app)
+
     # -- 1. verified queries ---------------------------------------------------
-    def _verified(self, q: str, norm: str, lang: str, app: str | None) -> Answer | None:
+    def _verified(
+        self, q: str, norm: str, lang: str, app: str | None, it: intent.Intent | None = None
+    ) -> Answer | None:
         toks = _tokens(norm)
+        wanted_cols: list[str] = []
         every = norm.split()
         asked_dims = [
             d
@@ -473,14 +666,22 @@ class Router:
         days = self.find_days(norm)
         day_ns = {m.group(1) for m in _DAY_N.finditer(norm)}
         metric_cols = set()
+        sdk_models = set()
         for mid in self.catalog.find(q)["metric"]:
-            col = self.catalog.get(mid).value
+            m = self.catalog.get(mid)
+            col = m.value
             if re.fullmatch(r"[a-z_][a-z0-9_]*", col) and col != "retention":
-                metric_cols.add(col)
+                metric_cols.add(re.sub(r"_(usd|ms|mb)$", "", col))  # spend_usd ~ spend_30d_usd
+            if mid.startswith("sdk_"):
+                sdk_models.add(m.model)  # "SDK level fail rate": the SDK funnel, not the GA4 one
         best: tuple[float, VQ] | None = None
         for vq in verified_queries():
             if not all(any(_hit(w, every) for w in group) for group in vq.must):
                 continue
+            if any(c not in vq.sql for c in wanted_cols):
+                continue  # the question filters by a column this query does not have
+            if it is not None and it.day_ns and vq.id == "ltv_d30" and it.day_ns[0] != 30:
+                continue  # D7 LTV is not the day-30 query
             if any(_COLUMN.get(d, d) not in vq.sql for d in asked_dims):  # a breakdown it lacks
                 continue
             if "level" in vq.params and level is None:
@@ -494,8 +695,10 @@ class Router:
                 and not any(f"d{n}" in said or f"day_n = {n}" in said for n in day_ns)
             ):
                 continue  # D30 asked, the retention query reports D1
-            if metric_cols and not any(c.split("_")[0] in vq.sql for c in metric_cols):
+            if metric_cols and not any(c in vq.sql for c in metric_cols):
                 continue  # crash-free asked, the query is about retention
+            if sdk_models and not any(t in vq.sql for t in sdk_models):
+                continue
             window = vq.consts.get("window")
             if days is not None and window is not None and window.value != days:
                 continue  # a fixed-window query cannot answer another period
@@ -566,264 +769,6 @@ class Router:
         ans.verified = verify.verified(ans.text, [ev], lang)
         return self._small(ans, app)
 
-    # -- 2. catalog tool ---------------------------------------------------------
-    def _catalog(
-        self,
-        q: str,
-        norm: str,
-        lang: str,
-        app: str | None,
-        rng: tuple[dt.date, dt.date] | None = None,
-        compare: list[str] | None = None,
-    ) -> Answer | None:
-        found = self.catalog.find(q)
-        metric_ids = found["metric"]
-        dims = [d for d in found["dimension"] if d not in ("app_id", "date", "cohort_date")]
-        days = self.find_days(norm)
-        if not metric_ids and self.client is not None:
-            routed = self._llm_route(q)
-            if routed:
-                metric_ids = [routed["metric"]]
-                app = app or routed.get("app")
-                if routed.get("by") and routed["by"] != "app_id":  # "by app" = the per-app rows
-                    dims = [routed["by"]]
-                days = days or routed.get("days")
-        for word, (en, tr) in _UNCOLLECTED.items():
-            if re.search(rf"\b{word}\b", norm) and metric_ids:
-                return self._refuse(
-                    q,
-                    lang,
-                    "uncollected",
-                    {"dimension": Fact(en if lang == "en" else tr, "text")},
-                    missing=en,
-                )
-        if not metric_ids:
-            return None
-        metric = self.catalog.get(metric_ids[0])
-        stale = self._stale(q, lang, app)
-        if stale is not None:
-            return stale
-        by: list[str] = []
-        for d in dims[:1]:
-            d = _COLUMN.get(d, d)  # a dimension's id may differ from its column (campaign)
-            if d in metric.dims:
-                by = [d]
-            elif d in metric.pull_dims:
-                return self._pull_dim(q, lang, metric, d, app, days)
-            else:
-                avail = [
-                    self.catalog.dimensions[x].name[lang]
-                    for x in metric.dims
-                    if x in self.catalog.dimensions
-                ]
-                facts = {
-                    "metric": Fact(metric.label(lang), "text"),
-                    "dimension": Fact(self.catalog.dimensions[d].name[lang], "text"),
-                }
-                if avail:
-                    facts["available"] = Fact(", ".join(avail), "text")
-                return self._refuse(q, lang, "no_dimension", facts, missing=d)
-        why = bool(_WHY.search(norm)) and not by and app is not None
-        trend = (bool(_TREND.search(norm)) or why) and not by and app is not None
-        overall = not days and rng is None and not trend and bool(_OVERALL.search(norm))
-        ans = self._metric_answer(q, lang, metric, app, by, days, rng, compare, trend, overall)
-        if why and ans.route == "catalog" and ans.evidence is not None:
-            # one metric over time says whether it moved, not why: say so and point at the split
-            splits = (*metric.dims, *metric.pull_dims)
-            dim = next((d for d in ("platform", "country") if d in splits), None)
-            hint = TEXTS["why_split" if dim else "why"][lang]
-            dname = self.catalog.dimensions[dim].name[lang] if dim else ""
-            ans.text = f"{ans.text} {hint.format(metric=metric.label(lang), app=app, dim=dname)}"
-            ans.notes.append("why_not_inferred")
-        return ans
-
-    def _metric_answer(
-        self,
-        q: str,
-        lang: str,
-        metric: Metric,
-        app: str | None,
-        by: list[str],
-        days: int | None,
-        rng: tuple[dt.date, dt.date] | None = None,
-        compare: list[str] | None = None,
-        trend: bool = False,
-        overall: bool = False,
-    ) -> Answer:
-        start = end = None
-        if metric.time and metric.aggregation != "latest":
-            cond = f"WHERE {metric.where(['app_id = ?'] if app else [])}"
-            got = self._trusted(
-                f"SELECT MAX({metric.time}) FROM {metric.model} {cond}", [app] if app else []
-            )
-            if got is None:
-                return self._refuse(q, lang, "schema", {}, missing=metric.id)
-            last = got.rows[0][0]
-            if last is None:
-                return self._no_data(Answer(q, lang, "catalog", matched=metric.id), metric.id, app)
-            span = days or (14 if metric.time == "cohort_date" else 7)
-            end, start = last, last - dt.timedelta(days=span - 1)
-            if overall:  # "average rating": every day the warehouse has, not the last week
-                first = self._trusted(
-                    f"SELECT MIN({metric.time}) FROM {metric.model} {cond}", [app] if app else []
-                )
-                if first is not None and first.rows[0][0] is not None:
-                    start = first.rows[0][0]
-            if rng is not None:  # the period the question names, cut at the latest data
-                start, end = rng[0], min(rng[1], last)
-                if start > end:
-                    return self._no_data(
-                        Answer(q, lang, "catalog", matched=metric.id), metric.id, app
-                    )
-        try:
-            sql, params = metric.period_sql(app_id=app, start=start, end=end, by=by)
-        except CatalogError as exc:
-            return self._refuse(
-                q,
-                lang,
-                "no_dimension",
-                {"metric": Fact(metric.label(lang), "text"), "dimension": Fact(str(exc), "text")},
-            )
-        res = self._trusted(sql, params)
-        if res is None:
-            return self._refuse(q, lang, "schema", {}, missing=metric.id)
-        if compare and "app_id" in res.columns:  # keep the apps the question compares
-            ai = res.columns.index("app_id")
-            res.rows = [r for r in res.rows if r[ai] in compare]
-        ans = Answer(q, lang, "catalog", matched=metric.id)
-        ans.units = {
-            "value": metric.unit,
-            "n": "count",
-            "first_day": "date",
-            "last_day": "date",
-            "days": "count",
-        }
-        if metric.unit == "pct" or metric.aggregation == "latest":
-            ans.units.update({c: metric.unit for c in ("value",)})
-        self._fill(ans, res, params)
-        if not res.rows:
-            return self._no_data(ans, metric.id, app)
-        cols = res.columns
-        rows = res.rows
-        vi = cols.index("value")
-        ni = cols.index("n") if "n" in cols else None
-        label_cols = [c for c in cols if c in ("app_id", *metric.dims)]
-
-        def label(r: tuple[Any, ...]) -> str:
-            return " / ".join(str(r[cols.index(c)]) for c in label_cols)
-
-        facts: dict[str, Fact] = {
-            "metric": Fact(metric.label(lang), "text"),
-            "rows": Fact(len(rows), "count"),
-            "aggregation_text": Fact(AGG_TEXT[metric.aggregation][lang], "text"),
-        }
-        valued = [r for r in rows if r[vi] is not None]
-        if not valued:
-            return self._no_data(ans, metric.id, app)
-        # tables without a date column (the level funnel covers the loaded window) give no span
-        dated = "first_day" in cols and "last_day" in cols
-        vunit = metric.unit
-        if metric.aggregation == "mean_of_daily" and vunit == "count":
-            vunit = "ratio"  # a mean of daily counts keeps its decimals (1.60, not 2)
-            ans.units["value"] = vunit
-        if metric.aggregation == "latest":
-            r0 = valued[0]
-            facts.update(
-                value=Fact(r0[vi], metric.unit), label_part=Fact(f" ({label(r0)})", "text")
-            )
-            if ni is not None and r0[ni] is not None:
-                facts["n"] = Fact(r0[ni], "count")
-            key = "catalog_snapshot"
-        elif len(valued) == 1:
-            r0 = valued[0]
-            facts.update(value=Fact(r0[vi], vunit), label_part=Fact(f" ({label(r0)})", "text"))
-            if dated:
-                facts.update(
-                    first_day=Fact(r0[cols.index("first_day")], "date"),
-                    last_day=Fact(r0[cols.index("last_day")], "date"),
-                )
-            if ni is not None and r0[ni] is not None:
-                facts["n"] = Fact(r0[ni], "count")
-            key = "catalog_one"
-        else:
-            hi = max(valued, key=lambda r: r[vi])
-            lo = min(valued, key=lambda r: r[vi])
-            facts.update(
-                top_label=Fact(label(hi), "text"),
-                top_value=Fact(hi[vi], vunit),
-                bottom_label=Fact(label(lo), "text"),
-                bottom_value=Fact(lo[vi], vunit),
-            )
-            if dated:
-                facts.update(
-                    first_day=Fact(min(r[cols.index("first_day")] for r in valued), "date"),
-                    last_day=Fact(max(r[cols.index("last_day")] for r in valued), "date"),
-                )
-            key = "catalog_many"
-        ev = self._evidence(
-            f"catalog:{metric.id}",
-            f"catalog metric {metric.id} ({metric.aggregation})",
-            res,
-            params,
-            facts,
-        )
-        ev.metric, ev.aggregation, ev.definition = metric.id, metric.aggregation, metric.definition
-        ans.evidence = ev
-        ans.text = self._say(TEXTS[key][lang], facts, ev, lang, {})
-        if trend and key == "catalog_one" and start and end and (end - start).days >= 3:
-            more = self._trend_text(metric, app, start, end, vunit, lang, ev)
-            if more:
-                ans.text = f"{ans.text} {more}"
-        ans.verified = verify.verified(ans.text, [ev], lang)
-        named: list[str] = []
-        if app is None and "app_id" in cols:
-            ai = cols.index("app_id")
-            shown = [hi, lo] if key == "catalog_many" else [valued[0]]
-            named = sorted({str(r[ai]) for r in shown})
-        return self._small(ans, app, named)
-
-    def _trend_text(
-        self,
-        metric: Metric,
-        app: str | None,
-        start: dt.date,
-        end: dt.date,
-        unit: str,
-        lang: str,
-        ev: Evidence,
-    ) -> str:
-        """Up or down: the first half of the period against the second, same definition."""
-        mid = start + dt.timedelta(days=(end - start).days // 2)
-        vals = []
-        for a, b in ((start, mid), (mid + dt.timedelta(days=1), end)):
-            sql, params = metric.period_sql(app_id=app, start=a, end=b)
-            r = self._trusted(sql, params)
-            if r is None or not r.rows or r.rows[0][r.columns.index("value")] is None:
-                return ""
-            vals.append(float(r.rows[0][r.columns.index("value")]))
-        a, b = vals
-        if a == 0:
-            return ""
-        change = (b - a) / abs(a)
-        facts = {
-            "first": Fact(a, unit), "second": Fact(b, unit), "change": Fact(abs(change), "pct"),
-            "h1_end": Fact(mid, "date"), "h2_start": Fact(mid + dt.timedelta(days=1), "date"),
-        }  # fmt: skip
-        ev.facts.update({f"trend.{k}": v for k, v in facts.items()})
-        word = {
-            "en": ("up", "down", "flat"), "tr": ("arttı", "düştü", "yatay kaldı"),
-        }[lang][0 if change > 0.02 else (1 if change < -0.02 else 2)]  # fmt: skip
-        tmpl = {
-            "en": "Trend: {first} until {h1_end}, {second} from {h2_start}: " + word + " {change}.",
-            "tr": "Eğilim: {h1_end} tarihine kadar {first}, {h2_start} tarihinden sonra {second}: {change} "
-            + word
-            + ".",
-        }[lang]
-        try:
-            return narrate.render(tmpl, facts, lang, {})
-        except narrate.TemplateError:
-            return ""
-
     def _trusted(self, sql: str, params: list[Any]) -> Result | None:
         """Catalog / library SQL; None when this warehouse predates a column it needs."""
         try:
@@ -855,104 +800,13 @@ class Router:
             ans.notes.append("small_sample")
         return ans
 
-    def _pull_dim(
-        self, q: str, lang: str, metric: Metric, dim: str, app: str | None, days: int | None
-    ) -> Answer:
-        dname = self.catalog.dimensions[dim].name[lang]
-        n = {"d1_retention": 1, "d7_retention": 7, "d30_retention": 30}.get(metric.id)
-        if app is None and len(self.apps) == 1:
-            app = next(iter(self.apps))
-        if app is None:
-            return self._refuse(
-                q, lang, "need_app", {"apps": Fact(", ".join(self.apps), "text")}, missing="app"
-            )
-        has = (
-            "stg_cohort_dims" in self.schema
-            and n is not None
-            and self.s.run_trusted(
-                "SELECT COUNT(*) FROM stg_cohort_dims WHERE app_id = ? AND grouping_set = ?",
-                [app, dim],
-            ).rows[0][0]
-        )
-        sdk_app = (
-            not has
-            and "fct_sdk_apps" in self.schema
-            and self.s.run_trusted(
-                "SELECT COUNT(*) FROM fct_sdk_apps WHERE app_id = ?", [app]
-            ).rows[0][0]
-        )
-        if sdk_app:  # the SDK carries every dimension; the cells are just too small
-            return self._refuse(
-                q,
-                lang,
-                "dim_small_sdk",
-                {
-                    "dimension": Fact(dname, "text"),
-                    "app": Fact(app, "text"),
-                    "min_n": Fact(50, "count"),
-                },
-                missing=dim,
-            )
-        if not has:
-            return self._refuse(
-                q,
-                lang,
-                "dim_needs_pull",
-                {"dimension": Fact(dname, "text"), "app": Fact(app, "text")},
-                missing=dim,
-            )
-        span = days or 28
-        sql = (
-            f"SELECT {dim}, SUM(users) AS n, CAST(SUM(d{n}_users) AS DOUBLE) / NULLIF(SUM(users), 0) AS value, "
-            "MIN(cohort_date) AS first_day, MAX(cohort_date) AS last_day "
-            f"FROM stg_cohort_dims WHERE app_id = ? AND grouping_set = ? AND d{n}_users IS NOT NULL "
-            f"AND cohort_date > (SELECT MAX(cohort_date) FROM stg_cohort_dims WHERE app_id = ? AND d{n}_users IS NOT NULL) - ? "
-            "GROUP BY 1 ORDER BY n DESC"
-        )
-        params = [app, dim, app, span]
-        res = self.s.run_trusted(sql, params)
-        ans = Answer(q, lang, "catalog", matched=f"{metric.id}:{dim}")
-        ans.units = {
-            "value": "pct",
-            "n": "count",
-            "first_day": "date",
-            "last_day": "date",
-            dim: "version",
-        }
-        self._fill(ans, res, params)
-        valued = [r for r in res.rows if r[2] is not None]
-        if not valued:
-            return self._no_data(ans, metric.id, app)
-        hi = max(valued, key=lambda r: r[2])
-        lo = min(valued, key=lambda r: r[2])
-        facts = {
-            "metric": Fact(metric.label(lang), "text"),
-            "rows": Fact(len(valued), "count"),
-            "aggregation_text": Fact(AGG_TEXT["pooled"][lang], "text"),
-            "top_label": Fact(str(hi[0]), "version"),
-            "top_value": Fact(hi[2], "pct"),
-            "bottom_label": Fact(str(lo[0]), "version"),
-            "bottom_value": Fact(lo[2], "pct"),
-            "first_day": Fact(min(r[3] for r in valued), "date"),
-            "last_day": Fact(max(r[4] for r in valued), "date"),
-        }
-        ev = self._evidence(
-            f"catalog:{metric.id}:{dim}",
-            f"cohort_dims pull, {metric.id} by {dim} (pooled)",
-            res,
-            params,
-            facts,
-        )
-        ans.evidence = ev
-        ans.text = self._say(TEXTS["catalog_many"][lang], facts, ev, lang, {})
-        ans.verified = verify.verified(ans.text, [ev], lang)
-        return ans
-
     def _llm_route(self, q: str) -> dict[str, Any] | None:
         assert self.client is not None
         payload = {
             "question": q,
-            "metrics": {m.id: m.name["en"] for m in self.catalog.metrics.values()},
+            "metrics": {
+                m.id: f"{m.name['en']}: {m.definition}" for m in self.catalog.metrics.values()
+            },
             "dimensions": list(self.catalog.dimensions),
             "apps": list(self.apps),
         }
@@ -964,6 +818,17 @@ class Router:
         metric = d.get("metric")
         if not isinstance(metric, str) or metric not in self.catalog.metrics:
             return None
+        m = self.catalog.get(metric)
+        words = set(
+            _tokens(
+                " ".join(
+                    [m.id.replace("_", " "), m.name["en"], m.name["tr"]]
+                    + [x for v in m.synonyms.values() for x in v]
+                )
+            )
+        )
+        if not any(_hit(w, _tokens(q)) for w in words if len(w) >= 3):
+            return None  # "most frequent error" routed to crashed users: no shared word
         out: dict[str, Any] = {"metric": metric}
         if isinstance(d.get("app"), str) and d["app"] in self.apps:
             out["app"] = d["app"]
@@ -973,19 +838,28 @@ class Router:
             out["days"] = d["days"]
         return out
 
+    def semantic_context(self) -> dict[str, Any]:
+        """The semantic layer as the model sees it (semantic.py): metrics with grain,
+        filters and their values, tables with windows, join paths, rules, today."""
+        if self._layer is None:
+            self._layer = semantic.build(self.s, self.catalog)
+        return semantic.context(
+            self._layer,
+            apps=self.apps,
+            genres=self.genres,
+            as_of=self.as_of,
+            newest_day=self._last_day(),
+            allowed=self.s.allowed,
+        )
+
     # -- 3. guarded SQL ------------------------------------------------------------
     def _sql(self, q: str, lang: str) -> Answer:
         assert self.client is not None
-        payload = {
-            "question": q,
-            "apps": list(self.apps),  # the values of app_id, in every table
-            "tables": {t: list(c) for t, c in self.schema.items()},
-            "metrics": {
-                m.id: f"{m.model}.{m.value}: {m.definition}" for m in self.catalog.metrics.values()
-            },
-        }
+        payload = {"question": q, **self.semantic_context()}
         try:
-            reply = self.client.generate(llm.request("sql", llm.SYSTEM_SQL, payload))
+            reply = self.client.generate(
+                llm.request("sql", llm.SYSTEM_SQL, payload, max_tokens=900)
+            )
         except Exception:
             return self._no_metric(q, normalize(q), lang)
         sql = (reply.data or {}).get("sql")
@@ -1007,6 +881,13 @@ class Router:
             msg = (str(exc).splitlines() or [type(exc).__name__])[0][:160]
             a = self._refuse(q, lang, "sql_refused", {"reason": Fact(msg, "data")})
             a.sql = sql
+            return a
+        it = self.intent(q)
+        listing = it.rank or it.by or it.compare or bool(_LIST_WORD.search(normalize(q)))
+        if not res.rows or (len(res.rows) > 5 and not listing):
+            key = "sql_empty" if not res.rows else "sql_table"
+            a = self._refuse(q, lang, key, {"rows": Fact(len(res.rows), "count")}, missing="answer")
+            a.sql = res.sql
             return a
         ans = Answer(q, lang, "sql", matched="generated")
         self._fill(ans, res, [])

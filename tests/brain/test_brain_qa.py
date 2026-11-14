@@ -115,15 +115,18 @@ def test_stale_data_is_refused_with_the_date(wh):
 
 
 def test_sdk_app_breakdown_refusal_says_the_cells_are_small(wh):
-    """pebble_pop is an SDK game with about 18 installs a day: no cell reaches 50."""
+    """pebble_pop is an SDK game with about 18 installs a day: no cohort_dims cell reaches
+    50. The platform split comes from stg_cohort_days instead (every app has it); the other
+    dimensions are refused with the reason."""
     with LockedSession.open(wh) as s:
-        a = qa.Router(s, as_of=AS_OF).ask("What is pebble_pop's day-1 retention by platform?")
-        t = qa.Router(s, as_of=AS_OF).ask(
-            "pebble_pop için platforma göre D1 elde tutma nedir?", "tr"
-        )
+        a = qa.Router(s, as_of=AS_OF).ask("What is pebble_pop's day-1 retention by country?")
+        t = qa.Router(s, as_of=AS_OF).ask("pebble_pop için ülkeye göre D1 elde tutma nedir?", "tr")
+        p = qa.Router(s, as_of=AS_OF).ask("What is pebble_pop's day-1 retention by platform?")
     assert a.route == "refused" and a.refusal == "dim_small_sdk" and a.verified
     assert "SDK data" in a.text and "50 installs" in a.text and "GA4" not in a.text
     assert t.refusal == "dim_small_sdk" and "SDK verisi" in t.text
+    assert p.route == "catalog" and "platform" in p.columns and "stg_cohort_days" in p.sql
+    assert p.verified
 
 
 def test_every_catalog_metric_answers_for_every_app(wh):
@@ -211,8 +214,9 @@ def test_top_n_overall_and_the_small_sample_caveat_follow_the_question(wh, no_ne
         week = r.ask("What is the D1 retention of quartz_merge?", "en")
         avg = r.ask("What is the average D1 retention of quartz_merge?", "en")
         why = r.ask("Why did quartz_merge's D1 retention drop?", "en")
-    assert why.matched == "d1_retention" and why.verified and "why_not_inferred" in why.notes
-    assert "Trend:" in why.text and "by platform" in why.text  # did it move, and where to look
+    # "why": driver analysis (drivers.py) names the release and keeps the caveat
+    assert why.matched == "d1_retention:why" and why.verified and "drivers" in why.notes
+    assert "1.8.0" in why.text and "Association in time" in why.text
     assert top.matched == "hardest_levels" and top.verified
     assert "Next:" in top.text and top.text.count("level") >= 3
     assert "Next:" not in one.text

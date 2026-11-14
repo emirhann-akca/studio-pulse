@@ -77,12 +77,44 @@ dimensions:
     name: {en: store, tr: mağaza}
     synonyms: {en: [play store, app store], tr: [play mağazası, app store]}
     tables: [fct_review_daily]
+  ad_format:
+    name: {en: ad format, tr: reklam biçimi}
+    synonyms: {en: [ad type], tr: [reklam türü]}
+    tables: [fct_sdk_ad_revenue_daily]
+  setting:
+    name: {en: setting, tr: ayar}
+    synonyms: {en: [settings], tr: [ayarlar]}
+    tables: [fct_sdk_settings]
+  product_id:
+    name: {en: product, tr: ürün}
+    synonyms: {en: [products, sku], tr: [ürünler]}
+    tables: [fct_sdk_purchases]
+  topic:
+    name: {en: review topic, tr: yorum konusu}
+    synonyms: {en: [review topics], tr: [yorum konuları]}
+    tables: [fct_review_topics]
+  creative_key:
+    name: {en: creative, tr: kreatif}
+    synonyms: {en: [creatives, ad creative], tr: [kreatifler, reklam kreatifi]}
+    tables: [fct_creative_scorecard]
+  experiment_id:
+    name: {en: experiment, tr: deney}
+    tables: [fct_experiment_tests, fct_experiment_arms]
+  horizon_day:
+    name: {en: prediction horizon, tr: tahmin ufku}
+    tables: [fct_pltv_summary]
+  type:
+    name: {en: error type, tr: hata türü}
+    tables: [fct_sdk_errors]
+  source:
+    name: {en: data source, tr: veri kaynağı}
+    tables: [fct_source_freshness]
 
 metrics:
   # -- activity --------------------------------------------------------------
   dau:
     name: {en: daily active users, tr: günlük aktif kullanıcı}
-    synonyms: {en: [dau, active users, daily users], tr: [dau, aktif kullanıcı, günlük kullanıcı]}
+    synonyms: {en: [dau, active users, daily users, active players], tr: [dau, aktif kullanıcı, günlük kullanıcı, aktif oyuncu]}
     unit: count
     better: up
     model: fct_app_daily
@@ -93,6 +125,9 @@ metrics:
     sample: dau
     alert: {baseline: mean_of_daily}
     definition: distinct active users per day (passive events excluded)
+    sources:
+      - model: stg_active_users
+        dims: [platform]
   wau:
     name: {en: weekly active users, tr: haftalık aktif kullanıcı}
     synonyms: {en: [wau], tr: [wau]}
@@ -136,9 +171,12 @@ metrics:
     sample: dau
     alert: {baseline: mean_of_daily}
     definition: active users who logged first_open (or first_visit) that day
+    sources:
+      - model: stg_active_users
+        dims: [platform]
   store_installs:
     name: {en: store installs, tr: mağaza kurulumu}
-    synonyms: {en: [play installs, app store installs, downloads], tr: [indirme, mağaza indirmesi]}
+    synonyms: {en: [play installs, app store installs, downloads, store downloads], tr: [indirme, mağaza indirmesi, indirildi, indirme sayısı, mağazadan indirme]}
     unit: count
     better: up
     model: fct_app_daily
@@ -146,6 +184,26 @@ metrics:
     value: store_installs
     aggregation: sum
     definition: Play daily user installs / App Store units of first-time product types
+  store_uninstalls:
+    name: {en: store uninstalls, tr: mağaza kaldırma}
+    synonyms: {en: [uninstalls, removals], tr: [kaldırma, kaldıran, uygulamayı silen]}
+    unit: count
+    better: down
+    model: fct_app_daily
+    time: date
+    value: store_uninstalls
+    aggregation: sum
+    definition: uninstalls reported by the store (Play daily user uninstalls)
+  ad_impressions:
+    name: {en: ad impressions, tr: reklam gösterimi}
+    synonyms: {en: [ads shown, impressions served], tr: [reklam gösterimleri, gösterilen reklam]}
+    unit: count
+    better: up
+    model: fct_app_daily
+    time: date
+    value: ad_impressions
+    aggregation: sum
+    definition: AdMob ad impressions per day
   sessions:
     name: {en: sessions, tr: oturum}
     synonyms: {en: [session count], tr: [oturum sayısı]}
@@ -156,9 +214,12 @@ metrics:
     value: sessions
     aggregation: sum
     definition: distinct (user, ga_session_id) pairs per day
+    sources:
+      - model: stg_active_users
+        dims: [platform]
   sessions_per_dau:
     name: {en: sessions per DAU, tr: DAU başına oturum}
-    synonyms: {en: [sessions per user, session frequency], tr: [kullanıcı başına oturum, oturum sıklığı]}
+    synonyms: {en: [sessions per user, session frequency, sessions per daily user, sessions per player], tr: [kullanıcı başına oturum, oturum sıklığı, günlük kullanıcı başına oturum]}
     unit: ratio
     better: up
     model: fct_app_daily
@@ -170,9 +231,13 @@ metrics:
     sample: dau
     alert: {baseline: pooled}
     definition: sessions / DAU
+    sources:
+      - model: stg_active_users
+        dims: [platform]
+        value: "sessions / NULLIF(dau, 0)"
   engagement_min_per_dau:
     name: {en: engagement minutes per DAU, tr: DAU başına etkileşim dakikası}
-    synonyms: {en: [playtime, time spent, minutes per user], tr: [oynama süresi, kullanıcı başına dakika, geçirilen süre]}
+    synonyms: {en: [playtime, time spent, minutes per user, engagement minutes, minutes per daily user], tr: [oynama süresi, kullanıcı başına dakika, geçirilen süre, kaç dakika oynanıyor, kullanıcı başına kaç dakika]}
     unit: ratio
     better: up
     model: fct_app_daily
@@ -182,6 +247,10 @@ metrics:
     numerator: engagement_sec / 60.0
     denominator: dau
     definition: sum(engagement_time_msec) / 60000 / DAU
+    sources:
+      - model: stg_active_users
+        dims: [platform]
+        value: "engagement_sec / 60.0 / NULLIF(dau, 0)"
 
   # -- retention -------------------------------------------------------------
   cohort_size:
@@ -211,6 +280,7 @@ metrics:
     alert: {baseline: pooled}
     pull_dims: [platform, country, app_version, network, device_tier]
     definition: users of the install cohort active exactly on day 1 / cohort size (classic day-N)
+    headline: {metric: headline_retention, where: {day_n: 1}}
   d7_retention:
     name: {en: D7 retention, tr: D7 elde tutma}
     synonyms: {en: [day 7 retention, d7, week-one retention, retention d7], tr: [7. gün elde tutma, d7 tutma, d7 retention, 7. gün tutma, haftalık tutunma]}
@@ -227,9 +297,11 @@ metrics:
     alert: {baseline: pooled}
     pull_dims: [platform, country, app_version, network, device_tier]
     definition: users of the install cohort active exactly on day 7 / cohort size
+    headline: {metric: headline_retention, where: {day_n: 7}}
   d14_retention:
     name: {en: D14 retention, tr: D14 elde tutma}
-    synonyms: {en: [day 14 retention, d14], tr: [14. gün elde tutma, d14 tutma]}
+    synonyms: {en: [day 14 retention, d14], tr: [14. gün elde tutma, d14 tutma, 14. gün tutma]}
+    headline: {metric: headline_retention, where: {day_n: 14}}
     unit: pct
     better: up
     model: fct_retention
@@ -256,6 +328,7 @@ metrics:
     sample: cohort_size
     pull_dims: [platform, country, app_version, network, device_tier]
     definition: users of the install cohort active exactly on day 30 / cohort size
+    headline: {metric: headline_retention, where: {day_n: 30}}
   headline_retention:
     name: {en: headline retention (28 cohorts), tr: özet elde tutma (28 kohort)}
     synonyms: {en: [headline d1, retention summary], tr: [özet tutunma]}
@@ -330,7 +403,7 @@ metrics:
     definition: net revenue / DAU
   payers:
     name: {en: payers, tr: ödeme yapan}
-    synonyms: {en: [paying users, buyers], tr: [ödeyen kullanıcı, alıcı]}
+    synonyms: {en: [paying users, buyers, paying players], tr: [ödeyen kullanıcı, alıcı, ödeme yapan kullanıcı sayısı]}
     unit: count
     better: up
     model: fct_app_daily
@@ -340,7 +413,7 @@ metrics:
     definition: distinct customers with revenue > 0 that day
   payer_conversion:
     name: {en: payer conversion, tr: ödeyen dönüşümü}
-    synonyms: {en: [conversion to payer, paying share, payer rate per day], tr: [ödeme dönüşümü, ödeyen oranı]}
+    synonyms: {en: [conversion to payer, paying share, payer rate per day, share of paying users], tr: [ödeme dönüşümü, ödeyen oranı, ödeme yapan kullanıcı oranı, ödeyen kullanıcı oranı]}
     unit: pct
     better: up
     model: fct_app_daily
@@ -368,7 +441,7 @@ metrics:
     definition: AdMob earnings x 1000 / impressions
   ltv_usd:
     name: {en: cumulative ARPU (LTV curve), tr: kümülatif ARPU (LTV eğrisi)}
-    synonyms: {en: [ltv, lifetime value, cumulative arpu], tr: [yaşam boyu değer, kümülatif gelir]}
+    synonyms: {en: [ltv, lifetime value, cumulative arpu, cumulative revenue per user], tr: [yaşam boyu değer, kümülatif gelir, kullanıcı başına kümülatif gelir]}
     unit: usd
     better: up
     model: fct_ltv_curve
@@ -400,9 +473,12 @@ metrics:
     value: crashed_users
     aggregation: sum
     definition: users with a fatal crash that day (Crashlytics or GA4 app_exception)
+    sources:
+      - model: stg_active_users
+        dims: [platform]
   crash_free_users:
     name: {en: crash-free users, tr: çökmesiz kullanıcı oranı}
-    synonyms: {en: [crash free users, stability, crash-free rate], tr: [çökmesiz kullanıcı, kararlılık, çökme oranı, çökmeler]}
+    synonyms: {en: [crash free users, stability, crash-free rate, crashing, crashes more], tr: [çökmesiz kullanıcı, kararlılık, çökme oranı, çökmeler, çöküyor]}
     unit: pct
     better: up
     model: fct_app_daily
@@ -414,6 +490,11 @@ metrics:
     sample: dau
     alert: {baseline: pooled}
     definition: 1 - min(crashed users, DAU) / DAU
+    sources:
+      - model: stg_active_users
+        dims: [platform]
+        value: "1 - LEAST(crashed_users, dau) / NULLIF(dau, 0)"
+        numerator: "dau - LEAST(crashed_users, dau)"
   crash_free_sessions:
     name: {en: crash-free sessions, tr: çökmesiz oturum oranı}
     synonyms: {en: [crash free sessions], tr: [çökmesiz oturum]}
@@ -428,6 +509,11 @@ metrics:
     sample: sessions
     alert: {baseline: pooled}
     definition: 1 - min(fatal crash events, sessions) / sessions
+    sources:
+      - model: stg_active_users
+        dims: [platform]
+        value: "1 - LEAST(crashed_sessions, sessions) / NULLIF(sessions, 0)"
+        numerator: "sessions - LEAST(crashed_sessions, sessions)"
   crash_free_users_7d:
     name: {en: 7-day crash-free users, tr: 7 günlük çökmesiz kullanıcı}
     synonyms: {en: [weekly crash-free users], tr: [haftalık çökmesiz kullanıcı]}
@@ -439,7 +525,7 @@ metrics:
     definition: 1 - sum(min(crashed users, DAU)) / sum(DAU) over the last 7 days
   vitals_crash_rate:
     name: {en: Play user-perceived crash rate, tr: Play kullanıcı tarafından görülen çökme oranı}
-    synonyms: {en: [android vitals crash rate, play crash rate], tr: [play çökme oranı, android vitals çökme]}
+    synonyms: {en: [android vitals crash rate, play crash rate, user-perceived crash rate, user perceived crash rate], tr: [play çökme oranı, android vitals çökme, kullanıcının gördüğü çökme oranı]}
     unit: pct
     better: down
     model: fct_android_vitals_daily
@@ -480,6 +566,11 @@ metrics:
     sample: windows
     alert: {dims: [device_tier], baseline: mean_of_daily}
     definition: median over perf windows of the per-window median frame time
+    headline: {metric: tier_frame_time_p50_ms, where: {device_tier: all}}
+    sources:
+      - model: fct_perf_by_version
+        dims: [app_version, device_tier]
+        time: null
   frame_time_p95_ms:
     name: {en: p95 frame time, tr: p95 kare süresi}
     synonyms: {en: [frame time p95, tail frame time], tr: [kuyruk kare süresi]}
@@ -493,6 +584,11 @@ metrics:
     sample: windows
     alert: {dims: [device_tier], baseline: mean_of_daily}
     definition: median over perf windows of the per-window p95 frame time
+    headline: {metric: tier_frame_time_p95_ms, where: {device_tier: all}}
+    sources:
+      - model: fct_perf_by_version
+        dims: [app_version, device_tier]
+        time: null
   slow_frame_share:
     name: {en: slow-frame share, tr: yavaş kare payı}
     synonyms: {en: [slow frames, frames over 33 ms], tr: [yavaş kareler]}
@@ -508,6 +604,7 @@ metrics:
     sample: windows
     alert: {dims: [device_tier], baseline: mean_of_daily}
     definition: sum(slow frames) / sum(frames), frames slower than 33.3 ms
+    headline: {metric: tier_slow_frame_share, where: {device_tier: all}}
   janky_frame_share:
     name: {en: janky-frame share, tr: takılan kare payı}
     synonyms: {en: [janky frames], tr: [takılan kareler]}
@@ -537,6 +634,7 @@ metrics:
     sample: windows
     alert: {dims: [device_tier], baseline: mean_of_daily}
     definition: p95 over windows of peak allocated MB
+    headline: {metric: tier_memory_p95_mb, where: {device_tier: all}}
   process_memory_p95_mb:
     name: {en: process memory p95, tr: süreç belleği p95}
     synonyms: {en: [system used memory, process memory], tr: [sistem belleği, süreç belleği]}
@@ -550,6 +648,7 @@ metrics:
     sample: windows
     alert: {dims: [device_tier], baseline: mean_of_daily}
     definition: p95 over windows of System Used Memory (the OS view)
+    headline: {metric: tier_process_memory_p95_mb, where: {device_tier: all}}
   tier_frame_time_p50_ms:
     name: {en: median frame time by tier (28 days), tr: cihaz sınıfına göre medyan kare süresi (28 gün)}
     synonyms: {en: [frame time by tier], tr: [sınıfa göre kare süresi]}
@@ -561,6 +660,60 @@ metrics:
     aggregation: latest
     sample: windows
     definition: median over the last 28 days' windows of the per-window median frame time
+  tier_frame_time_p95_ms:
+    name: {en: p95 frame time by tier (28 days), tr: cihaz sınıfına göre p95 kare süresi (28 gün)}
+    unit: ms
+    better: down
+    model: fct_perf_by_tier
+    value: ft_p95_ms
+    dims: [device_tier]
+    aggregation: latest
+    sample: windows
+    definition: median over the last 28 days' windows of the per-window p95 frame time
+  tier_slow_frame_share:
+    name: {en: slow-frame share by tier (28 days), tr: cihaz sınıfına göre yavaş kare payı (28 gün)}
+    unit: pct
+    better: down
+    model: fct_perf_by_tier
+    value: slow_frame_share
+    dims: [device_tier]
+    aggregation: latest
+    sample: frames
+    definition: sum(slow frames) / sum(frames) over the last 28 days
+  tier_memory_p95_mb:
+    name: {en: allocated memory p95 by tier (28 days), tr: cihaz sınıfına göre ayrılmış bellek p95 (28 gün)}
+    unit: mb
+    better: down
+    model: fct_perf_by_tier
+    value: mem_alloc_p95_mb
+    filter: mem_alloc_p95_mb IS NOT NULL
+    dims: [device_tier]
+    aggregation: latest
+    sample: windows
+    definition: 95th percentile over the last 28 days' windows of peak allocated MB
+  tier_reserved_memory_p95_mb:
+    name: {en: reserved memory p95 by tier (28 days), tr: cihaz sınıfına göre ayrılan bellek p95 (28 gün)}
+    synonyms: {en: [reserved memory], tr: [rezerve bellek]}
+    unit: mb
+    better: down
+    model: fct_perf_by_tier
+    value: mem_reserved_p95_mb
+    filter: mem_reserved_p95_mb IS NOT NULL
+    dims: [device_tier]
+    aggregation: latest
+    sample: windows
+    definition: 95th percentile over the last 28 days' windows of peak reserved MB
+  tier_process_memory_p95_mb:
+    name: {en: process memory p95 by tier (28 days), tr: cihaz sınıfına göre süreç belleği p95 (28 gün)}
+    unit: mb
+    better: down
+    model: fct_perf_by_tier
+    value: sys_used_p95_mb
+    filter: sys_used_p95_mb IS NOT NULL
+    dims: [device_tier]
+    aggregation: latest
+    sample: windows
+    definition: 95th percentile over the last 28 days' windows of System Used Memory
   cpu_main_p95_ms:
     name: {en: CPU main-thread p95, tr: CPU ana iş parçacığı p95}
     synonyms: {en: [cpu time, main thread], tr: [cpu süresi, ana iş parçacığı]}
@@ -605,6 +758,17 @@ metrics:
     aggregation: latest
     sample: windows
     definition: median over windows of the per-window median frame time, per version and tier
+  version_frame_time_p95_ms:
+    name: {en: p95 frame time by version, tr: sürüme göre p95 kare süresi}
+    synonyms: {en: [frame time p95 per version], tr: [sürüm p95 kare süresi]}
+    unit: ms
+    better: down
+    model: fct_perf_by_version
+    value: ft_p95_ms
+    dims: [app_version, device_tier]
+    aggregation: latest
+    sample: windows
+    definition: median over windows of the per-window p95 frame time, per version and tier
   cold_start_p50_ms:
     name: {en: cold start p50, tr: soğuk açılış p50}
     synonyms: {en: [cold start, startup time, launch time, app start], tr: [açılış süresi, soğuk başlatma, başlangıç süresi]}
@@ -618,6 +782,7 @@ metrics:
     sample: samples
     alert: {baseline: mean_of_daily}
     definition: median of cold_start durations that day
+    headline: {metric: cold_start_p50_28d_ms}
   scene_load_p50_ms:
     name: {en: scene load p50, tr: sahne yükleme p50}
     synonyms: {en: [scene load, loading time], tr: [yükleme süresi, sahne yükleme]}
@@ -631,6 +796,73 @@ metrics:
     sample: samples
     alert: {baseline: mean_of_daily}
     definition: median of scene_load durations that day
+    headline: {metric: scene_load_p50_28d_ms}
+  cold_start_p95_ms:
+    name: {en: cold start p95, tr: soğuk açılış p95}
+    synonyms: {en: [cold start p95, startup time p95], tr: [açılış süresi p95, soğuk açılış süresi p95]}
+    unit: ms
+    better: down
+    model: fct_load_daily
+    time: date
+    value: p95_ms
+    filter: kind = 'cold_start'
+    aggregation: mean_of_daily
+    sample: samples
+    definition: 95th percentile of cold_start durations that day
+    headline: {metric: cold_start_p95_28d_ms}
+  scene_load_p95_ms:
+    name: {en: scene load p95, tr: sahne yükleme p95}
+    synonyms: {en: [scene load p95, loading time p95], tr: [yükleme süresi p95, sahne yükleme p95]}
+    unit: ms
+    better: down
+    model: fct_load_daily
+    time: date
+    value: p95_ms
+    filter: kind = 'scene_load'
+    aggregation: mean_of_daily
+    sample: samples
+    definition: 95th percentile of scene_load durations that day
+    headline: {metric: scene_load_p95_28d_ms}
+  cold_start_p50_28d_ms:
+    name: {en: cold start p50 (28 days), tr: soğuk açılış p50 (28 gün)}
+    unit: ms
+    better: down
+    model: fct_load_times
+    value: p50_ms
+    filter: kind = 'cold_start'
+    aggregation: latest
+    sample: samples
+    definition: median of the cold_start samples of the last 28 days
+  cold_start_p95_28d_ms:
+    name: {en: cold start p95 (28 days), tr: soğuk açılış p95 (28 gün)}
+    unit: ms
+    better: down
+    model: fct_load_times
+    value: p95_ms
+    filter: kind = 'cold_start'
+    aggregation: latest
+    sample: samples
+    definition: 95th percentile of the cold_start samples of the last 28 days
+  scene_load_p50_28d_ms:
+    name: {en: scene load p50 (28 days), tr: sahne yükleme p50 (28 gün)}
+    unit: ms
+    better: down
+    model: fct_load_times
+    value: p50_ms
+    filter: kind = 'scene_load'
+    aggregation: latest
+    sample: samples
+    definition: median of the scene_load samples of the last 28 days, per scene
+  scene_load_p95_28d_ms:
+    name: {en: scene load p95 (28 days), tr: sahne yükleme p95 (28 gün)}
+    unit: ms
+    better: down
+    model: fct_load_times
+    value: p95_ms
+    filter: kind = 'scene_load'
+    aggregation: latest
+    sample: samples
+    definition: 95th percentile of the scene_load samples of the last 28 days, per scene
 
   # -- level funnel ----------------------------------------------------------
   level_win_rate:
@@ -695,6 +927,17 @@ metrics:
     denominator: users_reached
     sample: users_reached
     definition: users who stopped at this level and were inactive for the churn window / users reached
+  level_churned_users:
+    name: {en: players who quit at the level, tr: seviyede bırakan oyuncu}
+    synonyms: {en: [most players quit, players quit, give up, where players quit], tr: [en çok bırakıyor, oyunu bırakan, bırakan oyuncu]}
+    unit: count
+    better: down
+    model: fct_level_funnel
+    value: users_churned
+    dims: [level]
+    aggregation: latest
+    sample: users_reached
+    definition: users whose highest started level is this one and who were inactive for the churn window
 
   # -- user acquisition ------------------------------------------------------
   ua_spend_usd:
@@ -710,9 +953,28 @@ metrics:
     sample: network_installs
     alert: {baseline: mean_of_daily}
     definition: ad-network spend in USD
+    sources:
+      - model: stg_ua_spend
+        dims: [network, campaign_name, country, platform]
+    default_days: 30
+  ua_installs:
+    name: {en: network installs, tr: ağ kurulumu}
+    synonyms: {en: [paid installs, installs from ads, ua installs, network-reported installs], tr: [reklamdan gelen kurulum, ücretli kurulum, ağ kurulumları]}
+    unit: count
+    better: up
+    model: fct_ua_daily
+    time: date
+    value: network_installs
+    dims: [network, campaign_name]
+    aggregation: sum
+    definition: installs reported by the ad network
+    sources:
+      - model: stg_ua_spend
+        dims: [network, campaign_name, country, platform]
+    default_days: 30
   ua_cpi_usd:
     name: {en: CPI, tr: CPI}
-    synonyms: {en: [cost per install, install cost], tr: [kurulum başına maliyet, edinme maliyeti]}
+    synonyms: {en: [cost per install, install cost, pay per install, cheapest installs], tr: [kurulum başına maliyet, edinme maliyeti, kurulum başı maliyet, kurulum maliyeti]}
     unit: usd
     better: down
     model: fct_ua_daily
@@ -725,6 +987,11 @@ metrics:
     sample: network_installs
     alert: {baseline: pooled}
     definition: spend / network-reported installs
+    sources:
+      - model: stg_ua_spend
+        dims: [network, campaign_name, country, platform]
+        value: "spend_usd / NULLIF(network_installs, 0)"
+    default_days: 30
   ua_ctr:
     name: {en: CTR, tr: tıklama oranı}
     synonyms: {en: [click-through rate, ctr], tr: [ctr, tıklanma oranı]}
@@ -739,6 +1006,11 @@ metrics:
     denominator: impressions
     sample: impressions
     definition: clicks / impressions
+    sources:
+      - model: stg_ua_spend
+        dims: [network, campaign_name, country, platform]
+        value: "clicks / NULLIF(impressions, 0)"
+    default_days: 30
   ua_ipm:
     name: {en: IPM, tr: IPM}
     synonyms: {en: [installs per mille, installs per thousand impressions], tr: [bin gösterim başına kurulum]}
@@ -753,6 +1025,11 @@ metrics:
     denominator: impressions
     sample: impressions
     definition: network installs / impressions x 1000
+    sources:
+      - model: stg_ua_spend
+        dims: [network, campaign_name, country, platform]
+        value: "network_installs * 1000.0 / NULLIF(impressions, 0)"
+    default_days: 30
   ua_spend_share:
     name: {en: campaign spend share, tr: kampanya harcama payı}
     synonyms: {en: [share of spend], tr: [harcama payı]}
@@ -779,6 +1056,42 @@ metrics:
     denominator: spend_usd
     sample: installs
     definition: cohort revenue by day 7 / spend of that day
+    headline: {metric: pooled_roas, where: {network: '(all)', campaign_name: '(all)', day_n: 7}}
+    default_days: 30
+  roas_d0:
+    name: {en: D0 ROAS, tr: D0 ROAS}
+    synonyms: {en: [day 0 roas, same-day roas], tr: [0. gün roas]}
+    unit: pct
+    better: up
+    model: fct_ua_cohort_roas
+    time: cohort_date
+    value: roas_d0
+    filter: roas_d0 IS NOT NULL
+    dims: [network, campaign_name]
+    aggregation: pooled
+    numerator: revenue_d0_usd
+    denominator: spend_usd
+    sample: installs
+    definition: cohort revenue on the install day / spend of that day
+    headline: {metric: pooled_roas, where: {network: '(all)', campaign_name: '(all)', day_n: 0}}
+    default_days: 30
+  roas_d30:
+    name: {en: D30 ROAS, tr: D30 ROAS}
+    synonyms: {en: [day 30 roas, return on ad spend day 30], tr: [30. gün roas]}
+    unit: pct
+    better: up
+    model: fct_ua_cohort_roas
+    time: cohort_date
+    value: roas_d30
+    filter: roas_d30 IS NOT NULL
+    dims: [network, campaign_name]
+    aggregation: pooled
+    numerator: revenue_d30_usd
+    denominator: spend_usd
+    sample: installs
+    definition: cohort revenue by day 30 / spend of that day (cohorts that reached day 30)
+    headline: {metric: pooled_roas, where: {network: '(all)', campaign_name: '(all)', day_n: 30}}
+    default_days: 30
   pooled_roas:
     name: {en: pooled ROAS curve, tr: havuzlanmış ROAS eğrisi}
     synonyms: {en: [roas curve], tr: [roas eğrisi]}
@@ -833,7 +1146,7 @@ metrics:
   # -- reviews ---------------------------------------------------------------
   review_rating:
     name: {en: rating of new reviews, tr: yeni yorum puanı}
-    synonyms: {en: [rating, stars, review score, store rating], tr: [puan, yıldız, mağaza puanı, yorum puanı]}
+    synonyms: {en: [rating, stars, review score, rating of reviews, review rating], tr: [puan, yıldız, yorum puanı]}
     unit: ratio
     better: up
     model: fct_review_daily
@@ -848,7 +1161,7 @@ metrics:
     definition: mean stars of the reviews written that day (both stores)
   low_star_share:
     name: {en: low-star review share, tr: düşük yıldızlı yorum payı}
-    synonyms: {en: [bad reviews, 1 and 2 star share, negative reviews], tr: [kötü yorumlar, olumsuz yorumlar, düşük puanlı yorumlar]}
+    synonyms: {en: [bad reviews, 1 and 2 star share, negative reviews, low-star share, 1-2 star reviews, one and two star], tr: [kötü yorumlar, olumsuz yorumlar, düşük puanlı yorumlar, 1-2 yıldızlı yorum, düşük yıldızlı yorum, 1 ve 2 yıldız]}
     unit: pct
     better: down
     model: fct_review_daily
@@ -872,6 +1185,252 @@ metrics:
     aggregation: latest
     sample: reviews
     definition: mean stars per app version (Play reviews carry the version)
+  creative_ipm:
+    name: {en: creative IPM, tr: kreatif IPM}
+    synonyms: {en: [best creative, creative performance], tr: [en iyi kreatif, kreatif performansı]}
+    unit: ratio
+    better: up
+    model: fct_creative_scorecard
+    value: ipm
+    filter: status = 'ranked'
+    dims: [network, creative_key]
+    aggregation: latest
+    sample: impressions
+    definition: installs / impressions x 1000 per creative over all its days (ranked creatives only)
+  store_rating:
+    name: {en: store rating, tr: mağaza puanı}
+    synonyms: {en: [overall rating, cumulative rating, total rating, play rating, overall google play rating], tr: [genel puan, toplam puan, mağaza genel puanı]}
+    unit: ratio
+    better: up
+    model: stg_store_daily
+    time: date
+    value: total_avg_rating
+    filter: total_avg_rating IS NOT NULL
+    dims: [store]
+    aggregation: latest
+    definition: the store's cumulative average rating (Play's Total Average Rating), latest day
+  review_topic_share:
+    name: {en: share of reviews by topic, tr: konuya göre yorum payı}
+    synonyms: {en: [complain, complaints, complaint, reviewers complain, review topics], tr: [şikayet, şikâyet, şikayet ediliyor, yorum konuları]}
+    unit: pct
+    better: none
+    model: fct_review_topics
+    value: share_30d
+    filter: share_30d IS NOT NULL
+    dims: [topic]
+    aggregation: latest
+    sample: reviews_30d
+    definition: share of the last 30 days' reviews matching the topic's keywords
+  pltv_usd:
+    name: {en: predicted LTV, tr: tahmini LTV}
+    synonyms: {en: [pltv, predicted ltv, predicted lifetime value, ltv prediction], tr: [tahmini ltv, öngörülen ltv, ltv tahmini, tahmini yaşam boyu değer]}
+    unit: usd
+    better: up
+    model: fct_pltv_summary
+    value: predicted_arpu_usd
+    dims: [horizon_day]
+    aggregation: latest
+    definition: pLTV v1 predicted cumulative ARPU of the latest 28 cohorts at the horizon day (a model output, not data)
+  experiment_lift:
+    name: {en: experiment lift, tr: deney artışı}
+    synonyms: {en: [lift, relative lift, uplift], tr: [artış, göreli artış]}
+    unit: pct
+    better: up
+    model: fct_experiment_tests
+    value: rel_estimate
+    filter: rel_estimate IS NOT NULL
+    dims: [experiment_id, test]
+    aggregation: latest
+    definition: relative difference of the variant against control ((m_t - m_c) / m_c)
+  experiment_srm_p:
+    name: {en: sample ratio mismatch p-value, tr: örneklem oranı uyumsuzluğu p değeri}
+    synonyms: {en: [srm, sample ratio mismatch, srm p], tr: [srm, örneklem oranı uyumsuzluğu]}
+    unit: ratio
+    better: none
+    model: fct_experiment_arms
+    value: srm_p
+    filter: is_control
+    dims: [experiment_id]
+    aggregation: latest
+    definition: chi-square goodness-of-fit p-value of users per variant against the configured split
+  data_through:
+    name: {en: data through, tr: veri bitiş günü}
+    synonyms: {en: [last loaded day, loaded up to, freshness], tr: [en son yüklenen gün, yüklendiği gün, güncellik]}
+    unit: date
+    better: none
+    model: fct_source_freshness
+    value: data_through
+    dims: [source]
+    aggregation: latest
+    definition: the newest data day of each source
+  # -- studio SDK (collector) ------------------------------------------------
+  setting_off_share:
+    name: {en: share who turn a setting off, tr: ayarı kapatanların payı}
+    synonyms: {en: [turn off, turn the music off, turned off, mute, music off, sound off, switch off], tr: [kapatıyor, kapatma oranı, kapatan, kapatanlar, müziği kapatıyor, sesi kapatıyor]}
+    unit: pct
+    better: none
+    model: fct_sdk_settings
+    value: off_share
+    dims: [setting]
+    aggregation: latest
+    sample: players
+    definition: installs that set the setting to off / installs with any event
+  sdk_errors_per_session:
+    name: {en: errors per session, tr: oturum başına hata}
+    synonyms: {en: [error rate per session, errors per session], tr: [oturum başına hata]}
+    unit: ratio
+    better: down
+    model: fct_sdk_errors_daily
+    time: date
+    value: errors_per_session
+    aggregation: pooled
+    numerator: errors
+    denominator: sessions
+    sample: sessions
+    definition: pulse_error events / sessions (SDK apps)
+  sdk_crash_free_sessions:
+    name: {en: SDK crash-free sessions, tr: SDK çökmesiz oturum oranı}
+    unit: pct
+    better: up
+    model: fct_sdk_errors_daily
+    time: date
+    value: crash_free_sessions
+    aggregation: pooled
+    numerator: sessions - crashed_sessions
+    denominator: sessions
+    sample: sessions
+    definition: 1 - crashed sessions / sessions (SDK apps; crash = pulse_exit crash/anr or a fatal pulse_error)
+  sdk_level_fail_rate:
+    name: {en: SDK level fail rate, tr: SDK seviye başarısızlık oranı}
+    unit: pct
+    better: down
+    model: fct_sdk_level_funnel
+    value: fail_rate
+    dims: [level]
+    aggregation: pooled
+    numerator: fails
+    denominator: completes + fails
+    sample: completes + fails
+    definition: fails / (completes + fails), production SDK builds
+  sdk_avg_attempts_to_win:
+    name: {en: average attempts to win, tr: kazanmak için ortalama deneme}
+    synonyms: {en: [attempts to win, tries to win], tr: [kazanmak için deneme]}
+    unit: ratio
+    better: down
+    model: fct_sdk_level_funnel
+    value: avg_attempts_to_win
+    filter: avg_attempts_to_win IS NOT NULL
+    dims: [level]
+    aggregation: latest
+    sample: players_completed
+    definition: mean of each player's attempt number on their first level_complete
+  sdk_quit_inferred:
+    name: {en: inferred mid-level quits, tr: seviye ortasında bırakma}
+    synonyms: {en: [mid-level quits, quit mid level, killed mid level], tr: [seviye ortasında çıkış]}
+    unit: count
+    better: down
+    model: fct_sdk_level_funnel
+    value: quit_inferred
+    dims: [level]
+    aggregation: latest
+    definition: sessions whose last level event is a level_start with no outcome
+  sdk_level_churn_rate:
+    name: {en: SDK churn at level, tr: SDK seviyede bırakma oranı}
+    unit: pct
+    better: down
+    model: fct_sdk_level_funnel
+    value: churn_rate
+    dims: [level]
+    aggregation: pooled
+    numerator: churned_here
+    denominator: players_reached
+    sample: players_reached
+    definition: churned installs whose highest started level is this one / installs reaching it
+  sdk_error_events:
+    name: {en: error events by type, tr: türe göre hata olayı}
+    synonyms: {en: [most frequent error, most common error, top errors, errors by type], tr: [en sık hata, en sık görülen hata, en çok görülen hata, hata türleri]}
+    unit: count
+    better: down
+    model: fct_sdk_errors
+    value: events
+    dims: [type]
+    aggregation: latest
+    sample: sessions
+    definition: pulse_error events per exception type over the loaded window (SDK apps; the type is text from the app)
+  sdk_purchase_revenue:
+    name: {en: revenue by product, tr: ürüne göre gelir}
+    synonyms: {en: [product revenue, best selling product, top product], tr: [ürün geliri, en çok satan ürün, en çok gelir getiren ürün]}
+    unit: usd
+    better: up
+    model: fct_sdk_purchases
+    value: revenue_usd
+    dims: [product_id]
+    aggregation: latest
+    sample: purchases
+    definition: purchase revenue per product (SDK apps; sandbox and restores excluded)
+  sdk_ad_revenue:
+    name: {en: ad revenue by format, tr: biçime göre reklam geliri}
+    synonyms: {en: [rewarded ad revenue, interstitial revenue, banner revenue], tr: [ödüllü reklam geliri, geçiş reklamı geliri]}
+    unit: usd
+    better: up
+    model: fct_sdk_ad_revenue_daily
+    time: date
+    value: revenue_usd
+    dims: [ad_format]
+    aggregation: sum
+    sample: impressions
+    definition: ad_impression values in USD per ad format (SDK apps)
+  sdk_ad_ecpm:
+    name: {en: eCPM by ad format, tr: reklam biçimine göre eCPM}
+    synonyms: {en: [rewarded ecpm, interstitial ecpm], tr: [ödüllü ecpm, geçiş reklamı ecpm]}
+    unit: usd
+    better: up
+    model: fct_sdk_ad_revenue_daily
+    time: date
+    value: ecpm_usd
+    dims: [ad_format]
+    aggregation: pooled
+    numerator: revenue_usd * 1000
+    denominator: impressions
+    sample: impressions
+    definition: ad revenue x 1000 / impressions per ad format (SDK apps)
+  sdk_duplicate_rate:
+    name: {en: duplicate event rate, tr: yinelenen olay oranı}
+    synonyms: {en: [duplicates, duplicate rate], tr: [yinelenen olay, çift olay]}
+    unit: pct
+    better: down
+    model: fct_sdk_data_quality
+    value: duplicate_rate
+    aggregation: latest
+    sample: raw_events
+    definition: raw rows the warehouse dedupe removed / raw rows (SDK apps)
+  sdk_seq_loss_rate:
+    name: {en: event loss rate, tr: olay kaybı oranı}
+    synonyms: {en: [sequence loss, lost events], tr: [kayıp olay]}
+    unit: pct
+    better: down
+    model: fct_sdk_data_quality
+    value: seq_loss_rate
+    aggregation: latest
+    definition: 1 - received / expected sequence numbers per install (contract v2 rows)
+  sdk_skewed_share:
+    name: {en: clock-skewed event share, tr: saati kaymış olay payı}
+    synonyms: {en: [clock skew, skewed events], tr: [saat kayması]}
+    unit: pct
+    better: down
+    model: fct_sdk_data_quality
+    value: skewed_share
+    aggregation: latest
+    definition: events whose device clock was more than 10 minutes off
+  sdk_quarantine_rate:
+    name: {en: quarantine rate, tr: karantina oranı}
+    synonyms: {en: [quarantined events], tr: [karantinaya alınan olay]}
+    unit: pct
+    better: down
+    model: fct_sdk_data_quality
+    value: quarantine_rate
+    aggregation: latest
+    definition: quarantined / (stored + quarantined) events
 
 # model.column references of docs/METRICS.md that are not metrics themselves
 # (flags, intermediate values, internal staging columns).

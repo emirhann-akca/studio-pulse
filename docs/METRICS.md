@@ -3,6 +3,13 @@
 Every number on the dashboard comes from one of the SQL models in `models/`.
 This page gives the exact formula, the model that computes it and the caveats.
 
+The analyst (`pulse ask`, [ANALYST.md](ANALYST.md)) reads the same definitions:
+every `model.column` below is a metric of `src/studio_pulse/brain/metrics.yaml`,
+the formulas of the tables are copied into its semantic layer
+(`brain/metric_docs.yaml`, regenerated with
+`python -m studio_pulse.brain.semantic --write` after an edit here; a test fails
+when they differ), and every metric has a question that reaches it.
+
 ## What "a day" is
 
 "Day" is the GA4 `event_date`, which GA4 writes in the property's reporting
