@@ -99,6 +99,7 @@ T = {
         "variant": "{id}: kanca {h}{show}",
         "show": "; göster: {s}",
         "over_budget": "Uyarı: test bütçesi stüdyo bütçesini aşıyor.",
+        "not_advised": "Karar YAPMA: bu test önerilmiyor; aşağıdaki, yine de denemek istenirse en ucuz yoldur.",
         "next": "Geçerse: kısa prototip ve yumuşak çıkış; kapı {v}. Geçmezse dur.",
         "forge": "creative-forge için market_trends.yaml yazıldı (signal: dossier_first_test).",
         "quality": "Koşum ve maliyet",
@@ -197,6 +198,7 @@ T = {
         "variant": "{id}: hook {h}{show}",
         "show": "; show: {s}",
         "over_budget": "Warning: the test budget exceeds the studio budget.",
+        "not_advised": "Verdict DON'T: this test is not advised; below is the cheapest way if we try anyway.",
         "next": "If it passes: a short prototype and a soft launch; gate {v}. If not, stop.",
         "forge": "market_trends.yaml written for creative-forge (signal: dossier_first_test).",
         "quality": "Run and cost",
@@ -498,6 +500,8 @@ def render(d: dict[str, Any], lang: str) -> str:
     # first test
     ft = d["first_test"]
     L += [f"## {t['test']}", ""]
+    if dc["verdict"] == "YAPMA":
+        L += [f"**{t['not_advised']}**", ""]
     bud = ft.get("budget_usd") or {}
     cpi = (ft.get("cpi_reference") or {}).get("value")
     L.append(

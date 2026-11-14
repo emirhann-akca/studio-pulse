@@ -702,6 +702,7 @@ def test_pvp_game_is_a_no_and_an_unknown_mechanic_waits(tmp_path):
     assert d["decision"]["verdict"] == "YAPMA" and d["decision"]["reasons"][0]["kind"] == "gate"
     assert any("squad-pvp" in g["en"] for g in d["decision"]["gates"])
     assert d["screenshots"] == [] and check_labels(d) == []
+    assert "Karar YAPMA: bu test önerilmiyor" in Path(res.files["tr"]).read_text(encoding="utf-8")
     # the same game with no avoid list and no LLM: the mechanic is unknown, so at most BEKLE
     cfg2 = make_cfg(tmp_path, dossier={"countries": ["us"]})
     res2 = build_dossier(

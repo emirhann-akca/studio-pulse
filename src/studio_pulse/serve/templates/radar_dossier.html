@@ -29,6 +29,7 @@
 {% set ft = d.first_test %}
 <section class="card">
   <h2>{{ t.test }}</h2>
+  {% if dc.verdict == 'YAPMA' %}<div class="callout warn">{{ t.not_advised }}</div>{% endif %}
   <p>{{ t.test_kind.get(ft.kind, ft.kind) }}: {{ ft.n_variants.value }} · {{ countries.get(ft.geo, ft.geo|upper) }} {{ ft.platform }} · {{ ft.days.value }} {{ 'gün' if lang == 'tr' else 'days' }}
   {% if ft.budget_usd %} · ≈{{ ft.budget_usd.value }} USD <small>({{ labels['estimate'] }} {{ ft.budget_usd.low }}–{{ ft.budget_usd.high }})</small>{% endif %}</p>
   <p>IPM ≥ {{ fmt(ft.ipm_gate.value) }} <small>({{ labels['assumption'] }})</small>{% if ft.cpi_gate %} · CPI ≤ {{ fmt(ft.cpi_gate.value, 2) }} USD <small>({{ labels['benchmark'] }}: {{ ft.cpi_reference.source }})</small>{% endif %}</p>
