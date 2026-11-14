@@ -233,6 +233,7 @@ interval says to keep running.
 | `pulse serve` | local UI on 127.0.0.1: dashboard, refresh health (heartbeat, recent runs, check results, source freshness, schedule state), alerts, and a run-now button. It opens the warehouse read-only per request and serves the last good snapshot while a refresh is writing |
 | `pulse collect` | the SDK collector on 127.0.0.1:8787 (`setup-geoip`, `purge`); `pulse simulate` plays three fictional games against it, `pulse apps refresh` runs live detection ([docs/COLLECTOR.md](docs/COLLECTOR.md)) |
 | `pulse radar run` / `show` | the market radar (also part of `pulse run` with `radar.enabled`); `--replay DIR` answers every request from recorded responses |
+| `pulse radar news` | mobile-games industry news from four robots-checked RSS feeds, tagged by topic and relevance (LLM or keywords); `--days`, `--json` |
 | `pulse radar watch add/remove/list` / `plan` | games looked up every day even when they leave the charts (Apple id, Play package or store URL); expected store requests per day for the config |
 | `pulse doctor [--json]` | Python, time zones, DuckDB, config, writable folders, Google credentials (present or not, never their contents), schedule state |
 | `pulse insights [--lang tr]` | the deterministic insight jobs (also run at the end of every refresh, stored in `meta_insights`) |

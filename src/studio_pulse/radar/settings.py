@@ -17,6 +17,8 @@ radar:
          map_file: play_map.yaml, watch: [com.example.package]}
   llm: {max_apps: 25, screenshots: 0, narrate: true}   # provider: top-level `llm:` block
   params: {breakout_min: 0.35}  # any scoring parameter (fct_mr_breakout_daily.sql)
+  news: {enabled: true, days: 7, feeds: [gamigion, mobilegamer, pocketgamer, naavik],
+         max_llm_items: 60}     # industry news feeds (radar/news.py); hosts are fixed in code
   out_dir: local/radar          # digest, facts and market_trends.yaml (kept local)
   creative_forge_library: ~/Library/Application Support/creative-forge/library
 """
@@ -114,6 +116,11 @@ class RadarSettings:
     out_dir: Path = Path("local/radar")
     cache_keep_days: int = 3
     creative_forge_library: Path | None = None
+    # Industry news (radar/news.py): feed ids from news.FEEDS (None: all of them).
+    news_enabled: bool = True
+    news_feeds: list[str] | None = None
+    news_days: int = 7
+    news_max_llm_items: int = 60
     # Recorded responses instead of the network (tests and offline demos only).
     replay: Path | None = None
     # Snapshot date override (replays of a recorded day); default: config as_of, else today.
@@ -203,6 +210,15 @@ def from_config(cfg: Config) -> RadarSettings:
     s.out_dir = _path(cfg, raw.get("out_dir")) or cfg.warehouse.parent / "radar"
     s.cache_keep_days = int(raw.get("cache_keep_days", 3))
     s.creative_forge_library = _path(cfg, raw.get("creative_forge_library"))
+    news = raw.get("news") or {}
+    s.news_enabled = bool(news.get("enabled", True))
+    s.news_feeds = [str(x) for x in news["feeds"]] if news.get("feeds") else None
+    s.news_days = max(1, int(news.get("days", 7)))
+    s.news_max_llm_items = max(0, int(news.get("max_llm_items", 60)))
+    if s.news_feeds:
+        from .news import selected_feeds
+
+        selected_feeds(s.news_feeds)  # unknown ids fail here, with the known list
     s.replay = _path(cfg, raw.get("replay"))
     if raw.get("as_of"):
         s.as_of = dt.date.fromisoformat(str(raw["as_of"]))

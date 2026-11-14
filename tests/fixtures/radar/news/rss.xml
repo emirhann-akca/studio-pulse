@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+  <title>Example Mobile Games News</title>
+  <link>https://www.gamigion.com</link>
+  <description>Synthetic fixture in the shape of a WordPress RSS 2.0 feed</description>
+  <item>
+    <title>AppLovin changes its ROAS bidding for puzzle games</title>
+    <link>https://www.gamigion.com/applovin-roas-puzzle/?utm_source=rss&amp;utm_medium=rss</link>
+    <dc:creator><![CDATA[Staff]]></dc:creator>
+    <pubDate>Fri, 13 Nov 2026 11:34:09 +0000</pubDate>
+    <guid isPermaLink="false">https://www.gamigion.com/?p=101</guid>
+    <description><![CDATA[<p>AppLovin now bids on <strong>D7 ROAS</strong> for puzzle and sort games &amp; casual titles. Studios report a 12% lower CPI after the switch.</p>
+<p>The post <a href="https://www.gamigion.com/applovin-roas-puzzle/">AppLovin changes its ROAS bidding</a> appeared first on <a href="https://www.gamigion.com">Gamigion</a>.</p>]]></description>
+    <content:encoded><![CDATA[<p>FULL ARTICLE TEXT that must never be stored. Paragraph one of the article.</p>]]></content:encoded>
+  </item>
+  <item>
+    <title>Studio raises $5M seed round to build AI level tools</title>
+    <link>/studio-raises-seed/</link>
+    <pubDate>Thu, 12 Nov 2026 08:00:00 GMT</pubDate>
+    <description>&lt;p&gt;A small studio raised a seed round led by a games fund. &lt;script&gt;alert(1)&lt;/script&gt;It will use generative AI for level design.&lt;/p&gt;</description>
+  </item>
+  <item>
+    <title>An item without any link</title>
+    <description>Malformed: nothing to link to.</description>
+  </item>
+  <item>
+    <title>Script link</title>
+    <link>javascript:alert(document.cookie)</link>
+  </item>
+  <item>
+    <title><![CDATA[<img src=x onerror=alert(1)>Apple tightens App Store review guidelines]]></title>
+    <link>https://www.gamigion.com/apple-guidelines/#comments</link>
+    <pubDate>not a date</pubDate>
+    <description><![CDATA[Apple updated the App Store review guidelines for games with loot boxes and web shops. Apple updated the App Store review guidelines for games with loot boxes and web shops. Apple updated the App Store review guidelines for games with loot boxes and web shops. Apple updated the App Store review guidelines for games with loot boxes and web shops. Apple updated the App Store review guidelines for games with loot boxes and web shops. Apple updated the App Store review guidelines for games with loot boxes and web shops. Apple updated the App Store review guidelines for games with loot boxes and web shops. Apple updated the App Store review guidelines for games with loot boxes and web shops.]]></description>
+  </item>
+  <item>
+    <link>https://www.gamigion.com/no-title/</link>
+    <description>An entry without a title is skipped.</description>
+  </item>
+</channel>
+</rss>

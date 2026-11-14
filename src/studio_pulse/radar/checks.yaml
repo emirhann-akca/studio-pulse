@@ -19,6 +19,13 @@ checks:
     columns: [app_id]
     severity: error
 
+  - name: radar_news_link_unique
+    type: unique
+    table: raw_mr_news
+    columns: [link]
+    severity: error
+    description: A news article is stored once, whichever feeds carry it (deduplicated by link).
+
   - name: radar_source_stale
     type: sql
     description: The radar has a snapshot for the as-of date (a broken feed or a skipped run shows here).

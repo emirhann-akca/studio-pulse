@@ -10,6 +10,7 @@ pulse radar run --replay tests/fixtures/radar/2026-11-12   # recorded responses,
 pulse radar show -c pulse.yaml --lang en         # print the newest digest
 pulse radar plan -c pulse.yaml                   # expected store requests per day
 pulse radar watch add 6811006356 -c pulse.yaml   # look this game up daily (also: remove, list)
+pulse radar news -c pulse.yaml --days 7          # industry news feeds: fetch, tag, list (--json)
 pulse serve -c pulse.yaml                        # /radar and /radar/oyun/<id>: game page
 ```
 
@@ -382,6 +383,8 @@ radar:
     panel_size: 80             # charted games whose Play page is read daily
     play_reserve: 10
   llm: {max_apps: 25, screenshots: 0, narrate: false}
+  news: {enabled: true, days: 7, max_llm_items: 60,
+         feeds: [gamigion, mobilegamer, pocketgamer, naavik]}   # default: all four
   params: {breakout_min: 0.35}
   out_dir: local/radar
   creative_forge_library: ~/Library/Application Support/creative-forge/library
@@ -392,6 +395,48 @@ llm:
 
 `play_map.yaml` (`apple_to_play: {"<apple id>": <package or null>}`) overrides the bundleId
 mapping.
+
+## Industry news (`radar/news.py`)
+
+A daily read of mobile-games industry news, so an important article is not found by chance.
+`pulse radar news` fetches and lists (`--days`, `--json`, `--no-llm`, `--no-fetch`); every
+radar run (and so `pulse run` with `radar.enabled`) reads the feeds too, except in a replay.
+The radar page in `pulse serve` shows the list ("Sektör haberleri / Industry news") from
+`out_dir/news.json`.
+
+| Feed | URL | robots.txt for `*` (checked 15 Nov 2026) |
+|---|---|---|
+| Gamigion | `https://gamigion.com/feed/` (301 to `www.gamigion.com`) | allowed (only `/wp-admin/`, search paths disallowed) |
+| Mobilegamer.biz | `https://mobilegamer.biz/feed/` | allowed (only `/wp-admin/` disallowed) |
+| PocketGamer.biz | `https://www.pocketgamer.biz/index.rss` | allowed (`Allow: /`) |
+| Naavik | `https://naavik.co/feed/` | allowed (empty `Disallow`) |
+| GamesIndustry.biz | not included | its `*` group allows feeds, but the file's header forbids automated retrieval without written permission and AI-retrieval use |
+
+Rules, enforced in code and tested:
+- Feeds and hosts are fixed in code (`FEEDS`, `NEWS_HOSTS`), an allow-list separate from the
+  store hosts; `radar.news.feeds` can only choose among them. https only; a redirect is
+  followed only to the feed's own site (`gamigion.com` -> `www.gamigion.com`), anything else
+  is refused before it is requested.
+- robots.txt is read first (RFC 9309; 4xx = no rules, 5xx or no answer = nothing allowed) and
+  a feed is requested only if both the `*` group and the reader's own token allow it.
+- One conditional GET per feed (`If-None-Match` / `If-Modified-Since` from the previous
+  answer; 304 = nothing new), a generic User-Agent naming only the tool, a 20 s timeout, a
+  2 MB cap, at least 1 s between requests to one host; every request is a row in
+  `raw_mr_request` (purpose `news`, `news-robots`).
+- Stored per item (`raw_mr_news`, one row per link, `utm_*` parameters and fragments removed so
+  the same story from two feeds is kept once): source, title, link, published time and at most
+  ~300 characters of the feed's own summary with markup removed. Full article text
+  (`content:encoded`, Atom `content`) is never stored and no article page is fetched. A feed
+  with a DOCTYPE or entity declaration is refused before it is parsed; an entry without a
+  title or an http(s) link is skipped.
+- Tags: with an LLM (the top-level `llm:` block), batches of up to 12 items get topics (UA / ad
+  networks, monetization, platform / policy, funding / M&A, game launches / charts, AI tools),
+  a relevance score 1-5 for a small studio making casual / puzzle / sort games and one "why it
+  matters" line. The prompt holds only titles and summaries, marked as untrusted data; an
+  answer is kept only for ids that were sent and topics on the list, and a line with a link,
+  markup or a number the item does not state is dropped. Without an LLM, or for what it did
+  not answer, keyword rules set the topics and the score and the line stays empty; the page
+  says which it was.
 
 ## market_trends.yaml (studio-pulse/market_trends/v1)
 
@@ -416,7 +461,8 @@ Written to `out_dir` and, when set, to `radar.creative_forge_library`. creative-
 
 ## Data-quality checks (`radar/checks.yaml`)
 
-Rank unique per list and day and app id present (error); robots compliance of every Play
+Rank unique per list and day, app id present and each news link stored once (error); robots
+compliance of every Play
 request and the 200-a-day Play budget (error); a stale snapshot, a frozen feed timestamp
 (36 h), a feed over its limit or with non-games in a games list, missing countries, short
 lists, Lookup coverage below 90 %, disagreeing Lookup reads, unconfirmed drops, confirmed

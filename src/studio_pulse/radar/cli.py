@@ -90,6 +90,61 @@ def cmd_radar_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_radar_news(args: argparse.Namespace) -> int:
+    """Read the news feeds (unless --no-fetch), tag new items and list the recent ones."""
+    from .. import warehouse
+    from ..llm import client_from_settings
+    from ..llm import settings as llm_settings
+    from . import news
+    from .settings import from_config
+    from .store import utcnow
+
+    cfg = load_config(args.config)
+    s = from_config(cfg)
+    day = s.as_of or cfg.as_of or dt.date.today()
+    log = lambda m: print(m, file=sys.stderr)  # noqa: E731 - stdout carries the list
+    con = warehouse.connect(cfg.warehouse)
+    try:
+        client = None
+        if not args.no_llm:
+            client = client_from_settings(
+                llm_settings(cfg.raw.get("llm")), state_dir=Path(cfg.state_dir)
+            )
+        res = news.run_news(
+            con,
+            day=day,
+            out_dir=s.out_dir,
+            feeds=news.selected_feeds(s.news_feeds),
+            client=client,
+            days=args.days,
+            fetch=not args.no_fetch,
+            max_llm_items=s.news_max_llm_items,
+            log=log,
+        )
+        items = news.recent(con, args.days, utcnow())
+    finally:
+        con.close()
+    if args.json:
+        print(json.dumps(items, ensure_ascii=False, indent=2, default=str))
+        return 0
+    for it in items:
+        when = (it["published_at"] or it["first_seen"] or "")[:10]
+        topics = ", ".join(it["topics"]) or "-"
+        print(f"[{it['relevance'] or '-'}] {when} {it['source_name']}: {it['title']}")
+        print(f"    {it['link']}")
+        print(
+            f"    {topics} ({it['tag_source'] or 'untagged'})"
+            + (f": {it['why']}" if it["why"] else "")
+        )
+    errors = [f for f in res.feeds if f.error]
+    print(
+        f"{len(items)} item(s) from the last {args.days} day(s); {res.new_items} new this run"
+        + (f"; {len(errors)} feed(s) failed (see above)" if errors else ""),
+        file=sys.stderr,
+    )
+    return 0
+
+
 def add_parser(sub: argparse._SubParsersAction, with_config) -> None:
     r = sub.add_parser("radar", help="daily market radar: store charts, breakouts, trends, digest")
     rs = r.add_subparsers(dest="radar_cmd", required=True)
@@ -107,6 +162,14 @@ def add_parser(sub: argparse._SubParsersAction, with_config) -> None:
     from .estimate.cli import add_parsers as add_estimate_parsers  # watch, plan
 
     add_estimate_parsers(rs, with_config)
+    nw = with_config(
+        rs.add_parser("news", help="read the mobile-games industry news feeds and list them")
+    )
+    nw.add_argument("--days", type=int, default=7, help="list items of the last N days (7)")
+    nw.add_argument("--json", action="store_true", help="print the items as JSON")
+    nw.add_argument("--no-llm", action="store_true", help="keyword tags only, no LLM call")
+    nw.add_argument("--no-fetch", action="store_true", help="list stored items, send nothing")
+    nw.set_defaults(func=cmd_radar_news)
     show = with_config(rs.add_parser("show", help="print the newest digest"))
     show.add_argument("--lang", choices=["tr", "en"], default="tr")
     show.add_argument("--date")

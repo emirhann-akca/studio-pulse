@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Example Atom feed</title>
+  <link href="https://mobilegamer.biz/"/>
+  <updated>2026-11-14T10:00:00Z</updated>
+  <id>urn:example:feed</id>
+  <entry>
+    <title type="html">Google Play lowers fees for &lt;em&gt;small&lt;/em&gt; developers</title>
+    <link rel="alternate" href="https://mobilegamer.biz/google-play-fees/"/>
+    <link rel="replies" href="https://mobilegamer.biz/google-play-fees/comments/"/>
+    <id>urn:example:1</id>
+    <published>2026-11-14T09:30:00+01:00</published>
+    <updated>2026-11-14T10:00:00Z</updated>
+    <summary type="html">&lt;p&gt;Google Play cuts its service fee to 10% for developers under $1M a year.&lt;/p&gt;</summary>
+    <content type="html">FULL ARTICLE TEXT that must never be stored.</content>
+  </entry>
+  <entry>
+    <title>Same story as the RSS feed</title>
+    <link href="https://www.gamigion.com/applovin-roas-puzzle/?utm_campaign=x"/>
+    <id>urn:example:2</id>
+    <updated>2026-11-13T12:00:00Z</updated>
+    <summary>Carried by two feeds; stored once.</summary>
+  </entry>
+  <entry>
+    <title>Entry without a link</title>
+    <id>urn:example:3</id>
+    <updated>2026-11-13T12:00:00Z</updated>
+  </entry>
+</feed>

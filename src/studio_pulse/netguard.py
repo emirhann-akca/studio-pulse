@@ -1,8 +1,9 @@
 """Checks for outbound URLs that come from configuration, the environment or data.
 
 Used where a URL is not a constant of this package: the OpenAI-compatible LLM server
-(`PULSE_LLM_BASE_URL`, often a GPU box on the LAN) and the Slack webhook. The radar's
-store fetcher has its own, stricter host allow-list (radar/http.py).
+(`PULSE_LLM_BASE_URL`, often a GPU box on the LAN) and the Slack webhook. Fixed hosts have
+their own, stricter allow-lists instead: the radar's store fetcher (radar/http.py), its news
+reader (radar/news.py) and the ad-network connectors (connectors/ua/common.py UA_HOSTS).
 
 What is refused: schemes other than the ones the caller names, user:password@ in the
 URL (credentials belong in headers, and they end up in logs), cloud metadata endpoints

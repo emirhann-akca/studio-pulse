@@ -76,7 +76,10 @@ are client-made: SDK revenue is a signal, store and RevenueCat revenue are the r
   outside the guard, a file path, a tool call or a request.
 
 **B5, outbound requests**: the radar fetches only https from the store hosts and checks
-every redirect (`radar/http.py`), honours robots.txt and budgets; ids from store data
+every redirect (`radar/http.py`), honours robots.txt and budgets; its news reader has a
+separate allow-list of feed hosts (`radar/news.py`); the UA connectors call only the
+ad-network API hosts in `UA_HOSTS` and refuse redirects and next-page links elsewhere
+(`connectors/ua/common.py`); ids from store data
 are URL-encoded; URLs from configuration are checked before a secret is sent
 (`netguard.py`: no metadata or link-local addresses, no credentials in URLs, an LLM API
 key never in clear text off the local network, the Slack webhook https only and not

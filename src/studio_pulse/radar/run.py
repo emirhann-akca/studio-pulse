@@ -25,7 +25,7 @@ from .. import runner, warehouse
 from ..config import Config, ConfigError
 from ..llm import ImagePart, LLMClient, client_from_settings
 from ..llm import settings as llm_settings
-from . import apple, charts_web, classify, digest, feed, play, store
+from . import apple, charts_web, classify, digest, feed, news, play, store
 from .estimate import collect as est_collect
 from .estimate import settings as est_settings
 from .estimate import stage as est_stage
@@ -100,6 +100,7 @@ def run_radar(
     clock: Callable[[], float] = time.monotonic,
     log: Callable[[str], None] = print,
     s: RadarSettings | None = None,
+    news_session: Any = None,
 ) -> RadarResult:
     s = s or from_config(cfg)
     es = est_settings.from_config(cfg)
@@ -194,6 +195,7 @@ def run_radar(
             images_for=images_for,
             log=log,
         )
+        _news(con, s, day, run_id, client, f.session, news_session, sleep, res, log)
         res.counts["models"] = run_models(con)
         res.counts["estimate_models"] = est_stage.run_models(con)
         est_summary = None
@@ -242,6 +244,8 @@ def run_radar(
             facts["meta"]["llm"] = client.summary()
         res.facts = facts
         res.files = write_outputs(facts, s, tax)
+        if (res.counts.get("news") or {}).get("file"):
+            res.files["news"] = res.counts["news"]["file"]
         res.counts["requests"] = f.summary()
         res.ok = not res.errors and not any(c.is_blocking for c in res.checks)
     except Exception as exc:
@@ -308,6 +312,34 @@ def _stop(exc: Exception, res: RadarResult, what: str, log: Callable[[str], None
     msg = f"{what}: {exc}"
     (res.notes if isinstance(exc, (BudgetExhausted, HostStopped)) else res.errors).append(msg)
     log(f"    radar: {msg}")
+
+
+def _news(con, s, day, run_id, client, store_session, news_session, sleep, res, log) -> None:
+    """Industry news (radar/news.py): its own hosts, robots checks and ledger rows."""
+    from .replay import RadarReplaySession
+
+    if not s.news_enabled:
+        return
+    if news_session is None and (
+        s.replay is not None or isinstance(store_session, RadarReplaySession)
+    ):
+        res.notes.append("news: not read in a replay (no recorded feeds)")
+        return
+    out = news.run_news(
+        con,
+        day=day,
+        out_dir=s.out_dir,
+        feeds=news.selected_feeds(s.news_feeds),
+        session=news_session,
+        client=client,
+        run_id=run_id,
+        days=s.news_days,
+        max_llm_items=s.news_max_llm_items,
+        sleep=sleep,
+        log=log,
+    )
+    res.notes += out.notes
+    res.counts["news"] = {"new_items": out.new_items, **out.tagged, "file": out.file}
 
 
 def _charts(con, f: Fetcher, s: RadarSettings, day, res: RadarResult, log) -> None:

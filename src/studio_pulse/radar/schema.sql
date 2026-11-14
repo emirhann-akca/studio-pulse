@@ -65,6 +65,22 @@ CREATE TABLE IF NOT EXISTS raw_mr_run (
   status VARCHAR, requests INTEGER, llm_cost_usd DOUBLE, summary VARCHAR
 );
 
+-- Industry news (radar/news.py): one row per article link, deduplicated across feeds. Only
+-- the feed's own title and at most ~300 characters of its summary are kept, never article
+-- text. topics: JSON list; tag_source: llm | keyword.
+CREATE TABLE IF NOT EXISTS raw_mr_news (
+  link VARCHAR, source VARCHAR, source_name VARCHAR, title VARCHAR, published_at TIMESTAMP,
+  summary VARCHAR, first_seen TIMESTAMP, run_id VARCHAR, topics VARCHAR, relevance INTEGER,
+  why VARCHAR, tag_source VARCHAR, tagged_at TIMESTAMP, tag_model VARCHAR,
+  prompt_version VARCHAR
+);
+
+-- One row per feed check: the conditional-GET validators of the answer and what happened.
+CREATE TABLE IF NOT EXISTS raw_mr_news_feed (
+  feed_id VARCHAR, url VARCHAR, checked_at TIMESTAMP, status INTEGER, etag VARCHAR,
+  last_modified VARCHAR, new_items INTEGER, error VARCHAR, run_id VARCHAR
+);
+
 CREATE TABLE IF NOT EXISTS raw_mr_check (
   run_id VARCHAR, checked_at TIMESTAMP, name VARCHAR, severity VARCHAR, status VARCHAR,
   failing_rows INTEGER, message VARCHAR

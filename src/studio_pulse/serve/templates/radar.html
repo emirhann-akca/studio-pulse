@@ -49,4 +49,29 @@
   {% endif %}
   {% endif %}
 </section>
+<section class="card" id="news" style="margin-top:14px">
+  <h2>{{ 'Sektör haberleri' if lang == 'tr' else 'Industry news' }}{% if news and news.days %} <small>({{ news.days }} {{ 'gün' if lang == 'tr' else 'days' }})</small>{% endif %}</h2>
+  {% if not news or not news['items'] %}
+    <p class="note">{{ 'Henüz haber yok: pulse radar news' if lang == 'tr' else 'No news yet: pulse radar news' }}</p>
+  {% else %}
+  <p class="sub">{% if lang == 'tr' %}Başlık ve en çok ~300 karakterlik özet, akışın kendisinden; makalenin tamamı alınmaz. Önem 1-5: küçük bir casual / puzzle / sıralama stüdyosu için.{% else %}Title and at most ~300 characters of summary, from the feed itself; article text is never fetched. Relevance 1-5: for a small casual / puzzle / sort studio.{% endif %}</p>
+  <div class="table-scroll"><table class="t">
+    <thead><tr>
+      <th>{{ 'Önem' if lang == 'tr' else 'Relevance' }}</th><th>{{ 'Haber' if lang == 'tr' else 'Item' }}</th>
+      <th>{{ 'Konular' if lang == 'tr' else 'Topics' }}</th><th>{{ 'Neden önemli' if lang == 'tr' else 'Why it matters' }}</th>
+    </tr></thead>
+    <tbody>
+    {% for it in news['items'] %}
+      <tr>
+        <td>{{ it.relevance if it.relevance is not none else '-' }}</td>
+        <td>{% if it.link %}<a href="{{ it.link }}" rel="noopener noreferrer nofollow">{{ it.title }}</a>{% else %}{{ it.title }}{% endif %}<br><small>{{ it.source }} · {{ it.date }}</small>{% if it.summary %}<br><small>{{ it.summary }}</small>{% endif %}</td>
+        <td>{% for t in it.topics %}<span class="badge outline">{{ topic_names[t] }}</span> {% endfor %}</td>
+        <td>{{ it.why or '-' }}<br><small>{% if it.llm %}{{ 'LLM, yalnız haber metninden' if lang == 'tr' else 'LLM, from the item text only' }}{% else %}{{ 'anahtar kelime tahmini' if lang == 'tr' else 'keyword guess' }}{% endif %}</small></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+  {% if news and news.failed %}<p class="note">{{ 'Okunamayan akışlar' if lang == 'tr' else 'Feeds not read' }}: {% for f in news.failed %}{{ f.feed }} ({{ f.error }}){% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+</section>
 {% endblock %}
