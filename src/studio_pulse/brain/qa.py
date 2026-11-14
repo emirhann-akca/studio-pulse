@@ -59,6 +59,17 @@ _DAYS = re.compile(r"\b(?:last|past|son|gecen)\s+(\d{1,3})\s*(?:days?|gun\w*)\b"
 _WEEK = re.compile(r"\b(last week|past week|this week|son hafta\w*|gecen hafta\w*|bu hafta\w*)\b")
 _MONTH = re.compile(r"\b(last month|past month|son ay\w*|gecen ay\w*|son bir ay\w*)\b")
 _YESTERDAY = re.compile(r"\b(yesterday|dun|dunku)\b")
+_ISO_DAY = re.compile(r"\b(20\d\d)-(\d\d)-(\d\d)\b")
+_MONTHS = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6, "july": 7,
+    "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+    "ocak": 1, "subat": 2, "mart": 3, "nisan": 4, "mayis": 5, "haziran": 6, "temmuz": 7,
+    "agustos": 8, "eylul": 9, "ekim": 10, "kasim": 11, "aralik": 12,
+}  # fmt: skip
+_MONTH_YEAR = re.compile(
+    r"\b(" + "|".join(_MONTHS) + r")\w*\s+(20\d\d)\b|\b(20\d\d)\s+(" + "|".join(_MONTHS) + r")\b"
+)
+_MONTH_ALONE = re.compile(r"\b(" + "|".join(m for m in _MONTHS if m != "may") + r")\w*\b")
 # Dimensions people ask for that the warehouse does not collect at all.
 _UNCOLLECTED = {
     "age": ("age", "yaş"),
@@ -321,6 +332,35 @@ class Router:
             return 1
         return None
 
+    @staticmethod
+    def find_range(norm: str, last: dt.date | None) -> tuple[dt.date, dt.date] | None:
+        """An explicit period in the question: ISO day(s) ("2026-10-31", "between X and Y")
+        or a month ("October 2026", "ekim 2026'da", "ekimde" = that month of the data's
+        latest year). None when the question names no period, so the default window holds."""
+        days = []
+        for m in _ISO_DAY.finditer(norm):
+            try:
+                days.append(dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3))))
+            except ValueError:
+                continue
+        if days:
+            return min(days), max(days)
+        m = _MONTH_YEAR.search(norm)
+        if m:
+            name = m.group(1) or m.group(4)
+            year = int(m.group(2) or m.group(3))
+        else:
+            m = _MONTH_ALONE.search(norm)
+            if not m or last is None:
+                return None
+            name, year = m.group(1), last.year
+            if _MONTHS[name] > last.month:
+                year -= 1
+        month = _MONTHS[name]
+        first = dt.date(year, month, 1)
+        nxt = dt.date(year + (month == 12), month % 12 + 1, 1)
+        return first, nxt - dt.timedelta(days=1)
+
     def _last_day(self) -> dt.date | None:
         if "fct_app_daily" not in self.schema:
             return None
@@ -342,11 +382,16 @@ class Router:
             facts = {"last_day": Fact(last, "date")} if last else {}
             return self._refuse(q, lang, "future", facts, missing="future data")
         app = self.find_app(norm)
-        vq = self._verified(q, norm, lang, app)
+        rng = self.find_range(norm, last)
+        n_days = self.find_days(norm)
+        if rng and n_days and (rng[1] - rng[0]).days + 1 > n_days:
+            rng = (rng[1] - dt.timedelta(days=n_days - 1), rng[1])  # "last 7 days of October"
+        # verified queries have fixed windows: an explicit period goes to the catalog / SQL
+        vq = None if rng else self._verified(q, norm, lang, app)
         if vq is not None:
             return vq
         long_tail = bool(_LONG_TAIL.search(norm))
-        cat = None if long_tail else self._catalog(q, norm, lang, app)
+        cat = None if long_tail else self._catalog(q, norm, lang, app, rng)
         if cat is not None:
             return cat
         if self.client is not None:
@@ -374,6 +419,8 @@ class Router:
                 continue
             if "level" in vq.params and level is None:
                 continue  # a level question without a level number is not this one
+            if app is not None and "app" not in vq.params:
+                continue  # a portfolio ranking does not answer a question about one app
             window = vq.consts.get("window")
             if days is not None and window is not None and window.value != days:
                 continue  # a fixed-window query cannot answer another period
@@ -428,7 +475,14 @@ class Router:
         return self._small(ans, app)
 
     # -- 2. catalog tool ---------------------------------------------------------
-    def _catalog(self, q: str, norm: str, lang: str, app: str | None) -> Answer | None:
+    def _catalog(
+        self,
+        q: str,
+        norm: str,
+        lang: str,
+        app: str | None,
+        rng: tuple[dt.date, dt.date] | None = None,
+    ) -> Answer | None:
         found = self.catalog.find(q)
         metric_ids = found["metric"]
         dims = [d for d in found["dimension"] if d not in ("app_id", "date", "cohort_date")]
@@ -458,6 +512,7 @@ class Router:
             return stale
         by: list[str] = []
         for d in dims[:1]:
+            d = _COLUMN.get(d, d)  # a dimension's id may differ from its column (campaign)
             if d in metric.dims:
                 by = [d]
             elif d in metric.pull_dims:
@@ -475,10 +530,17 @@ class Router:
                 if avail:
                     facts["available"] = Fact(", ".join(avail), "text")
                 return self._refuse(q, lang, "no_dimension", facts, missing=d)
-        return self._metric_answer(q, lang, metric, app, by, days)
+        return self._metric_answer(q, lang, metric, app, by, days, rng)
 
     def _metric_answer(
-        self, q: str, lang: str, metric: Metric, app: str | None, by: list[str], days: int | None
+        self,
+        q: str,
+        lang: str,
+        metric: Metric,
+        app: str | None,
+        by: list[str],
+        days: int | None,
+        rng: tuple[dt.date, dt.date] | None = None,
     ) -> Answer:
         start = end = None
         if metric.time and metric.aggregation != "latest":
@@ -493,6 +555,12 @@ class Router:
                 return self._no_data(Answer(q, lang, "catalog", matched=metric.id), metric.id, app)
             span = days or (14 if metric.time == "cohort_date" else 7)
             end, start = last, last - dt.timedelta(days=span - 1)
+            if rng is not None:  # the period the question names, cut at the latest data
+                start, end = rng[0], min(rng[1], last)
+                if start > end:
+                    return self._no_data(
+                        Answer(q, lang, "catalog", matched=metric.id), metric.id, app
+                    )
         try:
             sql, params = metric.period_sql(app_id=app, start=start, end=end, by=by)
         except CatalogError as exc:
@@ -778,9 +846,35 @@ class Router:
         )
         ans.evidence = ev
         ans.text = self._say(TEXTS["sql_rows"][lang], facts, ev, lang, {})
+        value = self._single_row_text(res, lang)
+        if value:  # one row: say the answer itself, not only "1 row" (the cells are the evidence)
+            ans.text = f"{ans.text} {value}"
         ans.verified = verify.verified(ans.text, [ev], lang)
         ans.notes.append("generated_sql")
         return ans
+
+    @staticmethod
+    def _single_row_text(res: Any, lang: str) -> str:
+        """`Result: date 2026-09-19; dau 1,489.` for a one-row result of up to four columns,
+        formatted by the same templates the verifier reads; empty when it does not apply."""
+        if len(res.rows) != 1 or not 1 <= len(res.columns) <= 4:
+            return ""
+        cells: dict[str, Fact] = {}
+        parts: list[str] = []
+        for i, (col, v) in enumerate(zip(res.columns, res.rows[0], strict=False)):
+            if v is None or isinstance(v, (bytes, list, dict)):
+                continue
+            key = f"v{i}"
+            cells[key] = Fact(v, _guess_unit(v))
+            label = "" if col.startswith("_col") else f"{col} "
+            parts.append(f"{label}{{{key}}}")
+        if not parts:
+            return ""
+        head = {"en": "Result: ", "tr": "Sonuç: "}[lang]
+        try:
+            return narrate.render(head + "; ".join(parts) + ".", cells, lang, {})
+        except narrate.TemplateError:
+            return ""
 
     # -- helpers ----------------------------------------------------------------------
     def _stale(self, q: str, lang: str, app: str | None) -> Answer | None:

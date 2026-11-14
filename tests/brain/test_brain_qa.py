@@ -138,3 +138,62 @@ def test_every_catalog_metric_answers_for_every_app(wh):
         a = r.ask("What is the level churn rate of quartz_merge by level?")
     assert a.route == "catalog" and a.matched == "level_churn_rate" and a.verified
     assert " to " not in a.text.split(":")[0]  # no invented date span
+
+
+def test_a_one_row_generated_answer_says_the_value(wh, no_network):
+    """The SQL route used to answer "the checked query returned 1 row(s)" and leave the
+    number in the table; a one-row result is now stated, and still passes the verifier."""
+    with LockedSession.open(wh) as s:
+        r = qa.Router(s, client=evaluate._fake_for_golden(), as_of=AS_OF)
+        en = r.ask("On which day did mossy_match have its highest DAU?", "en")
+        tr = r.ask(
+            "quartz_merge oyununda kazanma oranı yüzde 50'nin altında olan kaç seviye var?", "tr"
+        )
+    assert en.route == "sql" and en.verified
+    day, dau = en.rows[0][0], en.rows[0][1]
+    assert f"date {day}" in en.text and f"dau {dau:,}" in en.text
+    assert tr.route == "sql" and tr.verified and f"Sonuç: levels {tr.rows[0][0]}." in tr.text
+
+
+def test_explicit_periods_are_read_from_the_question():
+    import datetime as dt
+
+    last = dt.date(2026, 10, 31)
+    fr = lambda q: qa.Router.find_range(qa.normalize(q), last)  # noqa: E731
+    assert fr("revenue on 2026-10-31") == (dt.date(2026, 10, 31), dt.date(2026, 10, 31))
+    assert fr("between 2026-10-03 and 2026-10-01") == (dt.date(2026, 10, 1), dt.date(2026, 10, 3))
+    assert fr("What was revenue in October 2026?") == (dt.date(2026, 10, 1), dt.date(2026, 10, 31))
+    assert fr("pacer_pal ekim 2026'da kaç kullanıcı") == (
+        dt.date(2026, 10, 1),
+        dt.date(2026, 10, 31),
+    )
+    assert fr("ağustosta gelir") == (dt.date(2026, 8, 1), dt.date(2026, 8, 31))
+    assert fr("kasımda gelir") == (
+        dt.date(2025, 11, 1),
+        dt.date(2025, 11, 30),
+    )  # after the data: last year
+    assert fr("revenue in may") is None  # "may" alone is a verb
+    assert fr("revenue in the last 7 days") is None
+
+
+def test_named_period_metric_and_app_reach_the_right_answer(wh, no_network):
+    """Found with a real model on new questions (14 Nov): a month was answered with the
+    last 7 days, "money spent" with revenue, campaigns were "not a breakdown", and a
+    question about one app got a portfolio ranking."""
+    with LockedSession.open(wh) as s:
+        r = qa.Router(s, client=evaluate._fake_for_golden(), as_of=AS_OF)
+        oct_rev = r.ask("What was quartz_merge's total revenue in October 2026?", "en")
+        last7 = r.ask(
+            "Average crash-free users rate of quartz_merge in the last 7 days of October 2026?",
+            "en",
+        )
+        camp = r.ask("Which UA campaign spent the most money in October 2026?", "en")
+        share = r.ask("What share of mossy_match's revenue in October 2026 came from ads?", "en")
+        day = r.ask(
+            "mossy_match'in 2026-10-31 tarihindeki günlük aktif kullanıcı sayısı kaç?", "tr"
+        )
+    assert oct_rev.route == "catalog" and "2026-10-01" in oct_rev.text and oct_rev.verified
+    assert "2026-10-25" in last7.text and last7.matched == "crash_free_users"
+    assert camp.matched == "ua_spend_usd" and "campaign_name" in camp.columns and camp.verified
+    assert share.matched == "ad_revenue_share" and share.verified
+    assert day.route == "catalog" and "2026-10-31" in day.text and len(day.rows) == 1

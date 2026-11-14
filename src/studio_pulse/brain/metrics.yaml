@@ -302,6 +302,18 @@ metrics:
     value: ad_revenue_usd
     aggregation: sum
     definition: AdMob estimated earnings, or GA4 ad_impression values without AdMob
+  ad_revenue_share:
+    name: {en: ad share of revenue, tr: gelirde reklam payı}
+    synonyms: {en: [share of revenue from ads, ad revenue share, ads share of revenue, revenue came from ads, came from ads], tr: [reklam payı, gelirin reklam payı, reklamdan gelen pay, gelirin ne kadarı reklamdan, reklamdan geldi]}
+    unit: pct
+    better: none
+    model: fct_app_daily
+    time: date
+    value: ad_revenue_usd / NULLIF(revenue_usd, 0)
+    aggregation: pooled
+    numerator: ad_revenue_usd
+    denominator: revenue_usd
+    definition: ad revenue / (IAP + ad revenue), pooled over the period
   arpdau:
     name: {en: ARPDAU, tr: ARPDAU}
     synonyms: {en: [average revenue per daily active user, revenue per user, arpu per day], tr: [günlük aktif kullanıcı başına gelir, kullanıcı başına gelir]}
@@ -687,7 +699,7 @@ metrics:
   # -- user acquisition ------------------------------------------------------
   ua_spend_usd:
     name: {en: UA spend, tr: kullanıcı edinme harcaması}
-    synonyms: {en: [spend, ad spend, marketing spend, cost], tr: [harcama, reklam harcaması, pazarlama harcaması, maliyet]}
+    synonyms: {en: [spend, ad spend, marketing spend, cost, spent, spending, money spent, spent the most], tr: [harcama, reklam harcaması, pazarlama harcaması, maliyet, harcadı, harcanan, en çok harcayan]}
     unit: usd
     better: none
     model: fct_ua_daily
