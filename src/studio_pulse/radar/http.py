@@ -11,6 +11,9 @@ Every store request goes through `Fetcher.get`:
 4. Requests to one host are spaced by at least `spacing_s` seconds (Play: 3 s).
 5. 429/503: wait Retry-After (capped) and retry; repeated 429/403 stops that host for the rest
    of the run (HostStopped). No proxies, no rotating identities, no browser impersonation.
+6. Only https to the store hosts (STORE_HOSTS) is ever requested, and a redirect is followed
+   only to another of them (HostNotAllowed): URLs are built from store data (package names,
+   artist ids), so nothing in that data can point a request at this machine or the network.
 Every attempt is written to raw_mr_request.
 """
 
@@ -24,7 +27,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import duckdb
 import requests
@@ -35,6 +38,8 @@ from .robots import Robots
 USER_AGENT = f"studio-pulse-radar/{__version__} (low-volume daily market snapshot)"
 ROBOTS_TOKEN = "studio-pulse-radar"
 ALWAYS_REFUSED = {"play.google.com": ("/_", "/store/search", "/store/getreviews")}
+STORE_HOSTS = frozenset({"itunes.apple.com", "apps.apple.com", "play.google.com"})
+MAX_REDIRECTS = 3
 
 
 class BudgetExhausted(RuntimeError):
@@ -51,6 +56,10 @@ class RobotsDisallowed(RuntimeError):
 
 class NotFound(RuntimeError):
     pass
+
+
+class HostNotAllowed(RuntimeError):
+    """A URL (or a redirect) outside the store hosts; nothing was sent to it."""
 
 
 @dataclass
@@ -87,8 +96,10 @@ class Fetcher:
         timeout_s: float = 30.0,
         retries: int = 2,
         log: Callable[[str], None] = print,
+        allowed_hosts: frozenset[str] = STORE_HOSTS,
     ) -> None:
         self.con = con
+        self.allowed_hosts = frozenset(h.lower() for h in allowed_hosts)
         self.day = snapshot_date
         self.session = session or requests.Session()
         self.run_id = run_id
@@ -201,7 +212,45 @@ class Fetcher:
         self.check_allowed(url)
         return self._send(url, purpose, cacheable=cacheable)
 
+    def allowed(self, url: str) -> None:
+        """Raise HostNotAllowed unless `url` is https on a store host's default port."""
+        p = urlsplit(url)
+        try:
+            port = p.port
+        except ValueError:
+            port = -1
+        if (
+            p.scheme != "https"
+            or p.username is not None
+            or p.password is not None
+            or port not in (None, 443)
+            or (p.hostname or "").lower() not in self.allowed_hosts
+        ):
+            raise HostNotAllowed(
+                f"refused {p.scheme}://{p.hostname}: the radar only fetches https from "
+                + ", ".join(sorted(self.allowed_hosts))
+            )
+
+    def _get(self, url: str) -> requests.Response:
+        """GET without automatic redirects; each Location is checked like the first URL."""
+        for _ in range(MAX_REDIRECTS + 1):
+            r = self.session.get(
+                url,
+                headers={"User-Agent": USER_AGENT},
+                timeout=self.timeout_s,
+                allow_redirects=False,
+            )
+            location = (
+                r.headers.get("Location") if r.status_code in (301, 302, 303, 307, 308) else None
+            )
+            if not location:
+                return r
+            url = urljoin(url, location)
+            self.allowed(url)
+        raise HostNotAllowed(f"more than {MAX_REDIRECTS} redirects")
+
     def _send(self, url: str, purpose: str, *, cacheable: bool) -> Fetched:
+        self.allowed(url)
         host = urlsplit(url).hostname or ""
         cp = self._cache_path(url) if cacheable else None
         if cp is not None and cp.exists():
@@ -224,9 +273,7 @@ class Fetcher:
             self.sent += 1
             self.sent_by_host[host] = self.sent_by_host.get(host, 0) + 1
             try:
-                r = self.session.get(
-                    url, headers={"User-Agent": USER_AGENT}, timeout=self.timeout_s
-                )
+                r = self._get(url)
             except requests.RequestException as exc:
                 ms = (time.perf_counter() - t0) * 1000
                 self._record(url, purpose, None, 0, False, ms, f"{type(exc).__name__}")

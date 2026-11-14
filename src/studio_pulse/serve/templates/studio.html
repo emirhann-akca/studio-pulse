@@ -136,7 +136,7 @@
   {% if current and static %}
   <p class="muted" style="padding:10px 16px;margin:0;border-top:1px solid var(--line);font-size:12.5px">{{ t.static_ask }}</p>
   {% elif current %}
-  <form class="ai-form" hx-post="/studio/{{ chosen }}/ask" hx-target="#chat" hx-swap="beforeend" hx-on::before-request="var q=this.q.value;if(!q.trim()){event.preventDefault();return;}var d=document.createElement('div');d.className='q';d.textContent=q;document.getElementById('chat').appendChild(d);" hx-on::after-request="this.reset()">
+  <form class="ai-form" hx-post="/studio/{{ chosen }}/ask" hx-target="#chat" hx-swap="beforeend">
     <input type="hidden" name="lang" value="{{ lang }}">
     <input class="input" type="text" name="q" placeholder="{{ t.ask_ph }}" aria-label="{{ t.ask }}" autocomplete="off">
     <button class="btn primary" type="submit">{{ t.send }}</button><span class="busy">…</span>

@@ -4,8 +4,12 @@ The LLM chooses taxonomy values and must back each one with a verbatim quote fro
 store-text field. A deterministic verifier (not the model) then keeps a claim only if:
 - the value is in the taxonomy,
 - the field exists and the quote is found in it (case, whitespace and quote marks normalized),
-- neither the quote nor any free text contains a number (numbers come only from SQL).
-Rejected claims are stored with their reason. Monetisation model comes from store fields
+- neither the quote nor any free text contains a number (numbers come only from SQL),
+- free text carries no link or markup, and a screenshot claim names a screenshot that was sent.
+Store text is untrusted (a listing can say "ignore your instructions"): whatever the model
+answers, only taxonomy values backed by a quote that is really in the listing are kept, and
+nothing in an answer becomes SQL, a file path or a request. Rejected claims are stored with
+their reason. Monetisation model comes from store fields
 (Play containsAds / offersIAP, Apple price), never from the model. Results are cached per
 (app, input hash, prompt version, model): unchanged metadata is never sent twice.
 """
@@ -164,17 +168,27 @@ def build_request(tax: Taxonomy, fields: dict[str, str], images: list[ImagePart]
     )
 
 
+_LINK_OR_MARKUP = re.compile(r"://|\bwww\.|[<>]|\bjavascript:", re.I)
+_SCREENSHOT = re.compile(r"s([1-6])")
+
+
+def _strings(raw: Any) -> list[str]:
+    if isinstance(raw, str):
+        return [raw]
+    return [x for x in raw if isinstance(x, str)] if isinstance(raw, list) else []
+
+
 def verify(
-    out: dict[str, Any], fields: dict[str, str], tax: Taxonomy
+    out: dict[str, Any], fields: dict[str, str], tax: Taxonomy, *, images: int | None = None
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """(accepted claims, rejected claims with reasons)."""
+    """(accepted claims, rejected claims with reasons). `images`: how many screenshots
+    were sent with the request (None: not known, an answer read back from the cache)."""
     accepted: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
+    out = out if isinstance(out, dict) else {}
     evidence = [e for e in out.get("evidence") or [] if isinstance(e, dict)]
     for claim, (section, dimension) in DIMENSIONS.items():
-        raw = out.get(claim)
-        values = [raw] if isinstance(raw, str) else list(raw or [])
-        for value in values:
+        for value in _strings(out.get(claim)):
             if claim == "mechanic_primary" and value == "unknown":
                 continue
             if value not in tax.values(section):
@@ -199,7 +213,16 @@ def verify(
             else:
                 rejected.append({"claim": claim, "value": value, "reason": why})
     for v in out.get("visual_inference") or []:
+        if not isinstance(v, dict):
+            continue
         claim = v.get("claim")
+        shot = _SCREENSHOT.fullmatch(str(v.get("screenshot") or ""))
+        if shot is None or (images is not None and int(shot.group(1)) > images):
+            rejected.append(
+                {"claim": "visual_inference", "value": str(v.get("value"))[:80],
+                 "reason": "no such screenshot was sent"}
+            )  # fmt: skip
+            continue
         if claim in DIMENSIONS and v.get("value") in tax.values(DIMENSIONS[claim][0]):
             accepted.append(
                 {
@@ -211,9 +234,13 @@ def verify(
                 }
             )
     for key in ("twist_summary",):
-        text = out.get(key)
+        text = out.get(key) if isinstance(out.get(key), str) else None
         if text and has_number(text):
             rejected.append({"claim": key, "value": text[:80], "reason": "contains a number"})
+        elif text and _LINK_OR_MARKUP.search(text):
+            rejected.append(
+                {"claim": key, "value": text[:80], "reason": "contains a link or markup"}
+            )
         elif text:
             accepted.append(
                 {
@@ -224,9 +251,13 @@ def verify(
                     "free_text": True,
                 }
             )
-    for u in out.get("unknowns") or []:
+    for u in _strings(out.get("unknowns")):
         if has_number(u):
             rejected.append({"claim": "unknowns", "value": u[:80], "reason": "contains a number"})
+        elif _LINK_OR_MARKUP.search(u):
+            rejected.append(
+                {"claim": "unknowns", "value": u[:80], "reason": "contains a link or markup"}
+            )
         else:
             accepted.append(
                 {
@@ -413,7 +444,7 @@ def classify_apps(
                 stats["stopped"] = str(exc)[:200]
                 break
             continue
-        accepted, rejected = verify(res.data or {}, fields, tax)
+        accepted, rejected = verify(res.data or {}, fields, tax, images=len(images))
         now = store.utcnow()
         store.replace(
             con,

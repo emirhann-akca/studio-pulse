@@ -199,7 +199,7 @@ class FakeSession:
     def __init__(self):
         self.calls = []
 
-    def post(self, url, json=None, timeout=None):
+    def post(self, url, json=None, timeout=None, allow_redirects=True):
         self.calls.append((url, json))
         return FakeResp()
 
@@ -216,7 +216,7 @@ class FakeSMTP:
     def __exit__(self, *a):
         return False
 
-    def starttls(self):
+    def starttls(self, context=None):
         pass
 
     def login(self, user, pw):

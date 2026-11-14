@@ -7,10 +7,12 @@ reads, and closes it (the writer waits briefly for such readers, see
 warehouse.connect). While a refresh is running, or whenever the live file is
 locked, pages are served from the snapshot of the last good run.
 
-Safety: the server binds 127.0.0.1 by default, rejects requests whose Host
-header is not this machine (DNS rebinding), and "run now" needs a per-process
-token that only pages served by this process carry (cross-site requests cannot
-set the header).
+Safety (serve/security.py): the server binds 127.0.0.1 by default, rejects
+requests whose Host header is not this machine (DNS rebinding), needs an access
+token when it listens on the network, refuses every state-changing request
+without the per-process token that only pages served by this process carry
+(cross-site requests cannot set the header), and sends a strict
+Content-Security-Policy and the other security headers with every response.
 """
 
 from __future__ import annotations
@@ -35,14 +37,9 @@ from fastapi.templating import Jinja2Templates
 from .. import __version__, checks, runstate, schedule, warehouse
 from ..config import Config
 from ..dashboard.assets import CHART_CSS, CSS, JS
-from . import ui
+from . import security, ui
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
-
-
-def _hostname(host_header: str) -> str:
-    """Host header -> bare host name (no port, no IPv6 brackets), lower case."""
-    return (urlsplit("//" + host_header.strip()).hostname or "").lower()
 
 
 def _pkg_dir(name: str) -> Path:
@@ -128,10 +125,18 @@ def create_app(
     allowed_hosts: set[str] | None = None,
     schedule_name: str = schedule.DEFAULT_NAME,
     live_fetcher: Callable[[], dict[str, Any]] | None = None,
+    access_token: str | None = None,
+    any_host: bool = False,
 ) -> FastAPI:
+    """`access_token`: required from every client (see serve/security.py), set when the
+    UI listens on a non-loopback address. `any_host`: accept any Host header (a
+    wildcard bind such as 0.0.0.0); only with an access token."""
+    if any_host and not access_token:
+        raise ValueError("any_host needs an access_token")
     token = token or secrets.token_urlsafe(24)
     launch = launcher or default_launcher
     hosts = LOCAL_HOSTS | {h.lower().strip("[]") for h in (allowed_hosts or set())}
+    route_hosts = security.ANY_HOST if any_host else hosts  # the routes' own Origin checks
     app = FastAPI(title="studio-pulse", docs_url=None, redoc_url=None, openapi_url=None)
     templates = Jinja2Templates(directory=str(_pkg_dir("templates")))
     templates.env.globals.update(
@@ -153,11 +158,15 @@ def create_app(
             resp.set_cookie(ui.COOKIE, q, max_age=365 * 86400, samesite="lax", httponly=True)
         return resp
 
-    @app.middleware("http")
-    async def local_only(request: Request, call_next):
-        if _hostname(request.headers.get("host", "")) not in hosts:
-            return PlainTextResponse("studio-pulse only answers requests for this machine", 400)
-        return await call_next(request)
+    # Outermost: Host check, access token, CSRF floor and security headers for every
+    # response. The inline scripts are the shell's ui.js and the static dashboard's JS.
+    app.add_middleware(
+        security.Guard,
+        csrf_token=token,
+        hosts=None if any_host else hosts,
+        access_token=access_token,
+        script_hashes=[security.csp_hash(ui.UI_JS), security.csp_hash(JS)],
+    )
 
     def state() -> dict[str, Any]:
         hb = runstate.read_heartbeat(cfg.state_dir)
@@ -288,7 +297,7 @@ def create_app(
         if not secrets.compare_digest(request.headers.get("x-pulse-token", ""), token):
             return PlainTextResponse("missing or wrong token", 403)
         origin = request.headers.get("origin")
-        if origin and (urlsplit(origin).hostname or "") not in hosts:
+        if origin and (urlsplit(origin).hostname or "") not in route_hosts:
             return PlainTextResponse("cross-origin request refused", 403)
         st = state()
         lock = st["lock"]
@@ -330,7 +339,7 @@ def create_app(
 
     from ..brain.web import register as register_brain  # /insights and /ask
 
-    register_brain(app, cfg, templates, context=context, hosts=hosts)
+    register_brain(app, cfg, templates, context=context, hosts=route_hosts)
 
     from ..radar.page import register as register_radar
 
@@ -338,11 +347,13 @@ def create_app(
 
     from .studio import register as register_studio  # /studio: the one-window app view
 
-    register_studio(app, cfg, templates, context=context, open_db=open_db, rows=_rows, hosts=hosts)
+    register_studio(
+        app, cfg, templates, context=context, open_db=open_db, rows=_rows, hosts=route_hosts
+    )
 
     from .settings_page import register as register_settings  # /settings: sources, schedule
 
     register_settings(
-        app, cfg, templates, context=context, open_db=open_db, rows=_rows, hosts=hosts
+        app, cfg, templates, context=context, open_db=open_db, rows=_rows, hosts=route_hosts
     )
     return app

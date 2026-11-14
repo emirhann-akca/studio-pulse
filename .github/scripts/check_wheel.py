@@ -13,6 +13,7 @@ NEED = [
     "studio_pulse/raw_schema.sql",
     "studio_pulse/serve/static/htmx.min.js",
     "studio_pulse/serve/static/htmx.LICENSE",
+    "studio_pulse/serve/static/pulse.js",
     "studio_pulse/serve/templates/base.html",
     "studio_pulse/desktop_assets/studio-pulse.ico",  # Windows shortcut icon
     "studio_pulse/desktop_assets/studio-pulse.icns",  # macOS app bundle icon

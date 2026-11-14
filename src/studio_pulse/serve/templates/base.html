@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{{ title }}{% endblock %} · Studio Pulse</title>
 <style>{{ ui_css|safe }}</style>
-{% if not static %}<script src="/static/htmx.min.js"></script>{% endif %}
+{% if not static %}<meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false}'>
+<script src="/static/htmx.min.js"></script>
+<script src="/static/pulse.js" defer></script>{% endif %}
 {% block head %}{% endblock %}
 </head>
 <body{% if not static %} hx-headers='{"X-Pulse-Token": "{{ token }}"}'{% endif %}>

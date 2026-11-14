@@ -126,3 +126,23 @@ def test_requests_for_other_hosts_are_refused(client):
 def test_nav_links_on_existing_pages(client):
     html = client.get("/").text
     assert re.search(r'href="/insights"', html) and re.search(r'href="/ask"', html)
+
+
+def test_a_link_from_another_site_does_not_run_a_question(client, no_network):
+    """GET /ask?q= from another site (a link, a redirect) shows the form but asks nothing:
+    an LLM call costs money, so only this UI's own pages, a typed URL or a bookmark answer."""
+    q = {"q": "Which levels are the hardest in quartz_merge?"}
+    for site in ("cross-site", "same-site"):
+        r = client.get(
+            "/ask", params=q, headers={"Sec-Fetch-Site": site, "Sec-Fetch-Mode": "navigate"}
+        )
+        assert r.status_code == 200 and "Verified query" not in r.text, site
+        assert "quartz_merge" in r.text  # the question is kept in the box
+    for site in ("same-origin", "none"):
+        r = client.get("/ask", params=q, headers={"Sec-Fetch-Site": site})
+        assert "Verified query" in r.text, site
+    # an <img src=/ask?q=...> on another page is not a navigation: refused outright
+    r = client.get(
+        "/ask", params=q, headers={"Sec-Fetch-Site": "cross-site", "Sec-Fetch-Mode": "no-cors"}
+    )
+    assert r.status_code == 403

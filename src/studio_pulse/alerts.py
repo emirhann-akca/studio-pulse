@@ -39,6 +39,7 @@ import json
 import math
 import os
 import smtplib
+import ssl
 from dataclasses import dataclass, field
 from email.message import EmailMessage
 from pathlib import Path
@@ -46,6 +47,8 @@ from typing import Any
 
 import duckdb
 import yaml
+
+from . import netguard
 
 
 @dataclass(frozen=True)
@@ -471,6 +474,13 @@ def notify(
     webhook = os.environ.get("PULSE_SLACK_WEBHOOK_URL")
     if webhook:
         payload = slack_payload(alerts, title)
+        try:  # the webhook URL is itself a secret: https to a public host only
+            netguard.check_url(webhook, what="PULSE_SLACK_WEBHOOK_URL")
+        except netguard.UnsafeURL as exc:
+            log(f"Slack not notified: {exc}")
+            status["slack"] = "refused: not an https webhook on a public host"
+            webhook = None
+    if webhook:
         if dry_run:
             log("[dry-run] would POST to Slack webhook:\n" + json.dumps(payload, indent=2))
             status["slack"] = "dry-run"
@@ -479,7 +489,7 @@ def notify(
                 import requests
 
                 session = requests.Session()
-            r = session.post(webhook, json=payload, timeout=20)
+            r = session.post(webhook, json=payload, timeout=20, allow_redirects=False)
             status["slack"] = "sent" if r.status_code < 300 else f"error {r.status_code}"
     host, to = os.environ.get("PULSE_SMTP_HOST"), os.environ.get("PULSE_ALERT_EMAIL_TO")
     if host and to:
@@ -495,7 +505,9 @@ def notify(
             factory = smtp_factory or smtplib.SMTP
             with factory(host, int(os.environ.get("PULSE_SMTP_PORT", "587"))) as s:
                 if os.environ.get("PULSE_SMTP_STARTTLS", "1") == "1" and hasattr(s, "starttls"):
-                    s.starttls()
+                    # an explicit context: smtplib's default one does not verify the
+                    # server certificate, and the SMTP password is sent right after
+                    s.starttls(context=ssl.create_default_context())
                 user = os.environ.get("PULSE_SMTP_USER")
                 if user:
                     s.login(user, os.environ.get("PULSE_SMTP_PASSWORD", ""))
