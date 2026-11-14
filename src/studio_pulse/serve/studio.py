@@ -757,7 +757,7 @@ def register(
         days = days if days in sm.PERIODS else 7
         data = page_data(app_id, request_lang(request, lang), days=days)
         if data["current"] is None:
-            return PlainTextResponse(f"unknown app {app_id!r}", 404)
+            return PlainTextResponse("unknown app", 404)  # never echo the path back (reflected XSS)
         return templates.TemplateResponse(
             request, "studio.html", context(request, "studio", **data)
         )
@@ -768,12 +768,12 @@ def register(
     ):
         """One KPI tile opened: its daily rows, the previous period, the SQL behind it."""
         if key not in sm.METRICS:
-            return PlainTextResponse(f"unknown metric {key!r}", 404)
+            return PlainTextResponse("unknown metric", 404)
         days = days if days in sm.PERIODS else 7
         lg = request_lang(request, lang)
         data = page_data(app_id, lg, full=False)
         if data["current"] is None:
-            return PlainTextResponse(f"unknown app {app_id!r}", 404)
+            return PlainTextResponse("unknown app", 404)  # never echo the path back (reflected XSS)
         con, _ = open_db(cfg)
         try:
             end = sm.last_date(rows, con, app_id) if con is not None else None

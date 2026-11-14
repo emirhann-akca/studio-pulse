@@ -196,8 +196,8 @@ def test_market_view_without_a_radar_run_says_so(client):
 
 
 def test_unknown_app_or_metric_is_echoed_as_text_not_html(client):
-    """The 404s repeat the id from the URL: as text/plain, so a crafted link cannot run script
-    in the UI's origin (where the CSRF token lives)."""
+    """The 404s are text/plain and no longer repeat the id from the URL, so a crafted link cannot
+    run script in the UI's origin (where the CSRF token lives)."""
     from studio_pulse.serve import studio_metrics as sm
 
     tag = "%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E"
@@ -206,3 +206,4 @@ def test_unknown_app_or_metric_is_echoed_as_text_not_html(client):
         r = client.get(url)
         assert r.status_code == 404, url
         assert r.headers["content-type"].startswith("text/plain"), url
+        assert "<img" not in r.text and "onerror" not in r.text, url
