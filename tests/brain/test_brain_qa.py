@@ -197,3 +197,28 @@ def test_named_period_metric_and_app_reach_the_right_answer(wh, no_network):
     assert camp.matched == "ua_spend_usd" and "campaign_name" in camp.columns and camp.verified
     assert share.matched == "ad_revenue_share" and share.verified
     assert day.route == "catalog" and "2026-10-31" in day.text and len(day.rows) == 1
+
+
+def test_compare_trend_platform_and_ranking_questions(wh, no_network):
+    """Second round of real-model questions (14 Nov): comparisons answered about one app,
+    "going up or down" with a mean, "android and ios" without the platform split, the
+    app ranking refused, D30 answered with D1, crash-free by version answered with D1."""
+    with LockedSession.open(wh) as s:
+        r = qa.Router(s, client=evaluate._fake_for_golden(), as_of=AS_OF)
+        cmp_ = r.ask("Compare D1 retention of mossy_match and quartz_merge in October 2026", "en")
+        trend = r.ask("Is mossy_match's DAU going up or down over the last 30 days?", "en")
+        plat = r.ask("mossy_match'te android ve ios D1 elde tutmayı karşılaştır", "tr")
+        rank = r.ask("Hangi uygulamanın günlük aktif kullanıcısı en yüksek?", "tr")
+        d30 = r.ask("mossy_match'in D30 elde tutması kaç?", "tr")
+        ver = r.ask("Which app version of quartz_merge has the lowest crash-free users rate?", "en")
+    apps = {row[cmp_.columns.index("app_id")] for row in cmp_.rows}
+    assert apps == {"mossy_match", "quartz_merge"} and cmp_.verified
+    assert (
+        "Trend:" in trend.text
+        and trend.verified
+        and ("up" in trend.text or "down" in trend.text or "flat" in trend.text)
+    )
+    assert "platform" in plat.columns and plat.verified
+    assert rank.route == "catalog" and rank.matched == "dau" and len(rank.rows) >= 2
+    assert d30.matched == "d30_retention"
+    assert ver.route == "refused"  # no crash-free by version in this warehouse: said, not guessed

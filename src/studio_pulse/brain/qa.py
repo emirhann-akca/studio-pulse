@@ -59,6 +59,11 @@ _DAYS = re.compile(r"\b(?:last|past|son|gecen)\s+(\d{1,3})\s*(?:days?|gun\w*)\b"
 _WEEK = re.compile(r"\b(last week|past week|this week|son hafta\w*|gecen hafta\w*|bu hafta\w*)\b")
 _MONTH = re.compile(r"\b(last month|past month|son ay\w*|gecen ay\w*|son bir ay\w*)\b")
 _YESTERDAY = re.compile(r"\b(yesterday|dun|dunku)\b")
+_TREND = re.compile(
+    r"\b(trend\w*|going up|going down|up or down|increas\w*|decreas\w*|grow\w*|declin\w*"
+    r"|artiyor\w*|azaliyor\w*|dusuyor\w*|yukseliyor\w*|egilim\w*|gidisat\w*)\b"
+)
+_DAY_N = re.compile(r"\bd(\d{1,3})\b")
 _ISO_DAY = re.compile(r"\b(20\d\d)-(\d\d)-(\d\d)\b")
 _MONTHS = {
     "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6, "july": 7,
@@ -303,6 +308,16 @@ class Router:
                 self.apps[app_id] = app_id
 
     # -- slots ---------------------------------------------------------------
+    def find_apps(self, norm: str) -> list[str]:
+        """Every app the question names, longest names first (for comparisons)."""
+        padded = f" {norm} "
+        hits: dict[str, int] = {}
+        for app_id, name in self.apps.items():
+            for form in {normalize(app_id), normalize(name)}:
+                if form and f" {form} " in padded:
+                    hits[app_id] = max(hits.get(app_id, 0), len(form))
+        return sorted(hits, key=lambda a: -hits[a])
+
     def find_app(self, norm: str) -> str | None:
         padded = f" {norm} "
         hits = []
@@ -382,16 +397,20 @@ class Router:
             facts = {"last_day": Fact(last, "date")} if last else {}
             return self._refuse(q, lang, "future", facts, missing="future data")
         app = self.find_app(norm)
+        named = self.find_apps(norm)
+        compare = named if len(named) >= 2 else None
+        if compare:
+            app = None  # "compare A and B": one row per named app
         rng = self.find_range(norm, last)
         n_days = self.find_days(norm)
         if rng and n_days and (rng[1] - rng[0]).days + 1 > n_days:
             rng = (rng[1] - dt.timedelta(days=n_days - 1), rng[1])  # "last 7 days of October"
         # verified queries have fixed windows: an explicit period goes to the catalog / SQL
-        vq = None if rng else self._verified(q, norm, lang, app)
+        vq = None if (rng or compare) else self._verified(q, norm, lang, app)
         if vq is not None:
             return vq
         long_tail = bool(_LONG_TAIL.search(norm))
-        cat = None if long_tail else self._catalog(q, norm, lang, app, rng)
+        cat = None if long_tail else self._catalog(q, norm, lang, app, rng, compare)
         if cat is not None:
             return cat
         if self.client is not None:
@@ -411,6 +430,12 @@ class Router:
         ]
         level = self.find_level(norm)
         days = self.find_days(norm)
+        day_ns = {m.group(1) for m in _DAY_N.finditer(norm)}
+        metric_cols = set()
+        for mid in self.catalog.find(q)["metric"]:
+            col = self.catalog.get(mid).value
+            if re.fullmatch(r"[a-z_][a-z0-9_]*", col) and col != "retention":
+                metric_cols.add(col)
         best: tuple[float, VQ] | None = None
         for vq in verified_queries():
             if not all(any(_hit(w, every) for w in group) for group in vq.must):
@@ -421,6 +446,15 @@ class Router:
                 continue  # a level question without a level number is not this one
             if app is not None and "app" not in vq.params:
                 continue  # a portfolio ranking does not answer a question about one app
+            said = (vq.sql + " " + " ".join(vq.answer.values())).lower()
+            if (
+                vq.id.startswith("retention")
+                and len(day_ns) == 1
+                and not any(f"d{n}" in said or f"day_n = {n}" in said for n in day_ns)
+            ):
+                continue  # D30 asked, the retention query reports D1
+            if metric_cols and not any(c.split("_")[0] in vq.sql for c in metric_cols):
+                continue  # crash-free asked, the query is about retention
             window = vq.consts.get("window")
             if days is not None and window is not None and window.value != days:
                 continue  # a fixed-window query cannot answer another period
@@ -482,6 +516,7 @@ class Router:
         lang: str,
         app: str | None,
         rng: tuple[dt.date, dt.date] | None = None,
+        compare: list[str] | None = None,
     ) -> Answer | None:
         found = self.catalog.find(q)
         metric_ids = found["metric"]
@@ -492,7 +527,7 @@ class Router:
             if routed:
                 metric_ids = [routed["metric"]]
                 app = app or routed.get("app")
-                if routed.get("by"):
+                if routed.get("by") and routed["by"] != "app_id":  # "by app" = the per-app rows
                     dims = [routed["by"]]
                 days = days or routed.get("days")
         for word, (en, tr) in _UNCOLLECTED.items():
@@ -530,7 +565,8 @@ class Router:
                 if avail:
                     facts["available"] = Fact(", ".join(avail), "text")
                 return self._refuse(q, lang, "no_dimension", facts, missing=d)
-        return self._metric_answer(q, lang, metric, app, by, days, rng)
+        trend = bool(_TREND.search(norm)) and not by and app is not None
+        return self._metric_answer(q, lang, metric, app, by, days, rng, compare, trend)
 
     def _metric_answer(
         self,
@@ -541,6 +577,8 @@ class Router:
         by: list[str],
         days: int | None,
         rng: tuple[dt.date, dt.date] | None = None,
+        compare: list[str] | None = None,
+        trend: bool = False,
     ) -> Answer:
         start = end = None
         if metric.time and metric.aggregation != "latest":
@@ -573,6 +611,9 @@ class Router:
         res = self._trusted(sql, params)
         if res is None:
             return self._refuse(q, lang, "schema", {}, missing=metric.id)
+        if compare and "app_id" in res.columns:  # keep the apps the question compares
+            ai = res.columns.index("app_id")
+            res.rows = [r for r in res.rows if r[ai] in compare]
         ans = Answer(q, lang, "catalog", matched=metric.id)
         ans.units = {
             "value": metric.unit,
@@ -653,8 +694,54 @@ class Router:
         ev.metric, ev.aggregation, ev.definition = metric.id, metric.aggregation, metric.definition
         ans.evidence = ev
         ans.text = self._say(TEXTS[key][lang], facts, ev, lang, {})
+        if trend and key == "catalog_one" and start and end and (end - start).days >= 3:
+            more = self._trend_text(metric, app, start, end, vunit, lang, ev)
+            if more:
+                ans.text = f"{ans.text} {more}"
         ans.verified = verify.verified(ans.text, [ev], lang)
         return self._small(ans, app)
+
+    def _trend_text(
+        self,
+        metric: Metric,
+        app: str | None,
+        start: dt.date,
+        end: dt.date,
+        unit: str,
+        lang: str,
+        ev: Evidence,
+    ) -> str:
+        """Up or down: the first half of the period against the second, same definition."""
+        mid = start + dt.timedelta(days=(end - start).days // 2)
+        vals = []
+        for a, b in ((start, mid), (mid + dt.timedelta(days=1), end)):
+            sql, params = metric.period_sql(app_id=app, start=a, end=b)
+            r = self._trusted(sql, params)
+            if r is None or not r.rows or r.rows[0][r.columns.index("value")] is None:
+                return ""
+            vals.append(float(r.rows[0][r.columns.index("value")]))
+        a, b = vals
+        if a == 0:
+            return ""
+        change = (b - a) / abs(a)
+        facts = {
+            "first": Fact(a, unit), "second": Fact(b, unit), "change": Fact(abs(change), "pct"),
+            "h1_end": Fact(mid, "date"), "h2_start": Fact(mid + dt.timedelta(days=1), "date"),
+        }  # fmt: skip
+        ev.facts.update({f"trend.{k}": v for k, v in facts.items()})
+        word = {
+            "en": ("up", "down", "flat"), "tr": ("arttı", "düştü", "yatay kaldı"),
+        }[lang][0 if change > 0.02 else (1 if change < -0.02 else 2)]  # fmt: skip
+        tmpl = {
+            "en": "Trend: {first} until {h1_end}, {second} from {h2_start}: " + word + " {change}.",
+            "tr": "Eğilim: {h1_end} tarihine kadar {first}, {h2_start} tarihinden sonra {second}: {change} "
+            + word
+            + ".",
+        }[lang]
+        try:
+            return narrate.render(tmpl, facts, lang, {})
+        except narrate.TemplateError:
+            return ""
 
     def _trusted(self, sql: str, params: list[Any]) -> Result | None:
         """Catalog / library SQL; None when this warehouse predates a column it needs."""

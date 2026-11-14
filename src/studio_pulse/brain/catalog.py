@@ -215,7 +215,10 @@ class Catalog:
         for phrase, kind, ident in self.terms():
             if not phrase:
                 continue
-            for m in re.finditer(r"(?<=\s)" + re.escape(phrase) + r"(?=\s)", norm):
+            # Turkish adds suffixes to the last word ("kullanıcısı", "gelirini"): allow a short
+            # one after a word of four letters or more
+            suffix = r"(?:[a-z]{1,6})?" if len(phrase.split()[-1]) >= 4 else ""
+            for m in re.finditer(r"(?<=\s)" + re.escape(phrase) + suffix + r"(?=\s)", norm):
                 span = (m.start(), m.end())
                 if any(a < span[1] and span[0] < b for a, b in taken):
                     continue

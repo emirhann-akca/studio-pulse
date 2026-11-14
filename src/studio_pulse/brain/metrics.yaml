@@ -47,7 +47,7 @@ dimensions:
     synonyms: {en: [cohort, install day], tr: [kohort, kurulum günü]}
   platform:
     name: {en: platform, tr: platform}
-    synonyms: {en: [os, android or ios], tr: [platforma göre, platform bazında, işletim sistemi, android mi ios mu]}
+    synonyms: {en: [os, android or ios, android and ios, ios and android, android vs ios], tr: [platforma göre, platform bazında, işletim sistemi, android mi ios mu, android ve ios, ios ve android, android ile ios]}
     tables: [stg_cohort_days, stg_cohort_dims]
   country:
     name: {en: country, tr: ülke}
