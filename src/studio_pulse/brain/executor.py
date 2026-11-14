@@ -47,7 +47,7 @@ ALLOWED_TABLES = (
     # studio SDK aggregates (collector): apps and store status, level funnel with quits,
     # where players fail, settings turned off, purchases, ad revenue, crash-free sessions
     "fct_sdk_apps", "fct_sdk_level_funnel", "fct_sdk_fail_heatmap", "fct_sdk_settings",
-    "fct_sdk_settings_when", "fct_sdk_purchases", "fct_sdk_ad_revenue_daily",
+    "fct_sdk_settings_when", "fct_sdk_purchases", "fct_sdk_ad_revenue_daily", "fct_sdk_experiments",
     "fct_sdk_errors_daily", "fct_sdk_data_quality",
 )  # fmt: skip
 

@@ -23,7 +23,7 @@ question box, no polling) with an invented market-radar day; Turkish under
 
 [![Portfolio page of the demo dashboard](docs/img/dashboard.png)](https://emirhann-akca.github.io/studio-pulse/)
 
-- **17 source connectors -> 55 SQL models + 2 statistics steps -> 58
+- **17 source connectors -> 56 SQL models + 2 statistics steps -> 59
   data-quality checks -> 11 alert rules -> static HTML.** `pulse demo`
   generates export-shaped files and recorded API responses and runs them
   through the real connectors, and plays three SDK games through a real
@@ -219,7 +219,7 @@ interval says to keep running.
 | `pulse run` | one refresh: ingest, models, data-quality checks, alerts, dashboard. Holds a run lock (a second run exits 75, "locked") and writes a heartbeat |
 | `pulse schedule install --at 09:30` | registers the daily refresh: a LaunchAgent on macOS (a missed run starts on wake), a Task Scheduler task on Windows (starts on battery, runs when missed, no console window) |
 | `pulse schedule status` / `run-now --wait 600` / `remove` | registration, last result and last refresh; start it now; unregister |
-| `pulse check` | the 51 checks in [`checks.yaml`](checks.yaml): keys, nulls, accepted values, ranges, per-source freshness, volume drop vs the trailing median, referential, reconciliations (DAU <= WAU <= MAU, retention in [0, 1], crash counts within their denominators, GA4 vs AdMob ad revenue, UA spend converted to USD, one spend row per network/day/ad, experiment sample ratio). Error-level failures fail the run, are stored in the warehouse, shown on the dashboard and notified |
+| `pulse check` | the 59 checks in [`checks.yaml`](checks.yaml): keys, nulls, accepted values, ranges, per-source freshness, volume drop vs the trailing median, referential, reconciliations (DAU <= WAU <= MAU, retention in [0, 1], crash counts within their denominators, GA4 vs AdMob ad revenue, UA spend converted to USD, one spend row per network/day/ad, experiment sample ratio, SDK experiment buckets recomputed from key + install id). Error-level failures fail the run, are stored in the warehouse, shown on the dashboard and notified |
 | `pulse experiment` | A/B test results from the warehouse (`--sql` prints the BigQuery aggregate query, `--input arms.csv` analyses totals from anywhere); exit 3 on a sample ratio mismatch |
 | `pulse app` | the desktop app (opens `/studio`): the local UI in its own window, one server per user, stops when the last window closes; `--install-shortcut`, `--uninstall-shortcut`, `--check`, `--config` (remembered) |
 | `pulse serve` | local UI on 127.0.0.1: dashboard, refresh health (heartbeat, recent runs, check results, source freshness, schedule state), alerts, and a run-now button. It opens the warehouse read-only per request and serves the last good snapshot while a refresh is writing |

@@ -97,6 +97,11 @@ checks:
     severity: warn
     description: Experiments whose user split differs from the configured split (chi-square p < 0.001); their results are not trustworthy.
     sql: SELECT DISTINCT app_id, experiment_id, srm_chi2, srm_p FROM fct_experiment_arms WHERE srm_flagged
+  - name: sdk_experiment_assignment
+    type: sql
+    severity: warn
+    description: Installs that reported two variations of one experiment, or a bucket the warehouse recomputes differently from the experiment key and install id; the SDK's assignment is broken for that experiment.
+    sql: SELECT app_id, experiment_key, variation, switched_installs, hash_mismatch_installs FROM fct_sdk_experiments WHERE switched_installs > 0 OR hash_mismatch_installs > 0
   - name: dau_le_wau_le_mau
     type: expression
     table: fct_app_daily

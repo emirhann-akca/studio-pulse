@@ -188,6 +188,7 @@ purge` does the same on demand).
 | `fct_sdk_level_funnel` | starts, completes, fails, quits, fail rate, attempts to the first win, inferred quits (a session that ends on a level start), players reached, churned here (the quit level) |
 | `fct_sdk_fail_heatmap` | `level_fail` / `level_quit` positions per level on a 10 x 10 grid (`pos_space` norm or world) |
 | `fct_sdk_settings`, `fct_sdk_settings_when` | share of players who turned music / sfx / haptics ... off, and in which session |
+| `fct_sdk_experiments` | installs per experiment and variation from `experiment_exposure` (-1 = outside the coverage), the split, installs that reported two variations and installs whose bucket differs from the one recomputed in SQL from the key and install id (check `sdk_experiment_assignment`) |
 | `stg_sdk_purchases`, `fct_sdk_purchases` | purchases per transaction id, USD with the config's `fx_rates`; sandbox and restores carry no revenue |
 | `stg_sdk_ad_impressions`, `fct_sdk_ad_revenue_daily` | impression-level ad revenue |
 | `fct_sdk_errors`, `fct_sdk_errors_daily` | errors per fingerprint, errors per session, crash-free sessions |
