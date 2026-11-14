@@ -23,9 +23,11 @@ import base64
 import json
 from collections.abc import Callable
 from typing import Any
+from urllib.parse import urlsplit
 
 import requests
 
+from .. import netguard
 from .base import (
     Completion,
     LLMConfigError,
@@ -238,6 +240,20 @@ class OpenAICompatibleProvider(Provider):
             raise LLMConfigError("the OpenAI-compatible provider needs PULSE_LLM_MODEL")
         if json_mode not in ("json_schema", "json_object", "none"):
             raise LLMConfigError("json_mode must be json_schema, json_object or none")
+        # The server is usually on the LAN (allowed); never a metadata endpoint, never a URL
+        # with credentials in it, and the API key never travels in clear text off this network.
+        try:
+            netguard.check_url(
+                base_url, schemes=("http", "https"), allow_local=True, what="PULSE_LLM_BASE_URL"
+            )
+        except netguard.UnsafeURL as exc:
+            raise LLMConfigError(str(exc)) from None
+        parts = urlsplit(base_url)
+        if api_key and parts.scheme == "http" and not netguard.is_local(parts.hostname or ""):
+            raise LLMConfigError(
+                "PULSE_LLM_BASE_URL is plain http on a public host: the API key would travel "
+                "unencrypted; use https"
+            )
         self.model = model
         self.base_url = base_url.rstrip("/")
         self._key = api_key or None

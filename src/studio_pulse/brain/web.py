@@ -238,7 +238,10 @@ def register(
     @app.get("/ask", response_class=HTMLResponse)
     def ask_page(request: Request, lang: str | None = None, q: str | None = None):
         lg = request_lang(request, lang)
-        ans = answer(q, lg) if q else None
+        # A link or redirect from another site must not run a question (an LLM call costs
+        # money): only this UI's own form, a typed URL or a bookmark answers on GET.
+        own = request.headers.get("sec-fetch-site", "none") in ("none", "same-origin")
+        ans = answer(q, lg) if q and own else None
         return templates.TemplateResponse(
             request,
             "ask.html",

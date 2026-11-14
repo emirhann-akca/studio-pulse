@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import secrets
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,7 @@ from . import studio_metrics as sm
 from .ui import request_lang
 
 STATIC_FORGE_URL = "https://github.com/emirhann-akca/creative-forge"
+FORGE_URL = re.compile(r"http://127\.0\.0\.1:[0-9]{1,5}/")
 
 STATUS_ORDER = {"live": 0, "testing": 1, "new": 2, "ga4": 3, "waiting": 4}
 
@@ -503,8 +505,10 @@ def register(
             )
         try:
             url = json.loads((base / "app" / "app.json").read_text(encoding="utf-8")).get("url")
-            if url:
-                with urllib.request.urlopen(url + "__app/health", timeout=1) as r:  # noqa: S310
+            # the file is only trusted to name a port on this machine: the URL becomes a
+            # link in every page, so anything else (file:, javascript:, another host) is ignored
+            if isinstance(url, str) and FORGE_URL.fullmatch(url):
+                with urllib.request.urlopen(url + "__app/health", timeout=1) as r:  # noqa: S310  # nosec B310
                     return url if r.status == 200 else None
         except (OSError, ValueError):
             return None

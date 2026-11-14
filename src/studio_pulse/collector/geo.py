@@ -137,7 +137,8 @@ def setup_geoip(
         data = gzip.decompress(raw) if url.endswith(".gz") else raw
     except OSError as exc:
         raise GeoError(f"not a gzip file: {exc}") from exc
-    got = hashlib.sha1(data).hexdigest()  # noqa: S324 (DB-IP publishes SHA1)
+    # DB-IP publishes only a SHA-1; the file comes over https from DB-IP itself
+    got = hashlib.sha1(data).hexdigest()  # noqa: S324  # nosec B324
     if got != sha1.lower():
         raise GeoError(f"checksum mismatch: SHA1 {got}, expected {sha1}")
     dest_dir.mkdir(parents=True, exist_ok=True)

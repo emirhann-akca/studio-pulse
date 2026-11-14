@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import socket
 import sys
 import threading
@@ -15,6 +16,8 @@ import uvicorn
 
 from ..config import Config
 from .app import LOCAL_HOSTS, create_app
+
+WILDCARDS = {"0.0.0.0", "::", ""}  # nosec B104 (names compared, nothing bound here)
 
 
 def bind(host: str, port: int) -> socket.socket:
@@ -29,7 +32,7 @@ def bind(host: str, port: int) -> socket.socket:
 
 def _url(host: str, port: int) -> str:
     h = host.strip("[]")
-    if h in ("0.0.0.0", "::"):
+    if h in WILDCARDS:
         h = "127.0.0.1"
     return f"http://[{h}]:{port}/" if ":" in h else f"http://{h}:{port}/"
 
@@ -47,19 +50,31 @@ def serve(
     open_browser: bool = False,
     check: bool = False,
 ) -> int:
-    local = host.strip("[]") in LOCAL_HOSTS
+    bare = host.strip("[]")
+    local = check or bare in LOCAL_HOSTS
+    # Reachable from the network: every client needs the access token printed below
+    # (serve/security.py); a wildcard bind accepts any Host header behind that token.
+    access = None if local else secrets.token_urlsafe(32)
     if not local:
         print(
-            f"warning: binding {host} makes the UI reachable from other machines on your network",
+            f"warning: binding {host} makes the UI reachable from other machines on your "
+            "network; only people given the URL with its access token below can open it",
             file=sys.stderr,
         )
-    app = create_app(cfg, allowed_hosts=set() if local else {host})
+    app = create_app(
+        cfg,
+        allowed_hosts=set() if local else {bare},
+        access_token=access,
+        any_host=not local and bare in WILDCARDS,
+    )
     sock = bind("127.0.0.1" if check else host, 0 if check else port)
     real_port = sock.getsockname()[1]
     url = _url("127.0.0.1" if check else host, real_port)
     server = _server(app, sock)
     if check:
         return _self_check(server, sock, url, cfg)
+    if access:
+        url += f"?access={access}"
     print(f"studio-pulse UI: {url}  (config {cfg.path}; Ctrl+C to stop)", flush=True)
     if open_browser:
         import webbrowser
@@ -74,7 +89,7 @@ def _get(
 ) -> tuple[int, bytes]:
     req = urllib.request.Request(url, method=method, headers=headers or {})
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310 (local URL)
+        with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310  # nosec B310 (local URL)
             return r.status, r.read()
     except urllib.error.HTTPError as e:
         return e.code, e.read()

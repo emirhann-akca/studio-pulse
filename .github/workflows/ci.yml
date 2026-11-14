@@ -25,10 +25,14 @@ env:
 
 jobs:
   lint:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
@@ -45,6 +49,8 @@ jobs:
           python .github/scripts/annotate.py "contract outputs differ from contract/pulse_v2.yaml (run: python -m studio_pulse.contract.generate)" git diff --exit-code
 
   tests:
+    permissions:
+      contents: read
     name: tests (${{ matrix.os }}, py${{ matrix.python }})
     strategy:
       fail-fast: false
@@ -55,6 +61,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python }}
@@ -82,6 +90,8 @@ jobs:
           retention-days: 7
 
   collector-smoke:
+    permissions:
+      contents: read
     # A real `pulse collect` process, `pulse simulate` posting over HTTP for a minute,
     # /live checked against what was sent, then `pulse run` (while the collector is
     # still writing) and the UI check, on Windows and macOS.
@@ -94,6 +104,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
@@ -155,6 +167,8 @@ jobs:
           retention-days: 7
 
   cross-os-hash:
+    permissions:
+      contents: read
     name: cross-OS model hash
     needs: tests
     if: ${{ !cancelled() }}
@@ -162,6 +176,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: fingerprint-*
@@ -169,10 +185,14 @@ jobs:
       - run: python3 .github/scripts/compare_fingerprints.py fingerprints
 
   build:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: python3 .github/scripts/annotate.py "uv build" uv build --out-dir dist
       - name: The wheel carries models, defaults, UI assets and both entry points
@@ -184,6 +204,8 @@ jobs:
           retention-days: 7
 
   user-install:
+    permissions:
+      contents: read
     name: user install (${{ matrix.os }})
     needs: build
     strategy:
@@ -198,6 +220,8 @@ jobs:
       PY: ${{ matrix.os == 'windows-latest' && 'python' || 'python3' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
@@ -294,6 +318,8 @@ jobs:
           retention-days: 7
 
   install-fallback:
+    permissions:
+      contents: read
     # No GitHub release is published: the installers must find the release wheel
     # missing (HTTP 404) and install the branch archive instead, saying so.
     name: install fallback 404 -> archive (${{ matrix.os }})
@@ -310,6 +336,8 @@ jobs:
       PULSE_ARCHIVE_URL: https://github.com/${{ github.repository }}/archive/${{ github.sha }}.zip
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: README one-liner without PULSE_SOURCE (install.sh)
         if: runner.os != 'Windows'
         shell: bash
@@ -344,6 +372,8 @@ jobs:
           exit 0
 
   forecast-extra:
+    permissions:
+      contents: read
     name: forecast extra (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -355,6 +385,8 @@ jobs:
       PULSE_REQUIRE_FORECAST: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
@@ -365,6 +397,8 @@ jobs:
         run: python .github/scripts/annotate.py "forecast tests (${{ matrix.os }})" python -X warn_default_encoding -W error::EncodingWarning -m pytest -p no:cacheprovider -rs tests/test_forecast.py tests/test_alerts.py
 
   flutter-package:
+    permissions:
+      contents: read
     # The Flutter SDK (flutter/studio_pulse): analyze, unit + HTTP + conformance tests on
     # every OS; on Linux also the publish dry run and a Dart CLI session against a real
     # `pulse collect`, checked through /live.
@@ -380,6 +414,8 @@ jobs:
         working-directory: flutter/studio_pulse
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
@@ -418,6 +454,8 @@ jobs:
           echo "$live" | python -c "import json,sys; d=json.load(sys.stdin); a=[x for x in d['apps'] if x['app_id']=='com.studio.e2e.flutter']; c=d['collector']; ok=a and a[0]['active']==2 and c['quarantined']==0; print('::notice title=flutter SDK e2e::/live active installs', a[0]['active'] if a else 0, '; accepted', c['accepted'], '; quarantined', c['quarantined']) if ok else print('::error title=flutter SDK e2e::/live', json.dumps(d)[:900]); sys.exit(0 if ok else 1)"
 
   unity-sdk:
+    permissions:
+      contents: read
     # The Unity SDK's UnityEngine-free core (netstandard2.1) with dotnet test on every OS:
     # the same [PulseTest] methods unity/dotnet/mono-test.sh runs under Unity's Mono, plus
     # an end-to-end session against a real `pulse collect` (PULSE_E2E_URL). On macOS also
@@ -434,6 +472,8 @@ jobs:
       DOTNET_NOLOGO: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           dotnet-version: "10.0.x"
@@ -480,6 +520,8 @@ jobs:
           done
 
   schedule-smoke:
+    permissions:
+      contents: read
     name: schedule smoke (${{ matrix.os }})
     needs: build
     strategy:
@@ -493,6 +535,8 @@ jobs:
       PY: ${{ matrix.os == 'windows-latest' && 'python' || 'python3' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist

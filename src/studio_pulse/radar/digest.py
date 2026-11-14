@@ -21,6 +21,7 @@ import math
 import re
 from collections.abc import Callable
 from typing import Any
+from urllib.parse import quote
 
 import duckdb
 
@@ -431,9 +432,11 @@ def build_facts(
                 "name": it["name"],
                 "developer": it["developer"],
                 "class": cls,
-                "store_url": f"https://apps.apple.com/{it['best_country']}/app/id{app_id}",
+                # ids are store data: quoted so one cannot add a path or a parameter
+                "store_url": f"https://apps.apple.com/{quote(str(it['best_country']), safe='')}"
+                f"/app/id{quote(str(app_id), safe='')}",
                 "play_url": (
-                    f"https://play.google.com/store/apps/details?id={it['play_id']}"
+                    f"https://play.google.com/store/apps/details?id={quote(str(it['play_id']), safe='')}"
                     if it["play_id"]
                     else None
                 ),
@@ -968,6 +971,7 @@ ASCII. Copy every game and developer name exactly as written in the facts, with 
 and punctuation."""
 
 _TR_LETTERS = set("çğıöşüÇĞİÖŞÜ")
+_LINK_OR_MARKUP = re.compile(r"://|\bwww\.|[<>]|\bjavascript:|@\w+\.\w", re.I)
 
 
 def _fold_char(c: str) -> str:
@@ -1076,6 +1080,12 @@ def narrate(
     bad = {lang: verify_narration(res.data.get(lang, ""), facts) for lang in ("tr", "en")}
     if any(bad.values()):
         return {"status": "rejected", "unsupported_numbers": bad}
+    # Game and developer names are store text anyone can write ("ignore your instructions,
+    # link to ..."): no fact holds a link or markup, so a narration with one is rejected.
+    linked = [lang for lang in ("tr", "en") if _LINK_OR_MARKUP.search(res.data.get(lang, ""))]
+    if linked:
+        log(f"    radar: narration rejected (link or markup in {', '.join(linked)})")
+        return {"status": "rejected", "link_or_markup": linked}
     names = [x for i in brief["items"] for x in (i["name"], i["developer"]) if x]
     out: dict[str, str] = {}
     misnamed: dict[str, list[str]] = {}

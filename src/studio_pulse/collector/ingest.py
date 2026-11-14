@@ -263,7 +263,7 @@ def ingest(
         key = f"{data_dir.resolve()}|{start}|{end}"
     else:
         key = f"{stage_key}|{start}|{end}"
-    tag = hashlib.sha1(key.encode("utf-8")).hexdigest()[:10]  # noqa: S324 (a name, not security)
+    tag = hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()[:10]  # a name
     if stage is None and _purged.get(key, -1e9) < time.monotonic() - 60:  # once per run per folder
         purge(data_dir, log=log)  # type: ignore[arg-type]
         _purged[key] = time.monotonic()

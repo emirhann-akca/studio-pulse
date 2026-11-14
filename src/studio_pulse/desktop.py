@@ -27,9 +27,11 @@ from __future__ import annotations
 import argparse
 import contextlib
 import datetime as dt
+import html
 import json
 import os
 import plistlib
+import re
 import shutil
 import subprocess
 import sys
@@ -42,6 +44,7 @@ from collections.abc import Callable, Mapping
 from importlib import resources
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 APP_NAME = "Studio Pulse"
 GUI_SCRIPT = "studio-pulse"
@@ -215,6 +218,17 @@ class Switch:
         await self.app(scope, receive, send)
 
 
+def _own_request(scope: dict) -> bool:
+    """A /__app/ request from this app's own pages: Host is this machine (no DNS rebinding)
+    and the browser does not mark it as sent by another site (a page elsewhere cannot
+    stop the app with a beacon to /__app/bye)."""
+    headers = {k.lower(): v for k, v in scope.get("headers", [])}
+    host = headers.get(b"host", b"").decode("latin-1")
+    name = (urlsplit("//" + host).hostname or "").lower()
+    site = headers.get(b"sec-fetch-site", b"").decode("latin-1")
+    return name in ("127.0.0.1", "localhost", "::1") and site not in ("cross-site", "same-site")
+
+
 class Heartbeat:
     """Serves /__app/ping and /__app/heartbeat.js; adds the script to every full page."""
 
@@ -224,6 +238,9 @@ class Heartbeat:
         self.last_ping = clock()
         self.pinged = False
         self.bye_at: float | None = None  # a page was closed or left
+
+    async def _refuse(self, send: Any) -> None:
+        await self._plain(send, 403, b"refused", b"text/plain")
 
     async def _plain(self, send: Any, status: int, body: bytes, ctype: bytes) -> None:
         headers = [(b"content-type", ctype), (b"cache-control", b"no-store")]
@@ -236,6 +253,9 @@ class Heartbeat:
             await self.app(scope, receive, send)
             return
         path = scope.get("path", "")
+        if path.startswith("/__app/") and not _own_request(scope):
+            await self._refuse(send)
+            return
         if path == "/__app/ping":
             # a ping after a goodbye means another window or the next page is there; by order,
             # not by time (Windows' monotonic clock ticks every ~16 ms)
@@ -291,7 +311,7 @@ async def _preparing_app(scope: dict, receive: Any, send: Any, error: str = "") 
         body = b'{"ok":true,"preparing":true}'
         ctype = b"application/json"
     else:
-        note = f"<p style='color:#fca5a5'>{error}</p>" if error else ""
+        note = f"<p style='color:#fca5a5'>{html.escape(error)}</p>" if error else ""
         body = PREPARING_HTML.replace("{error}", note).encode()
         ctype = b"text/html; charset=utf-8"
     headers = [(b"content-type", ctype), (b"content-length", str(len(body)).encode())]
@@ -301,7 +321,7 @@ async def _preparing_app(scope: dict, receive: Any, send: Any, error: str = "") 
 
 def _get(url: str, timeout: float = 2.0) -> tuple[int, bytes]:
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as r:  # noqa: S310 (127.0.0.1)
+        with urllib.request.urlopen(url, timeout=timeout) as r:  # noqa: S310  # nosec B310 (127.0.0.1)
             return r.status, r.read()
     except urllib.error.HTTPError as e:
         return e.code, e.read()
@@ -312,7 +332,8 @@ def _get(url: str, timeout: float = 2.0) -> tuple[int, bytes]:
 def running_url(state: Path) -> str | None:
     """The URL of a live instance recorded in app.json, if its /healthz answers."""
     url = _read_state(state).get("url")
-    if not url:
+    # app.json may only name a port on this machine: the window opens this URL
+    if not isinstance(url, str) or not re.fullmatch(r"http://127\.0\.0\.1:[0-9]{1,5}/", url):
         return None
     code, body = _get(url + "healthz", timeout=1.5)
     return url if code == 200 and b'"ok"' in body else None
