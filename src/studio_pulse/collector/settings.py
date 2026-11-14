@@ -8,7 +8,7 @@
           apps: [com.example.game]       # this key writes for these app_ids only (403 for any other)
         - ${PULSE_DEV_KEY}               # a bare key writes for any app_id (a laptop, not a shipped game)
       read_key: ${PULSE_READ_KEY}        # optional: required by /live when set
-      bundle_prefixes: [com.grich.]      # optional allowlist; other apps are quarantined
+      bundle_prefixes: [com.example.]      # optional allowlist; other apps are quarantined
       country_header: CF-IPCountry       # trust this header for the country (only behind a proxy that sets it)
       geoip: local/collector/geoip/dbip-country-lite.mmdb   # optional, `pulse collect setup-geoip`
       live_min_installs: 20              # production installs in 24 h before a game can be live

@@ -109,7 +109,7 @@ def test_ask_is_scoped_to_the_app_and_needs_the_token(client):
 
 
 def test_an_sdk_only_app_without_data_is_awaiting_its_sdk(demo_build, tmp_path):
-    """13 Nov 2026: Acorn Mart (SDK source only, no build ships it yet) showed a GA4 badge."""
+    """An app with only an SDK source (no build ships the SDK yet) showed a GA4 badge."""
     import dataclasses
 
     import duckdb

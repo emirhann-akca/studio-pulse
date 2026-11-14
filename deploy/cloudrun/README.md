@@ -59,7 +59,7 @@ window within five minutes; the warehouse dedupes anyway.
 | `PULSE_READ_KEY` | secret: required by `GET /live` |
 | `PULSE_TRUSTED_PROXY_HOPS` | `1`: the client address is the rightmost `X-Forwarded-For` entry added by Google's front end (used in memory for the country, never stored). Check it on the first deploy |
 | `PULSE_COUNTRY_HEADER` | optional, e.g. `CF-IPCountry` when Cloudflare is in front |
-| `PULSE_BUNDLE_PREFIXES` | optional allowlist, e.g. `com.grich.` |
+| `PULSE_BUNDLE_PREFIXES` | optional allowlist, e.g. `com.example.` |
 
 Point `pulse serve` at it with `collector: {url: https://pulse-collector-....run.app, read_key: ${PULSE_READ_KEY}}`.
 

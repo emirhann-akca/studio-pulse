@@ -45,7 +45,7 @@ collector:
     - key: ${PULSE_WRITE_KEY}
       apps: [com.example.pebblepop] # this key writes for these app_ids only (403 for others)
   read_key: ${PULSE_READ_KEY:-}   # optional; required by /live when set
-  bundle_prefixes: []             # e.g. [com.grich.]: other apps are quarantined
+  bundle_prefixes: []             # e.g. [com.example.]: other apps are quarantined
   country_header:                 # e.g. CF-IPCountry behind Cloudflare
   live_min_installs: 20           # production installs in 24 h before "live"
   dashboard_min_status: new       # new | testing | live: which registry apps join the dashboard
