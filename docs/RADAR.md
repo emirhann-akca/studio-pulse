@@ -224,7 +224,7 @@ something like it.
 ```bash
 pulse radar dossier 6812166638 -c pulse.yaml            # Apple id (or an App Store URL)
 pulse radar dossier com.example.game -c pulse.yaml --lang en   # or a Play package
-pulse radar dossier 6812166638 -c pulse.yaml --replay tests/fixtures/radar/dossier --no-llm --no-ads
+pulse radar dossier 1000000001 -c pulse.yaml --replay tests/fixtures/radar/dossier --no-llm --no-ads  # synthetic
 pulse serve -c pulse.yaml                              # /radar/dosya and /radar/dosya/<key>
 ```
 
