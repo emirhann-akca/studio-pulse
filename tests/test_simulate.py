@@ -138,3 +138,50 @@ def test_simulate_cli_backfill_live_and_verify(tmp_path, capsys):
     assert r["modes"] == ["backfill", "live"] and "MISMATCH" not in out
     live_apps = {a["app_id"]: a["live"] for a in r["verify"]["apps"]}
     assert live_apps["demo.lanternleap"] > 0  # the new game appeared during the live run
+
+
+def test_poster_resends_a_batch_after_a_timeout(monkeypatch):
+    """A slow runner can stall one request past the timeout; the batch is sent again."""
+    import requests
+
+    from studio_pulse.simulate import run as sim_run
+
+    monkeypatch.setattr(sim_run.time, "sleep", lambda _s: None)
+
+    class _Ok:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"accepted": 3, "duplicates": 0, "quarantined": 0}
+
+    calls = []
+
+    def fake_post(url, data=None, headers=None, timeout=None):
+        calls.append(url)
+        if len(calls) == 1:
+            raise requests.ReadTimeout("slow runner")
+        return _Ok()
+
+    poster = sim_run.Poster("http://127.0.0.1:1", "TEST_KEY_NOT_REAL")
+    monkeypatch.setattr(poster.session, "post", fake_post)
+    out = poster.post({"events": []}, "TR", 0)
+    assert out["accepted"] == 3 and poster.accepted == 3
+    assert len(calls) == 2
+
+
+def test_poster_gives_up_after_five_timeouts(monkeypatch):
+    import pytest
+    import requests
+
+    from studio_pulse.simulate import run as sim_run
+
+    monkeypatch.setattr(sim_run.time, "sleep", lambda _s: None)
+
+    def always_slow(url, data=None, headers=None, timeout=None):
+        raise requests.ReadTimeout("slow runner")
+
+    poster = sim_run.Poster("http://127.0.0.1:1", "TEST_KEY_NOT_REAL")
+    monkeypatch.setattr(poster.session, "post", always_slow)
+    with pytest.raises(requests.ReadTimeout):
+        poster.post({"events": []}, "TR", 0)

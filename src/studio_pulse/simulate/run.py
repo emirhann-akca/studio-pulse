@@ -80,9 +80,17 @@ class Poster:
         if self.clock is not None:
             self.clock.ms = send_true_ms + 40  # transit time
         for attempt in range(5):
-            r = self.session.post(
-                self.url + "/v2/batch", data=body, headers=headers, timeout=self.timeout
-            )
+            try:
+                r = self.session.post(
+                    self.url + "/v2/batch", data=body, headers=headers, timeout=self.timeout
+                )
+            except (requests.Timeout, requests.ConnectionError):
+                # A slow runner can stall one request past the timeout. Resending is safe:
+                # the collector dedupes by event id, so a batch that did land counts as duplicates.
+                if attempt == 4:
+                    raise
+                time.sleep(0.5 * (attempt + 1))
+                continue
             self.responses[r.status_code] += 1
             if r.status_code == 200:
                 out = r.json()
