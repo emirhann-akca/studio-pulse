@@ -92,6 +92,13 @@ MECHANIC_ALIASES = {
     "idle-tycoon": "idle",
     "hexa-sort": "color-sort",
 }  # radar -> forge
+# the competitor library's hook labels (radar/creatives/labels.py) -> creative-forge's hook_type
+HOOK_ALIASES = {
+    "fail_almost_win": "fail-state",
+    "satisfying_asmr": "satisfying-clean",
+    "before_after": "before-after",
+    "ugc_person": "character-reaction",
+}
 
 T: dict[str, dict[str, str]] = {
     "tr": {
@@ -969,8 +976,9 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
         out: dict[str, str] = {}
         if q.get("brief"):
             out["brief"] = str(q["brief"])[:400]
-        if q.get("hook") in HOOKS:
-            out["hook"] = str(q["hook"])
+        hook = HOOK_ALIASES.get(str(q.get("hook") or ""), str(q.get("hook") or ""))
+        if hook in HOOKS:
+            out["hook"] = hook
         mech = MECHANIC_ALIASES.get(str(q.get("mechanic") or ""), str(q.get("mechanic") or ""))
         if mech in MECHANICS:
             out["mechanic"] = mech

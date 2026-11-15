@@ -458,6 +458,13 @@ def test_competitor_library_link_prefills_the_wizard(client):
     assert "<script>alert(1)" not in page and "&lt;script&gt;alert(1)&lt;/script&gt; toz" in page
     assert 'value="reveal" selected' in page and 'value="color-sort" selected' in page
     assert 'name="ref" value="meta:99"' in page and "Rakip kreatifinden geldi" in page
+    # the library's own hook labels map to creative-forge's hook types; unknown ones are dropped
+    page = client.get(
+        "/reklam/mossy_match?sekme=uret&brief=x&hook=before_after&ref=youtube:AbC_1"
+    ).text
+    assert 'value="before-after" selected' in page
+    page = client.get("/reklam/mossy_match?sekme=uret&brief=x&hook=celebrity_meme").text
+    assert "celebrity_meme" not in page
 
 
 # -- the demo data -------------------------------------------------------------------------------------------
