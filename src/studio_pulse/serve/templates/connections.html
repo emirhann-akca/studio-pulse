@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ df.t.title }}{% endblock %}
+{% block head %}
+<style>
+.flow td.step { min-width: 220px; max-width: 420px; white-space: normal; font-size: 12.5px; color: var(--text-2); line-height: 1.45; }
+.flow td.step .err { color: var(--bad-text); display: block; margin-bottom: 3px; word-break: break-word; }
+.flow td .code { font-size: 11.5px; color: var(--text-3); font-family: var(--mono); }
+.flow td .det { font-size: 11.5px; color: var(--text-3); }
+.flow td code { word-break: break-word; }
+.run-notes .callout { margin-bottom: 8px; }
+.run-notes .callout code { word-break: break-all; }
+</style>
+{% endblock %}
+{% block body %}
+{% set t = df.t %}
+{% set run = df.run %}
+{% set sched = run.sched %}
+{% set badge = {'ok': 'good', 'stale': 'warn', 'nodata': 'outline', 'error': 'bad', 'off': 'dashed', 'disabled': 'dashed', 'ondemand': 'outline', 'info': 'outline', 'watch_wait': 'info'} %}
+{% set label = {'ok': t.s_ok, 'stale': t.s_stale, 'nodata': t.s_nodata, 'error': t.s_error, 'off': t.s_off, 'disabled': t.s_disabled, 'ondemand': t.s_ondemand, 'info': '', 'watch_wait': t.s_watch_wait} %}
+{% set cls = {'success': 'good', 'failed': 'bad', 'interrupted': 'bad', 'running': 'warn'} %}
+<header class="page-head">
+  <h1>{{ t.title }}</h1>
+  <span class="spacer"></span>
+  <button class="btn primary" type="button" hx-post="/run" hx-target="#run-result" hx-swap="innerHTML">{{ icon('refresh')|safe }} {{ s.refresh_now }}</button>
+  <p class="sub">{{ t.sub }}</p>
+</header>
+<div id="run-result"></div>
+
+<div class="kpis">
+  <div class="kpi"><div class="k">{{ t.last_run }}</div>
+    <div class="v" style="font-size:18px"><span class="badge {{ cls.get(run.status, 'outline') }}">{{ s['st_' ~ run.status] if run.status and ('st_' ~ run.status) in s else (run.status or s.never) }}</span></div>
+    <div class="d">{% if run.last_start %}{{ ago(run.last_start) }}{% if run.duration_s is number and run.status != 'running' %} · {{ t.took.format(s=dur(run.duration_s)) }}{% endif %}{% endif %}</div></div>
+  <div class="kpi"><div class="k">{{ t.last_ok }}</div>
+    <div class="v" style="font-size:20px">{{ ago(run.last_success) if run.last_success else t.never }}</div>
+    <div class="d">{{ local_time(run.last_success) if run.last_success else '' }}</div></div>
+  <div class="kpi"><div class="k">{{ t.next_run }}</div>
+    <div class="v" style="font-size:20px">{{ df.next_text or '—' }}</div>
+    <div class="d">{% if sched.for_this_config and sched.at %}{{ t.sched_at.format(at=sched.at) }}{% if sched.state %} · {{ df.state_text }}{% endif %}{% else %}{{ s.h_sched_off }}{% endif %}</div></div>
+</div>
+
+<div class="run-notes">
+{% if run.verdict == 'failed' and run.error %}<div class="callout bad" role="alert"><span class="ic">{{ icon('warn')|safe }}</span><div><b>{{ t.failed.format(error='') }}</b> {{ run_error(run.error) }}</div></div>{% endif %}
+{% if run.bg %}<div class="callout {{ 'warn' if run.bg.locked else 'bad' }}" role="alert"><span class="ic">{{ icon('warn')|safe }}</span><div>{% if run.bg.locked %}{{ t.bg_locked.format(when=local_time(run.bg.when)) }}{% else %}<b>{{ t.bg_failed.format(when=local_time(run.bg.when), rc=run.bg.rc, line='') }}</b> <code>{{ run.bg.line }}</code>{% endif %}<br><span class="muted" style="font-size:12px">{{ t.bg_log.format(path=run.bg.log_file) }}</span></div></div>{% endif %}
+{% if run.stale and run.verdict != 'running' %}<div class="callout warn" role="note"><span class="ic">{{ icon('info')|safe }}</span><div><b>{{ t.stale.format(age=ago(run.last_success) if run.last_success else t.never) }}</b> {{ t.stale_step }}</div></div>{% endif %}
+{% if sched.other_config %}<div class="callout warn" role="note"><span class="ic">{{ icon('info')|safe }}</span><div><b>{{ t.sched_other.format(path=sched.other_config) }}</b> <a href="/settings#schedule">{{ t.sched_other_step }}</a></div></div>
+{% elif not sched.for_this_config %}<div class="callout warn" role="note"><span class="ic">{{ icon('info')|safe }}</span><div><b>{{ t.sched_off }}</b> <a href="/settings#schedule">{{ t.sched_off_step }}</a></div></div>{% endif %}
+{% if run.verdict == 'ok' and sched.for_this_config and not df.n_problems %}<div class="callout info" role="status"><span class="ic">{{ icon('check')|safe }}</span><div>{{ t.all_ok }}</div></div>{% endif %}
+</div>
+
+{% macro table(rows) %}
+<div class="table-scroll"><table class="t flow">
+  <thead><tr><th>{{ t.source }}</th><th>{{ t.state }}</th><th>{{ t.fetched }}</th><th>{{ t.through }}</th><th class="num">{{ t.rows7 }}</th><th>{{ t.next }}</th><th>{{ t.step }}</th></tr></thead>
+  <tbody>{% for r in rows %}<tr>
+    <td>{{ r.label }}{% if r.code %}<div class="code">{{ r.code }}</div>{% endif %}{% if r.detail %}<div class="det">{{ r.detail }}</div>{% endif %}</td>
+    <td>{% if label[r.state] %}<span class="badge {{ badge.get(r.state, 'outline') }}">{{ label[r.state] }}</span>{% endif %}</td>
+    <td class="nowrap"{% if r.fetched %} title="{{ local_time(r.fetched) }}"{% endif %}>{{ ago(r.fetched) if r.fetched else '—' }}</td>
+    <td class="date">{{ r.through or '—' }}{% if r.lag is not none %} <span class="muted">({{ t.today if r.lag == 0 else t.days.format(n=r.lag) }})</span>{% endif %}</td>
+    <td class="num">{{ fmt_num(r.rows7) if r.rows7 is not none else '—' }}</td>
+    <td class="nowrap muted">{{ r.next or '—' }}</td>
+    <td class="step">{% if r.error %}<span class="err">{{ r.error }}</span>{% endif %}{% if r.step %}{% if r.href %}<a href="{{ r.href }}">{{ r.step }}</a>{% else %}{{ r.step }}{% endif %}{% elif not r.error %}<span class="muted">—</span>{% endif %}</td>
+  </tr>{% endfor %}</tbody>
+</table></div>
+{% endmacro %}
+
+{% for a in df.apps %}
+<section class="card" id="app-{{ a.id }}">
+  <header><h2>{{ a.name }}</h2>{% if a.problems %}<span class="badge warn">{{ a.problems }}</span>{% endif %}<span class="spacer"></span><a class="btn sm" href="{{ nav.app(a.id) }}">{{ t.open_app }}</a></header>
+  {{ table(a.rows) }}
+</section>
+{% endfor %}
+
+<section class="card" id="studio">
+  <header><h2>{{ t.studio }}</h2></header>
+  {{ table(df.studio) }}
+</section>
+{% endblock %}

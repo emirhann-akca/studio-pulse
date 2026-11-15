@@ -124,6 +124,8 @@ S: dict[str, dict[str, str]] = {
         "ads_off": "Creative Forge açık değil: simgesinden ya da `forge app` ile açın.",
         "live_nav": "Canlı",
         "health": "Veri sağlığı",
+        "connections": "Bağlantılar",
+        "fresh_more": "Bağlantılar →",
         "alerts": "Uyarılar",
         "insights": "İçgörüler",
         "ask": "Sor",
@@ -156,11 +158,17 @@ S: dict[str, dict[str, str]] = {
         "h_sched_off": "kurulu değil",
         "h_sched_how": "Her sabah otomatik yenileme için bir kez şu komutu çalıştırın:",
         "h_sched_entry": "Zamanlayıcı kaydı",
+        "h_sched_at": "Saat",
+        "h_sched_other": "başka yapılandırma için",
+        "h_sched_other_long": "Zamanlayıcı kaydı başka bir yapılandırmayı yeniliyor ({path}); bu yapılandırma otomatik yenilenmiyor.",
+        "h_note": "Not",
+        "h_started_local": "Başlangıç",
+        "h_src_errors": "Son yenilemede yüklenemeyen kaynaklar",
+        "h_bg_failed": "Zamanlanmış yenileme {when} çıkış kodu {rc} ile bitti ve kayıt bırakamadı:",
         "h_sched_state": "Durum",
         "h_sched_next": "Sonraki çalışma",
         "h_sched_exit": "Son çıkış kodu",
         "h_runs": "Son yenilemeler",
-        "h_started_utc": "Başlangıç (UTC)",
         "h_cmd": "Komut",
         "h_status": "Durum",
         "h_dur": "Süre",
@@ -202,7 +210,7 @@ S: dict[str, dict[str, str]] = {
         "a_last": "Son yenilemede",
         "a_ok": "Son yenilemede uyarı yok.",
         "a_history": "Geçmiş (90 gün)",
-        "a_fired": "Zaman (UTC)",
+        "a_fired": "Zaman",
         "a_rule": "Kural",
         "a_day": "Gün",
         "a_msg": "Mesaj",
@@ -257,6 +265,8 @@ S: dict[str, dict[str, str]] = {
         "r_full": "Pazar radarı: tam tablo",
         "set_sub": "Veri kaynaklarını bağlayın ve günlük yenilemeyi kurun. Ayarlar pulse.settings.yaml dosyasına yazılır; pulse.yaml'a dokunulmaz.",
         "set_sources": "Veri kaynakları",
+        "set_flow_link": "Tüm kaynakların durumu: Bağlantılar →",
+        "set_store_forms": "Mağaza raporlarını bağla (Google Play, App Store)",
         "set_source": "Kaynak",
         "set_status": "Durum",
         "set_through": "Veri sonu",
@@ -335,6 +345,8 @@ S: dict[str, dict[str, str]] = {
         "ads_off": "Creative Forge is not open: start it from its icon or with `forge app`.",
         "live_nav": "Live",
         "health": "Data health",
+        "connections": "Connections",
+        "fresh_more": "Connections →",
         "alerts": "Alerts",
         "insights": "Insights",
         "ask": "Ask",
@@ -366,11 +378,17 @@ S: dict[str, dict[str, str]] = {
         "h_sched_off": "not registered",
         "h_sched_how": "Run this once for an automatic refresh every morning:",
         "h_sched_entry": "Scheduler entry",
+        "h_sched_at": "Time",
+        "h_sched_other": "for another config",
+        "h_sched_other_long": "The scheduler entry refreshes another config ({path}); this config is not refreshed automatically.",
+        "h_note": "Note",
+        "h_started_local": "Started",
+        "h_src_errors": "Sources that failed in the last refresh",
+        "h_bg_failed": "The scheduled refresh at {when} exited with code {rc} before it could record a run:",
         "h_sched_state": "State",
         "h_sched_next": "Next run",
         "h_sched_exit": "Last exit code",
         "h_runs": "Recent refreshes",
-        "h_started_utc": "Started (UTC)",
         "h_cmd": "Command",
         "h_status": "Status",
         "h_dur": "Duration",
@@ -411,7 +429,7 @@ S: dict[str, dict[str, str]] = {
         "a_last": "Last refresh",
         "a_ok": "No alerts fired in the last refresh.",
         "a_history": "History (90 days)",
-        "a_fired": "Fired (UTC)",
+        "a_fired": "Fired",
         "a_rule": "Rule",
         "a_day": "Day",
         "a_msg": "Message",
@@ -463,6 +481,8 @@ S: dict[str, dict[str, str]] = {
         "r_full": "Market radar: full table",
         "set_sub": "Connect data sources and set up the daily refresh. Settings are written to pulse.settings.yaml; pulse.yaml is not touched.",
         "set_sources": "Data sources",
+        "set_flow_link": "Every source's status: Connections →",
+        "set_store_forms": "Connect store reports (Google Play, App Store)",
         "set_source": "Source",
         "set_status": "Status",
         "set_through": "Data through",
@@ -519,6 +539,37 @@ S: dict[str, dict[str, str]] = {
     },
 }
 
+# The radar's mechanic tags (radar/taxonomy.yaml keys, also Creative Forge's vocabulary) as
+# Turkish words in the Turkish UI; English pages show the key itself.
+MECHANICS_TR = {
+    "match-3": "üçlü eşleştirme",
+    "tile-match": "taş eşleştirme",
+    "goods-sort": "eşya sıralama",
+    "color-sort": "renk sıralama",
+    "hexa-sort": "altıgen sıralama",
+    "screw-pin": "vida / pim",
+    "jam": "sıkışma (jam)",
+    "block-puzzle": "blok bulmaca",
+    "merge": "birleştirme",
+    "bubble-shooter": "balon patlatma",
+    "word": "kelime",
+    "hidden-object": "gizli nesne",
+    "solitaire-mahjong": "solitaire / mahjong",
+    "number-logic": "sayı / mantık",
+    "physics-draw": "fizik / çizim",
+    "idle-tycoon": "idle / tycoon",
+    "runner": "koşu (runner)",
+    "cooking-sim": "yemek simülasyonu",
+    "other": "diğer",
+}
+
+
+def mechanic(key: str | None, lang: str) -> str:
+    if not key:
+        return ""
+    return MECHANICS_TR.get(str(key), str(key)) if lang == "tr" else str(key)
+
+
 PAGE_ICONS = {
     "market": "radar",
     "live": "live",
@@ -529,6 +580,7 @@ PAGE_ICONS = {
     "dashboard": "dashboard",
     "settings": "settings",
     "radar": "radar",
+    "connections": "plug",
 }
 
 
@@ -554,6 +606,7 @@ def commands(
             ("ask", "/ask"),
             ("alerts", "/alerts"),
             ("health", "/health"),
+            ("connections", "/connections"),
             ("settings", "/settings"),
             ("dashboard", "/dashboard/index.html"),
         )

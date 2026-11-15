@@ -53,7 +53,7 @@
         <div class="v na">—</div><div class="d">{{ t.no_rows }}</div>
       {% else %}
         <div class="v">{{ k.value }}</div>
-        <div class="d">{% if k.change_text %}<span class="{{ 'up' if k.good else 'down' }}">{{ k.change_text }}</span> {{ t.vs_prev_short }}{% else %}{{ t.prev_short }}: {{ k.prev_value }}{% endif %}</div>
+        <div class="d">{% if k.change_text %}<span class="{{ 'up' if k.good else ('down' if k.good is sameas false else '') }}">{{ k.change_text }}</span> {{ t.vs_prev_short }}{% else %}{{ t.prev_short }}: {{ k.prev_value }}{% endif %}</div>
       {% endif %}
       {{ k.spark|safe }}
     </{{ tag }}>
@@ -74,10 +74,33 @@
       <h2>{{ t.store30 if view and view.store_daily else t.store }}</h2>
       {% if view and view.store_daily %}
         <table class="t"><thead><tr><th>{{ t.store_col }}</th><th class="num">{{ t.installs30 }}</th><th class="num">{{ t.uninstalls30 }}</th><th>{{ t.data_through }}</th></tr></thead><tbody>
-        {% for r in view.store_daily %}<tr><td>{{ r.store }}</td><td class="num">{{ r.installs or 0 }}</td><td class="num">{{ r.uninstalls or 0 }}</td><td class="muted date">{{ r.last_date }}</td></tr>{% endfor %}
+        {% set store_names = {'app_store': 'App Store', 'google_play': 'Google Play'} %}
+        {% for r in view.store_daily %}<tr><td>{{ store_names.get(r.store, r.store) }}</td><td class="num">{{ r.installs or 0 }}</td><td class="num">{{ r.uninstalls or 0 }}</td><td class="muted date">{{ r.last_date }}</td></tr>{% endfor %}
         </tbody></table>
       {% else %}
         <div class="empty compact"><p>{{ t.store_missing }}</p>{% if not static %}<a class="btn sm primary" href="/settings#app-{{ chosen }}">{{ t.store_cta }}</a>{% endif %}</div>
+      {% endif %}
+      {% set pub = view.public if view else none %}
+      {% if pub and (pub.rows or not static) %}
+        <h2 style="margin-top:14px" id="public-store">{{ t.public_title }}</h2>
+        {% if pub.rows %}
+        <div class="table-scroll"><table class="t"><thead><tr><th>{{ t.store_col }}</th><th class="num">{{ t.p_rating }}</th><th class="num">{{ t.p_count }}</th><th>{{ t.p_version }}</th><th>{{ t.p_rank }}</th></tr></thead><tbody>
+        {% for p in pub.rows %}<tr>
+          <td>{% if p.store_url %}<a href="{{ p.store_url }}" rel="noopener noreferrer">{{ p.store_name }}</a>{% else %}{{ p.store_name }}{% endif %}<div class="muted" style="font-size:11.5px">{{ p.snapshot_date }}{% if p.store == 'apple' %} · {{ t.p_countries.format(n=p.countries) }}{% endif %}</div></td>
+          <td class="num">{{ p.rating_text }}</td>
+          <td class="num">{{ p.count_text }}</td>
+          <td>{{ p.version_text }}{% if p.version_date %}<div class="muted" style="font-size:11.5px">{{ p.version_date }}</div>{% endif %}</td>
+          <td>{{ p.rank_text or t.p_not_charted }}{% if p.installs_text %}<div class="muted" style="font-size:11.5px">{{ t.p_installs.format(b=p.installs_text) }}</div>{% endif %}{% if not static %}<div style="font-size:11.5px"><a href="/radar/oyun/{{ p.app_id|urlencode }}">{{ t.p_details }}</a></div>{% endif %}</td>
+        </tr>{% endfor %}
+        </tbody></table></div>
+        <p class="muted" style="font-size:12px;margin:6px 0 0">{{ t.public_note }}</p>
+        {% elif not pub.radar_on %}
+        <div class="empty compact"><p>{{ t.public_radar_off }}</p></div>
+        {% elif pub.watched %}
+        <div class="empty compact"><p>{{ t.public_wait }}</p></div>
+        {% else %}
+        <div class="empty compact"><p>{{ t.public_missing }} <code>pulse radar watch add {{ pub.target or '…' }}</code></p></div>
+        {% endif %}
       {% endif %}
       {% if view and view.store %}
         <h2 style="margin-top:14px">{{ t.builds }}</h2>
@@ -118,9 +141,9 @@
   <div class="ai-body">
     {% for i in market.ideas if market and market.facts %}
       <div class="finding info">
-        <div class="ttl"><span class="badge info">{{ i.mechanic }}</span> {{ i.name }}</div>
+        <div class="ttl"><span class="badge info" title="{{ i.mechanic }}">{{ mech(i.mechanic) }}</span> {{ i.name }}</div>
         {% if i.quote %}<div class="bd">“{{ i.quote }}”</div>{% endif %}
-        <div class="ev">{{ t.m_llm if i.source == 'llm' else t.m_kw }}{% if i.hooks %} · hooks: {{ i.hooks|join(', ') }}{% endif %}</div>
+        <div class="ev">{{ t.m_llm if i.source == 'llm' else t.m_kw }}{% if i.hooks %} · {{ t.m_hooks }}: {{ i.hooks|join(', ') }}{% endif %}</div>
         <div class="ev">{{ t.m_test }}: mechanic_shown={{ i.forge_mechanic }}{% if forge_url %} · <a href="{{ forge_url }}" rel="noopener">Creative Forge</a>{% endif %}</div>
       </div>
     {% else %}<p class="muted">—</p>{% endfor %}

@@ -110,6 +110,8 @@ def _self_check(server: uvicorn.Server, sock: socket.socket, base: str, cfg: Con
         ("health?lang=en", "Data quality"),
         ("health?lang=tr", "Veri kalitesi"),
         ("alerts?lang=en", "History"),
+        ("connections?lang=tr", "Bağlantılar"),
+        ("connections?lang=en", "Rows (7 days)"),
         ("live?lang=tr", "Canlı"),
         ("api/status", '"version"'),
         ("static/htmx.min.js", "htmx"),

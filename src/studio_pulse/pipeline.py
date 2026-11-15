@@ -519,6 +519,18 @@ def _radar(
     return out
 
 
+def source_errors(errors: dict[str, str], limit: int = 400) -> dict[str, str]:
+    """`app.source` -> its error, shortened and with anything shaped like a key or token
+    masked: kept in the run history so the UI can say why a source failed."""
+    from .llm.base import redact
+
+    out = {}
+    for key, msg in sorted(errors.items()):
+        text = " ".join(redact(msg).split())
+        out[key] = text if len(text) <= limit else text[: limit - 1] + "…"
+    return out
+
+
 def run_all(
     cfg: Config,
     *,
@@ -584,6 +596,8 @@ def run_all(
         finally:
             con.close()
         summary = checks_mod.summarize(check_results)
+        if report.errors:  # why each source failed, for the UI (not only the log file)
+            rec.summary["source_errors"] = source_errors(report.errors)
         rec.summary.update(
             alerts=len(fired),
             critical_alerts=sum(a.severity == "critical" for a in fired),

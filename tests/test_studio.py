@@ -182,12 +182,13 @@ def test_market_view_sits_inside_the_studio(studio_cfg, tmp_path):
     assert "Bugün yükselenler" in page and "Word Tiles: Worträtsel" in page
     assert "Bugün Word Tiles: Worträtsel öne çıkıyor." in page  # the verified narration
     assert "ABD Bulmaca #10" in page or "Türkiye Bulmaca #4" in page
-    assert "100,000+" in page and "MAĞAZA VERİSİ" in page
+    assert "100.000+" in page and "MAĞAZA VERİSİ" in page  # Turkish digit grouping
     assert "LLM, alıntıyla doğrulandı" in page and "anahtar kelime tahmini" in page
     assert "mechanic_shown=word" in page
     assert 'href="/studio/market" aria-current="page"' in page  # the sidebar shows where you are
     en = c.get("/studio/market", params={"lang": "en"}).text
     assert "Rising today" in en and "Word Tiles: Worträtsel leads today." in en
+    assert "100,000+" in en
 
 
 def test_market_view_without_a_radar_run_says_so(client):

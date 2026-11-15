@@ -14,7 +14,7 @@
 </style>
 {% endblock %}
 {% block body %}
-<header class="page-head"><h1>{{ s.settings }}</h1><p class="sub">{{ s.set_sub }}</p></header>
+<header class="page-head"><h1>{{ s.settings }}</h1><p class="sub">{{ s.set_sub }} <a href="/connections">{{ s.set_flow_link }}</a></p></header>
 {% set badge = {'ok': 'good', 'stale': 'warn', 'nodata': 'outline'} %}
 
 {% for a in set_apps %}
@@ -32,7 +32,8 @@
   </table></div>
   {% else %}<p class="muted">{{ s.set_none }}</p>{% endif %}
 
-  <div class="set-grid" style="margin-top:14px">
+  <details class="set-forms"{% if not a.stores_connected %} open{% endif %} style="margin-top:12px"><summary class="muted" style="cursor:pointer;font-size:13px">{{ s.set_store_forms }}</summary>
+  <div class="set-grid" style="margin-top:10px">
     <form class="card set-form" style="margin:0" hx-post="/settings/play/{{ a.id }}" hx-target="#play-{{ a.id }}" hx-swap="innerHTML">
       <h2>{{ s.set_play_title }}</h2>
       <p class="help">{{ s.set_play_help }}</p>
@@ -63,25 +64,27 @@
       <div class="result" id="asc-{{ a.id }}" aria-live="polite"></div>
     </form>
   </div>
+  </details>
 </section>
 {% endfor %}
 
 <div class="grid c2">
-  <section class="card">
-    <header><h2>{{ s.set_sched_title }}</h2>{% if schedule.registered %}<span class="badge good">{{ s.h_sched_on }}</span>{% else %}<span class="badge warn">{{ s.h_sched_off }}</span>{% endif %}</header>
+  <section class="card" id="schedule">
+    <header><h2>{{ s.set_sched_title }}</h2>{% if schedule.for_this_config %}<span class="badge good">{{ s.h_sched_on }}</span>{% elif schedule.other_config %}<span class="badge warn">{{ s.h_sched_other }}</span>{% else %}<span class="badge warn">{{ s.h_sched_off }}</span>{% endif %}</header>
     <p class="soft" style="margin:0 0 10px;font-size:13px">{{ s.set_sched_help }}</p>
-    {% if schedule.next_run %}<p class="muted" style="margin:0 0 10px;font-size:12.5px">{{ s.h_sched_next }}: {{ schedule.next_run }}</p>{% endif %}
+    {% if schedule.other_config %}<p class="callout warn" style="margin:0 0 10px">{{ s.h_sched_other_long.format(path=schedule.other_config) }}</p>{% endif %}
+    {% if schedule.next_run %}<p class="muted" style="margin:0 0 10px;font-size:12.5px">{{ s.h_sched_next }}: {{ local_time(schedule.next_run) }}</p>{% endif %}
     <form hx-post="/settings/schedule" hx-target="#sched-result" hx-swap="innerHTML">
       <div class="row">
         <label for="at" class="muted" style="font-size:12.5px">{{ s.set_at }}</label>
-        <input class="input" id="at" name="at" type="time" value="08:30" style="width:120px">
+        <input class="input" id="at" name="at" type="time" value="{{ schedule.at or '08:30' }}" style="width:120px">
         <button class="btn primary" type="submit">{{ s.set_install }}</button>
       </div>
       <label class="row" style="margin-top:10px;font-size:13px"><input type="checkbox" name="notify" value="1"{% if slack_set %} checked{% endif %}> {{ s.set_notify_on }}</label>
     </form>
     <div class="result" id="sched-result" aria-live="polite"></div>
   </section>
-  <section class="card">
+  <section class="card" id="notify">
     <header><h2>{{ s.set_notify_title }}</h2><span class="badge {{ 'good' if slack_set else 'outline' }}">{{ s.set_slack_state }}: {{ s.set_var_on if slack_set else s.set_var_off }}</span></header>
     <p class="help">{{ s.set_notify_help }}</p>
     <form class="row" hx-post="/settings/slack" hx-target="#slack-result" hx-swap="innerHTML">

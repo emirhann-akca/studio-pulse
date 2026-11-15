@@ -247,11 +247,11 @@ def register(
                 "play_package": play.get("package") or next((p for p in pkgs if "." in p), ""),
                 "apple_id": str(store.get("apple_id") or (a.sources.get("app_store_reviews") or {}).get("apple_id") or ""),
                 "vendor": str(store.get("vendor_number") or ""),
+                "stores_connected": bool(play) and bool(store),
             })  # fmt: skip
-        try:
-            sched = schedule.backend().status(schedule.DEFAULT_NAME)
-        except schedule.ScheduleError as exc:
-            sched = {"registered": False, "note": str(exc)}
+        from .dataflow import schedule_info
+
+        sched = schedule_info(cfg, schedule.DEFAULT_NAME)
         return {
             "set_apps": apps,
             "asc_vars": [(v, bool(os.environ.get(v))) for v in ASC_VARS],

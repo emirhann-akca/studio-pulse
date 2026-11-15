@@ -55,7 +55,34 @@ def latest_facts(out_dir: Path) -> dict[str, Any] | None:
     return json.loads(files[-1].read_text(encoding="utf-8"))
 
 
-def register(app: FastAPI, cfg: Config, templates: Any, context: Any) -> None:
+def known_games(open_db: Any, cfg: Config, ids: list[str]) -> set[str]:
+    """The ids among `ids` that the warehouse has a game page for (/radar/oyun/<id> answers
+    404 for the others, e.g. a facts file whose run never reached this warehouse)."""
+    if open_db is None or not ids:
+        return set()
+    con, _ = open_db(cfg)
+    if con is None:
+        return set()
+    found: set[str] = set()
+    try:
+        for table in ("raw_mr_app", "stg_mr_rank_input"):  # what game_view() reads
+            try:
+                found |= {
+                    str(r[0])
+                    for r in con.execute(
+                        f"SELECT DISTINCT app_id FROM {table} "
+                        "WHERE list_contains(?::VARCHAR[], app_id)",
+                        [ids],
+                    ).fetchall()
+                }
+            except Exception:  # the table does not exist in this warehouse
+                continue
+        return found
+    finally:
+        con.close()
+
+
+def register(app: FastAPI, cfg: Config, templates: Any, context: Any, open_db: Any = None) -> None:
     @app.get("/radar", response_class=HTMLResponse)
     def radar_page(request: Request, lang: str | None = None):
         from ..serve.ui import request_lang
@@ -68,8 +95,11 @@ def register(app: FastAPI, cfg: Config, templates: Any, context: Any) -> None:
             facts = latest_facts(out_dir)
             news = news_items(out_dir)
             error = None
+            linked = known_games(
+                open_db, cfg, [str(i.get("app_id")) for i in (facts or {}).get("items") or []]
+            )
         except (ConfigError, ValueError, OSError) as exc:
-            facts, error = None, str(exc)
+            facts, error, linked = None, str(exc), set()
         return templates.TemplateResponse(
             request,
             "radar.html",
@@ -80,6 +110,7 @@ def register(app: FastAPI, cfg: Config, templates: Any, context: Any) -> None:
                 source="files",
                 facts=facts,
                 news=news,
+                linked=linked,
                 topic_names={k: v[0 if lang == "tr" else 1] for k, v in news_mod.TOPICS.items()},
                 error=error,
                 lang=lang,

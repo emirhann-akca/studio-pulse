@@ -63,6 +63,12 @@ T: dict[str, dict[str, str]] = {
         "m_test": "Creative Forge'da bu mekanikle reklam testi",
         "m_games": "oyun",
         "m_weekly": "haftalık eğilim için en az 5 haftalık geçmiş gerekiyor",
+        "m_hooks": "kancalar",
+        "m_news": "Sektör haberleri",
+        "m_news_all": "Tümü →",
+        "m_news_none": "Henüz haber yok: haberler her günlük yenilemede radarla birlikte okunur (radar.news).",
+        "m_news_rel": "önem {n}/5",
+        "m_last_run": "Radar son çalışma: {age}",
         "ads": "Reklamlar (Creative Forge)",
         "health": "Veri sağlığı",
         "alerts": "Uyarılar",
@@ -93,7 +99,7 @@ T: dict[str, dict[str, str]] = {
         "fail_rate": "başarısızlık",
         "quit_here": "burada bırakan",
         "insights": "İçgörüler",
-        "no_insights": "Bu uygulama için kayıtlı içgörü yok (önce `pulse run`).",
+        "no_insights": "Bu uygulama için kayıtlı içgörü yok: içgörüler ambardaki veriden hesaplanır, bu uygulamanın verisi gelince ilk yenilemede çıkar.",
         "ai": "Yapay zekâ",
         "ai_note": "Sayıları kod hesaplar ve kanıtla karşılaştırır; model yalnız anlatır.",
         "recs": "Öneriler",
@@ -123,6 +129,8 @@ T: dict[str, dict[str, str]] = {
         "new_short": "Yeni",
         "d1_short": "D1",
         "store30": "Mağaza · son 30 gün",
+        "data_through_short": "Veri sonu",
+        "through_tip": "Ambardaki en yeni gün (uygulamaların en yenisi)",
         "x_back": "Geri: {app}",
         "x_period": "Bu dönem",
         "x_prev": "Önceki dönem",
@@ -134,7 +142,8 @@ T: dict[str, dict[str, str]] = {
         "x_value": "Değer",
         "x_sql": "Bu sayının sorgusu",
         "x_sql_note": "Kutu ve bu sayfa aynı sorguyu çalıştırır; parametreler: uygulama, başlangıç, bitiş.",
-        "x_none": "Bu dönemde bu metrik için satır yok.",
+        "x_none": "Bu dönemde bu metrik için satır yok: kaynağı bu günler için veri getirmedi.",
+        "x_no_app_data": "Bu uygulamanın ambarda günlük verisi yok; bağlı kaynaklar veri getirince dolar.",
         "period": "Dönem",
         "days_n": "{n} gün",
         "period_line": "{start} – {end} · karşılaştırma: {pstart} – {pend}",
@@ -155,6 +164,21 @@ T: dict[str, dict[str, str]] = {
         "store_missing": "Mağaza verisi bağlı değil. Play Console ve App Store Connect raporları bağlanınca kurulum, kaldırma ve puan burada görünür; az kullanıcıda bile anlamlıdır.",
         "store_cta": "Mağazayı bağla",
         "builds": "SDK derlemeleri",
+        "public_title": "Herkese açık mağaza sayfası",
+        "public_note": "Pazar radarının günlük okumasından; puan, o gün okunan mağaza ülkelerinin toplamı.",
+        "public_wait": "İzleme listesinde; ilk okuma bir sonraki günlük yenilemede.",
+        "public_missing": "Puan, puan sayısı, sürüm ve liste sırası anahtarsız izlenir. Oyunu izleme listesine ekleyin:",
+        "public_radar_off": "Herkese açık mağaza verisi için önce pazar radarını açın: pulse.yaml → radar.enabled: true (yeni anahtar gerekmez).",
+        "p_rating": "Puan",
+        "p_count": "Puan sayısı",
+        "p_version": "Sürüm",
+        "p_rank": "En iyi sıra",
+        "p_not_charted": "listelerde yok",
+        "p_countries": "{n} ülke",
+        "p_installs": "Play kurulum: {b}",
+        "p_details": "Radar ayrıntısı →",
+        "p_varies": "cihaza göre değişir",
+        "store_names": "App Store|Google Play",
         "no_levels": "Bölüm verisi yok: oyun level_start / level_complete / level_fail gönderince görünür.",
         "no_recs": "Şimdilik öneri yok.",
         "no_apps_title": "Henüz uygulama yok",
@@ -191,6 +215,12 @@ T: dict[str, dict[str, str]] = {
         "m_test": "An ad test with this mechanic in Creative Forge",
         "m_games": "games",
         "m_weekly": "a weekly trend needs at least 5 weeks of history",
+        "m_hooks": "hooks",
+        "m_news": "Industry news",
+        "m_news_all": "All →",
+        "m_news_none": "No news yet: the feeds are read with the radar at every daily refresh (radar.news).",
+        "m_news_rel": "relevance {n}/5",
+        "m_last_run": "Radar last ran: {age}",
         "ads": "Ads (Creative Forge)",
         "health": "Data health",
         "alerts": "Alerts",
@@ -221,7 +251,7 @@ T: dict[str, dict[str, str]] = {
         "fail_rate": "fail rate",
         "quit_here": "quit here",
         "insights": "Insights",
-        "no_insights": "No stored insights for this app (run `pulse run` first).",
+        "no_insights": "No stored insights for this app: insights are computed from warehouse data and appear at the first refresh after this app's data arrives.",
         "ai": "AI",
         "ai_note": "Code computes the numbers and checks them against evidence; the model only words them.",
         "recs": "Recommendations",
@@ -251,6 +281,8 @@ T: dict[str, dict[str, str]] = {
         "new_short": "New",
         "d1_short": "D1",
         "store30": "Store · last 30 days",
+        "data_through_short": "Data through",
+        "through_tip": "The newest day in the warehouse (the newest of the apps)",
         "x_back": "Back: {app}",
         "x_period": "This period",
         "x_prev": "Previous period",
@@ -262,7 +294,8 @@ T: dict[str, dict[str, str]] = {
         "x_value": "Value",
         "x_sql": "The query behind this number",
         "x_sql_note": "The tile and this page run the same query; parameters: app, start, end.",
-        "x_none": "No rows for this metric in this period.",
+        "x_none": "No rows for this metric in this period: its source brought no data for these days.",
+        "x_no_app_data": "This app has no daily data in the warehouse yet; it fills once a connected source brings data.",
         "period": "Period",
         "days_n": "{n} days",
         "period_line": "{start} – {end} · compared with {pstart} – {pend}",
@@ -283,6 +316,21 @@ T: dict[str, dict[str, str]] = {
         "store_missing": "Store data is not connected. Once the Play Console and App Store Connect reports are connected, installs, uninstalls and rating show here; they mean something even with few users.",
         "store_cta": "Connect the store",
         "builds": "SDK builds",
+        "public_title": "Public store page",
+        "public_note": "From the market radar's daily read; the rating adds up the storefronts read that day.",
+        "public_wait": "On the watchlist; first read at the next daily refresh.",
+        "public_missing": "Rating, rating count, version and chart rank are tracked without keys. Add the game to the watchlist:",
+        "public_radar_off": "For public store data, turn the market radar on first: pulse.yaml → radar.enabled: true (no new key).",
+        "p_rating": "Rating",
+        "p_count": "Ratings",
+        "p_version": "Version",
+        "p_rank": "Best rank",
+        "p_not_charted": "not on the charts",
+        "p_countries": "{n} storefront(s)",
+        "p_installs": "Play installs: {b}",
+        "p_details": "Radar details →",
+        "p_varies": "varies with device",
+        "store_names": "App Store|Google Play",
         "no_levels": "No level data: it appears once the game sends level_start / level_complete / level_fail.",
         "no_recs": "No recommendations yet.",
         "no_apps_title": "No apps yet",
@@ -430,6 +478,7 @@ def register(
         sdk_levels = rows(
             con, "SELECT COUNT(*) AS n FROM fct_sdk_level_funnel WHERE app_id = ?", [app_id]
         )
+        public = public_presence(con, app_id, lang)
         now = None
         snap = lv.get("snap")
         if snap:
@@ -453,9 +502,46 @@ def register(
                 for h in hard
             ],  # fmt: skip
             "has_sdk_page": bool(sdk_levels and sdk_levels[0]["n"]),
+            "public": public,
             "now": now,
             "last_date": s.get("last_date") if s else None,
         }
+
+    def public_presence(con: Any, app_id: str, lang: str) -> dict[str, Any]:
+        """The studio's own store listings from the radar's watch list (serve/dataflow.py)."""
+        from ..radar.digest import COUNTRY, LIST
+        from .dataflow import public_store
+
+        appcfg = next((a for a in cfg.apps if a.id == app_id), None)
+        try:
+            from ..radar.settings import from_config as radar_settings
+
+            radar_on = radar_settings(cfg).enabled
+        except Exception:
+            radar_on = False
+        if appcfg is None or con is None:
+            return {"rows": [], "watched": [], "target": "", "radar_on": radar_on}
+        pub = public_store(con, appcfg)
+        t = T[lang]
+        for r in pub["rows"]:
+            b = r.get("best_rank")
+            if b:
+                lst = str(b["list_key"]).split(":", 1)[-1]
+                r["rank_text"] = (f"{COUNTRY[lang].get(b['country'], b['country'].upper())} "
+                                  f"{LIST[lang].get(lst, lst)} #{b['rank']}")  # fmt: skip
+            else:
+                r["rank_text"] = None
+            r["rating_text"] = (
+                sm.fmt(r["rating_avg"], "rating", lang) if r.get("rating_count") else "—"
+            )
+            r["count_text"] = _num(r.get("rating_count") or 0, lang)
+            v = str(r.get("version") or "")
+            r["version_text"] = t["p_varies"] if v.lower() == "varies with device" else (v or "—")
+            bucket = r.get("installs_bucket")
+            r["installs_text"] = (
+                str(bucket).replace(",", ".") if lang == "tr" else str(bucket)
+            ) if bucket else None  # fmt: skip
+        return {**pub, "radar_on": radar_on}
 
     def static() -> bool:
         return bool(getattr(app.state, "studio_static", False))
@@ -562,6 +648,7 @@ def register(
             "static": static(),
             "nav": nav(lang, chosen or "index"),
             "periods": sm.PERIODS,
+            "radar_countries": radar_countries(),
             **side,
         }
 
@@ -582,10 +669,32 @@ def register(
             "side_failing": summary["errors"] + summary["warnings"],
         }
 
+    countries_cache: dict[str, Any] = {}
+
+    def radar_countries() -> str:
+        """'US · TR · GB · DE' under Market radar: the storefronts of the newest radar facts
+        (the config's list when there are none yet), re-read only when the file changes."""
+        try:
+            from ..radar.settings import from_config as radar_settings
+
+            rs = radar_settings(cfg)
+            files = sorted(rs.out_dir.glob("*.facts.json")) if rs.out_dir.is_dir() else []
+            key = f"{files[-1]}:{files[-1].stat().st_mtime_ns}" if files else "config"
+            if countries_cache.get("key") != key:
+                from ..radar.page import latest_facts
+
+                facts = latest_facts(rs.out_dir) if files else None
+                cc = (facts or {}).get("countries") or (rs.countries if rs.enabled else [])
+                countries_cache.update(key=key, text=" · ".join(str(c).upper() for c in cc[:8]))
+            return str(countries_cache.get("text") or "")
+        except Exception:  # no radar block: nothing under the label
+            return ""
+
     def sidebar(lang: str, chosen: str) -> dict[str, Any]:
         """The sidebar of every server page (base.html), from the same data as the Studio."""
         d = page_data(None, lang, full=False)
-        keys = ("apps", "arrived", "forge_url", "static", "side_alerts", "side_failing")
+        keys = ("apps", "arrived", "forge_url", "static", "side_alerts", "side_failing",
+                "radar_countries")  # fmt: skip
         return {**{k: d[k] for k in keys}, "nav": nav(lang, chosen), "chosen": chosen}
 
     app.state.studio_side = sidebar
@@ -593,16 +702,24 @@ def register(
     def market_data(lang: str) -> dict[str, Any]:
         """The newest radar facts, shaped for the Studio's market view (local only)."""
         from ..radar.digest import CLASS, COUNTRY, LABELS, LIST
-        from ..radar.page import latest_facts
+        from ..radar.page import latest_facts, news_items
 
+        facts = news = None
+        ran = None
         try:
             from ..radar.settings import from_config as radar_settings
 
-            facts = latest_facts(radar_settings(cfg).out_dir)
+            out_dir = radar_settings(cfg).out_dir
+            facts = latest_facts(out_dir)
+            if not static():  # feed text and links stay on this machine (not in the demo)
+                news = news_items(out_dir, limit=5)
+            files = sorted(out_dir.glob("*.facts.json")) if out_dir.is_dir() else []
+            if files:
+                ran = dt.datetime.fromtimestamp(files[-1].stat().st_mtime, dt.UTC).isoformat()
         except Exception:  # no radar block or no run yet
             facts = None
         if not facts:
-            return {"facts": None}
+            return {"facts": None, "news": news, "ran": ran}
 
         def mech(item: dict[str, Any]) -> tuple[str | None, str | None, str]:
             prim = next((c for c in (item.get("profile") or {}).get("claims", [])
@@ -655,6 +772,8 @@ def register(
             "ideas": [i for i in facts.get("ideas") or [] if i.get("kind") != "top_mechanic"][:6],
             "observed": LABELS[lang]["observed"],
             "store_reported": LABELS[lang]["store_reported"],
+            "news": news,
+            "ran": ran,
         }
 
     def today_data(lang: str) -> dict[str, Any]:
@@ -790,7 +909,10 @@ def register(
                 m["fmt"],
                 lg,
             )
+        meta = sm.METRICS[key]
         data.update(metric=m, metric_key=key, chart=chart, days=days, mode="metric",
+                    metric_name=meta.tr if lg == "tr" else meta.en,
+                    metric_note=meta.note_tr if lg == "tr" else meta.note_en,
                     fmt_value=lambda v: sm.fmt(None if v is None else float(v), m["fmt"], lg) if m else "—")  # fmt: skip
         return templates.TemplateResponse(
             request, "studio_metric.html", context(request, "studio", **data)

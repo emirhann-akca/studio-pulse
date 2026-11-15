@@ -9,7 +9,7 @@
 {% if error %}<div class="callout bad" role="alert">{{ error }}</div>{% endif %}
 <section class="card">
   {% if not facts %}
-    <div class="empty"><div class="ic">{{ icon('radar')|safe }}</div><p>{{ 'Henüz radar koşumu yok: pulse radar run' if lang == 'tr' else 'No radar run yet: pulse radar run' }}</p></div>
+    <div class="empty"><div class="ic">{{ icon('radar')|safe }}</div><p>{{ 'Henüz radar koşusu yok. pulse.yaml’da radar.enabled: true ise her günlük yenilemede çalışır; hemen denemek için: pulse radar run' if lang == 'tr' else 'No radar run yet. With radar.enabled: true in pulse.yaml it runs at every daily refresh; to try it now: pulse radar run' }}</p></div>
   {% else %}
   <h2>{{ 'Kopuş tablosu (kural puanı M)' if lang == 'tr' else 'Breakout table (rule score M)' }}</h2>
   <div class="table-scroll"><table class="t">
@@ -23,12 +23,12 @@
       {% set prim = (it.profile.claims | selectattr('dimension', 'equalto', 'mechanic_primary') | list) %}
       <tr>
         <td><span class="badge {{ 'good' if it['class'] == 'breakout' else 'warn' }}">{{ classes[it['class']] }}</span></td>
-        <td><a href="/radar/oyun/{{ it.app_id }}">{{ it.name }}</a><br><small>{{ it.developer }}</small></td>
-        <td>{{ '%.2f' % it.momentum.value }} <small>({{ labels[it.momentum.basis] }})</small></td>
+        <td>{% if it.app_id|string in linked %}<a href="/radar/oyun/{{ it.app_id|urlencode }}">{{ it.name }}</a>{% else %}<b>{{ it.name }}</b>{% endif %}<br><small>{{ it.developer }}</small></td>
+        <td>{{ ('%.2f' % it.momentum.value)|replace('.', ',') if lang == 'tr' else '%.2f' % it.momentum.value }} <small>({{ labels[it.momentum.basis] }})</small></td>
         <td>{% for r in it.ranks[:4] %}{{ countries.get(r.country, r.country) }} {{ lists.get(r.list, r.list) }} #{{ r.rank }}{% if not loop.last %}<br>{% endif %}{% endfor %} <small>({{ labels['observed'] }})</small></td>
         <td>{{ it.age.value }} <small>({{ labels['observed'] }})</small></td>
-        <td>{% if it.play %}{{ it.play.bucket }} <small>({{ labels['store_reported'] }})</small>{% else %}-{% endif %}</td>
-        <td>{% if prim %}{{ prim[0].value }}<br><small>“{{ prim[0].quote }}”</small><br><small>{% if prim[0].source == 'llm' %}{{ 'LLM, alıntıyla doğrulandı' if lang == 'tr' else 'LLM, verified quote' }}{% else %}{{ 'anahtar kelime tahmini' if lang == 'tr' else 'keyword guess' }}{% endif %}</small>{% else %}-{% endif %}</td>
+        <td>{% if it.play %}{{ it.play.bucket|replace(',', '.') if lang == 'tr' else it.play.bucket }} <small>({{ labels['store_reported'] }})</small>{% else %}-{% endif %}</td>
+        <td>{% if prim %}<span title="{{ prim[0].value }}">{{ mech(prim[0].value) }}</span><br><small lang="en">“{{ prim[0].quote }}”</small><br><small>{% if prim[0].source == 'llm' %}{{ 'LLM, alıntıyla doğrulandı' if lang == 'tr' else 'LLM, verified quote' }}{% else %}{{ 'anahtar kelime tahmini' if lang == 'tr' else 'keyword guess' }}{% endif %}</small>{% else %}-{% endif %}</td>
         <td>{% if it.store_url %}<a href="{{ it.store_url }}" rel="noopener noreferrer">App Store</a>{% endif %}{% if it.play_url %} · <a href="{{ it.play_url }}" rel="noopener noreferrer">Play</a>{% endif %}</td>
       </tr>
     {% else %}
@@ -42,7 +42,7 @@
     <thead><tr><th>{{ 'Ülke' if lang == 'tr' else 'Country' }}</th><th>{{ 'Mekanik' if lang == 'tr' else 'Mechanic' }}</th><th>%</th><th>z</th><th>{{ 'Oyun' if lang == 'tr' else 'Games' }}</th><th>Trend</th></tr></thead>
     <tbody>
     {% for r in facts.trends.rows if r.n_apps > 0 %}
-      <tr><td>{{ countries.get(r.country, r.country) }}</td><td>{{ r.mechanic }}</td><td>{{ '%.1f' % (r.share * 100) }} <small>({{ labels['observed'] }})</small></td><td>{{ r.z if r.z is not none else '-' }}</td><td>{{ r.n_apps }}</td><td>{{ 'TREND' if r.is_trend else '' }}</td></tr>
+      <tr><td>{{ countries.get(r.country, r.country) }}</td><td>{{ mech(r.mechanic) }}</td><td>{{ ('%.1f' % (r.share * 100))|replace('.', ',') if lang == 'tr' else '%.1f' % (r.share * 100) }} <small>({{ labels['observed'] }})</small></td><td>{{ r.z if r.z is not none else '-' }}</td><td>{{ r.n_apps }}</td><td>{{ 'TREND' if r.is_trend else '' }}</td></tr>
     {% endfor %}
     </tbody>
   </table></div>
@@ -52,7 +52,7 @@
 <section class="card" id="news" style="margin-top:14px">
   <h2>{{ 'Sektör haberleri' if lang == 'tr' else 'Industry news' }}{% if news and news.days %} <small>({{ news.days }} {{ 'gün' if lang == 'tr' else 'days' }})</small>{% endif %}</h2>
   {% if not news or not news['items'] %}
-    <p class="note">{{ 'Henüz haber yok: pulse radar news' if lang == 'tr' else 'No news yet: pulse radar news' }}</p>
+    <p class="note">{{ 'Henüz haber yok: haberler radarla birlikte her günlük yenilemede okunur; hemen denemek için: pulse radar news' if lang == 'tr' else 'No news yet: the feeds are read with the radar at every daily refresh; to try it now: pulse radar news' }}</p>
   {% else %}
   <p class="sub">{% if lang == 'tr' %}Başlık ve en çok ~300 karakterlik özet, akışın kendisinden; makalenin tamamı alınmaz. Önem 1-5: küçük bir casual / puzzle / sıralama stüdyosu için.{% else %}Title and at most ~300 characters of summary, from the feed itself; article text is never fetched. Relevance 1-5: for a small casual / puzzle / sort studio.{% endif %}</p>
   <div class="table-scroll"><table class="t">
@@ -64,9 +64,9 @@
     {% for it in news['items'] %}
       <tr>
         <td>{{ it.relevance if it.relevance is not none else '-' }}</td>
-        <td>{% if it.link %}<a href="{{ it.link }}" rel="noopener noreferrer nofollow">{{ it.title }}</a>{% else %}{{ it.title }}{% endif %}<br><small>{{ it.source }} · {{ it.date }}</small>{% if it.summary %}<br><small>{{ it.summary }}</small>{% endif %}</td>
+        <td lang="en">{% if it.link %}<a href="{{ it.link }}" rel="noopener noreferrer nofollow">{{ it.title }}</a>{% else %}{{ it.title }}{% endif %}<br><small>{{ it.source }} · {{ it.date }}</small>{% if it.summary %}<br><small>{{ it.summary }}</small>{% endif %}</td>
         <td>{% for t in it.topics %}<span class="badge outline">{{ topic_names[t] }}</span> {% endfor %}</td>
-        <td>{{ it.why or '-' }}<br><small>{% if it.llm %}{{ 'LLM, yalnız haber metninden' if lang == 'tr' else 'LLM, from the item text only' }}{% else %}{{ 'anahtar kelime tahmini' if lang == 'tr' else 'keyword guess' }}{% endif %}</small></td>
+        <td><span lang="en">{{ it.why or '-' }}</span><br><small>{% if it.llm %}{{ 'LLM, yalnız haber metninden' if lang == 'tr' else 'LLM, from the item text only' }}{% else %}{{ 'anahtar kelime tahmini' if lang == 'tr' else 'keyword guess' }}{% endif %}</small></td>
       </tr>
     {% endfor %}
     </tbody>

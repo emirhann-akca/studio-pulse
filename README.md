@@ -170,6 +170,20 @@ page shows a stored value. Each source has a "test connection" button; the daily
 refresh can be set up from the same page, sending alerts to a Slack incoming
 webhook saved there.
 
+**Connections** (`/connections`, "Bağlantılar") answers "is the data flowing?" in
+one place: per app and per source, whether it is connected, the last successful
+fetch, the rows dated in the last 7 days, the next scheduled refresh and, for
+anything missing or broken, the one step that fixes it (which key, which Settings
+form, which config line). It also covers the studio-wide feeds (market radar,
+Google Play pages, the watch list, industry news, estimates, the weekly ad-intel
+extract, game dossiers, the SDK collector, the LLM, Slack). A failed refresh, a
+source that failed in it (with the reason), a scheduled run that died before it
+could record anything (read from the schedule's own log) and data older than a
+day are shown on the page, and every page's sidebar says when the data was last
+refreshed. The studio's own games on the radar's watch list (`pulse radar watch
+add <package | Apple id>`) show their public store page on the app page: rating
+and rating count, version, best chart rank and Play installs, read without keys.
+
 **Open it like an app.** The installers add **Studio Pulse** to the Start menu
 and the Desktop (Windows), to `~/Applications` (macOS: Launchpad and Spotlight
 find it) or to the applications menu (Linux); `PULSE_NO_SHORTCUT=1` skips that,

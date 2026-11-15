@@ -49,11 +49,11 @@
   {% if view.calibration %}
   <h3 style="margin-top:14px">{{ t.calib }}</h3>
   <div class="table-scroll"><table class="t">
-    <thead><tr><th>{{ t.list }}</th><th>{{ t.status }}</th><th>{{ t.n }}</th><th>b</th></tr></thead>
+    <thead><tr><th>{{ t.list }}</th><th>{{ t.status }}</th><th>{{ t.n }}</th><th>{{ t.b }}</th></tr></thead>
     <tbody>
     {% for c in view.calibration %}
       <tr>
-        <td>{{ c.list_name }} <small>({{ c.kind }})</small></td>
+        <td>{{ c.list_name }} <small>({{ c.kind_name }})</small></td>
         <td>{% if c.status == 'ok' %}<span class="badge good">{{ t.ok }}</span>{% elif c.status == 'no_source' %}<span class="badge warn">{{ t.no_source }}</span>{% else %}<span class="badge warn">{{ t.insufficient }}</span> <small>{{ c.note or '' }}</small>{% endif %}</td>
         <td>{{ c.n_games }}{% if c.kind == 'downloads' %} / {{ c.min_games }}{% endif %}</td>
         <td>{% if c.b is not none %}{{ fmt(c.b, 2) }} ({{ fmt(c.b_low, 2) }}–{{ fmt(c.b_high, 2) }}){% elif c.b_low is not none %}{{ fmt(c.b_low, 2) }}–{{ fmt(c.b_high, 2) }}{% else %}-{% endif %}</td>
@@ -116,7 +116,7 @@
     <thead><tr><th>{{ t.date }}</th><th>{{ t.country }}</th><th>{{ t.count }}</th><th>{{ t.per_day }}</th></tr></thead>
     <tbody>
     {% for r in view.ratings %}
-      <tr><td>{{ r.snapshot_date }}</td><td>{{ r.country|upper }}</td><td>{{ fmt(r.rating_count) }}</td><td>{% if r.rv is not none %}{{ fmt(r.rv, 1) }} <small>({{ r.rv_method }})</small>{% else %}-{% endif %}</td></tr>
+      <tr><td>{{ r.snapshot_date }}</td><td>{{ r.country|upper }}</td><td>{{ fmt(r.rating_count) }}</td><td>{% if r.rv is not none %}{{ fmt(r.rv, 1) }} <small>({{ t.rv.get(r.rv_method, r.rv_method) }})</small>{% else %}-{% endif %}</td></tr>
     {% endfor %}
     </tbody>
   </table></div>

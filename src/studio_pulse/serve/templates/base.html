@@ -4,7 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{{ title }}{% endblock %} · Studio Pulse</title>
+{% if not static %}<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">{% endif %}
 <style>{{ ui_css|safe }}</style>
+<style>/* Studio Pulse additions on top of the shared studio-ui file (kept byte-identical) */
+.sidebar .fresh { display: flex; gap: 7px; align-items: center; padding: 7px 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--text-2); text-decoration: none; }
+.sidebar .fresh:hover { color: var(--text); background: var(--panel-2); text-decoration: none; }
+.sidebar .fresh.failed { color: var(--bad-text); } .sidebar .fresh.stale { color: var(--warn-text); }
+.finding .ttl { flex-wrap: wrap; gap: 4px 8px; min-width: 0; } .finding .ttl code { word-break: break-word; }
+</style>
 {% if not static %}<meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false}'>
 <script src="/static/htmx.min.js"></script>
 <script src="/static/pulse.js" defer></script>{% endif %}
@@ -18,6 +25,7 @@
     <nav class="scroll" id="sidebar"{% if not static %} hx-get="/studio/fragments/sidebar?app={{ chosen|urlencode }}" hx-trigger="every 10s" hx-swap="innerHTML"{% endif %}>
       {% include "_studio_sidebar.html" %}
     </nav>
+    {% if not static and fresh %}<a class="fresh {{ fresh.verdict }}" href="/connections" title="{{ s.fresh_more }}"><span class="dot {{ {'ok': '', 'running': 'warn', 'failed': 'bad', 'stale': 'warn'}[fresh.verdict] }}" aria-hidden="true"></span>{{ fresh.text }}</a>{% endif %}
     <div class="foot">
       <a class="btn ghost sm" href="{{ nav.other_lang }}" hreflang="{{ 'en' if lang == 'tr' else 'tr' }}">{{ s.other_lang }}</a>
       <button class="btn ghost sm" type="button" data-theme-toggle data-light="{{ s.light }}" data-dark="{{ s.dark }}">{{ s.dark }}</button>
@@ -25,6 +33,7 @@
   </aside>
   <main class="main"><div class="inner">
     {% if source == 'snapshot' %}<div class="callout warn" role="note"><span class="ic">{{ icon('info')|safe }}</span><div><b>{{ s.snapshot }}</b> {{ s.snapshot_sub }}</div></div>{% endif %}
+    {% if not static and fresh and fresh.verdict in ('failed', 'stale') and page not in ('health', 'connections', 'fragment') %}<div class="callout {{ 'bad' if fresh.verdict == 'failed' else 'warn' }}" role="note"><span class="ic">{{ icon('warn')|safe }}</span><div><b>{{ fresh.text }}.</b> <a href="/connections">{{ s.fresh_more }}</a></div></div>{% endif %}
     {% if source == 'none' and page != 'health' %}<div class="callout info" role="note"><span class="ic">{{ icon('info')|safe }}</span><div><b>{{ s.no_wh }}</b> {{ s.no_wh_sub }}</div></div>{% endif %}
     {% block body %}{% endblock %}
   </div></main>
