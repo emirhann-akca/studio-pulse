@@ -1,0 +1,27 @@
+{
+    "name": "Studio.Pulse.LevelPlay",
+    "rootNamespace": "Studio.Pulse.AdBridges",
+    "references": [
+        "Studio.Pulse",
+        "Studio.Pulse.Core",
+        "Unity.LevelPlay"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "STUDIO_PULSE_LEVELPLAY",
+        "!STUDIO_PULSE_NO_AD_BRIDGES"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.services.levelplay",
+            "expression": "[8.9.0,10.0.0)",
+            "define": "STUDIO_PULSE_LEVELPLAY"
+        }
+    ],
+    "noEngineReferences": false
+}

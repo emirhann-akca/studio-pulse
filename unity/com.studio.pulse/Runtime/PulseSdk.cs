@@ -47,6 +47,8 @@ namespace Studio.Pulse
 #endif
                 _core = new PulseCore(writeKey, endpoint, options, UnityPulsePlatform.Device(), env);
                 _core.Start();
+                AdGate.AutoCapture = options.AutoCaptureAdRevenue;
+                RecordHeldAdRevenue();
                 if (options.CaptureErrors && !_hooked)
                 {
                     _hooked = true;
@@ -195,11 +197,23 @@ namespace Studio.Pulse
             if (_core != null) _core.Purchase(transactionId, productId, (long)Math.Round(price * 1_000_000m), currency, isRestore, isSandbox);
         }
 
+        /// <summary>
+        /// Impression-level ad revenue logged by hand. AppLovin MAX and Unity LevelPlay are captured
+        /// automatically (Studio.Pulse.AppLovinMax / Studio.Pulse.LevelPlay); a manual call for one of
+        /// them, or one repeating an automatic impression, is ignored so nothing counts twice.
+        /// </summary>
         /// <param name="value">Impression revenue, e.g. MAX's adInfo.Revenue or LevelPlay's impressionData.revenue.</param>
         public static void AdImpression(string adPlatform, string adFormat, double value, string currency = "USD",
             string adSource = null, string adUnitName = null, string placement = null, string precision = null)
         {
-            if (_core != null) _core.AdImpression(adPlatform, adFormat, value, currency, adSource, adUnitName, placement, precision);
+            if (_core == null) return;
+            string why;
+            if (!AdGate.AcceptManual(adPlatform, adFormat, value, AdClockMs(), out why))
+            {
+                WarnAdOnce(why);
+                return;
+            }
+            _core.AdImpression(adPlatform, adFormat, value, currency, adSource, adUnitName, placement, precision);
         }
 
         /// <param name="action">PulseContract.AdAction: request, fill, show, click, reward, fail.</param>

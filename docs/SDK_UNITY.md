@@ -44,7 +44,7 @@ called from any thread (network requests start on the main thread).
 | `SettingChange(setting, from, to)` / `SettingChange(setting, bool from, bool to)` | `setting_change`; `setting` is `music`, `sfx`, `haptics`, `notifications`, `language` or `quality` (`PulseContract.Setting`) |
 | `EarnCurrency(currency, amount, item, level)`, `SpendCurrency(...)` | `earn_virtual_currency`, `spend_virtual_currency` (GA4 names) |
 | `Purchase(transactionId, productId, priceMicros \| decimal price, currency, isRestore, isSandbox)` | `purchase` (Unity IAP: `metadata.localizedPrice`, `isoCurrencyCode`) |
-| `AdImpression(adPlatform, adFormat, value, currency, adSource, adUnitName, placement, precision)` | `ad_impression` (MAX `adInfo.Revenue`, LevelPlay `impressionData.revenue`) |
+| `AdImpression(adPlatform, adFormat, value, currency, adSource, adUnitName, placement, precision)` | `ad_impression`, by hand; AppLovin MAX and Unity LevelPlay are captured automatically (below) |
 | `AdEvent(action, adFormat, placement, errorCode)` | `ad_event` (`request`, `fill`, `show`, `click`, `reward`, `fail`) |
 | `Screen(name, screenClass)` | `screen_view` |
 | `Experiment(key, variations, weights, coverage)` | returns the variation to show (0 = control, -1 = outside the experiment or before consent: show the control) and sends `experiment_exposure` once per session and key. The assignment is GrowthBook's hash v2 of the key and install id (MIT), the same in C#, Dart and Python, so the warehouse can recompute every install's variation from its id |
@@ -87,6 +87,41 @@ asked once in the background and applied when it answers (StoreKit may need the 
 not called); until then, and before iOS 16, the receipt file name decides
 (`sandboxReceipt` → `testflight`); the simulator reports `simulator`. The Editor reports
 `editor`.
+
+## Ad revenue (automatic)
+
+When AppLovin MAX or Unity LevelPlay is in the project, an optional assembly subscribes to
+its impression-level revenue before the first scene loads and records `ad_impression`; the
+game writes no code. Impressions that arrive before `Pulse.Init` are held (at most 32).
+
+| SDK | Assembly (compiled only with the SDK) | Callback | `ad_impression` |
+|---|---|---|---|
+| AppLovin MAX (`com.applovin.mediation.ads` 8.0.0+, or `Assets/MaxSdk`) | `Studio.Pulse.AppLovinMax` | `MaxSdkCallbacks.{Interstitial,Rewarded,Banner,MRec,AppOpen}.OnAdRevenuePaidEvent` | `ad_platform = applovin_max`, `value = AdInfo.Revenue` (USD; `-1` = none, skipped), `ad_source = NetworkName`, `precision = RevenuePrecision` |
+| Unity LevelPlay (`com.unity.services.levelplay` 8.9.0 to < 10) | `Studio.Pulse.LevelPlay` | `LevelPlay.OnImpressionDataReady` (9.5+ marks it obsolete; 9.6.0 still raises it from both native bridges) and, through the ads package, each ad's `OnAdImpressionDataReady` | `ad_platform = levelplay`, `value = Revenue` (USD; null skipped), `ad_source = AdNetwork`; the auction id makes the two callbacks count once |
+| Google Mobile Ads (`com.google.ads.mobile` 6.0.0+) | `Studio.Pulse.GoogleMobileAds` | per ad object only, so one line per ad: `ad.OnAdPaid += PulseGoogleMobileAds.Paid("rewarded", adUnitId);` | `ad_platform = admob`, `value = AdValue.Value / 1e6` in `CurrencyCode`, precision `estimated` / `publisher_provided` / `precise` |
+
+Formats are normalised (`INTER`, `Rewarded Video` ... -> `interstitial`, `rewarded`,
+`banner`, `mrec`, `app_open`, `rewarded_interstitial`, `native`); network names become
+snake case (`Google AdMob` -> `google_admob`). The mapping is pure C# (`PulseAdRevenueMap`,
+tested in `unity/dotnet`).
+
+**No double counting.** A manual `Pulse.AdImpression` for a platform a bridge captures
+(`AppLovin`, `applovin_max`, `MAX`, `ironSource`, `LevelPlay` ...) is ignored with one
+warning; any other manual impression with the same format and value as an automatic one in
+the last 10 s (or the other way round) is ignored too, one for one. `Pulse.AdRevenue` counts
+automatic, manual and duplicate impressions.
+
+**Off switch.** `PulseOptions.AutoCaptureAdRevenue = false`: the bridges' impressions are
+ignored and manual calls count. The `STUDIO_PULSE_NO_AD_BRIDGES` define removes the bridge
+assemblies from the build. The bridges use no reflection; each is marked
+`[assembly: AlwaysLinkAssembly]` with `[Preserve]` on its start-up method, which is what
+Unity documents for package assemblies whose only entry point is
+`[RuntimeInitializeOnLoadMethod]` (a `link.xml` cannot ship inside a package).
+
+**Other mediation SDKs**: report each impression with
+`PulseAdBridge.Report(PulseAdRevenue)` after `PulseAdBridge.Register("<platform>")`.
+`PulseAdBridge.Impression` raises every bridged impression (an MMP forwards ad revenue from
+it). The ads layer built on this (LevelPlay / MAX providers, ATT, AppsFlyer) is [ADS_UNITY.md](ADS_UNITY.md).
 
 ## Delivery
 
@@ -168,10 +203,11 @@ arithmetic, not the runtime's formatter (Mono's is not always correctly rounded)
 ```bash
 unity/dotnet/mono-test.sh          # core + tests + driver with the Editor's Mono (no dotnet needed)
 unity/dotnet/unity-compile.sh      # the adapter against UnityEngine*.dll for standalone, Android, iOS, WebGL, -warnaserror
+unity/dotnet/ads-compile.sh        # ad bridges + ads package against the real MAX / LevelPlay / GMA / AppsFlyer sources
 dotnet test unity/dotnet/Studio.Pulse.Core.Tests   # what CI runs on Windows, macOS, Linux
 ```
 
-40 cases: GrowthBook's own assignment cases and the exposure event, kill mid-flush (no loss, the re-sent batch deduped), a torn line, 24 h
+55 cases: the ad revenue mapping, de-duplication and ads config rules (AdRevenueTests), GrowthBook's own assignment cases and the exposure event, kill mid-flush (no loss, the re-sent batch deduped), a torn line, 24 h
 offline replay, 413 halving, 400 drop, 401 disable, 429/5xx backoff timings and
 Retry-After with a fake clock, flush triggers, gzip threshold, queue cap, 30-minute and
 24-hour session rules, heartbeat, `seq` across six restarts, install / update / exit
@@ -195,5 +231,6 @@ the Android JNI calls (installer of record, `getHistoricalProcessExitReasons`,
 real Unity iOS build (Swift sources from a package, `@_cdecl` symbols, the
 TestFlight `sandbox` answer and the App Store `production` answer); pause / resume and
 the 30-minute rule on real devices; WebGL (the queue then lives in the browser's
-IndexedDB-backed file system, untested). The Unity Editor itself has not opened the
+IndexedDB-backed file system, untested); the ad revenue bridges with real ads (MAX and
+LevelPlay revenue callbacks on a device). The Unity Editor itself has not opened the
 package: compile checks use the Editor's UnityEngine assemblies.

@@ -1,0 +1,50 @@
+{
+  "_help": "Copy to Assets/Resources/studio_app.json. Every key is empty by default: an empty file starts nothing (no network call, no ad). Fill a section to turn that part on; docs/ADS_UNITY.md says where each value comes from.",
+  "pulse": {
+    "_help": "Studio Pulse analytics: collector URL (https in store builds) + public write key. Both or nothing.",
+    "collectorUrl": "",
+    "writeKey": "",
+    "consentRequired": false
+  },
+  "privacy": {
+    "_help": "Shared by the ad providers. attUsageDescription: the iOS tracking prompt text per language (en is required for the prompt). gdprConsent: \"\", \"granted\" or \"denied\" when the game has no consent platform.",
+    "privacyPolicyUrl": "",
+    "termsOfServiceUrl": "",
+    "attUsageDescription": [
+      { "lang": "en", "text": "" }
+    ],
+    "requestAtt": true,
+    "gdprConsent": "",
+    "childDirected": false
+  },
+  "levelplay": {
+    "_help": "Unity LevelPlay (first choice): app keys from the LevelPlay platform (Apps), ad unit ids (Ad units). tools/ads_onboard.py fills these in.",
+    "iosAppKey": "",
+    "androidAppKey": "",
+    "ios": { "rewarded": "", "interstitial": "", "banner": "" },
+    "android": { "rewarded": "", "interstitial": "", "banner": "" },
+    "testSuite": false,
+    "bannerPosition": "bottom"
+  },
+  "max": {
+    "_help": "AppLovin MAX (used only when levelplay is empty for the platform): SDK key (Account > General > Keys) and ad unit ids. tools/ads_onboard.py --provider max fills the ids in.",
+    "sdkKey": "",
+    "ios": { "rewarded": "", "interstitial": "", "banner": "" },
+    "android": { "rewarded": "", "interstitial": "", "banner": "" },
+    "termsAndPrivacyFlow": true,
+    "verboseLogging": false,
+    "bannerPosition": "bottom"
+  },
+  "appsflyer": {
+    "_help": "AppsFlyer MMP (needs the AppsFlyer Unity plug-in 7.x in the project): dev key; iosAppId is the numeric App Store id.",
+    "devKey": "",
+    "iosAppId": "",
+    "debug": false
+  },
+  "pacing": {
+    "_help": "Optional limits on top of the game's own (0 = none).",
+    "interstitialMinSeconds": 0,
+    "interstitialsPerDay": 0,
+    "rewardedPerDay": 0
+  }
+}

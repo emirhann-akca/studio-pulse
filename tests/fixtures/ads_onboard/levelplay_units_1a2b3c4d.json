@@ -1,0 +1,7 @@
+[
+  {"mediationAdUnitId": "rw00000000000001", "mediationAdUnitName": "Rewarded", "adFormat": "rewarded",
+   "hasAbTest": false, "isPaused": true, "reward": {"rewardItemName": "Virtual Item", "rewardAmount": 1},
+   "settings": [{"testGroup": null, "cappingEnabled": false, "pacingEnabled": false}]},
+  {"mediationAdUnitId": "bn00000000000001", "mediationAdUnitName": "Banner", "adFormat": "banner",
+   "hasAbTest": false, "isPaused": false, "settings": [{"testGroup": null, "bannerRefreshRate": 25}]}
+]

@@ -1,0 +1,27 @@
+{
+    "name": "Studio.Pulse.Ads.AppsFlyer",
+    "rootNamespace": "Studio.Pulse.Ads",
+    "references": [
+        "Studio.Pulse",
+        "Studio.Pulse.Core",
+        "Studio.Pulse.Ads",
+        "AppsFlyer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "STUDIO_PULSE_APPSFLYER"
+    ],
+    "versionDefines": [
+        {
+            "name": "appsflyer-unity-plugin",
+            "expression": "7.0.0",
+            "define": "STUDIO_PULSE_APPSFLYER"
+        }
+    ],
+    "noEngineReferences": false
+}

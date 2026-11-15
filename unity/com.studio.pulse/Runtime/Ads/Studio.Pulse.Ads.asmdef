@@ -1,0 +1,17 @@
+{
+    "name": "Studio.Pulse.Ads",
+    "rootNamespace": "Studio.Pulse.Ads",
+    "references": [
+        "Studio.Pulse",
+        "Studio.Pulse.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

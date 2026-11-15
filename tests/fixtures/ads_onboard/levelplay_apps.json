@@ -1,0 +1,8 @@
+[
+  {"appKey": "1a2b3c4d", "appName": "Example Puzzle", "appStatus": "active", "platform": "iOS",
+   "bundleId": "com.example.puzzle", "taxonomy": "puzzle", "coppa": 0, "ccpa": 0},
+  {"appKey": "9z8y7x6w", "appName": "Other Game", "appStatus": "active", "platform": "Android",
+   "bundleId": "com.example.other", "taxonomy": "puzzle", "coppa": 0, "ccpa": 0},
+  {"appKey": "0ld0ld00", "appName": "Example Puzzle (old)", "appStatus": "archived", "platform": "iOS",
+   "bundleId": "com.example.puzzle", "taxonomy": "puzzle", "coppa": 0, "ccpa": 0}
+]

@@ -1,0 +1,8 @@
+[
+  {"name": "Example Puzzle iOS Rewarded", "platform": "ios", "package_name": "com.example.puzzle",
+   "ad_format": "REWARD", "id": "45de6aa565cf865f", "has_active_experiment": false, "disabled": false},
+  {"name": "Old inter", "platform": "android", "package_name": "com.example.puzzle",
+   "ad_format": "INTER", "id": "0000000000000bad", "has_active_experiment": false, "disabled": true},
+  {"name": "Someone else", "platform": "android", "package_name": "com.example.other",
+   "ad_format": "INTER", "id": "565c45df8e6aa65f", "has_active_experiment": false, "disabled": false}
+]

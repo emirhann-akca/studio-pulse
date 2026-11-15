@@ -1,0 +1,27 @@
+{
+    "name": "Studio.Pulse.Ads.LevelPlay",
+    "rootNamespace": "Studio.Pulse.Ads",
+    "references": [
+        "Studio.Pulse",
+        "Studio.Pulse.Core",
+        "Studio.Pulse.Ads",
+        "Unity.LevelPlay"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "STUDIO_PULSE_LEVELPLAY_ADS"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.services.levelplay",
+            "expression": "[9.5.0,10.0.0)",
+            "define": "STUDIO_PULSE_LEVELPLAY_ADS"
+        }
+    ],
+    "noEngineReferences": false
+}

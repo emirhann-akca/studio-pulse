@@ -19,6 +19,13 @@ namespace Studio.Pulse
         /// <summary>Capture managed exceptions as pulse_error (Unity log hook, Flutter error hooks).</summary>
         public bool CaptureErrors = true;
 
+        /// <summary>
+        /// Record ad_impression from the ad SDK bridges (AppLovin MAX, Unity LevelPlay) without
+        /// game code. False: the bridges' impressions are ignored and manual AdImpression calls
+        /// for those platforms are recorded instead (docs/SDK_UNITY.md "Ad revenue").
+        /// </summary>
+        public bool AutoCaptureAdRevenue = true;
+
         public int FlushEvents = PulseContract.Limits.FlushEvents;
         public int FlushIntervalMs = PulseContract.Limits.FlushIntervalMs;
         public int SessionTimeoutMs = PulseContract.Limits.SessionTimeoutMs;

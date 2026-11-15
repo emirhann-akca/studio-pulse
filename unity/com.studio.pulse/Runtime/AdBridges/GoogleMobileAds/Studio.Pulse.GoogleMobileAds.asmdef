@@ -1,0 +1,27 @@
+{
+    "name": "Studio.Pulse.GoogleMobileAds",
+    "rootNamespace": "Studio.Pulse",
+    "references": [
+        "Studio.Pulse",
+        "Studio.Pulse.Core",
+        "GoogleMobileAds.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "STUDIO_PULSE_GMA",
+        "!STUDIO_PULSE_NO_AD_BRIDGES"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.google.ads.mobile",
+            "expression": "6.0.0",
+            "define": "STUDIO_PULSE_GMA"
+        }
+    ],
+    "noEngineReferences": false
+}

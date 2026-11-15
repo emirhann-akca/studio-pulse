@@ -1,0 +1,14 @@
+{
+  "name": "Example Puzzle",
+  "platforms": {
+    "ios": {"bundle_id": "com.example.puzzle", "app_store_id": "1234567890"},
+    "android": {"package_name": "com.example.puzzle"}
+  },
+  "ad_formats": ["rewarded", "interstitial"],
+  "rewarded_item": {"name": "Coins", "amount": 1},
+  "levelplay_taxonomy": "puzzle",
+  "coppa": false,
+  "privacy_policy_url": "https://example.com/puzzle/privacy",
+  "developer_website": "https://example.com",
+  "unity_config": "Assets/Resources/studio_app.json"
+}

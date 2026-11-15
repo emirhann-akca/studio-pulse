@@ -2,7 +2,7 @@
   "name": "com.studio.pulse",
   "version": "2.0.0",
   "displayName": "Studio Pulse",
-  "description": "Game analytics SDK for the studio-pulse collector (event contract v2): crash-safe disk queue, batching, gzip, retries with backoff, sessions, install store, level / economy / ad / purchase / settings events, managed errors, consent and opt-out, plus frame-time, memory and load-time telemetry. Pure C# core, thin Unity adapter.",
+  "description": "Game analytics SDK for the studio-pulse collector (event contract v2): crash-safe disk queue, batching, gzip, retries with backoff, sessions, install store, level / economy / ad / purchase / settings events, managed errors, consent and opt-out, plus frame-time, memory and load-time telemetry. Optional: automatic ad revenue from AppLovin MAX and Unity LevelPlay, and an ads layer (LevelPlay or MAX, ATT, AppsFlyer hook) driven by one config file. Pure C# core, thin Unity adapter.",
   "unity": "2021.3",
   "license": "MIT",
   "author": {
@@ -18,6 +18,11 @@
       "displayName": "Quick Start",
       "description": "Pulse.Init at startup and level, fail position and setting events from game code.",
       "path": "Samples~/QuickStart"
+    },
+    {
+      "displayName": "Ads Quick Start",
+      "description": "studio_app.json with empty defaults (analytics, LevelPlay / AppLovin MAX ads, AppsFlyer) and StudioApp.Start / StudioAds calls.",
+      "path": "Samples~/AdsQuickStart"
     }
   ]
 }

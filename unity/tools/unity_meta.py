@@ -23,6 +23,9 @@ TAIL = "  userData: \n  assetBundleName: \n  assetBundleVariant: \n"
 # includes these files only when the project defines STUDIO_PULSE_IOS_NATIVE, so a build
 # that never starts the SDK does not ship a manifest declaring collected data.
 IOS_NATIVE_DEFINE = "STUDIO_PULSE_IOS_NATIVE"
+# The App Tracking Transparency request of the ads package (Plugins/iOS/Ads) has its own
+# define, STUDIO_PULSE_ATT: only apps that show ads link it.
+ATT_DEFINE = "STUDIO_PULSE_ATT"
 IOS_PLUGIN = (
     """PluginImporter:
   externalObjects: {}
@@ -76,6 +79,8 @@ def meta_for(path: Path) -> str:
         return head + "AssemblyDefinitionImporter:\n  externalObjects: {}\n" + TAIL
     if path.name == "package.json":
         return head + "PackageManifestImporter:\n  externalObjects: {}\n" + TAIL
+    if ext in (".swift", ".mm", ".m", ".xcprivacy") and "Plugins/iOS/Ads/" in rel:
+        return head + IOS_PLUGIN.replace(f"  - {IOS_NATIVE_DEFINE}\n", f"  - {ATT_DEFINE}\n")
     if ext in (".swift", ".mm", ".m", ".xcprivacy") and "Plugins/iOS" in rel:
         return head + IOS_PLUGIN
     if ext in (".md", ".txt", ".json"):

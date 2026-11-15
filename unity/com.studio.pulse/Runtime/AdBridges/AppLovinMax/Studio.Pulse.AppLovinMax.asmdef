@@ -1,0 +1,27 @@
+{
+    "name": "Studio.Pulse.AppLovinMax",
+    "rootNamespace": "Studio.Pulse.AdBridges",
+    "references": [
+        "Studio.Pulse",
+        "Studio.Pulse.Core",
+        "MaxSdk.Scripts"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "STUDIO_PULSE_MAX",
+        "!STUDIO_PULSE_NO_AD_BRIDGES"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.applovin.mediation.ads",
+            "expression": "8.0.0",
+            "define": "STUDIO_PULSE_MAX"
+        }
+    ],
+    "noEngineReferences": false
+}
