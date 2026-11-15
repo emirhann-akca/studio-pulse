@@ -5,3 +5,6 @@
 54c30ab390a577a73947d24b48ff2b64f6b31a9a:tests/test_llm.py:generic-api-key:139
 54c30ab390a577a73947d24b48ff2b64f6b31a9a:tests/test_llm.py:generic-api-key:189
 54c30ab390a577a73947d24b48ff2b64f6b31a9a:tests/test_llm.py:generic-api-key:192
+# tests/test_connections.py: a made-up Meta token ("EAAB1234567890abcdefXYZ") that the
+# pipeline error-masking test checks never reaches the UI.
+eba2c8b10e3d25772f205213f0e14386692f48e0:tests/test_connections.py:generic-api-key:221

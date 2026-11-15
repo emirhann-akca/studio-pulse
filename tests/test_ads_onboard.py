@@ -110,13 +110,16 @@ class FakeMax:
 
 @pytest.fixture
 def app_dir(tmp_path):
-    (tmp_path / "studio-app.json").write_text((FIX / "studio-app.json").read_text(encoding="utf-8"))
+    (tmp_path / "studio-app.json").write_text(
+        (FIX / "studio-app.json").read_text(encoding="utf-8"), encoding="utf-8"
+    )
     cfg = tmp_path / "Assets/Resources/studio_app.json"
     cfg.parent.mkdir(parents=True)
     cfg.write_text(
         json.dumps(
             {"pulse": {"collectorUrl": "", "writeKey": ""}, "levelplay": {"testSuite": False}}
-        )
+        ),
+        encoding="utf-8",
     )
     return tmp_path
 
@@ -280,6 +283,6 @@ def test_without_credentials_it_explains_and_prints_app_ads_txt(app_dir, monkeyp
 def test_manifest_errors_are_clear(tmp_path, patch, message):
     m = {**fixture("studio-app.json"), **patch}
     p = tmp_path / "m.json"
-    p.write_text(json.dumps(m))
+    p.write_text(json.dumps(m), encoding="utf-8")
     with pytest.raises(tool.OnboardError, match=message):
         tool.load_manifest(p)
