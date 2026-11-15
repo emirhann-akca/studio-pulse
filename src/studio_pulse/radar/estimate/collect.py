@@ -49,7 +49,7 @@ def parse_target(text: str) -> tuple[str, str]:
     t = text.strip()
     if t.startswith("http"):
         u = urlsplit(t)
-        if u.hostname and u.hostname.endswith("apple.com"):
+        if u.hostname in ("apps.apple.com", "itunes.apple.com"):  # exact hosts, not a suffix
             m = re.search(r"/id(\d+)", u.path)
             if m:
                 return "apple", m.group(1)

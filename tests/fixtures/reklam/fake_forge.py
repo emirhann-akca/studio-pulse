@@ -36,7 +36,13 @@ def out(obj: object) -> None:
 
 
 def arg(args: list[str], name: str) -> str | None:
-    return args[args.index(name) + 1] if name in args else None
+    """`--name value` or `--name=value` (studio-pulse sends the second form)."""
+    for i, a in enumerate(args):
+        if a == name and i + 1 < len(args):
+            return args[i + 1]
+        if a.startswith(name + "="):
+            return a[len(name) + 1 :]
+    return None
 
 
 def main(args: list[str]) -> int:
@@ -47,7 +53,8 @@ def main(args: list[str]) -> int:
     video = run / "cf1.mm.brief.clean.main.main.9x16.tr.0123456789.mp4"
     if args[0] == "snapshot":
         run.mkdir(parents=True, exist_ok=True)
-        video.write_bytes(b"\x00\x00\x00\x18ftypmp42")
+        if not video.exists():  # written once: on Windows a file being served cannot be rewritten
+            video.write_bytes(b"\x00\x00\x00\x18ftypmp42")
         app = {
             "id": "mossy_match",
             "name": "Mossy Match",
@@ -56,8 +63,9 @@ def main(args: list[str]) -> int:
         }
         pl = ROOT / "playables" / "src" / "mm-sample"
         pl.mkdir(parents=True, exist_ok=True)
-        (pl / "index.html").write_text("<!doctype html><title>p</title><script>document.title='x'</script>",
-                                       encoding="utf-8")  # fmt: skip
+        if not (pl / "index.html").exists():
+            (pl / "index.html").write_text("<!doctype html><title>p</title><script>document.title='x'</script>",
+                                           encoding="utf-8")  # fmt: skip
         out({
             "schema": "creative-forge/snapshot/v1", "version": "0.0.0", "root": str(ROOT),
             "creatives": [{
@@ -98,7 +106,7 @@ def main(args: list[str]) -> int:
         out(res)
         return 0
     if args[0] == "review":
-        s["review"] = "approve" if "--approve" in args else "reject"
+        s["review"] = "approve" if arg(args, "--approve") else "reject"
         save(s)
         out({"schema": "creative-forge/review/v1", "exports": []})
         return 0

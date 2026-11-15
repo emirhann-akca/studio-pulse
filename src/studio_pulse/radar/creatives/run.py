@@ -106,10 +106,10 @@ def refresh_google(
     last = _last_ok(con, "google_atc")
     if last and not force and not dry_run_only and (today - last.date()).days < s.every_days:
         return {"status": "fresh", "last_run": last.isoformat(), "advertisers": len(advs)}
-    secrets_ = (project,) if project else ()
+    hide = (project,) if project else ()  # the project id stays out of logs and messages
 
     def say(m: str) -> None:
-        log(redact(m, secrets_))
+        log(redact(m, hide))
 
     factory = None
     if project or client is not None:
@@ -154,7 +154,7 @@ def refresh_google(
     except BytesCapExceeded as exc:
         status, msg = "refused", str(exc)
     except Exception as exc:
-        status, msg = "error", redact(f"{type(exc).__name__}: {exc}", secrets_)[:400]
+        status, msg = "error", redact(f"{type(exc).__name__}: {exc}", hide)[:400]
     est = sum(x.estimated_bytes or 0 for x in ex.stats)
     billed = sum(x.billed_bytes or 0 for x in ex.stats)
     n = 0
@@ -200,8 +200,9 @@ def refresh_meta(
         max_pages=s.meta_max_pages, since=_since(con, "meta", s, today), today=today,
         now=store.utcnow(), session=session, token=token, log=log,
     )  # fmt: skip
-    if res["status"] == "not_configured":
-        return {"status": "not_configured", "message": res["message"]}
+    if res["status"] == "not_configured":  # a fixed message: nothing read from the client
+        return {"status": "not_configured",
+                "message": "set PULSE_META_AD_LIBRARY_TOKEN (Meta Ad Library API access)"}  # fmt: skip
     res["rows_n"] = _upsert(con, res.pop("rows"))
     _log_run(con, "meta", res)
     return res
@@ -358,11 +359,26 @@ def refresh(
     if tag:
         out["tags"] = tag_pending(con, s, llm, log=log)
         if llm is not None:
-            out["llm"] = llm.summary()
+            out["llm"] = llm_usage(llm)
             _log_run(con, "tags", {"status": "ok", "rows_n": out["tags"]["tagged"],
                                    "cost_usd": out["tags"]["cost_usd"]})  # fmt: skip
     out["creatives"] = con.execute("SELECT COUNT(*) FROM mr_creative").fetchone()[0]
     return out
+
+
+def llm_usage(llm: Any) -> dict[str, Any]:
+    """What a printed result says about the model calls: provider, model, requests, cache hits and
+    cost. Built from the client's own counters, never from its whole summary, so nothing that names
+    a credential or a token count travels into the JSON a command prints."""
+    provider = getattr(llm, "provider", None)
+    return {
+        "provider": str(getattr(provider, "name", "") or getattr(llm, "name", "")),
+        "model": str(getattr(provider, "model", "") or ""),
+        "requests": int(getattr(llm, "requests", 0) or 0),
+        "cache_hits": int(getattr(llm, "cache_hits", 0) or 0),
+        "cost_usd": round(float(getattr(llm, "spent_usd", 0.0) or 0.0), 6),
+        "budget_usd": getattr(llm, "budget_usd", None),
+    }
 
 
 def run_in_pipeline(

@@ -53,12 +53,16 @@ def parse_target(text: str) -> Target:
     m = re.fullmatch(r"(?:id)?(\d{5,})", t)
     if m:
         return Target(raw=t, apple_id=m.group(1))
-    m = re.search(r"apps\.apple\.com/.*/id(\d{5,})", t)
-    if m:
-        return Target(raw=t, apple_id=m.group(1))
-    m = re.search(r"[?&]id=([A-Za-z0-9_.]+)", t)
-    if m and "play.google.com" in t:
-        t = m.group(1)
+    if "/" in t:  # a store URL (with or without the scheme): parse it, compare hosts exactly
+        from urllib.parse import parse_qs, urlsplit
+
+        u = urlsplit(t if "://" in t else "https://" + t)
+        host = (u.hostname or "").lower()
+        m = re.search(r"/id(\d{5,})", u.path)
+        if host in ("apps.apple.com", "itunes.apple.com") and m:
+            return Target(raw=t, apple_id=m.group(1))
+        if host == "play.google.com":
+            t = (parse_qs(u.query).get("id") or [""])[0]
     if _PACKAGE.match(t):
         return Target(raw=text, play_package=t)
     raise TargetError(f"{text!r} is neither an Apple app id nor a Play package name")

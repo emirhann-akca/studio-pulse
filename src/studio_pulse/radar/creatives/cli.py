@@ -16,6 +16,8 @@ def _day(s: str | None) -> dt.date | None:
 
 
 def _print(obj: object) -> None:
+    """The commands' JSON: counts, statuses, redacted messages and the model's usage (requests and
+    cost, see run.llm_usage); never a credential or the LLM client's own summary."""
     print(json.dumps(obj, indent=2, default=str, ensure_ascii=False))
 
 
@@ -131,7 +133,7 @@ def cmd_add(args: argparse.Namespace) -> int:
             res["tags"] = run.tag_pending(con, s, llm, keys=[row["creative_key"]],
                                           log=lambda m: print(m, file=sys.stderr))  # fmt: skip
             if llm is not None:
-                res["llm"] = llm.summary()
+                res["llm"] = run.llm_usage(llm)
     finally:
         con.close()
     _print(res)
@@ -152,7 +154,7 @@ def cmd_tag(args: argparse.Namespace) -> int:
     finally:
         con.close()
     if llm is not None:
-        res["llm"] = llm.summary()
+        res["llm"] = run.llm_usage(llm)
     _print(res)
     return 0
 

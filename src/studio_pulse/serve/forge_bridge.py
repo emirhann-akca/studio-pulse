@@ -287,21 +287,20 @@ class Forge:
             folder / f"{jid}.out.json",
             folder / f"{jid}.err.txt",
         )
-        args = ["make", "--json", "--app", app, "--app-name", app_name, "--variants", str(variants),
-                "--providers", providers, "--progress", str(progress), "--mechanic", mechanic]  # fmt: skip
+        args = ["make", "--json", opt("--app", app), opt("--app-name", app_name), opt("--variants", variants),
+                opt("--providers", providers), opt("--progress", progress), opt("--mechanic", mechanic)]  # fmt: skip
         if brief:
-            args += ["--brief", brief]
+            args.append(opt("--brief", brief))
         if store_url:
-            args += ["--store-url", store_url]
+            args.append(opt("--store-url", store_url))
         if hook:
-            args += ["--hook", hook]
+            args.append(opt("--hook", hook))
         if ref:
-            args += ["--ref", ref]
-        for lang in languages:
-            args += ["--language", lang]
+            args.append(opt("--ref", ref))
+        args += [opt("--language", lang) for lang in languages]
         if providers == "vertex":
-            args += ["--budget-usd", f"{budget:.2f}"] if budget else []
-            args += ["--gameplay", gameplay] if gameplay else []
+            args += [opt("--budget-usd", f"{budget:.2f}")] if budget else []
+            args += [opt("--gameplay", gameplay)] if gameplay else []
         args += self._common(root=True)
         with open(out, "wb") as fo, open(errf, "wb") as fe:
             kwargs: dict[str, Any] = {
@@ -325,25 +324,30 @@ class Forge:
     def review(self, run_dir: str, file: str, decision: str, note: str, reviewer: str) -> Result:
         flag = "--approve" if decision == "approve" else "--reject"
         res = self.run(
-            ["review", run_dir, flag, file, "--note", note, "--reviewer", reviewer, "--json"]
+            [
+                "review",
+                run_dir,
+                opt(flag, file),
+                opt("--note", note),
+                opt("--reviewer", reviewer),
+                "--json",
+            ]
         )
         self.invalidate()
         return res
 
     def publish(self, run_dir: str, dest: Path) -> Result:
-        res = self.run(["publish", run_dir, "--to", str(dest), "--json"])
+        res = self.run(["publish", run_dir, opt("--to", dest), "--json"])
         self.invalidate()
         return res
 
     def init_campaign(self, *, root: Path, name: str, creatives: str, store_url: str, daily: float, total: float,
                       countries: list[str], networks: list[str], app: str) -> Result:  # fmt: skip
         """A starter config under <root>/campaigns (mock accounts for the API networks, manual packs otherwise)."""
-        args = ["campaign", "init", "--json", "--root", str(root), "--name", name, "--creatives", creatives,
-                "--store-url", store_url, "--daily", f"{daily:.2f}", "--total-cap", f"{total:.2f}", "--app", app]  # fmt: skip
-        for c in countries:
-            args += ["--country", c]
-        for n in networks:
-            args += ["--network", n]
+        args = ["campaign", "init", "--json", opt("--root", root), opt("--name", name), opt("--creatives", creatives),
+                opt("--store-url", store_url), opt("--daily", f"{daily:.2f}"), opt("--total-cap", f"{total:.2f}"),
+                opt("--app", app)]  # fmt: skip
+        args += [opt("--country", c) for c in countries] + [opt("--network", n) for n in networks]
         return self.run(args)
 
     def create(self, config: str) -> Result:
@@ -359,8 +363,7 @@ class Forge:
             "campaign",
             "activate",
             ref,
-            "--confirm",
-            phrase,
+            opt("--confirm", phrase),
             "--json",
             *self._common(state=True, db=True),
         ]
@@ -383,16 +386,19 @@ class Forge:
                 "playable",
                 "pack",
                 source,
-                "--network",
-                network,
+                opt("--network", network),
                 "--cta-adapter",
-                "--out",
-                out,
+                opt("--out", out),
                 "--json",
             ]
         )
         self.invalidate()
         return res
+
+
+def opt(name: str, value: Any) -> str:
+    """`--name=value`: a value is never read as an option of its own, even when it starts with '-'."""
+    return f"{name}={value}"
 
 
 def _env() -> dict[str, str]:

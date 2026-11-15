@@ -61,6 +61,7 @@ from .forge_bridge import (
     PLAYABLE_NETWORKS,
     Forge,
     ForgeError,
+    opt,
 )
 from .ui import request_lang
 
@@ -614,6 +615,16 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
     templates.env.globals["reklam_nav"] = True  # the sidebar shows "Reklam Merkezi"
 
     # ------------------------------------------------------------------------------------------- helpers
+    def polling(config_id: str, text: str) -> str:
+        """The refresh notice that polls /reklam/<id>/durum: the id is the config's (never the URL's),
+        and both it and the fixed text are escaped."""
+        from html import escape
+        from urllib.parse import quote
+
+        url = escape(f"/reklam/{quote(config_id, safe='')}/durum", quote=True)
+        return (f'<div class="callout info" role="status" hx-get="{url}" hx-trigger="every 4s" '
+                f'hx-swap="outerHTML">{escape(text)}</div>')  # fmt: skip
+
     def money(v: Any, lang: str) -> str:
         return C.fmt(v, "usd", lang)
 
@@ -913,6 +924,7 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
         app_obj = known(app_id)
         if app_obj is None:
             return PlainTextResponse(t["not_found"], 404)
+        app_id = app_obj.id  # the config's own id from here on, not the URL's
         q = request.query_params
         rkey = q.get("range") if q.get("range") in RANGES else "7d"
         flash = flashes.pop(str(q.get("m") or ""), None)
@@ -1005,21 +1017,29 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
     @app.get("/reklam", response_class=HTMLResponse)
     def reklam_home(request: Request):
         q = request.query_params
-        chosen = q.get("oyun")  # the game switcher's form (works without JavaScript)
-        if chosen and known(chosen):
-            return RedirectResponse(f"/reklam/{chosen}", status_code=303)
-        last = request.cookies.get(COOKIE)
-        if any(q.get(k) for k in PREFILL):  # a competitor creative's "make one like this" link
-            from urllib.parse import urlencode
+        from urllib.parse import quote, urlencode
 
-            target = last if last and known(last) else (cfg.apps[0].id if cfg.apps else None)
+        def to(config_id: str, query: dict[str, str] | None = None, frag: str = "") -> str:
+            """A path on this page built from a config id; request values only url-encoded in the query."""
+            return (
+                f"/reklam/{quote(config_id, safe='')}"
+                + (f"?{urlencode(query)}" if query else "")
+                + frag
+            )
+
+        # the game switcher's form (works without JavaScript)
+        chosen = known(str(q.get("oyun") or ""))
+        if chosen is not None:
+            return RedirectResponse(to(chosen.id), status_code=303)
+        last = known(str(request.cookies.get(COOKIE) or ""))
+        if any(q.get(k) for k in PREFILL):  # a competitor creative's "make one like this" link
+            target = last or (cfg.apps[0] if cfg.apps else None)
             if target is None:
                 return PlainTextResponse(T[request_lang(request)]["not_found"], 404)
-            keep = {k: str(q[k])[:400] for k in PREFILL if q.get(k)}
-            return RedirectResponse(f"/reklam/{target}?{urlencode({'sekme': 'uret', **keep})}#sihirbaz",
-                                    status_code=303)  # fmt: skip
-        if last and known(last):
-            return RedirectResponse(f"/reklam/{last}", status_code=307)
+            keep = {"sekme": "uret", **{k: str(q[k])[:400] for k in PREFILL if q.get(k)}}
+            return RedirectResponse(to(target.id, keep, "#sihirbaz"), status_code=303)
+        if last is not None:
+            return RedirectResponse(to(last.id), status_code=307)
         con, _ = open_db(cfg)
         try:
             apps = apps_list(con)
@@ -1028,7 +1048,7 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
                 con.close()
         if not apps:
             return PlainTextResponse(T[request_lang(request)]["not_found"], 404)
-        return RedirectResponse(f"/reklam/{apps[0]['id']}", status_code=307)
+        return RedirectResponse(to(apps[0]["id"]), status_code=307)
 
     @app.get("/reklam/{app_id}", response_class=HTMLResponse)
     def reklam_app(request: Request, app_id: str, sekme: str = "genel"):
@@ -1040,6 +1060,7 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
         app_obj = known(app_id)
         if app_obj is None:
             return PlainTextResponse(T[lang]["not_found"], 404)
+        app_id = app_obj.id  # the config's own id from here on, not the URL's
         q = request.query_params
         rkey = q.get("range") if q.get("range") in RANGES else "7d"
         con, _ = open_db(cfg)
@@ -1063,6 +1084,7 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
         app_obj = known(app_id)
         if app_obj is None or not key or len(key) > 300:
             return PlainTextResponse(t["not_found"], 404)
+        app_id = app_obj.id  # the config's own id from here on, not the URL's
         q = request.query_params
         rkey = q.get("range") if q.get("range") in RANGES else "7d"
         con, _ = open_db(cfg)
@@ -1115,8 +1137,8 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
         app_obj = known(app_id)
         if app_obj is None:
             return PlainTextResponse(t["not_found"], 404)
-        kinds = sorted({k.split("@", 1)[0] for k in (app_obj.sources or {})
-                        if k.split("@", 1)[0] in (*D.SOURCE.values(), "ua_csv")})  # fmt: skip
+        app_id = app_obj.id  # the config's own id from here on, not the URL's
+        kinds = sorted({k.split("@", 1)[0] for k in (app_obj.sources or {})} & set(UA_KINDS))
         if not kinds:
             return HTMLResponse(
                 f'<div class="callout warn" role="status">{t["refresh_none"]}</div>', 409
@@ -1129,23 +1151,21 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
                 f'<div class="callout warn" role="status">{t["refresh_locked"]}</div>', 409
             )
         launch = getattr(app.state, "reklam_launcher", None) or ua_launcher
-        launch(cfg, app_id, kinds)
-        return HTMLResponse(
-            f'<div class="callout info" role="status" hx-get="/reklam/{app_id}/durum" hx-trigger="every 4s" '
-            f'hx-swap="outerHTML">{t["refresh_started"]}</div>', 202)  # fmt: skip
+        launch(cfg, app_obj.id, kinds)
+        return HTMLResponse(polling(app_obj.id, t["refresh_started"]), 202)
 
     @app.get("/reklam/{app_id}/durum", response_class=HTMLResponse)
     def reklam_status(request: Request, app_id: str):
         """Polled while a refresh runs; tells htmx to reload the page when it has finished."""
         t = T[request_lang(request)]
-        if known(app_id) is None:
+        app_obj = known(app_id)
+        if app_obj is None:
             return PlainTextResponse(t["not_found"], 404)
         from .. import runstate
 
         hb = runstate.read_heartbeat(cfg.state_dir) or {}
         if hb.get("status") == "running":
-            return HTMLResponse(f'<div class="callout info" role="status" hx-get="/reklam/{app_id}/durum" '
-                                f'hx-trigger="every 4s" hx-swap="outerHTML">{t["refresh_busy"]}</div>')  # fmt: skip
+            return HTMLResponse(polling(app_obj.id, t["refresh_busy"]))
         return HTMLResponse("", headers={"HX-Refresh": "true"})
 
     # ---- create ---------------------------------------------------------------------------------------
@@ -1159,6 +1179,7 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
         app_obj = known(app_id)
         if app_obj is None:
             return PlainTextResponse(t["not_found"], 404)
+        app_id = app_obj.id  # the config's own id from here on, not the URL's
         form = await read_form(request)
         try:
             fmt_ = str(form.get("format") or "video")
@@ -1199,9 +1220,11 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
     @app.get("/reklam/{app_id}/is/{jid}", response_class=HTMLResponse)
     def reklam_job(request: Request, app_id: str, jid: str):
         lang = request_lang(request)
+        app_obj = known(app_id)
         job = forge.job(jid)
-        if job is None or job.app != app_id:
+        if app_obj is None or job is None or job.app != app_obj.id:
             return PlainTextResponse(T[lang]["not_found"], 404)
+        app_id = app_obj.id
         st = job.state()
         resp = templates.TemplateResponse(request, "_reklam_job.html",
                                           context(request, "fragment", t=T[lang], j=st, app_id=app_id))  # fmt: skip
@@ -1220,15 +1243,16 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
         lang = request_lang(request)
         t = T[lang]
         app_obj = known(app_id)
+        if app_obj is None:
+            return PlainTextResponse(t["not_found"], 404)
+        app_id = app_obj.id  # the config's own id from here on, not the URL's
         form = await read_form(request)
         key = str(form.get("key") or "")
         decision = str(form.get("decision") or "")
         note = str(form.get("note") or "").strip()[:300]
         snapshot = snap()[0]
-        item = (
-            next((c for c in for_app(snapshot, app_obj)["creatives"] if c.get("key") == key), None)
-            if app_obj
-            else None
+        item = next(
+            (c for c in for_app(snapshot, app_obj)["creatives"] if c.get("key") == key), None
         )
         if item is None or decision not in ("approve", "reject"):
             return PlainTextResponse(t["bad_input"], 400)
@@ -1256,6 +1280,7 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
         app_obj = known(app_id)
         if app_obj is None:
             return PlainTextResponse(t["not_found"], 404)
+        app_id = app_obj.id  # the config's own id from here on, not the URL's
         form = await read_form(request)
         snapshot = snap(force=True)[0]
         mine = for_app(snapshot, app_obj)
@@ -1339,6 +1364,7 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
         app_obj = known(app_id)
         if app_obj is None:
             return PlainTextResponse(t["not_found"], 404)
+        app_id = app_obj.id  # the config's own id from here on, not the URL's
         form = await read_form(request)
         ref = str(form.get("ref") or "")
         camp = next(
@@ -1444,6 +1470,7 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
         app_obj = known(app_id)
         if app_obj is None:
             return PlainTextResponse(t["not_found"], 404)
+        app_id = app_obj.id  # the config's own id from here on, not the URL's
         form = await read_form(request)
         snapshot = snap(force=True)[0]
         if snapshot is None:
@@ -1453,10 +1480,10 @@ def register(app: FastAPI, cfg: Any, templates: Any, *, context: Any, open_db: A
                 url = D.store_url(app_obj)
                 if not url:
                     raise ValueError(t["p_store"])
-                res = forge.run(["playable", "sample", "--json", "--root", snapshot["root"], "--name",
-                                 f"{app_id.replace('_', '-')}-sample-{secrets.token_hex(2)}",
-                                 "--title", app_obj.name or app_id, "--store-url", url, "--app", app_id,
-                                 "--language", "tr" if lang == "tr" else "en"])  # fmt: skip
+                res = forge.run(["playable", "sample", "--json", opt("--root", snapshot["root"]),
+                                 opt("--name", f"{app_id.replace('_', '-')}-sample-{secrets.token_hex(2)}"),
+                                 opt("--title", app_obj.name or app_id), opt("--store-url", url),
+                                 opt("--app", app_id), opt("--language", "tr" if lang == "tr" else "en")])  # fmt: skip
                 if not res.ok:
                     raise ValueError(res.err or "sample")
                 msg = t["pl_sample_done"]
@@ -1508,13 +1535,29 @@ def cf_message(err: str, lang: str) -> str:
     return text
 
 
-def ua_launcher(cfg: Any, app_id: str, kinds: list[str]) -> int:
-    """`pulse-bg run` for one game's ad networks, through today, detached like the Health page's refresh."""
+UA_KINDS = (*D.SOURCE.values(), "ua_csv")
+
+
+def ua_argv(cfg: Any, app_id: str, kinds: list[str]) -> list[str]:
+    """The refresh command for one game's ad networks. Every value in it comes from the loaded config:
+    the app is looked up there and its own id is used, and the source kinds are the ad-network kinds
+    that app has configured; anything else is refused before a command exists."""
     from .. import schedule
 
+    app_cfg = next((a for a in cfg.apps if a.id == app_id), None)
+    if app_cfg is None or not re.fullmatch(r"[a-z0-9_]+", app_cfg.id):
+        raise ValueError("unknown app")
+    own = sorted({k.split("@", 1)[0] for k in (app_cfg.sources or {})} & set(UA_KINDS))
+    if not kinds or any(k not in own for k in kinds):
+        raise ValueError("not an ad-network source of this app")
     log = Path(cfg.state_dir) / "logs" / "pulse.log"
-    argv = [*schedule.background_program(), "--log-file", str(log), "run", "--config", str(cfg.path),
-            "--app", app_id, "--through-today", *[x for k in kinds for x in ("--source", k)]]  # fmt: skip
+    return [*schedule.background_program(), "--log-file", str(log), "run", "--config", str(cfg.path),
+            "--app", app_cfg.id, "--through-today", *[x for k in own if k in kinds for x in ("--source", k)]]  # fmt: skip
+
+
+def ua_launcher(cfg: Any, app_id: str, kinds: list[str]) -> int:
+    """`pulse-bg run` for one game's ad networks, through today, detached like the Health page's refresh."""
+    argv = ua_argv(cfg, app_id, kinds)
     kwargs: dict[str, Any] = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL,
                               "stderr": subprocess.DEVNULL, "cwd": str(cfg.base_dir)}  # fmt: skip
     if sys.platform == "win32":

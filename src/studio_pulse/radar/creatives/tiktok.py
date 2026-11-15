@@ -100,7 +100,9 @@ class TikTokCommercialContent:
             return {"status": "disabled", "message": "radar.creatives.tiktok.enabled is false "
                     "(needs an approved Commercial Content API application)"}  # fmt: skip
         if not (self.key and self.secret):
-            return {"status": "not_configured", "message": f"set {KEY_ENV} and {SECRET_ENV}"}
+            # literal names: the message is printed as JSON and carries nothing read from a credential
+            return {"status": "not_configured",
+                    "message": "set PULSE_TIKTOK_CLIENT_KEY and PULSE_TIKTOK_CLIENT_SECRET"}  # fmt: skip
         return {"status": "ready"}
 
     def _secrets(self) -> tuple[str, ...]:

@@ -57,6 +57,11 @@ def bare(cfg, monkeypatch, tmp_path):
     return TestClient(create_app(cfg, token="t"), base_url=HOST)
 
 
+def val(args: list[str], name: str) -> list[str]:
+    """Every value of `--name=value` in an argument list (studio-pulse always sends that form)."""
+    return [a[len(name) + 1 :] for a in args if a.startswith(name + "=")]
+
+
 def calls(log: Path) -> list[list[str]]:
     return (
         [json.loads(x) for x in log.read_text(encoding="utf-8").splitlines()]
@@ -315,27 +320,37 @@ def test_wizard_runs_forge_make_with_the_games_ids(client, forge_env):
     assert r.status_code == 200 and r.headers["hx-redirect"].endswith("#isler")
     import time
 
-    for _ in range(50):
+    for _ in range(
+        300
+    ):  # the job is a real subprocess: allow a slow interpreter start (Windows CI)
         make = [c for c in calls(forge_env) if c[0] == "make"]
         if make:
             break
-        time.sleep(0.1)
+        time.sleep(0.2)
     (args,) = make
-    assert (
-        args[args.index("--app") + 1] == "mossy_match"
-        and args[args.index("--providers") + 1] == "fake"
-    )
-    assert (
-        args[args.index("--store-url") + 1]
-        == "https://play.google.com/store/apps/details?id=demo.mossymatch"
-    )
-    assert (
-        args[args.index("--variants") + 1] == "3"
-        and args[args.index("--brief") + 1] == "toz <b>temizle</b>"
-    )
-    assert ["--language", "tr"] == args[args.index("--language") : args.index("--language") + 2]
-    assert args[args.index("--hook") + 1] == "reveal" and args[args.index("--ref") + 1] == "meta:42"
-    assert "--budget-usd" not in args  # a trial run has no budget and calls nothing paid
+    assert val(args, "--app") == ["mossy_match"] and val(args, "--providers") == ["fake"]
+    assert val(args, "--store-url") == [
+        "https://play.google.com/store/apps/details?id=demo.mossymatch"
+    ]
+    assert val(args, "--variants") == ["3"] and val(args, "--brief") == ["toz <b>temizle</b>"]
+    assert val(args, "--language") == ["tr", "en"]
+    assert val(args, "--hook") == ["reveal"] and val(args, "--ref") == ["meta:42"]
+    assert not val(args, "--budget-usd")  # a trial run has no budget and calls nothing paid
+
+
+def test_a_brief_that_looks_like_an_option_stays_a_value(client, forge_env):
+    import time
+
+    client.post("/reklam/mossy_match/uret", headers=POST,
+                data={"format": "video", "brief": "--providers=vertex --budget-usd=999", "variants": "1"})  # fmt: skip
+    for _ in range(300):
+        make = [c for c in calls(forge_env) if c[0] == "make"]
+        if make:
+            break
+        time.sleep(0.2)
+    (args,) = make
+    assert val(args, "--brief") == ["--providers=vertex --budget-usd=999"]
+    assert val(args, "--providers") == ["fake"] and "--providers=vertex" not in args
 
 
 def test_wizard_refuses_a_paid_run_without_budget_and_gameplay(client, forge_env):
@@ -362,7 +377,7 @@ def test_review_list_and_decisions_go_through_forge_review(client, forge_env):
         data={"key": key, "decision": "approve", "note": "iyi"},
     )
     rv = [c for c in calls(forge_env) if c[0] == "review"]
-    assert len(rv) == 1 and "--approve" in rv[0] and rv[0][rv[0].index("--note") + 1] == "iyi"
+    assert len(rv) == 1 and val(rv[0], "--approve") and val(rv[0], "--note") == ["iyi"]
     assert client.post("/reklam/mossy_match/inceleme", headers=POST, data={"key": "../../x", "decision": "approve"}
                        ).status_code == 400  # fmt: skip
 
@@ -388,8 +403,8 @@ def test_publish_prepares_paused_then_activation_needs_the_typed_phrase(client, 
     ]
     assert seq == ["publish", "campaign init", "campaign create"]
     init = next(c for c in calls(forge_env) if c[:2] == ["campaign", "init"])
-    assert ["--network", "evil"] not in [init[i : i + 2] for i in range(len(init))]
-    assert init[init.index("--app") + 1] == "mossy_match" and init.count("--country") == 2
+    assert val(init, "--network") == ["meta", "applovin"]  # "evil" never reaches creative-forge
+    assert val(init, "--app") == ["mossy_match"] and val(init, "--country") == ["TR", "US"]
 
     r = client.post(
         "/reklam/mossy_match/yayina-al",
@@ -500,3 +515,60 @@ def test_connectors_read_video_views():
     t = tiktok.to_row({"dimensions": {"stat_time_day": "2026-10-01 00:00:00"},
                        "metrics": {"video_watched_2s": "50", "video_views_p100": "7"}}, "1")  # fmt: skip
     assert (t["video_views"], t["video_completions"]) == (50, 7)
+
+
+# -- hardening: values from a request never reach a command, a redirect or HTML unchecked -----------------
+def test_refresh_command_is_built_from_the_config_only(cfg):
+    from studio_pulse.serve.reklam import ua_argv
+
+    argv = ua_argv(cfg, "mossy_match", ["meta_ads", "google_ads"])
+    assert argv[argv.index("--app") + 1] == "mossy_match"
+    assert [argv[i + 1] for i, a in enumerate(argv) if a == "--source"] == [
+        "google_ads",
+        "meta_ads",
+    ]
+    with pytest.raises(ValueError):
+        ua_argv(cfg, "mossy_match; rm -rf /", ["meta_ads"])
+    with pytest.raises(ValueError):
+        ua_argv(cfg, "mossy_match", ["meta_ads", "--config=/etc/passwd"])
+    with pytest.raises(ValueError):
+        ua_argv(cfg, "quartz_merge", ["meta_ads"])  # not one of that app's sources
+    with pytest.raises(ValueError):
+        ua_argv(cfg, "mossy_match", [])
+
+
+def test_redirects_only_name_configured_games(client):
+    client.cookies.set("reklam-app", "//evil.example")
+    r = client.get("/reklam", follow_redirects=False)
+    assert r.headers["location"].startswith("/reklam/") and "evil" not in r.headers["location"]
+    r = client.get("/reklam?oyun=https://evil.example", follow_redirects=False)
+    assert r.headers["location"].startswith("/reklam/") and "evil" not in r.headers["location"]
+    r = client.get("/reklam?brief=x&ref=//evil.example", follow_redirects=False)
+    loc = r.headers["location"]
+    assert loc.startswith("/reklam/") and "%2F%2Fevil.example" in loc and "//evil" not in loc
+
+
+def test_refresh_notices_carry_no_request_text(cfg, forge_env):
+    app = create_app(cfg, token="t")
+    app.state.reklam_launcher = lambda c, app_id, kinds: 1
+    c = TestClient(app, base_url=HOST)
+    r = c.post("/reklam/mossy_match/yenile", headers=POST)
+    assert 'hx-get="/reklam/mossy_match/durum"' in r.text
+    assert c.post("/reklam/%3Cimg%20src=x%3E/yenile", headers=POST).text == "Bulunamadı."
+    assert "<img" not in c.get("/reklam/%3Cimg%20src=x%3E/durum").text
+
+
+def test_store_url_checks_compare_hosts_exactly():
+    from studio_pulse.radar.dossier import collect as dossier
+    from studio_pulse.radar.estimate import collect as estimate
+
+    assert dossier.parse_target(
+        "https://play.google.com/store/apps/details?id=com.example.game"
+    ).play_package
+    assert dossier.parse_target("apps.apple.com/us/app/x/id6812166638").apple_id == "6812166638"
+    with pytest.raises(dossier.TargetError):
+        dossier.parse_target("https://evil.example/play.google.com?id=com.example.game")
+    with pytest.raises(dossier.TargetError):
+        dossier.parse_target("https://apps.apple.com.evil.example/us/app/x/id6812166638")
+    with pytest.raises(ValueError):
+        estimate.parse_target("https://evilapple.com/app/id6811006356")

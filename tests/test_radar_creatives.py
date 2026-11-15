@@ -53,12 +53,34 @@ def _json(name: str):
     return json.loads((FIX / name).read_text(encoding="utf-8"))
 
 
+LOCAL = ("127.0.0.1", "localhost", "::1")
+
+
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch):
-    def refuse(*a, **k):
-        raise AssertionError("a creatives test opened a socket")
+    """A connection to anything but this machine fails the test (fixtures only, no socket).
 
-    monkeypatch.setattr(socket.socket, "connect", refuse)
+    Loopback stays open, as in tests/brain/conftest.py: on Windows, asyncio's self-pipe
+    (socket.socketpair) is a loopback connect, and the TestClient's event loop needs it.
+    """
+    real_connect = socket.socket.connect
+    real_create = socket.create_connection
+
+    def host_of(address):
+        return address[0] if isinstance(address, tuple) else str(address)
+
+    def connect(self, address, *a, **k):
+        if host_of(address) in LOCAL:
+            return real_connect(self, address, *a, **k)
+        raise AssertionError(f"a creatives test opened a socket to {address!r}")
+
+    def create_connection(address, *a, **k):
+        if host_of(address) in LOCAL:
+            return real_create(address, *a, **k)
+        raise AssertionError(f"a creatives test opened a socket to {address!r}")
+
+    monkeypatch.setattr(socket.socket, "connect", connect)
+    monkeypatch.setattr(socket, "create_connection", create_connection)
 
 
 def make_cfg(tmp_path: Path, **creatives) -> object:
@@ -839,3 +861,21 @@ def test_an_unreadable_video_is_not_resent_every_run(tmp_path):
         assert len(prov.calls) == 1  # kept until the creative or the prompt changes
     finally:
         con.close()
+
+
+def test_printed_results_carry_usage_not_token_counts_or_credentials():
+    """`pulse radar creatives ... ` prints JSON: the model's usage is counts and cost only, and the
+    not-configured messages name the variables, never a value."""
+    from types import SimpleNamespace
+
+    from studio_pulse.radar.adintel.meta_library import TOKEN_ENV
+    from studio_pulse.radar.creatives import run, tiktok
+
+    llm = SimpleNamespace(provider=SimpleNamespace(name="gemini", model="m"), requests=3, cache_hits=1,
+                          spent_usd=0.0123456789, budget_usd=0.5, input_tokens=900, output_tokens=80)  # fmt: skip
+    use = run.llm_usage(llm)
+    assert use == {"provider": "gemini", "model": "m", "requests": 3, "cache_hits": 1,
+                   "cost_usd": 0.012346, "budget_usd": 0.5}  # fmt: skip
+    msg = tiktok.TikTokCommercialContent(enabled=True, key="", secret="").status()["message"]
+    assert tiktok.KEY_ENV in msg and tiktok.SECRET_ENV in msg
+    assert TOKEN_ENV == "PULSE_META_AD_LIBRARY_TOKEN"  # the literal in run.refresh_meta's message
