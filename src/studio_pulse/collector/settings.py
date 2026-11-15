@@ -12,13 +12,14 @@
       country_header: CF-IPCountry       # trust this header for the country (only behind a proxy that sets it)
       geoip: local/collector/geoip/dbip-country-lite.mmdb   # optional, `pulse collect setup-geoip`
       live_min_installs: 20              # production installs in 24 h before a game can be live
+      dedupe_capacity: 1000000           # cloud mode: dedupe keys kept in memory (2 per event)
       mode: local                        # or bigquery (Cloud Run), with bigquery: {project, dataset}
 
 Environment variables (Cloud Run) override the file: PULSE_DATA_DIR,
 PULSE_WRITE_KEYS (comma separated; key=app_id|app_id binds a key to its apps),
 PULSE_READ_KEY, PULSE_COLLECTOR_MODE,
 PULSE_BQ_PROJECT, PULSE_BQ_DATASET, PULSE_BQ_LOCATION, PULSE_COUNTRY_HEADER,
-PULSE_TRUSTED_PROXY_HOPS, PULSE_BUNDLE_PREFIXES, PULSE_GEOIP.
+PULSE_TRUSTED_PROXY_HOPS, PULSE_BUNDLE_PREFIXES, PULSE_GEOIP, PULSE_DEDUPE_CAPACITY.
 """
 
 from __future__ import annotations
@@ -111,6 +112,8 @@ class CollectorSettings:
     spark_minutes: int = 30
     new_app_banner_s: int = 900
     dedupe_days: int = 7
+    # cloud mode: in-memory dedupe keys (two per event; 1 M ~ 92 MB, collector/bigquery.py)
+    dedupe_capacity: int = 1_000_000
     live_min_installs: int = 20
     store_check_country: str = "us"
     url: str | None = None
@@ -121,6 +124,8 @@ class CollectorSettings:
             raise ValueError(f"collector mode must be local or bigquery, not {self.mode!r}")
         if not self.write_keys:
             self.write_keys = [DEFAULT_LOCAL_KEY]
+        if self.dedupe_capacity < 2:
+            raise ValueError("collector dedupe_capacity must be at least 2")
 
     @property
     def uses_default_key(self) -> bool:
@@ -201,6 +206,9 @@ def from_dict(
         burst_per_install=int(b.get("burst_per_install", 30)),
         live_window_s=int(b.get("live_window_s", 300)),
         live_min_installs=int(b.get("live_min_installs", 20)),
+        dedupe_capacity=int(
+            env.get("PULSE_DEDUPE_CAPACITY") or b.get("dedupe_capacity") or 1_000_000
+        ),
         store_check_country=str(b.get("store_check_country", "us")),
         url=b.get("url") or None,
         bigquery=bq,

@@ -5,7 +5,8 @@
     POST /v2/delete   {"install_id": ..., "app_id": ..., "reason": ...}: deletion / opt-out
                       (rate limited per IP like ingest)
     GET  /live        active installs in the last 5 minutes per app (read key if configured)
-    GET  /healthz     liveness, mode, counters (no keys, no data)
+    GET  /healthz     liveness, mode, counters (no keys, no data); also /health, because
+                      Cloud Run's front end keeps paths ending in z for itself (404)
 
 Bodies are read with a hard cap before parsing. The request is processed in a
 worker thread (the durable write fsyncs), so the event loop never blocks.
@@ -139,6 +140,7 @@ def create_app(settings: CollectorSettings, collector: Collector | None = None) 
         snap = await run_in_threadpool(col.live_snapshot)
         return JSONResponse(snap, headers={"Cache-Control": "no-store"})
 
+    @app.get("/health")  # Cloud Run answers /healthz itself with a 404
     @app.get("/healthz")
     def healthz() -> dict[str, Any]:
         c = col.counters

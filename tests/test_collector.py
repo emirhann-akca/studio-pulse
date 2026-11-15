@@ -467,6 +467,30 @@ def test_live_window_counts_distinct_installs_for_five_minutes(col):
         "com.example.game", "com.example.other"}  # fmt: skip
 
 
+def test_live_window_forgets_expired_installs_even_when_nobody_reads_it():
+    """Cloud Run with no `pulse serve` polling /live must not keep every install it saw."""
+    from studio_pulse.collector.live import LiveWindow
+
+    w = LiveWindow(window_ms=300_000)
+    now = T0
+    for i in range(5_000):
+        now += 1_000  # one new install a second for 83 minutes
+        w.observe("com.example.game", f"install-{i}", platform="ios", store="app_store",
+                  country="TR", build_env="release", ts_list=[now], now_ms=now)  # fmt: skip
+    held = sum(len(v) for v in w._installs.values())
+    assert held <= 300 + 60  # the 5-minute window plus at most one minute before a prune
+    assert len(w._minutes["com.example.game"]) <= 31
+    assert w.snapshot(now)["com.example.game"]["active"] == 301  # [now - 5 min, now]
+
+
+def test_health_answers_on_both_paths(col):
+    """Cloud Run's front end answers /healthz itself (404), so /health is the same answer."""
+    client = col[0]
+    a, b = client.get("/healthz"), client.get("/health")
+    assert a.status_code == b.status_code == 200 and a.json() == b.json()
+    assert "write_keys" in b.json() and DEFAULT_LOCAL_KEY not in b.text
+
+
 def test_live_needs_the_read_key_when_configured(tmp_path):
     s = CollectorSettings(data_dir=tmp_path / "c", read_key="r3ad")
     store = LocalStore(s.data_dir)
