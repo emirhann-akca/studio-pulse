@@ -1,14 +1,44 @@
 {
   "name": "Example Puzzle",
   "platforms": {
-    "ios": {"bundle_id": "com.example.puzzle", "app_store_id": "1234567890"},
-    "android": {"package_name": "com.example.puzzle"}
+    "ios": {
+      "bundle_id": "com.example.puzzle",
+      "app_store_id": "1234567890"
+    },
+    "android": {
+      "package_name": "com.example.puzzle"
+    }
   },
-  "ad_formats": ["rewarded", "interstitial"],
-  "rewarded_item": {"name": "Coins", "amount": 1},
+  "ad_formats": [
+    "rewarded",
+    "interstitial"
+  ],
+  "rewarded_item": {
+    "name": "Coins",
+    "amount": 1
+  },
   "levelplay_taxonomy": "puzzle",
   "coppa": false,
   "privacy_policy_url": "https://example.com/puzzle/privacy",
   "developer_website": "https://example.com",
-  "unity_config": "Assets/Resources/studio_app.json"
+  "unity_config": "Assets/Resources/studio_app.json",
+  "networks": {
+    "unity_ads": {
+      "organization_core_id": "1234567890",
+      "ios": {
+        "game_id": "1000001",
+        "placements": {
+          "rewarded": "Rewarded_iOS",
+          "interstitial": "Interstitial_iOS"
+        }
+      },
+      "android": {
+        "game_id": "1000002",
+        "placements": {
+          "rewarded": "Rewarded_Android",
+          "interstitial": "Interstitial_Android"
+        }
+      }
+    }
+  }
 }

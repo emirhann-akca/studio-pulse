@@ -1,0 +1,8 @@
+[
+  {"instanceId": 1072562, "instanceName": "", "adUnit": "rewardedVideo", "adFormat": "rewarded",
+   "networkName": "unityAds", "appConfig1": "1000001", "instanceConfig1": "Rewarded_iOS",
+   "isBidder": true, "groups": [101663], "isLive": true},
+  {"instanceId": 1014428, "instanceName": "Default", "adUnit": "interstitial", "adFormat": "interstitial",
+   "networkName": "unityAds", "appConfig1": "1000001", "instanceConfig1": "Interstitial_iOS",
+   "isBidder": true, "groups": [101664], "isLive": true}
+]

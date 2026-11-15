@@ -103,6 +103,7 @@ APPLOVIN_MANAGEMENT_KEY=... python tools/ads_onboard.py --manifest studio-app.js
 | App | `GET/POST .../partners/publisher/applications/v6` (a live app is created from its store URL, taxonomy, COPPA flag) | created with the first ad unit |
 | Ad units | `GET/POST/PUT https://platform.ironsrc.com/levelPlay/adUnits/v1/{appKey}`; rewarded units need a reward name and amount; paused units are unpaused with `--create` | `GET https://o.applovin.com/mediation/v1/ad_units`, `POST .../ad_unit` (one active unit per app, platform and format) |
 | Revenue | Reporting API `GET https://platform.ironsrc.com/levelPlay/reporting/v1` | Reporting API (UA connector, OPERATIONS.md) |
+| Networks (e.g. Unity Ads as a bidder) | read only: `GET https://platform.ironsrc.com/levelPlay/network/instances/v4/{appKey}`; missing ones printed as a checklist from the manifest's `networks` (game id, placement ids). They are set in the LevelPlay platform (Mediation > Setup > SDK Networks), not in the app; the app only needs the adapter, which the LevelPlay package installs | not applicable |
 | app-ads.txt | lines copied from the LevelPlay platform (no API for them was found) | `applovin.com, <id>, DIRECT` from Account > General > App-ads.txt Info |
 
 `app-ads.txt` goes to the root of the developer website (`text/plain`, UTF-8): for Google Play

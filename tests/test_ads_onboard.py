@@ -32,6 +32,7 @@ class FakeLevelPlay:
     def __init__(self):
         self.apps = fixture("levelplay_apps.json")
         self.units = {"1a2b3c4d": fixture("levelplay_units_1a2b3c4d.json")}
+        self.instances = {"1a2b3c4d": fixture("levelplay_instances_1a2b3c4d.json")}
         self.calls = []
         self.next_id = 0
 
@@ -54,6 +55,9 @@ class FakeLevelPlay:
             )  # fmt: skip
             self.units[key] = []
             return None
+        if path.startswith("/levelPlay/network/instances/v4/"):
+            assert method == "GET", "the tool only reads network instances"
+            return copy.deepcopy(self.instances.get(path.rsplit("/", 1)[1], []))
         if path.startswith("/levelPlay/adUnits/v1/"):
             key = path.rsplit("/", 1)[1]
             units = self.units.setdefault(key, [])
@@ -145,7 +149,12 @@ def test_levelplay_lists_then_creates_then_changes_nothing(app_dir):
     assert "android" in out and "app MISSING" in out
 
     code, out = run(app_dir, lp, create=True)
-    assert code == 0, out
+    assert code == 1, "the new Android app has no Unity Ads instances yet"
+    assert "ios      rewarded      Unity Ads bidder" in out
+    assert "Game ID 1000002, Placement ID Rewarded_Android" in out, (
+        "checklist with the manifest's values"
+    )
+    assert "Unity Ads MISSING" not in out.split("android")[0], "iOS is complete"
     posts = [c for c in fake.writes() if c[0] == "POST"]
     app_post = next(c for c in posts if c[1] == "/partners/publisher/applications/v6")
     assert app_post[2] == {
@@ -174,10 +183,16 @@ def test_levelplay_lists_then_creates_then_changes_nothing(app_dir):
     assert set(cfg["levelplay"]["android"]) == {"rewarded", "interstitial"}
     assert set(cfg["levelplay"]["ios"]) == {"rewarded", "interstitial"}
 
+    # the owner sets Unity Ads up in the LevelPlay platform; the tool never writes instances
+    android_key = cfg["levelplay"]["androidAppKey"]
+    fake.instances[android_key] = [
+        {"networkName": "unityAds", "adFormat": f, "isBidder": True, "isLive": True}
+        for f in ("rewarded", "interstitial")
+    ]
     before = len(fake.writes())
     text = (app_dir / "Assets/Resources/studio_app.json").read_text(encoding="utf-8")
     code, out = run(app_dir, lp, create=True)
-    assert code == 0 and "already up to date" in out
+    assert code == 0 and "already up to date" in out, out
     assert len(fake.writes()) == before, "a second run creates nothing"
     assert (app_dir / "Assets/Resources/studio_app.json").read_text(encoding="utf-8") == text
 
@@ -233,7 +248,7 @@ def test_secrets_are_never_printed(app_dir, monkeypatch, capsys):
     monkeypatch.setattr(tool, "http_transport", lambda secrets, timeout=30.0: fake)
     code = tool.main(["--manifest", str(app_dir / "studio-app.json"), "--create"])
     out = capsys.readouterr()
-    assert code == 0
+    assert code in (0, 1) and "error" not in out.err
     written = (app_dir / "Assets/Resources/studio_app.json").read_text(encoding="utf-8")
     for s in (SECRET, REFRESH, "BEARER-TOKEN"):
         assert s not in out.out + out.err and s not in written

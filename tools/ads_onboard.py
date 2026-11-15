@@ -13,6 +13,13 @@ Standard library only. Driven by a per-app manifest (JSON, kept in the game's re
       "rewarded_item": {"name": "Coins", "amount": 1},
       "levelplay_taxonomy": "puzzle",
       "coppa": false,
+      "networks": {
+        "unity_ads": {
+          "organization_core_id": "1234567890",
+          "ios": {"game_id": "1000001", "placements": {"rewarded": "Rewarded_iOS", "interstitial": "Interstitial_iOS"}},
+          "android": {"game_id": "1000002", "placements": {"rewarded": "Rewarded_Android", "interstitial": "Interstitial_Android"}}
+        }
+      },
       "privacy_policy_url": "https://example.com/my-game/privacy",
       "developer_website": "https://example.com",
       "unity_config": "Unity/MyGame/Assets/Resources/studio_app.json"
@@ -27,6 +34,12 @@ Providers and the secrets they read from the environment (never printed):
   levelplay (default)  LEVELPLAY_SECRET_KEY, LEVELPLAY_REFRESH_TOKEN (LevelPlay platform: My Account)
   max                  APPLOVIN_MANAGEMENT_KEY (AppLovin dashboard: Account > General > Keys)
 
+Mediated networks (LevelPlay): the ids in "networks" (Unity Ads game ids and placements) are
+not app config, they belong in the LevelPlay platform (Mediation > Setup > SDK Networks). The tool
+reads the app's network instances (Instances API v4, read only) and prints what is missing as a
+checklist with the exact values; it does not write instances (the API's per-network field mapping
+for Unity Ads is not documented).
+
 Re-running changes nothing that is already right: apps and ad units are matched by bundle id,
 platform and format and reused; the config file is rewritten only when a value differs. Without
 --create nothing is created on the ad platform. --dry-run writes nothing anywhere.
@@ -37,6 +50,7 @@ APIs (read 15 Nov 2026):
                   headers) -> bearer token, valid 24 h
              GET/POST https://platform.ironsrc.com/partners/publisher/applications/v6
              GET/POST/PUT https://platform.ironsrc.com/levelPlay/adUnits/v1/{appKey}
+             GET  https://platform.ironsrc.com/levelPlay/network/instances/v4/{appKey}
   MAX        https://support.axon.ai/en/max/advanced-features/ad-unit-management-api
              GET  https://o.applovin.com/mediation/v1/ad_units, POST .../ad_unit (Api-Key header)
 """
@@ -229,6 +243,13 @@ class LevelPlay:
         url = f"{self.base}/levelPlay/adUnits/v1/{urllib.parse.quote(app_key, safe='')}"
         self.call("POST", url, self.auth, body)
 
+    def instances(self, app_key: str) -> list[dict[str, Any]]:
+        url = f"{self.base}/levelPlay/network/instances/v4/{urllib.parse.quote(app_key, safe='')}"
+        found = self.call("GET", url, self.auth, None) or []
+        if not isinstance(found, list):
+            raise OnboardError("LevelPlay instances: unexpected answer")
+        return found
+
     def unpause(self, app_key: str, unit_ids: list[str]) -> None:
         url = f"{self.base}/levelPlay/adUnits/v1/{urllib.parse.quote(app_key, safe='')}"
         body = [{"mediationAdunitId": i, "isPaused": False} for i in unit_ids]
@@ -298,7 +319,46 @@ def run_levelplay(lp: LevelPlay, manifest, create: bool, out) -> tuple[dict, lis
             out(f"  {platform}: unpaused {', '.join(paused)}")
         elif paused:
             problems.append(f"{platform}: paused ad units {paused} (--create unpauses them)")
+        problems += unity_ads_check(lp.instances(key), manifest, platform, out)
     return values, problems
+
+
+def unity_ads_check(instances, manifest, platform: str, out) -> list[str]:
+    """Unity Ads as a LevelPlay network: which ad formats have a Unity Ads instance (read only)."""
+    net = ((manifest.get("networks") or {}).get("unity_ads") or {}).get(platform)
+    if not net:
+        return []
+    org = ((manifest.get("networks") or {}).get("unity_ads") or {}).get("organization_core_id", "")
+    problems = []
+    for fmt in manifest["ad_formats"]:
+        have = [
+            i
+            for i in instances
+            if str(i.get("networkName", "")).lower() == "unityads"
+            and str(i.get("adFormat", "")).lower() == fmt
+        ]
+        placement = (net.get("placements") or {}).get(fmt, "")
+        if have:
+            live = any(i.get("isLive") for i in have)
+            kinds = ", ".join(
+                sorted({"bidder" if i.get("isBidder") else "waterfall" for i in have})
+            )
+            out(f"  {platform:<8} {fmt:<13} Unity Ads {kinds}{'' if live else ' (inactive)'}")
+            if not live:
+                problems.append(f"{platform} {fmt}: Unity Ads instance inactive")
+            continue
+        problems.append(f"{platform} {fmt}: no Unity Ads instance")
+        out(
+            f"  {platform:<8} {fmt:<13} Unity Ads MISSING -> LevelPlay platform: Mediation > Setup >"
+        )
+        out(
+            "           SDK Networks > Unity Ads (API Key + Organization core ID " + str(org) + "),"
+        )
+        out(
+            f"           app row > Unity Ads > Game ID {net.get('game_id', '?')}, Placement ID {placement or '?'}"
+        )
+        out("           (or the auto-setup tool: Add bidder)")
+    return problems
 
 
 # ---------------------------------------------------------------------------- MAX
