@@ -1,0 +1,4 @@
+<header><h2>{{ icon('insights')|safe }} {{ t.ai }}</h2><span class="spacer"></span>
+  <span class="badge outline">{{ t.ai_narrator if ai.source == 'narrator' else t.ai_template }}</span>{% if ai.cached %}<span class="badge dashed">{{ t.ai_cached }}</span>{% endif %}</header>
+<p class="rk-ai-text">{{ ai.text }}</p>
+<p class="muted rk-small">{{ t.ai_note }}</p>

@@ -120,6 +120,7 @@ S: dict[str, dict[str, str]] = {
         "tools": "Araçlar",
         "radar": "Pazar radarı",
         "ads": "Reklamlar",
+        "reklam": "Reklam Merkezi",
         "ads_sub": "Creative Forge",
         "ads_off": "Creative Forge açık değil: simgesinden ya da `forge app` ile açın.",
         "live_nav": "Canlı",
@@ -341,6 +342,7 @@ S: dict[str, dict[str, str]] = {
         "tools": "Tools",
         "radar": "Market radar",
         "ads": "Ads",
+        "reklam": "Ad Centre",
         "ads_sub": "Creative Forge",
         "ads_off": "Creative Forge is not open: start it from its icon or with `forge app`.",
         "live_nav": "Live",
@@ -601,6 +603,7 @@ def commands(
     return out + [
         {"label": s[k], "href": href, "hint": s["tools"]}
         for k, href in (
+            ("reklam", "/reklam"),
             ("live_nav", "/live"),
             ("insights", "/insights"),
             ("ask", "/ask"),

@@ -544,12 +544,16 @@ def run_all(
     log: Any = print,
     bq_client: Any = None,
     verbose_models: bool = False,
+    apps: list[str] | None = None,
+    sources: list[str] | None = None,
 ) -> dict[str, Any]:
     """One refresh: ingest, models, data-quality checks, alerts, dashboard.
 
     Holds the run lock (raises runstate.LockedError when another refresh holds
     it), records a heartbeat, and snapshots the warehouse for the UI after a
-    successful run. A run fails (result["ok"] is False) on ingest errors or
+    successful run. `apps` / `sources` limit the ingest to those apps and source
+    kinds (the ad centre's "refresh now": its ad networks only); models, checks,
+    alerts and the dashboard still run on everything. A run fails (result["ok"] is False) on ingest errors or
     on any failed check with severity error; the dashboard is still built so
     the failure is visible.
     """
@@ -559,7 +563,7 @@ def run_all(
         con = warehouse.connect(cfg.warehouse)
         try:
             log("Ingesting through the connectors ...")
-            report = ingest(con, cfg, log=log, bq_client=bq_client)
+            report = ingest(con, cfg, apps=apps, sources=sources, log=log, bq_client=bq_client)
             log("Running SQL models ...")
             runner.run_models(con, verbose=verbose_models)
             radar_checks = _radar(con, cfg, report, log)

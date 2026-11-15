@@ -44,7 +44,7 @@ HOST = "https://graph.facebook.com"
 DEFAULT_VERSION = "v27.0"
 FIELDS = (
     "account_id,account_currency,campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,"
-    "impressions,clicks,spend,actions,date_start,date_stop"
+    "impressions,clicks,spend,actions,video_p100_watched_actions,date_start,date_stop"
 )
 INSTALL_ACTIONS = ("mobile_app_install", "app_install", "omni_app_install")
 
@@ -57,7 +57,16 @@ def installs(actions: list[dict[str, Any]] | None) -> float | None:
     return None
 
 
+def action_value(actions: list[dict[str, Any]] | None, kind: str) -> float | None:
+    for a in actions or []:
+        if a.get("action_type") == kind:
+            return common.num(a.get("value"))
+    return None
+
+
 def to_row(d: dict[str, Any]) -> dict[str, Any]:
+    views = action_value(d.get("actions"), "video_view")  # Meta: "3-Second Video Views"
+    done = action_value(d.get("video_p100_watched_actions"), "video_view")
     return {
         "date": dt.date.fromisoformat(str(d["date_start"])[:10]),
         "account_id": d.get("account_id"),
@@ -73,6 +82,8 @@ def to_row(d: dict[str, Any]) -> dict[str, Any]:
         "impressions": common.as_int(d.get("impressions")),
         "clicks": common.as_int(d.get("clicks")),
         "network_installs": installs(d.get("actions")),
+        "video_views": None if views is None else int(views),
+        "video_completions": None if done is None else int(done),
     }
 
 

@@ -1,0 +1,81 @@
+{% set mode_badge = {'mock': 'dashed', 'sandbox': 'info', 'live': 'bad', 'manual': 'outline'} %}
+{% set approved_runs = mine.runs|selectattr('approved')|list %}
+<section class="card" id="hazirla">
+  <header><h2>{{ t.p_title }}</h2></header>
+  <p class="muted">{{ t.p_sub }}</p>
+  {% if not approved_runs %}<p>{{ t.p_run_none }} <a href="/reklam/{{ app.id }}?sekme=uret">{{ t.tab_uret }} →</a></p>
+  {% else %}
+  <form method="post" action="/reklam/{{ app.id }}/hazirla" class="rk-form" hx-post="/reklam/{{ app.id }}/hazirla" hx-swap="none">
+    <div class="field"><label for="rk-run">{{ t.p_run }}</label>
+      <select class="select" id="rk-run" name="run">{% for r in approved_runs %}<option value="{{ r.rid }}">{{ r.rid }} · {{ t.p_n_approved.format(n=r.approved) }}</option>{% endfor %}</select></div>
+    <fieldset class="rk-fs"><legend>{{ t.p_networks }}</legend>
+      <div class="rk-small muted">{{ t.p_api }}</div>
+      {% for n in api_networks %}<label class="rk-radio"><input type="checkbox" name="network" value="{{ n }}"{% if n in ('meta', 'tiktok') %} checked{% endif %}> {{ {'meta': 'Meta', 'tiktok': 'TikTok', 'google': 'Google Ads'}[n] }}</label>{% endfor %}
+      <div class="rk-small muted">{{ t.p_manual }}</div>
+      {% for n in manual_networks %}<label class="rk-radio"><input type="checkbox" name="network" value="{{ n }}"{% if n == 'applovin' %} checked{% endif %}> {{ {'applovin': 'AppLovin', 'unity': 'Unity Ads', 'mintegral': 'Mintegral'}[n] }}</label>{% endfor %}
+    </fieldset>
+    <div class="rk-row">
+      <div class="field"><label for="rk-name">{{ t.p_name }}</label><input class="input" id="rk-name" name="name" required pattern="[a-z0-9]([a-z0-9]|-){1,40}" value="{{ (form or {}).get('name', app.id.replace('_', '-') ~ '-test') }}"><span class="hint">{{ t.p_name_hint }}</span></div>
+      <div class="field"><label for="rk-daily">{{ t.p_daily }}</label><input class="input" id="rk-daily" name="daily" inputmode="decimal" required value="{{ (form or {}).get('daily', '20') }}"></div>
+      <div class="field"><label for="rk-total">{{ t.p_total }}</label><input class="input" id="rk-total" name="total" inputmode="decimal" required value="{{ (form or {}).get('total', '100') }}"></div>
+      <div class="field"><label for="rk-cc">{{ t.p_countries }}</label><input class="input" id="rk-cc" name="countries" value="{{ (form or {}).get('countries', 'TR') }}"></div>
+    </div>
+    <div class="field"><label for="rk-url">{{ t.p_store }}</label><input class="input" id="rk-url" name="store_url" value="{{ (form or {}).get('store_url', store_url or '') }}"></div>
+    <p class="hint">{{ t.p_mock_note }}</p>
+    <button class="btn primary" type="submit"{% if not forge.available %} disabled{% endif %}>{{ t.p_go }}</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card" id="kampanyalar-cf">
+  <header><h2>{{ t.camps }}</h2></header>
+  {% if mine.campaigns %}
+  <div class="table-scroll"><table class="t rk-camps">
+    <thead><tr><th>{{ t.c_name }}</th><th>{{ t.network }}</th><th>{{ t.c_mode }}</th><th>{{ t.c_status }}</th><th class="num">{{ t.c_budget }}</th><th>{{ t.c_dates }}</th><th>{{ t.c_sync }}</th><th></th></tr></thead>
+    <tbody>
+    {% for c in mine.campaigns|sort(attribute='created_at', reverse=true) %}
+    <tr>
+      <td>{{ c.name }}</td><td>{{ label(c.network) if c.network != 'google' else 'Google Ads' }}</td>
+      <td><span class="badge {{ mode_badge.get(c.mode, 'outline') }}">{{ t['mode_' ~ c.mode] if ('mode_' ~ c.mode) in t else c.mode }}</span></td>
+      <td><span class="badge {{ 'good' if c.status == 'ACTIVE' else 'outline' }}">{{ t.st_active if c.status == 'ACTIVE' else t.st_paused }}</span></td>
+      <td class="num">{{ fmt(c.daily, 'usd') }} / {{ fmt(c.total_cap, 'usd') }}</td>
+      <td class="muted">{{ c.start }} – {{ c.end_day }}</td>
+      <td class="muted rk-small">{% if c.last_sync %}{{ c.last_sync.at }} · {{ fmt(c.last_sync.spend, 'usd') }}{% else %}—{% endif %}</td>
+      <td>
+        {% if c.status == 'PAUSED' %}
+        <form method="post" action="/reklam/{{ app.id }}/yayina-al" class="rk-act" hx-post="/reklam/{{ app.id }}/yayina-al" hx-swap="none">
+          <input type="hidden" name="ref" value="{{ c.ref }}">
+          <input class="input" name="phrase" autocomplete="off" required placeholder="{{ t.activate_ph.format(phrase=c.phrase[lang]) }}" aria-label="{{ t.activate_help.format(phrase=c.phrase[lang], daily=c.daily, cap=c.total_cap, cur=c.currency, end=c.end_day) }}" data-tip="{{ t.activate_help.format(phrase=c.phrase[lang], daily=c.daily, cap=c.total_cap, cur=c.currency, end=c.end_day) }}">
+          {% if c.mode == 'live' %}<label class="rk-radio bad-text"><input type="checkbox" name="live" value="1"> {{ t.live_box }}</label>{% endif %}
+          <button class="btn sm" type="submit">{{ t.activate }}</button>
+        </form>
+        {% else %}
+        <form method="post" action="/reklam/{{ app.id }}/durdur" hx-post="/reklam/{{ app.id }}/durdur" hx-swap="none"><input type="hidden" name="ref" value="{{ c.ref }}"><button class="btn sm danger" type="submit">{{ t.pause }}</button></form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% else %}<p class="muted">{{ t.camps_none }}</p>{% endif %}
+</section>
+
+{% if mine.packs %}
+<section class="card" id="paketler">
+  <header><h2>{{ t.packs }}</h2></header>
+  {% for pk in mine.packs %}
+  <details class="rk-pack">
+    <summary><b>{{ pk.label }}</b> · {{ pk.campaign_name }} · {{ t.pack_files.format(n=pk.files|length) }} · {{ fmt(pk.daily_budget, 'usd') }} / {{ fmt(pk.total_cap, 'usd') }} · {{ pk.start }} – {{ pk.end }}
+      <a class="btn sm" href="/reklam/{{ app.id }}/paket/{{ pk.plan_id }}/{{ pk.network }}.zip">{{ t.download }}</a></summary>
+    <p class="muted rk-small">{{ pk.why_manual }}</p>
+    <h4>{{ t.steps }}</h4>
+    <ol>{% for s in (pk.steps_tr if lang == 'tr' else pk.steps_en) %}<li>{{ s }}</li>{% endfor %}</ol>
+  </details>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if mine.configs %}
+<section class="card"><header><h2>{{ t.configs }}</h2></header>
+  <ul class="list">{% for c in mine.configs %}<li><code>{{ c.path }}</code> {% for n, m in (c.networks or {}).items() %}<span class="badge {{ mode_badge.get(m, 'outline') }}">{{ n }}: {{ t['mode_' ~ m] if ('mode_' ~ m) in t else m }}</span>{% endfor %}</li>{% endfor %}</ul>
+</section>
+{% endif %}

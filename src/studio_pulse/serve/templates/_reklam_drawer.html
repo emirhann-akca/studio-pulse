@@ -1,0 +1,33 @@
+<div class="rk-d">
+  <h3 class="rk-d-name" title="{{ det.ad_name or det.key }}">{{ short(det.ad_name or det.key) }}</h3>
+  <p class="muted rk-small rk-break">{{ det.ad_name or det.key }}</p>
+  <p class="muted">{{ t.d_live.format(a=day(det.first), b=day(det.last), n=det.days_live) }}</p>
+  <h4>{{ t.d_preview }}</h4>
+  {% if cf and cf.path_token %}
+    <video class="rk-video" controls preload="metadata" playsinline {% if cf.poster_token %}poster="/reklam/medya/{{ cf.poster_token }}"{% endif %} src="/reklam/medya/{{ cf.path_token }}"></video>
+    <p class="rk-small"><span class="badge {{ {'pass': 'good', 'warn': 'warn', 'fail': 'bad'}.get(cf.qa_status, 'outline') }}">{{ t['qa_' ~ cf.qa_status] if ('qa_' ~ cf.qa_status) in t else cf.qa_status }}</span>
+      <span class="badge outline">{{ t.d_review }}: {{ t['rv_' ~ cf.review] if ('rv_' ~ cf.review) in t else cf.review }}</span> <span class="muted">{{ cf.format }} · {{ cf.variant }}</span></p>
+  {% else %}<p class="muted">{{ t.d_no_preview }}</p>{% endif %}
+  <h4>{{ t.d_fatigue }}</h4>
+  {% set f = det.fatigue %}
+  <p>{% if f.state == 'tired' %}<span class="badge bad">!</span> {{ t.d_tired.format(c=signed(f.change), p=p_fmt(f.p)) }}
+     {% elif f.state == 'watch' %}<span class="badge warn">~</span> {{ t.d_watch.format(c=signed(f.change), p=p_fmt(f.p)) }}
+     {% elif f.state == 'ok' %}<span class="badge good">✓</span> {{ t.d_fresh.format(c=signed(f.change), p=p_fmt(f.p)) }}
+     {% elif f.state == 'young' %}{{ t.d_young.format(n=f.days) }}{% else %}{{ t.d_thin.format(n=fmt(f.imps, 'count')) }}{% endif %}</p>
+  <div class="rk-d-kpis">
+    {% for label_, tot in [(t.d_period, det.period), (t.d_all, det.total)] %}
+    <div><h5>{{ label_ }}</h5>
+      <dl><dt>{{ t.c_spend }}</dt><dd>{{ fmt(tot.spend, 'usd') }}</dd><dt>{{ t.c_imps }}</dt><dd>{{ fmt(tot.impressions, 'count') }}</dd>
+      <dt>{{ t.c_ipm }}</dt><dd>{{ fmt(tot.ipm, 'ipm') }}</dd><dt>{{ t.c_ctr }}</dt><dd>{{ fmt(tot.ctr, 'pct2') }}</dd>
+      <dt>{{ t.c_installs }}</dt><dd>{{ fmt(tot.installs, 'count') }}</dd><dt>{{ t.c_cpi }}</dt><dd>{{ fmt(tot.cpi, 'usd') }}</dd>
+      {% if tot.views is not none %}<dt>{{ t.c_views }}</dt><dd>{{ fmt(tot.views, 'count') }}</dd><dt>{{ t.c_complete }}</dt><dd>{{ fmt(tot.completion, 'pct') }}</dd>{% endif %}</dl></div>
+    {% endfor %}
+  </div>
+  <h4>{{ t.d_over_time }}</h4>
+  <div class="dash">{{ charts.ipm|safe }}{{ charts.spend|safe }}</div>
+  {% if events %}<ol class="rk-events">{% for e in events %}<li><span class="mk-n static" aria-hidden="true">{{ loop.index }}</span><span class="rk-ev-d">{{ day(e.day) }}</span> {{ ev_text(e) }}</li>{% endfor %}</ol>{% endif %}
+  <h4>{{ t.d_where }}</h4>
+  <table class="t"><thead><tr><th>{{ t.network }}</th><th>{{ t.c_name }}</th><th class="num">{{ t.c_spend }}</th><th>{{ t.c_status }}</th></tr></thead><tbody>
+  {% for w in det.where %}<tr><td>{{ label(w.network) }}</td><td>{{ w.campaign }}</td><td class="num">{{ fmt(w.spend, 'usd') }}</td><td class="muted">{{ day(w.first) }} – {{ day(w.last) }}</td></tr>{% endfor %}
+  </tbody></table>
+</div>

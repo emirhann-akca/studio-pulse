@@ -8,3 +8,7 @@
 # tests/test_connections.py: a made-up Meta token ("EAAB1234567890abcdefXYZ") that the
 # pipeline error-masking test checks never reaches the UI.
 eba2c8b10e3d25772f205213f0e14386692f48e0:tests/test_connections.py:generic-api-key:221
+# tests/test_radar_creatives.py: a made-up YouTube video id ("AbCdEfGhIj0") next to a field
+# named creative_key; it is a fixture row, not a secret.
+311ddb2407bd15c43b8f46b761b80ad29211d5b0:tests/test_radar_creatives.py:generic-api-key:423
+311ddb2407bd15c43b8f46b761b80ad29211d5b0:tests/test_radar_creatives.py:generic-api-key:571

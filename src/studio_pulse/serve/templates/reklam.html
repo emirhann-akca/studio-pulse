@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ t.title }} · {{ app.name or app.id }}{% endblock %}
+{% block head %}<style>{{ chart_css|safe }}</style>
+<link rel="stylesheet" href="/static/reklam.css">
+<script src="/static/reklam.js" defer></script>{% endblock %}
+
+{% block body %}
+{% set qsx = ('&' ~ qs) if qs else '' %}
+<header class="page-head rk-head">
+  <h1>{{ t.title }}</h1>
+  {% if demo %}<span class="badge warn" data-tip="{{ t.demo_long }}">{{ t.demo }}</span>{% endif %}
+  <form class="rk-switch" method="get" action="/reklam" data-autosubmit>
+    <label class="sr-only" for="rk-game">{{ t.game }}</label>
+    <select class="select" id="rk-game" name="oyun">
+      {% for a in apps %}<option value="{{ a.id }}"{% if a.id == app.id %} selected{% endif %}>{{ a.name }}{% if not a.has_ua %} · {{ t.no_ua_short }}{% endif %}</option>{% endfor %}
+    </select>
+    <noscript><button class="btn sm" type="submit">{{ t.apply }}</button></noscript>
+  </form>
+  <span class="spacer"></span>
+  <p class="sub">{{ t.sub }}</p>
+</header>
+
+{% if flash %}<div class="callout {{ 'bad' if flash[0] == 'bad' else 'info' }}" role="status"><span class="ic">{{ icon('info' if flash[0] != 'bad' else 'warn')|safe }}</span><div>{{ flash[1] }}</div></div>{% endif %}
+
+<nav class="tabs rk-tabs" aria-label="{{ t.title }}">
+  {% for k in ['genel', 'uret', 'yayinla', 'oynanabilir'] %}<a href="/reklam/{{ app.id }}?sekme={{ k }}{{ qsx }}"{% if tab == k %} aria-current="page"{% endif %}>{{ t['tab_' ~ k] }}</a>{% endfor %}
+  <a href="{{ competitor_url }}" class="rk-ext">{{ t.tab_rakip }} {{ icon('external')|safe }}</a>
+</nav>
+
+{# ---- period and freshness: they scope everything below ---- #}
+<div class="toolbar rk-toolbar">
+  <nav class="seg" aria-label="{{ t.r_7d }}">
+    {% for k in ['today', '7d', '30d'] %}<a href="/reklam/{{ app.id }}?sekme={{ tab }}&range={{ k }}"{% if rkey == k %} aria-current="true"{% endif %}>{{ (t.r_today_live if period.is_today else t.r_today) if k == 'today' else t['r_' ~ k] }}</a>{% endfor %}
+  </nav>
+  <details class="rk-custom"{% if rkey == 'custom' %} open{% endif %}>
+    <summary class="btn sm ghost">{{ t.r_custom }}</summary>
+    <form method="get" action="/reklam/{{ app.id }}" class="rk-custom-f">
+      <input type="hidden" name="sekme" value="{{ tab }}"><input type="hidden" name="range" value="custom">
+      <label>{{ t.from }} <input class="input" type="date" name="from" value="{{ period.start }}" max="{{ today }}"></label>
+      <label>{{ t.to }} <input class="input" type="date" name="to" value="{{ period.end }}" max="{{ today }}"></label>
+      <button class="btn sm" type="submit">{{ t.apply }}</button>
+    </form>
+  </details>
+  <span class="muted rk-period">{{ t.period_line.format(a=day(period.start), b=day(period.end), pa=day(period.prev_start), pb=day(period.prev_end)) }}</span>
+  <span class="spacer"></span>
+  <label class="rk-auto"><input type="checkbox" data-auto-refresh> {{ t.auto }}</label>
+  <button class="btn sm" type="button" id="rk-refresh" hx-post="/reklam/{{ app.id }}/yenile" hx-target="#rk-refresh-out" hx-swap="innerHTML">{{ icon('refresh')|safe }} {{ t.refresh }}</button>
+</div>
+<div id="rk-refresh-out" aria-live="polite"></div>
+<div class="rk-fresh" aria-label="{{ t.fresh_none }}">
+  {% for f in fresh.rows %}
+  <span class="rk-net" data-tip="{{ f.source }}"><i class="sw b{{ slot(f.network) }}" aria-hidden="true"></i><b>{{ label(f.network) }}</b>
+    {% if f.missing_env %}<span class="badge bad">{{ t.fresh_env.format(names=', '.join(f.missing_env)) }}</span>
+    {% elif f.through %}{{ t.fresh_through.format(d=day(f.through)) }}{% if f.loaded_iso %} · {{ t.fresh_loaded.format(ago=age(f.loaded_iso)) }}{% endif %}{% if f.replay %} · <span class="muted">{{ t.fresh_replay }}</span>{% endif %}
+    {% else %}<span class="muted">{{ t.fresh_none }}</span>{% endif %}</span>
+  {% endfor %}
+  {% if fresh.missing %}<span class="rk-net rk-missing"><b>{{ t.missing }}:</b>
+    {% for n in fresh.missing %}<a href="/connections" data-tip="{{ t.connect_step.format(app=app.id, kind={'meta': 'meta_ads', 'google_ads': 'google_ads', 'tiktok': 'tiktok_ads', 'applovin': 'applovin_ads', 'unity_ads': 'unity_ads'}[n], env={'meta': 'PULSE_META_ACCESS_TOKEN', 'google_ads': 'PULSE_GOOGLE_ADS_DEVELOPER_TOKEN', 'tiktok': 'PULSE_TIKTOK_ACCESS_TOKEN', 'applovin': 'PULSE_APPLOVIN_REPORT_KEY', 'unity_ads': 'PULSE_UNITY_ADS_KEY_ID + PULSE_UNITY_ADS_SECRET_KEY'}[n]) }}">{{ label(n) }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</span>{% endif %}
+</div>
+
+{% if tab == 'genel' %}
+  {% include "_reklam_overview.html" %}
+{% else %}
+  {% if not forge.available %}
+  <div class="callout warn" role="note"><span class="ic">{{ icon('plug')|safe }}</span><div><b>{{ t.forge_off }}</b> {{ t.forge_off_how }}</div></div>
+  {% elif forge_problem and forge_problem != 'missing' %}
+  <div class="callout bad" role="note"><span class="ic">{{ icon('warn')|safe }}</span><div>{{ t.forge_err.format(e=forge_problem) }}</div></div>
+  {% endif %}
+  {% if tab == 'uret' %}{% include "_reklam_make.html" %}
+  {% elif tab == 'yayinla' %}{% include "_reklam_publish.html" %}
+  {% elif tab == 'oynanabilir' %}{% include "_reklam_playables.html" %}{% endif %}
+  {% if forge_snap %}<p class="muted rk-where">{{ t.forge_where.format(root=forge_snap.root) }}</p>{% endif %}
+{% endif %}
+
+<div class="rk-drawer" id="rk-drawer" hidden role="dialog" aria-modal="true" aria-labelledby="rk-drawer-title">
+  <div class="rk-drawer-back" data-drawer-close></div>
+  <section class="rk-drawer-panel">
+    <header><h2 id="rk-drawer-title">{{ t.d_title }}</h2><span class="spacer"></span><button class="btn sm ghost" type="button" data-drawer-close>{{ t.close }}</button></header>
+    <div id="rk-drawer-body" class="rk-drawer-body"></div>
+  </section>
+</div>
+{% endblock %}

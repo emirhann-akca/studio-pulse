@@ -54,6 +54,8 @@ METRICS = [
     "impressions",
     "clicks",
     "app_install",
+    "video_watched_2s",
+    "video_views_p100",
 ]
 
 
@@ -74,6 +76,8 @@ def to_row(item: dict[str, Any], advertiser_id: str) -> dict[str, Any]:
         "impressions": common.as_int(m.get("impressions")),
         "clicks": common.as_int(m.get("clicks")),
         "network_installs": common.num(m.get("app_install")),
+        "video_views": common.as_int(m.get("video_watched_2s")),  # TikTok: 2-second views
+        "video_completions": common.as_int(m.get("video_views_p100")),
     }
 
 

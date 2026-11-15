@@ -1,0 +1,30 @@
+{% set st_badge = {'pass': 'good', 'warn': 'warn', 'uncertain': 'outline', 'fail': 'bad'} %}
+<section class="card" id="oynanabilir">
+  <header><h2>{{ t.pl_title }}</h2><span class="spacer"></span>
+    {% if forge.available and forge_snap %}<form method="post" action="/reklam/{{ app.id }}/oynanabilir" hx-post="/reklam/{{ app.id }}/oynanabilir" hx-swap="none"><button class="btn sm" name="action" value="sample" type="submit" data-tip="{{ t.pl_sample_note }}">{{ t.pl_sample }}</button></form>{% endif %}</header>
+  <p class="muted">{{ t.pl_sub }}</p>
+  {% if mine.playables %}
+  {% for pl in mine.playables %}
+  <article class="rk-pl">
+    <div class="rk-pl-frame">{% if pl.token %}<iframe title="{{ t.pl_frame }}" sandbox="allow-scripts" src="/reklam/oynat/{{ pl.token }}" loading="lazy"></iframe>{% endif %}</div>
+    <div class="rk-pl-b">
+      <h3>{{ pl.name }}</h3>
+      <p class="muted rk-small"><code>{{ pl.path }}</code> · {{ fmt(pl.size / 1024, 'ipm') }} KB</p>
+      <h4>{{ t.pl_builds }}</h4>
+      {% if pl.builds %}<ul class="list">{% for b in pl.builds %}<li><b>{{ b.network }}</b>
+        {% for c in b.checks[-1:] %}<span class="badge {{ st_badge.get(c.status, 'outline') }}">{{ t['pl_status_' ~ c.status] if ('pl_status_' ~ c.status) in t else c.status }}</span>{% endfor %}
+        {% if b.token %}<a href="/reklam/oynat/{{ b.token }}" target="_blank" rel="noopener">{{ t.pl_preview }}</a> · <a href="/reklam/indir/{{ b.token }}">{{ t.download }}</a>{% endif %}
+        <span class="muted rk-small">{{ fmt(b.size / 1024, 'ipm') }} KB</span></li>{% endfor %}</ul>
+      {% else %}<p class="muted">—</p>{% endif %}
+      {% if forge.available %}
+      <form method="post" action="/reklam/{{ app.id }}/oynanabilir" class="rk-form" hx-post="/reklam/{{ app.id }}/oynanabilir" hx-swap="none">
+        <input type="hidden" name="source" value="{{ pl.name }}">
+        <fieldset class="rk-fs"><legend>{{ t.p_networks }}</legend>
+          {% for n in playable_networks %}<label class="rk-radio"><input type="checkbox" name="network" value="{{ n }}"{% if n in ('applovin', 'unity', 'meta', 'google') %} checked{% endif %}> {{ n }}</label>{% endfor %}</fieldset>
+        <button class="btn sm primary" name="action" value="pack" type="submit">{{ t.pl_pack }}</button>
+      </form>{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+  {% else %}<p class="muted">{{ t.pl_none }}</p>{% endif %}
+</section>

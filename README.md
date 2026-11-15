@@ -99,6 +99,14 @@ question box, no polling) with an invented market-radar day; Turkish under
   OpenAI-compatible server (llama-server with a local LoRA), Anthropic Claude
   or a fake; content-hash cache, per-run budget cap, token/cost ledger, schema
   validation with one repair, retries, secrets kept out of logs.
+- **Reklam Merkezi, the ad centre** (`/reklam`, [docs/REKLAM.md](docs/REKLAM.md)): one
+  screen per game for its campaigns (spend, impressions, video views, installs, CPI,
+  D0/D7 ROAS, payback against the previous period; network -> campaign -> creative
+  with a detail drawer; one-axis charts with numbered change markers from
+  creative-forge's audit log), a grounded summary that says when a change is beyond
+  day-to-day noise and when it is not, a "refresh now" for the game's ad networks,
+  and creative-forge's make -> review -> publish (paused) -> typed activation loop
+  through its CLI, with the same gates. Without creative-forge it stays read-only.
 - **Read-only, capped BigQuery access**: one `SELECT` per query, dry-run first,
   `maximum_bytes_billed` set; queries aggregate inside BigQuery, so no
   user-level row leaves it.

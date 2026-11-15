@@ -51,6 +51,15 @@ from .export_files import flat_table, write_crashlytics_parquet, write_ga4_parqu
 from .reviews import generate as generate_reviews
 from .ua import UASim
 
+# The ad centre in the demo: change events from the generated files, and a creative-forge root of its own, so
+# trying "Yeni kreatif" / "Yayınla" in the demo never writes into a real creative-forge data folder.
+DEMO_REKLAM: dict[str, Any] = {
+    "changes": [],
+    "forge_root": "forge/runs",
+    "forge_state": "forge/state",
+    "forge_db": "forge/perf.sqlite",
+}
+
 DEMO_END = dt.date(2026, 10, 31)
 DEMO_DAYS = 75
 
@@ -1250,6 +1259,10 @@ def generate(
         if g.experiments():
             entry["experiments"] = g.experiments()
         cfg["apps"].append(entry)
+        if g.ua.changes_file:  # the ad centre's change markers (/reklam), demo events
+            cfg.setdefault("reklam", {**DEMO_REKLAM, "changes": []})["changes"].append(
+                g.ua.changes_file
+            )
         n_events = sum(len(v["event_name"]) for v in g.ev.groups.values())
         log(
             f"  generated {app.name}: {n_events:,} GA4 events, {len(g.rc_tx)} RevenueCat rows, {sum(len(v) for v in g.unity_lines.values())} Unity lines"

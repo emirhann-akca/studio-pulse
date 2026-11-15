@@ -79,6 +79,20 @@ ALIASES: dict[str, tuple[str, ...]] = {
         "mobile app installs",
         "conversions",
     ),
+    "video_views": (
+        "video views",
+        "video_views",
+        "views",
+        "3-second video views",
+        "2-second video views",
+    ),
+    "video_completions": (
+        "video completions",
+        "completed views",
+        "video_completions",
+        "100% views",
+        "thruplays",
+    ),
 }
 REQUIRED = ("date", "spend")
 
@@ -158,6 +172,8 @@ def parse_csv(text: str, src: dict[str, Any]) -> list[dict[str, Any]]:
                 "impressions": common.as_int(get.get("impressions")),
                 "clicks": common.as_int(get.get("clicks")),
                 "network_installs": common.num(get.get("network_installs")),
+                "video_views": common.as_int(get.get("video_views")),
+                "video_completions": common.as_int(get.get("video_completions")),
             }
         )
     return rows

@@ -15,6 +15,14 @@ direct to GA4 (no MMP), so their ROAS is modelled from network installs.
 Everything uses its own random stream (seeded per app), so the existing demo
 numbers do not change. Ranges: CPI 0.1-1.6 USD by country for games (about
 3x for the fitness app), IPM 4-15, CTR 0.9-3%.
+
+For the ad centre (/reklam) the reports also carry what a live account shows:
+creatives that start (first_day) or stop (last_day) part-way, a budget shift
+between two networks, ad fatigue (IPM and CTR sag with days live, about -20%
+after a month) and video views for Meta (3-second) and TikTok (2-second)
+drawn from a second, hash-seeded stream. `changes.json` lists those changes
+as dated events in the shape of creative-forge's change timeline, so the
+charts can mark them. All of it is "Örnek veri": fictional games, no account.
 """
 
 from __future__ import annotations
@@ -23,7 +31,9 @@ import csv
 import datetime as dt
 import io
 import json
+import math
 import random
+import zlib
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -55,6 +65,7 @@ class Creative:
     ipm: float
     weight: float
     first_day: int = 0  # day index it starts delivering
+    last_day: int | None = None  # last day index it delivers (None: until the end)
 
 
 @dataclass
@@ -75,6 +86,8 @@ class Plan:
     ctr: dict[str, float]
     campaigns: list[Campaign]
     over_report: dict[str, tuple[float, float]] = field(default_factory=dict)
+    # (from day index, network shares): a budget moved between two non-Google networks
+    shift: tuple[int, dict[str, float]] | None = None
 
 
 def _cf(
@@ -96,6 +109,7 @@ PLANS: dict[str, Plan] = {
         base_cpi={"google_ads": 0.9, "meta": 1.0, "applovin": 0.8},
         ctr={"google_ads": 0.015, "meta": 0.011, "applovin": 0.025},
         over_report={"google_ads": (0.9, 1.05), "meta": (0.98, 1.15), "applovin": (0.95, 1.1)},
+        shift=(60, {"google_ads": 0.4, "meta": 0.46, "applovin": 0.14}),
         campaigns=[
             Campaign(
                 "google_ads",
@@ -127,7 +141,7 @@ PLANS: dict[str, Plan] = {
                         9.0,
                         0.35,
                     ),
-                    Creative(_cf("mossy-ads", "fail-bait"), 4.0, 0.15),
+                    Creative(_cf("mossy-ads", "fail-bait"), 4.0, 0.15, last_day=62),
                     Creative(
                         _cf("mossy-ads", "fail-bait", "fast", "lvl3", "tap", "4x5"), 5.0, 0.05, 70
                     ),
@@ -173,6 +187,7 @@ PLANS: dict[str, Plan] = {
                         _cf("quartz-ads", "coin-rain", "fast", "lvl3", "tap", "4x5", "pt-br"),
                         12.0,
                         0.35,
+                        52,
                     ),
                     Creative(_cf("quartz-ads", "merge-asmr"), 5.0, 0.2),
                 ],
@@ -202,7 +217,7 @@ PLANS: dict[str, Plan] = {
                 TIER1,
                 [
                     Creative(_cf("pacer-ads", "morning-run"), 3.0, 0.6),
-                    Creative(_cf("pacer-ads", "streak-badge"), 4.0, 0.4),
+                    Creative(_cf("pacer-ads", "streak-badge"), 4.0, 0.4, 30),
                 ],
             ),
             Campaign(
@@ -244,6 +259,7 @@ class UASim:
         self.start = start
         # (day, network, campaign id, creative index, country, platform) -> users
         self.bought: dict[tuple[int, str, str, int, str, str], int] = defaultdict(int)
+        self.changes_file: str | None = None
 
     def traffic(self, day_idx: int, country: str, platform: str) -> tuple[str, str, str]:
         """Decide whether a new user was bought; return GA4's first-touch traffic_source."""
@@ -259,7 +275,8 @@ class UASim:
         if r.random() >= p.paid_share:
             return organic
         nets = list(p.networks)
-        network = r.choices(nets, weights=[p.networks[n] for n in nets], k=1)[0]
+        shares = p.shift[1] if p.shift and day_idx >= p.shift[0] else p.networks
+        network = r.choices(nets, weights=[shares.get(n, 0.0) for n in nets], k=1)[0]
         options = [
             c
             for c in p.campaigns
@@ -276,7 +293,11 @@ class UASim:
         if not options:
             return organic
         camp = options[0]
-        live = [i for i, cr in enumerate(camp.creatives) if day_idx >= cr.first_day]
+        live = [
+            i
+            for i, cr in enumerate(camp.creatives)
+            if day_idx >= cr.first_day and (cr.last_day is None or day_idx <= cr.last_day)
+        ]
         ci = r.choices(live, weights=[camp.creatives[i].weight for i in live], k=1)[0]
         self.bought[(day_idx, network, camp.id, ci, country, platform)] += 1
         if network == "google_ads":
@@ -301,8 +322,12 @@ class UASim:
                 installs = float(round(installs))
             cpi = p.base_cpi[network] * GEO_CPI.get(country, 0.3) * r.uniform(0.85, 1.15)
             spend = round(max(installs, 0.5) * cpi, 2)
-            imps = int(round(max(installs, 0.5) * 1000 / cr.ipm * r.uniform(0.9, 1.1)))
-            clicks = int(round(imps * p.ctr[network] * r.uniform(0.85, 1.15)))
+            # fatigue: a creative's IPM and CTR sag with the days it has been live
+            age = day_idx - max(FIRST_SPEND_DAY, cr.first_day)
+            wear = 0.78 + 0.22 * math.exp(-max(age, 0) / 18.0)
+            imps = int(round(max(installs, 0.5) * 1000 / (cr.ipm * wear) * r.uniform(0.9, 1.1)))
+            clicks = int(round(imps * p.ctr[network] * (0.8 + 0.2 * wear) * r.uniform(0.85, 1.15)))
+            views, done = _video(network, cr, imps, key, wear)
             out.append(
                 {
                     "date": self.start + dt.timedelta(days=day_idx),
@@ -317,8 +342,54 @@ class UASim:
                     "impressions": imps,
                     "clicks": clicks,
                     "installs": installs,
+                    "views": views,
+                    "completions": done,
                 }
             )
+        return out
+
+    def changes(self, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """The plan's changes as dated events (creative-forge's change-timeline shape)."""
+        p = self.plan
+        assert p is not None
+        spend: dict[tuple[str, str, dt.date], float] = defaultdict(float)
+        for x in rows:
+            spend[(x["network"], x["campaign_id"], x["date"])] += x["spend"]
+
+        def at(day_idx: int, hour: int = 21) -> str:
+            d = self.start + dt.timedelta(
+                days=day_idx - 1
+            )  # the evening before the first day it shows
+            return f"{d.isoformat()}T{hour:02d}:30:00+00:00"
+
+        def daily(c: Campaign, d0: int, d1: int) -> float:
+            days = [self.start + dt.timedelta(days=i) for i in range(d0, d1)]
+            vals = [spend.get((c.network, c.id, d), 0.0) for d in days]
+            return round(sum(vals) / max(len(vals), 1), 2)
+
+        out: list[dict[str, Any]] = []
+        for c in p.campaigns:
+            ref = f"demo-{c.id}:{c.network}"
+            base = {"campaign": ref, "campaign_name": c.name, "network": c.network, "mode": "demo",
+                    "plan": f"demo-{c.id}"}  # fmt: skip
+            first = [cr.name for cr in c.creatives if cr.first_day <= FIRST_SPEND_DAY]
+            out.append({**base, "at": at(FIRST_SPEND_DAY, 9), "kind": "activated",
+                        "detail": {"creatives": first}})  # fmt: skip
+            for cr in c.creatives:
+                if cr.first_day > FIRST_SPEND_DAY:
+                    out.append({**base, "at": at(cr.first_day), "kind": "creative_added",
+                                "detail": {"creatives": [cr.name]}})  # fmt: skip
+                if cr.last_day is not None:
+                    out.append({**base, "at": at(cr.last_day + 1), "kind": "creative_paused",
+                                "detail": {"creatives": [cr.name], "reason": "low IPM"}})  # fmt: skip
+            if p.shift and p.shift[1].get(c.network, 0) != p.networks.get(c.network, 0):
+                d = p.shift[0]
+                out.append({**base, "at": at(d), "kind": "budget_changed",
+                            "detail": {"before": daily(c, d - 7, d), "after": daily(c, d, d + 7)}})  # fmt: skip
+        out.sort(key=lambda e: (e["at"], e["campaign"]))
+        for i, e in enumerate(out):
+            e["seq"] = i + 1
+            e["hash"] = f"demo-{self.app_id}-{i + 1}"
         return out
 
     def write(self, out: Path) -> dict[str, Any]:
@@ -329,10 +400,14 @@ class UASim:
 
         api_ok = importlib.util.find_spec("dlt") is not None
         rows = self._rows()
+        root = out / "ua" / self.app_id
+        root.mkdir(parents=True, exist_ok=True)
+        _dump(root / "changes.json", {"schema": "creative-forge/timeline/v1", "demo": True,
+                                      "app": self.app_id, "events": self.changes(rows)})  # fmt: skip
+        self.changes_file = f"ua/{self.app_id}/changes.json"
         by_net: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for row in rows:
             by_net[row["network"]].append(row)
-        root = out / "ua" / self.app_id
         sources: dict[str, Any] = {}
         for network, nrows in sorted(by_net.items()):
             d = root / network
@@ -378,6 +453,25 @@ class UASim:
         return sources
 
 
+VIEW_RATE = {"meta": (0.31, 0.19), "tiktok": (0.44, 0.13)}  # (views / imps, completions / views)
+
+
+def _video(
+    network: str, cr: Creative, imps: int, key: tuple[Any, ...], wear: float
+) -> tuple[int | None, int | None]:
+    """Video views and completions from their own hash-seeded stream (the main stream is untouched).
+    Networks that do not report views, and playables, get None."""
+    if network not in VIEW_RATE or "playable" in cr.name:
+        return None, None
+    rr = random.Random(zlib.crc32(repr(key).encode("utf-8")))
+    view, done = VIEW_RATE[network]
+    strength = min(
+        1.25, max(0.75, 0.85 + 0.03 * (cr.ipm - 6))
+    )  # a hook that installs better also stops more scrolls
+    views = int(round(imps * view * strength * (0.9 + 0.1 * wear) * rr.uniform(0.93, 1.07)))
+    return views, int(round(views * done * rr.uniform(0.9, 1.1)))
+
+
 def _pages(items: list[Any], size: int) -> list[list[Any]]:
     return [items[i : i + size] for i in range(0, len(items), size)] or [[]]
 
@@ -393,11 +487,15 @@ def _merge_platforms(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         k = (x["date"], x["campaign_id"], x["ad_id"], x["country"])
         if k not in acc:
             acc[k] = {**x, "spend": 0.0, "impressions": 0, "clicks": 0, "installs": 0.0}
+            acc[k]["views"] = acc[k]["completions"] = None
         a = acc[k]
         a["spend"] = round(a["spend"] + x["spend"], 2)
         a["impressions"] += x["impressions"]
         a["clicks"] += x["clicks"]
         a["installs"] += x["installs"]
+        for f in ("views", "completions"):
+            if x.get(f) is not None:
+                a[f] = (a[f] or 0) + x[f]
     return [acc[k] for k in sorted(acc)]
 
 
@@ -420,8 +518,22 @@ def _write_meta(d: Path, account: str, rows: list[dict[str, Any]], eur: bool) ->
                 "clicks": str(x["clicks"]),
                 "spend": f"{spend:.2f}",
                 "actions": [
-                    {"action_type": "mobile_app_install", "value": str(int(x["installs"]))}
+                    {"action_type": "mobile_app_install", "value": str(int(x["installs"]))},
+                    *(
+                        [{"action_type": "video_view", "value": str(x["views"])}]
+                        if x.get("views") is not None
+                        else []
+                    ),
                 ],
+                **(
+                    {
+                        "video_p100_watched_actions": [
+                            {"action_type": "video_view", "value": str(x["completions"])}
+                        ]
+                    }
+                    if x.get("completions") is not None
+                    else {}
+                ),
                 "date_start": x["date"].isoformat(),
                 "date_stop": x["date"].isoformat(),
             }
@@ -484,11 +596,15 @@ def _merge_countries(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         k = (x["date"], x["campaign_id"], x["ad_id"])
         if k not in acc:
             acc[k] = {**x, "spend": 0.0, "impressions": 0, "clicks": 0, "installs": 0.0}
+            acc[k]["views"] = acc[k]["completions"] = None
         a = acc[k]
         a["spend"] = round(a["spend"] + x["spend"], 2)
         a["impressions"] += x["impressions"]
         a["clicks"] += x["clicks"]
         a["installs"] += x["installs"]
+        for f in ("views", "completions"):
+            if x.get(f) is not None:
+                a[f] = (a[f] or 0) + x[f]
     return [acc[k] for k in sorted(acc)]
 
 
@@ -511,6 +627,14 @@ def _write_tiktok(d: Path, advertiser: str, rows: list[dict[str, Any]]) -> None:
                 "impressions": str(x["impressions"]),
                 "clicks": str(x["clicks"]),
                 "app_install": str(int(x["installs"])),
+                **(
+                    {
+                        "video_watched_2s": str(x["views"]),
+                        "video_views_p100": str(x["completions"] or 0),
+                    }
+                    if x.get("views") is not None
+                    else {}
+                ),
             },
         }
         for x in _merge_platforms(rows)

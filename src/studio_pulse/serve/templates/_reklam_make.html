@@ -1,0 +1,82 @@
+{% set qa_badge = {'pass': 'good', 'warn': 'warn', 'fail': 'bad', 'skip': 'outline'} %}
+{% set rv_badge = {'pending': 'outline', 'approve': 'good', 'reject': 'bad', 'stale': 'warn'} %}
+<section class="card rk-wizard" id="sihirbaz">
+  <header><h2>{{ t.w_title }}</h2></header>
+  <p class="muted">{{ t.w_sub }}</p>
+  {% if prefill.ref or prefill.brief %}<div class="callout info" role="note"><span class="ic">{{ icon('info')|safe }}</span><div>{{ t.w_from_ref.format(ref=prefill.ref or '—') }}{% if prefill.genre %} · {{ prefill.genre }}{% endif %}{% if prefill.orientation %} · {{ prefill.orientation }}{% endif %}</div></div>{% endif %}
+  <form method="post" action="/reklam/{{ app.id }}/uret" class="rk-form" hx-post="/reklam/{{ app.id }}/uret" hx-swap="none">
+    <fieldset class="rk-fs"><legend>{{ t.w_format }}</legend>
+      <label class="rk-radio"><input type="radio" name="format" value="video" checked> {{ t.w_video }}</label>
+      <label class="rk-radio muted" data-tip="{{ t.w_static_off }}"><input type="radio" name="format" value="static" disabled> {{ t.w_static }}</label>
+      <a class="rk-radio" href="/reklam/{{ app.id }}?sekme=oynanabilir">{{ t.w_playable }} → <span class="muted rk-small">{{ t.w_playable_go }}</span></a>
+    </fieldset>
+    <div class="field">
+      <label for="rk-concept">{{ t.w_concept }}</label>
+      <select class="select" id="rk-concept" data-fill-brief="#rk-brief">
+        <option value="">{{ t.w_concept_none }}</option>
+        {% for c in concepts %}<option value="{{ c.concept }}" data-brief="{{ c.concept }}: IPM {{ fmt(c.ipm, 'ipm') }}{{ ' · kazanan konseptin yeni kancaları' if lang == 'tr' else ' · new hooks for the winning concept' }}">{{ c.concept }} · IPM {{ fmt(c.ipm, 'ipm') }}</option>{% endfor %}
+      </select>
+      <span class="hint">{{ t.w_concept_hint.format(link=t.tab_rakip) }} <a href="{{ competitor_url }}">{{ competitor_url }}</a></span>
+    </div>
+    <div class="field"><label for="rk-brief">{{ t.w_brief }}</label>
+      <textarea class="input" id="rk-brief" name="brief" rows="3" maxlength="500" placeholder="{{ t.w_brief_ph }}">{{ prefill.brief or '' }}</textarea></div>
+    {% if prefill.ref %}<input type="hidden" name="ref" value="{{ prefill.ref }}">{% endif %}
+    <div class="rk-row">
+      <div class="field"><label for="rk-var">{{ t.w_variants }}</label>
+        <select class="select" id="rk-var" name="variants">{% for n in [1, 2, 3, 4] %}<option{% if n == 2 %} selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+      <fieldset class="rk-fs"><legend>{{ t.w_langs }}</legend>
+        {% for l in langs %}<label class="rk-radio"><input type="checkbox" name="lang" value="{{ l }}"{% if l == lang or (lang == 'en' and l == 'en') %} checked{% endif %}> {{ l }}</label>{% endfor %}</fieldset>
+      <div class="field"><label for="rk-mech">{{ t.w_mechanic }}</label>
+        <select class="select" id="rk-mech" name="mechanic">{% for m in mechanics %}<option value="{{ m }}"{% if m == (prefill.mechanic or 'other') %} selected{% endif %}>{{ mech(m) if mech(m) else m }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="field"><label for="rk-hook">{{ t.w_hook }}</label>
+      <select class="select" id="rk-hook" name="hook"><option value="">—</option>{% for h in ['satisfying-clean', 'real-hand', 'reveal', 'before-after'] %}<option value="{{ h }}"{% if prefill.hook == h %} selected{% endif %}>{{ h }}</option>{% endfor %}{% if prefill.hook and prefill.hook not in ['satisfying-clean', 'real-hand', 'reveal', 'before-after'] %}<option value="{{ prefill.hook }}" selected>{{ prefill.hook }}</option>{% endif %}</select></div>
+    <fieldset class="rk-fs"><legend>{{ t.w_mode }}</legend>
+      <label class="rk-radio"><input type="radio" name="mode" value="fake" checked> {{ t.w_fake }}</label>
+      <label class="rk-radio"><input type="radio" name="mode" value="real" data-reveal="#rk-real"> {{ t.w_real }}</label>
+      <div id="rk-real" class="rk-row rk-real">
+        <div class="field"><label for="rk-budget">{{ t.w_budget }}</label><input class="input" id="rk-budget" name="budget" inputmode="decimal" placeholder="15"></div>
+        <div class="field rk-grow"><label for="rk-gp">{{ t.w_gameplay }}</label><input class="input" id="rk-gp" name="gameplay" placeholder="/…/gameplay.mp4"></div>
+        <p class="hint">{{ t.w_real_note }}</p>
+      </div>
+    </fieldset>
+    <button class="btn primary" type="submit"{% if not forge.available %} disabled{% endif %}>{{ t.w_go }}</button>
+  </form>
+</section>
+
+<section class="card" id="isler">
+  <header><h2>{{ t.jobs }}</h2></header>
+  {% if jobs %}<ul class="rk-jobs">{% for j in jobs|reverse %}{% with app_id = app.id %}{% include "_reklam_job.html" %}{% endwith %}{% endfor %}</ul>
+  {% else %}<p class="muted">—</p>{% endif %}
+</section>
+
+<section class="card" id="inceleme">
+  <header><h2>{{ t.review }}</h2></header>
+  <p class="muted rk-small">{{ t.review_sub }}</p>
+  {% if mine.creatives %}
+  {% for rid, items in mine.creatives|groupby('rid')|sort(attribute='list.0.modified', reverse=true) %}
+  <h3 class="rk-run">{{ t.run }}: <code>{{ rid }}</code>{% if items[0].hypothesis %} <span class="muted">“{{ items[0].hypothesis }}”</span>{% endif %}</h3>
+  <div class="rk-cards">
+    {% for c in items %}
+    <article class="rk-cardx">
+      {% if c.path_token %}<video controls preload="none" playsinline {% if c.poster_token %}poster="/reklam/medya/{{ c.poster_token }}"{% endif %} src="/reklam/medya/{{ c.path_token }}"></video>{% endif %}
+      <div class="rk-cardx-b">
+        <b title="{{ c.ad_name }}">{{ short(c.ad_name or c.file) }}</b>
+        <div class="rk-small"><span class="badge {{ qa_badge.get(c.qa_status, 'outline') }}">{{ t['qa_' ~ c.qa_status] if ('qa_' ~ c.qa_status) in t else c.qa_status }}</span>
+          <span class="badge {{ rv_badge.get(c.review, 'outline') }}">{{ t['rv_' ~ c.review] }}</span></div>
+        {% if c.failed %}<div class="rk-small bad-text">{{ t.failed.format(c=', '.join(c.failed)) }}</div>{% endif %}
+        {% if c.decision and c.decision.note %}<div class="rk-small muted">{{ t.note }}: {{ c.decision.note }}</div>{% endif %}
+        {% if forge.available %}
+        <form method="post" action="/reklam/{{ app.id }}/inceleme" class="rk-rv" hx-post="/reklam/{{ app.id }}/inceleme" hx-swap="none">
+          <input type="hidden" name="key" value="{{ c.key }}">
+          <input class="input" name="note" maxlength="300" placeholder="{{ t.note_ph }}" aria-label="{{ t.note }}">
+          <button class="btn sm primary" name="decision" value="approve" type="submit"{% if c.review == 'approve' %} disabled{% endif %}>{{ t.approve }}</button>
+          <button class="btn sm danger" name="decision" value="reject" type="submit"{% if c.review == 'reject' %} disabled{% endif %}>{{ t.reject }}</button>
+        </form>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  {% else %}<p class="muted">{{ t.review_none }}</p>{% endif %}
+</section>

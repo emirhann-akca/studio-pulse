@@ -2,7 +2,8 @@
 -- spend_usd = spend for USD accounts, otherwise spend x the fallback FX rate
 -- valid on that day (raw_fx_rates); NULL when the currency has no rate, which
 -- the check ua_spend_converted reports. campaign_key identifies a campaign
--- (its id, or its name when the export has no id).
+-- (its id, or its name when the export has no id). video_views / video_completions
+-- are the network's own counts (Meta 3 s, TikTok 2 s views), NULL when not reported.
 WITH fx AS (
     SELECT currency, usd_per_unit, valid_from,
            lead(valid_from) OVER (PARTITION BY currency ORDER BY valid_from) AS valid_to
@@ -16,7 +17,7 @@ s AS (
         adset_id, adset_name, ad_id, ad_name, creative_id, creative_concept,
         upper(country) AS country, upper(platform) AS platform,
         spend, upper(COALESCE(currency, 'USD')) AS currency,
-        impressions, clicks, network_installs, _source
+        impressions, clicks, network_installs, video_views, video_completions, _source
     FROM raw_ua_spend
 )
 SELECT
@@ -24,7 +25,8 @@ SELECT
     s.adset_id, s.adset_name, s.ad_id, s.ad_name, s.creative_id, s.creative_concept,
     s.country, s.platform, s.currency, s.spend,
     CASE WHEN s.currency = 'USD' THEN s.spend ELSE s.spend * fx.usd_per_unit END AS spend_usd,
-    s.impressions, s.clicks, s.network_installs, s._source AS source
+    s.impressions, s.clicks, s.network_installs, s.video_views, s.video_completions,
+    s._source AS source
 FROM s
 LEFT JOIN fx
     ON fx.currency = s.currency AND s.date >= fx.valid_from
