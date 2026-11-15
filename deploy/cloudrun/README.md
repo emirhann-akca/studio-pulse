@@ -142,6 +142,9 @@ and so reads low for Cloud Run:
 | Live view (in memory) | $0 | $0 |
 | **Total** | **~$0** | **~$2 now -> ~$12/month after a year** |
 
+`/healthz` does not reach the service on Cloud Run (its front end reserves paths
+ending in `z` and answers 404); use `/health`, the same answer.
+
 ## Not verified here
 
 - The sink sends Arrow record batches (`AppendRowsRequest.arrow_rows`) with

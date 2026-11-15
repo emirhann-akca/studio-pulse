@@ -483,6 +483,14 @@ def test_live_window_forgets_expired_installs_even_when_nobody_reads_it():
     assert w.snapshot(now)["com.example.game"]["active"] == 301  # [now - 5 min, now]
 
 
+def test_health_answers_on_both_paths(col):
+    """Cloud Run's front end answers /healthz itself (404), so /health is the same answer."""
+    client = col[0]
+    a, b = client.get("/healthz"), client.get("/health")
+    assert a.status_code == b.status_code == 200 and a.json() == b.json()
+    assert "write_keys" in b.json() and DEFAULT_LOCAL_KEY not in b.text
+
+
 def test_live_needs_the_read_key_when_configured(tmp_path):
     s = CollectorSettings(data_dir=tmp_path / "c", read_key="r3ad")
     store = LocalStore(s.data_dir)

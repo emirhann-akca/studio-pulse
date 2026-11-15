@@ -90,7 +90,7 @@ extra (`maxminddb`). Tests never download it.
 | `POST /v1/ndjson` | contract v1 JSON lines (the Unity/Flutter perf packages' `JsonLinesSink`) | `200 {"accepted", "duplicates", "quarantined"}`; lines are upgraded to v2 rows with `schema = "1"` |
 | `POST /v2/delete` | `{"install_id", "app_id"?, "reason"?}` | `202`: events of that install are refused from now on, stored rows go with the next run; rate limited per IP like ingest; a bound key needs its own `app_id` |
 | `GET /live` | - | active installs per app in the last 5 minutes, breakdown, events per minute, registry status, new apps |
-| `GET /healthz` | - | mode, counters, contract version (no keys, no data) |
+| `GET /healthz`, `GET /health` | - | mode, counters, contract version (no keys, no data); on Cloud Run only `/health` answers: its front end keeps paths ending in `z` |
 
 The write key travels as `X-Pulse-Key` (or `Authorization: Bearer`). It is a
 public, write-only key compiled into the game, like Aptabase's App-Key or a

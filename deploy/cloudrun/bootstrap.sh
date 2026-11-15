@@ -102,7 +102,7 @@ else
     chmod 600 "$ENVF"
     say "collector: $URL"
     python3 "$KEYS" sdk "$ENVF" "$STATE/sdk"
-    curl -fsS "$URL/healthz" && echo
+    curl -fsS "$URL/health" && echo   # Cloud Run keeps /healthz (paths ending in z)
     say "keys and URL: $ENVF; for each game's release build: $STATE/sdk/<label>.env"
 fi
 case "$WORK" in /tmp/*|/var/folders/*|/private/*) rm -r "$WORK" ;; esac
