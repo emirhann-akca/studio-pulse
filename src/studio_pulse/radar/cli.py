@@ -180,3 +180,6 @@ def add_parser(sub: argparse._SubParsersAction, with_config) -> None:
     from .adintel.cli import add_parser as add_adintel_parser  # pulse radar adintel refresh
 
     add_adintel_parser(rs, with_config)
+    from .creatives.cli import add_parser as add_creatives_parser  # pulse radar creatives
+
+    add_creatives_parser(rs, with_config)

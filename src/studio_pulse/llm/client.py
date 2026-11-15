@@ -33,6 +33,7 @@ from typing import Any
 from . import pricing
 from .base import (
     BudgetExceeded,
+    LLMConfigError,
     LLMError,
     LLMOutputError,
     LLMRequest,
@@ -131,7 +132,9 @@ class LLMClient:
         if price is None:
             return None
         chars = len(req.system) + len(req.prompt) + len(json.dumps(req.schema or {}))
-        tokens_in = pricing.estimate_tokens(chars, len(req.images))
+        tokens_in = pricing.estimate_tokens(
+            chars, len(req.images), sum(v.seconds for v in req.videos)
+        )
         return pricing.cost(price, tokens_in, req.max_output_tokens)
 
     def _reserve(self, req: LLMRequest) -> None:
@@ -210,6 +213,9 @@ class LLMClient:
 
     # -- public ------------------------------------------------------------------------
     def generate(self, req: LLMRequest) -> LLMResponse:
+        if req.videos and not getattr(self.provider, "supports_video", False):
+            # it would answer without seeing the video: refused before anything is sent
+            raise LLMConfigError(f"provider {self.provider.name!r} does not take video input")
         key = self.key(req)
         cf = self._cache_file(key)
         if cf and cf.exists():
@@ -253,6 +259,7 @@ class LLMClient:
                     system=req.system,
                     schema=req.schema,
                     images=req.images,
+                    videos=req.videos,
                     temperature=req.temperature,
                     max_output_tokens=req.max_output_tokens,
                     purpose=f"{req.purpose}:repair",

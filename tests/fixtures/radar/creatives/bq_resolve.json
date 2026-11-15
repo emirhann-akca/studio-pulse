@@ -1,0 +1,7 @@
+[
+  {"advertiser_id": "AR10000000000000000001", "name": "Example Pebbleworks Ltd", "creatives": 420, "games_creatives": 410},
+  {"advertiser_id": "AR10000000000000000002", "name": "Example Pebbleworks Publishing", "creatives": 60, "games_creatives": 55},
+  {"advertiser_id": "AR10000000000000000003", "name": "Pebbleworks Garden Supplies", "creatives": 900, "games_creatives": 12},
+  {"advertiser_id": "AR10000000000000000004", "name": "Brightsort Games A.S.", "creatives": 130, "games_creatives": 128},
+  {"advertiser_id": "AR10000000000000000005", "name": "Example Pebbleworks Bakery", "creatives": 40, "games_creatives": 0}
+]

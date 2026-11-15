@@ -31,6 +31,9 @@ PRICES: dict[str, tuple[float, float]] = {
 # Conservative pre-call estimate: one token per ~2.5 characters of text, a flat count per image.
 CHARS_PER_TOKEN = 2.5
 IMAGE_TOKENS = 1800
+# Gemini bills a video at about 258 tokens per sampled frame (1 fps by default) plus 32 a
+# second of audio; 320 a second keeps the pre-call estimate on the safe side.
+VIDEO_TOKENS_PER_S = 320
 
 
 def price_for(
@@ -52,5 +55,10 @@ def cost(price: tuple[float, float] | None, input_tokens: int, output_tokens: in
     return (input_tokens * price[0] + output_tokens * price[1]) / 1_000_000
 
 
-def estimate_tokens(text_chars: int, images: int) -> int:
-    return int(text_chars / CHARS_PER_TOKEN) + images * IMAGE_TOKENS + 16
+def estimate_tokens(text_chars: int, images: int, video_seconds: int = 0) -> int:
+    return (
+        int(text_chars / CHARS_PER_TOKEN)
+        + images * IMAGE_TOKENS
+        + video_seconds * VIDEO_TOKENS_PER_S
+        + 16
+    )

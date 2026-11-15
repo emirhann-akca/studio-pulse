@@ -120,3 +120,7 @@ def register(app: FastAPI, cfg: Config, templates: Any, context: Any, open_db: A
                 lists=LIST[lang],
             ),
         )
+
+    from .creatives.page import register as register_creatives  # /radar/kreatifler
+
+    register_creatives(app, cfg, templates, context, open_db)

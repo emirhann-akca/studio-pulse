@@ -1,0 +1,17 @@
+{
+ "data": [
+  {
+   "id": "910000000000004",
+   "page_id": "510000000000001",
+   "page_name": "Pebble Sort (synthetic)",
+   "ad_delivery_start_time": "2026-06-01",
+   "ad_delivery_stop_time": "2026-10-30",
+   "ad_creative_bodies": ["Can you beat level ten? Most players fail here."],
+   "ad_creative_link_titles": ["Pebble Sort"],
+   "publisher_platforms": ["facebook", "instagram", "messenger", "audience_network"],
+   "languages": ["en"],
+   "eu_total_reach": 2400000
+  }
+ ],
+ "paging": {"cursors": {"after": "c3"}}
+}

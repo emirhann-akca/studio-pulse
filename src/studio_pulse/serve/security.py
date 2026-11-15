@@ -72,20 +72,30 @@ def csp_hash(script: str) -> str:
     return "'sha256-" + base64.b64encode(digest).decode("ascii") + "'"
 
 
-def content_security_policy(script_hashes: Iterable[str] = ()) -> str:
+def content_security_policy(
+    script_hashes: Iterable[str] = (),
+    *,
+    img_src: Iterable[str] = (),
+    frame_src: Iterable[str] = (),
+) -> str:
     # style-src keeps 'unsafe-inline': the charts and templates use style attributes,
     # which CSP cannot allow by hash. Scripts are the injection risk and stay strict.
+    # img_src / frame_src: extra https origins one route allows for itself (the creative
+    # library: YouTube thumbnails and the youtube-nocookie player); scripts never change.
     scripts = " ".join(["'self'", *script_hashes])
+    imgs = " ".join(["'self'", "data:", *img_src])
+    frames = list(frame_src)
     return (
         "default-src 'self'; "
         f"script-src {scripts}; "
         "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data:; "
+        f"img-src {imgs}; "
         "font-src 'self' data:; "
         "connect-src 'self'; "
         "form-action 'self'; "
         "frame-ancestors 'none'; "
-        "base-uri 'none'; "
+        + (f"frame-src {' '.join(frames)}; " if frames else "")
+        + "base-uri 'none'; "
         "object-src 'none'"
     )
 

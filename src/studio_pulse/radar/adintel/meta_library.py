@@ -24,7 +24,7 @@ import json
 import os
 from collections.abc import Callable
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 import requests
 
@@ -55,15 +55,24 @@ def archive_url(
     search_terms: str | None = None,
     page_ids: list[str] | None = None,
     limit: int = 100,
+    fields: tuple[str, ...] = FIELDS,
+    delivery_date_min: str | None = None,
+    media_type: str | None = None,
 ) -> str:
     """The first page's URL without the token (the token is added at send time)."""
     q: dict[str, Any] = {
         "ad_type": "ALL",
         "ad_active_status": "ALL",
         "ad_reached_countries": json.dumps([c.upper() for c in countries]),
-        "fields": ",".join(FIELDS),
+        "fields": ",".join(fields),
         "limit": int(limit),
     }
+    if delivery_date_min:
+        q["ad_delivery_date_min"] = str(delivery_date_min)[:10]
+    if media_type:
+        if media_type not in ("ALL", "IMAGE", "MEME", "VIDEO", "NONE"):
+            raise ValueError(f"media_type {media_type!r}")
+        q["media_type"] = media_type
     if page_ids:
         q["search_page_ids"] = json.dumps([str(p) for p in page_ids])
     elif search_terms:
@@ -145,9 +154,17 @@ class MetaAdLibrary:
         self.log = log
         self.today = today or dt.date.today()
 
-    def search(
-        self, *, search_terms: str | None = None, page_ids: list[str] | None = None
+    def fetch(
+        self,
+        *,
+        search_terms: str | None = None,
+        page_ids: list[str] | None = None,
+        fields: tuple[str, ...] = FIELDS,
+        delivery_date_min: str | None = None,
+        media_type: str | None = None,
     ) -> dict[str, Any]:
+        """The raw ads (`ads`) of up to max_pages pages, or a not_configured / error status.
+        `paging.next` is followed only to https://graph.facebook.com (the token goes with it)."""
         base = {
             "basis": "platform_reported",
             "source": "meta_ad_library",
@@ -162,12 +179,21 @@ class MetaAdLibrary:
                 "message": f"no token: set {TOKEN_ENV} (Meta Ad Library API access)",
             }
         url: str | None = archive_url(
-            self.version, countries=self.countries, search_terms=search_terms, page_ids=page_ids
+            self.version,
+            countries=self.countries,
+            search_terms=search_terms,
+            page_ids=page_ids,
+            fields=fields,
+            delivery_date_min=delivery_date_min,
+            media_type=media_type,
         )
         ads: list[dict[str, Any]] = []
         pages = 0
         try:
             while url and pages < self.max_pages:
+                parts = urlsplit(url)
+                if parts.scheme != "https" or parts.netloc != urlsplit(GRAPH).netloc:
+                    raise RuntimeError("paging.next points outside graph.facebook.com; not sent")
                 sep = "&" if "?" in url else "?"
                 full = url if "access_token=" in url else f"{url}{sep}access_token={self.token}"
                 r = self.session.get(full, timeout=self.timeout_s)
@@ -175,7 +201,7 @@ class MetaAdLibrary:
                 if r.status_code != 200:
                     raise RuntimeError(f"HTTP {r.status_code}: {r.text[:300]}")
                 doc = r.json()
-                ads += list(doc.get("data") or [])
+                ads += [a for a in doc.get("data") or [] if isinstance(a, dict)]
                 url = (doc.get("paging") or {}).get("next")
         except Exception as exc:
             return {
@@ -183,4 +209,13 @@ class MetaAdLibrary:
                 "status": "error",
                 "message": redact(f"{type(exc).__name__}: {exc}", (self.token,))[:400],
             }
-        return {**base, "status": "ok", "pages_read": pages, **summarize(ads, self.today)}
+        return {**base, "status": "ok", "pages_read": pages, "ads": ads}
+
+    def search(
+        self, *, search_terms: str | None = None, page_ids: list[str] | None = None
+    ) -> dict[str, Any]:
+        res = self.fetch(search_terms=search_terms, page_ids=page_ids)
+        if res["status"] != "ok":
+            return res
+        ads = res.pop("ads")
+        return {**res, **summarize(ads, self.today)}
