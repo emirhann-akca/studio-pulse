@@ -26,6 +26,8 @@ IOS_NATIVE_DEFINE = "STUDIO_PULSE_IOS_NATIVE"
 # The App Tracking Transparency request of the ads package (Plugins/iOS/Ads) has its own
 # define, STUDIO_PULSE_ATT: only apps that show ads link it.
 ATT_DEFINE = "STUDIO_PULSE_ATT"
+# The Google UMP consent bridge (Plugins/iOS/Ads/StudioPulseUmp.mm) links the UMP SDK: STUDIO_PULSE_UMP.
+UMP_DEFINE = "STUDIO_PULSE_UMP"
 IOS_PLUGIN = (
     """PluginImporter:
   externalObjects: {}
@@ -80,7 +82,8 @@ def meta_for(path: Path) -> str:
     if path.name == "package.json":
         return head + "PackageManifestImporter:\n  externalObjects: {}\n" + TAIL
     if ext in (".swift", ".mm", ".m", ".xcprivacy") and "Plugins/iOS/Ads/" in rel:
-        return head + IOS_PLUGIN.replace(f"  - {IOS_NATIVE_DEFINE}\n", f"  - {ATT_DEFINE}\n")
+        define = UMP_DEFINE if "Ump" in path.name else ATT_DEFINE
+        return head + IOS_PLUGIN.replace(f"  - {IOS_NATIVE_DEFINE}\n", f"  - {define}\n")
     if ext in (".swift", ".mm", ".m", ".xcprivacy") and "Plugins/iOS" in rel:
         return head + IOS_PLUGIN
     if ext in (".md", ".txt", ".json"):

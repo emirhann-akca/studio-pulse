@@ -207,7 +207,7 @@ unity/dotnet/ads-compile.sh        # ad bridges + ads package against the real M
 dotnet test unity/dotnet/Studio.Pulse.Core.Tests   # what CI runs on Windows, macOS, Linux
 ```
 
-55 cases: the ad revenue mapping, de-duplication and ads config rules (AdRevenueTests), GrowthBook's own assignment cases and the exposure event, kill mid-flush (no loss, the re-sent batch deduped), a torn line, 24 h
+56 cases: the ad revenue mapping, de-duplication and ads config rules (AdRevenueTests), GrowthBook's own assignment cases and the exposure event, kill mid-flush (no loss, the re-sent batch deduped), a torn line, 24 h
 offline replay, 413 halving, 400 drop, 401 disable, 429/5xx backoff timings and
 Retry-After with a fake clock, flush triggers, gzip threshold, queue cap, 30-minute and
 24-hour session rules, heartbeat, `seq` across six restarts, install / update / exit

@@ -4,6 +4,7 @@
 //    advertising id at app start even when MAX is never initialised; ironSource / LevelPlay
 //    register lifecycle trackers) and the AD_ID permission, so a build with empty keys behaves
 //    like a build without the SDKs. Ads on with LevelPlay: AD_ID declared (Android 13+);
+//  - iOS, LevelPlay with UMP ids: GADApplicationIdentifier (UMP reads the AdMob app id from Info.plist);
 //  - iOS, ads on: NSUserTrackingUsageDescription, base English text plus every other language
 //    (MAX localises en, de, es, fr, ja, ko, zh-Hans and zh-Hant itself, so only the rest for MAX).
 using System;
@@ -82,6 +83,12 @@ namespace Studio.Pulse.Editor
             Debug.Log("[Studio.Ads] " + platform + " build: analytics " + (cfg.PulseConfigured ? "ON" : "off")
                 + ", ads " + (provider ?? "off") + ", MMP " + (cfg.MmpConfigured(platform) ? "ON" : "off"));
             foreach (string p in cfg.Problems(platform, store)) Debug.LogWarning("[Studio.Ads] " + p);
+            if (provider == StudioAppConfig.LevelPlay && cfg.UmpConfigured(platform))
+            {
+                NamedBuildTarget nt = platform == "ios" ? NamedBuildTarget.iOS : NamedBuildTarget.Android;
+                if (!PlayerSettings.GetScriptingDefineSymbols(nt).Split(';').Select(d => d.Trim()).Contains("STUDIO_PULSE_UMP"))
+                    Debug.LogWarning("[Studio.Ads] UMP ids are set but STUDIO_PULSE_UMP is not defined for " + platform + ": no consent form");
+            }
             if (platform == "ios" && provider == StudioAppConfig.LevelPlay && cfg.AttWanted(provider) && cfg.AttText("en") != null)
             {
                 string defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.iOS);
@@ -175,6 +182,15 @@ namespace Studio.Pulse.Editor
             StudioAppConfig cfg = StudioAppConfigFile.Read();
             string provider = cfg.AdsProvider("ios");
             string en = cfg.AttText("en");
+            if (provider == StudioAppConfig.LevelPlay && cfg.UmpConfigured("ios"))
+            {
+                // Google UMP on iOS reads the AdMob app id only from Info.plist.
+                string plistPath = Path.Combine(buildPath, "Info.plist");
+                var plist = new UnityEditor.iOS.Xcode.PlistDocument();
+                plist.ReadFromFile(plistPath);
+                plist.root.SetString("GADApplicationIdentifier", cfg.UmpAppId("ios"));
+                plist.WriteToFile(plistPath);
+            }
             if (provider == null || !cfg.AttWanted(provider) || en == null) return;
 
             if (provider == StudioAppConfig.LevelPlay)

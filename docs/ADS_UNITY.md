@@ -7,7 +7,7 @@ call and shows no ad**, so a build without keys behaves like a build without the
 
 | Part | Assembly | Compiled when |
 |---|---|---|
-| Config, `StudioApp.Start`, `StudioAds`, ATT helper | `Studio.Pulse.Ads` | always |
+| Config, `StudioApp.Start`, `StudioAds`, ATT and Google UMP bridges | `Studio.Pulse.Ads` | always (ATT / UMP native parts only with `STUDIO_PULSE_ATT` / `STUDIO_PULSE_UMP`) |
 | Unity LevelPlay provider (first choice) | `Studio.Pulse.Ads.LevelPlay` | `com.unity.services.levelplay` 9.5.0 to < 10 |
 | AppLovin MAX provider | `Studio.Pulse.Ads.Max` | `com.applovin.mediation.ads` 8.0.0+ |
 | AppsFlyer MMP | `Studio.Pulse.Ads.AppsFlyer` | `appsflyer-unity-plugin` 7.0.0+ |
@@ -32,6 +32,12 @@ defines*), which also removes them when the SDK goes away.
    Callbacks run on the main thread; `StudioAds.AvailabilityChanged` fires when an ad loads.
 4. iOS with LevelPlay: add `STUDIO_PULSE_ATT` to the iOS Scripting Define Symbols (it compiles
    the tracking prompt, `Plugins/iOS/Ads/StudioPulseAtt.mm`; apps without ads leave it out).
+   GDPR / UK consent with Google UMP: copy `Samples~/AdsQuickStart/StudioPulseUmpDependencies.xml`
+   into `Assets/` (UMP SDK: CocoaPods `GoogleUserMessagingPlatform` 3.1.0, Maven
+   `com.google.android.ump:user-messaging-platform` 4.0.0), add `STUDIO_PULSE_UMP` for iOS and
+   Android, fill `ump.iosAppId` / `ump.androidAppId` (AdMob app ids) and publish a GDPR message in
+   AdMob > Privacy & messaging. Offer `StudioAds.ShowPrivacyOptions` from the game's settings when
+   `StudioAds.PrivacyOptionsRequired`.
 5. Fill the keys (below), build. Every build logs `[Studio.Ads] <platform> build: analytics
    ..., ads ..., MMP ...` and any half-filled section.
 
@@ -45,6 +51,8 @@ defines*), which also removes them when the SDK goes away.
 | `privacy.requestAtt` | | LevelPlay: ask ATT before `LevelPlay.Init` |
 | `privacy.gdprConsent` | `""`, `"granted"`, `"denied"` | passed before init when the game has no CMP |
 | `privacy.childDirected` | | LevelPlay: `SetCOPPA(true)`; MAX is not started at all (AppLovin terms) |
+| `ump.iosAppId`, `ump.androidAppId` | AdMob > Apps > App settings (`ca-app-pub-…~…`) | Google UMP consent form before LevelPlay (iOS: written to Info.plist `GADApplicationIdentifier`; Android: passed at run time) |
+| `ump.debugGeography`, `ump.testDeviceIds` | `eea` / `us_state` / `other`; ids UMP logs | development builds only: force the form's region |
 | `levelplay.iosAppKey`, `androidAppKey` | LevelPlay platform > Apps | LevelPlay on that platform |
 | `levelplay.{ios,android}.{rewarded,interstitial,banner}` | LevelPlay platform > Ad units | ad units |
 | `max.sdkKey`, `max.{ios,android}.*` | AppLovin dashboard > Keys, MAX > Ad units | MAX, only where LevelPlay is empty |
@@ -57,8 +65,10 @@ its key **and** at least one ad unit id for the platform are set; LevelPlay wins
 ## What happens at `StudioApp.Start()`
 
 1. `Pulse.Init` when the collector is configured.
-2. LevelPlay: `SetCOPPA` / `SetGDPRConsent` / `SetCCPA` (when set), the ATT prompt on iOS
-   (once; answered users are not asked again), `LevelPlay.Init(appKey)`; after
+2. LevelPlay: the Google UMP consent form when an AdMob app id is set (UMP shows it only where
+   required: EEA, UK, Switzerland; an unanswered request gives up after 12 s, never while the form is
+   on screen), the ATT prompt on iOS (once; answered users are not asked again), then `SetCOPPA` /
+   `SetGDPRConsent` / `SetCCPA` (when set) and `LevelPlay.Init(appKey)`; after
    `OnInitSuccess` the rewarded and interstitial ads are created and loaded. Failed loads
    retry after 2, 4 ... 64 s; ads reload after they close or fail to show. The reward is
    granted only by `OnAdRewarded`, which may arrive after `OnAdClosed`: `ShowRewarded` waits
