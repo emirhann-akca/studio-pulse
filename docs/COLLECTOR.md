@@ -293,8 +293,9 @@ follows the simulation, so the demo is the same on every OS.
   concurrency, the live window, the models with hand-computed numbers, the
   simulator against a real local server, and a collector + simulator + `/live`
   smoke job on windows-latest and macos-latest.
-- Cloud mode is tested with fake BigQuery clients only; nothing has been
-  deployed from this repository.
+- Cloud mode is tested with fake BigQuery clients in CI; one deploy on Cloud Run
+  (15 Nov 2026) was checked by hand end to end, see
+  [deploy/cloudrun/README.md](../deploy/cloudrun/README.md).
 - The store checks use recorded responses; the Apple `bundleId` lookup is
   undocumented.
 - The SDKs (Unity: [SDK_UNITY.md](SDK_UNITY.md), Flutter: [SDK_FLUTTER.md](SDK_FLUTTER.md))

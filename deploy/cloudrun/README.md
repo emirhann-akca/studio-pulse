@@ -145,13 +145,28 @@ and so reads low for Cloud Run:
 `/healthz` does not reach the service on Cloud Run (its front end reserves paths
 ending in `z` and answers 404); use `/health`, the same answer.
 
-## Not verified here
+## Verified on a first deploy (15 Nov 2026), and not
 
-- The sink sends Arrow record batches (`AppendRowsRequest.arrow_rows`) with
-  `TIMESTAMP` columns as Arrow `timestamp[us, UTC]` and `params` as a JSON
-  string; it is tested against fake clients only. Send one batch with
-  `pulse simulate --url https://... --key ... --duration 30` after the first
-  deploy and look at the rows.
-- The `X-Forwarded-For` position on Cloud Run (see `PULSE_TRUSTED_PROXY_HOPS`).
+Deployed with `bootstrap.sh` into a real project (us-central1, dataset in `US`)
+and checked by hand:
+
+- The Arrow appends land: a gzip batch with a bound key answered 200 and its
+  rows were in `events` with their `key_id`; the same key for another app
+  answered 403 (`batch:key_not_for_app` in `quarantine`, no app attached), an
+  unknown key 401, `/live` 401 without the read key and 200 with it, `/health`
+  200 with `bound_keys`.
+- `PULSE_TRUSTED_PROXY_HOPS=1` is right on Cloud Run: a batch carrying a forged
+  `X-Forwarded-For` of another country got the real client's country.
+- `pulse ingest --source pulse_sdk` read the rows back through the
+  `collector.bigquery` block into `raw_pulse_events`; after `POST /v2/delete`
+  the same read returned none (the rows stay in BigQuery until their partition
+  expires and are left out of every load).
+- `bq add-iam-policy-binding -d` needs allowlisting; deploy.sh grants the
+  dataset role with a DCL `GRANT ... ON SCHEMA` instead.
+
+Not verified:
+
+- Memory and latency under real load (the sizing above is measured locally with
+  fake clients).
 - Live detection (`pulse apps refresh`) reads the local SQLite registry; in
   cloud mode the registry lives in BigQuery and that job is not wired up yet.

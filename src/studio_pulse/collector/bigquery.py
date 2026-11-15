@@ -19,8 +19,8 @@ REGISTRY_TTL_MS (`/live` polls every 5 s). Without that, two app versions in the
 alternate on every batch and each batch would run a MERGE.
 
 Needs the optional extra `cloud` (google-cloud-bigquery-storage,
-google-cloud-bigquery). Tested only with fake clients in this repository; it
-has not been run against a real project.
+google-cloud-bigquery). CI tests it with fake clients only; one real deploy was
+checked by hand (deploy/cloudrun/README.md).
 """
 
 from __future__ import annotations
