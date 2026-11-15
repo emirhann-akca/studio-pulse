@@ -71,6 +71,8 @@ events, purchases included, for another. A bound key is accepted only for its
 deletion for any other app answers `403 key_not_for_app` and nothing of it is
 stored (the batch head goes to the quarantine). On a non-loopback address the
 collector warns about every unbound key; `/healthz` reports `bound_keys`.
+`deploy/cloudrun/bootstrap.sh` makes bound keys only
+(`APPS="label=app_id|app_id ..."`, see its README).
 
 `pulse collect setup-geoip` installs DB-IP's free *IP to Country Lite*
 database (CC BY 4.0, updated monthly): it reads the download page, takes the
@@ -232,10 +234,11 @@ The same code with `PULSE_COLLECTOR_MODE=bigquery` writes through the
 BigQuery Storage Write API (default stream, Arrow record batches, first
 2 TiB per month free) and MERGEs the registry. One instance
 (`--max-instances=1`) keeps one live view; a restart refills it within five
-minutes. Plan, deploy scripts (print-only unless `--apply`), environment and
-the cost table: [deploy/cloudrun/README.md](../deploy/cloudrun/README.md).
-Roughly $0 a month at 1 M events and $2 now to $12 after a year at 100 M
-events, mostly BigQuery storage.
+minutes. Plan, deploy scripts (print-only unless `--apply`), size, environment
+and the cost table: [deploy/cloudrun/README.md](../deploy/cloudrun/README.md).
+Roughly $0 a month up to ~1k daily active users, ~$25-30 at 10k and ~$225-260 at
+100k (Cloud Run busy time and requests first, then warehouse reads and request
+logs); the README names the switches that halve the last one.
 
 The warehouse reads the SDK events from those tables, not from a local
 folder, once the collector block names them:

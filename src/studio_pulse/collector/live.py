@@ -15,6 +15,7 @@ from collections import defaultdict
 from typing import Any
 
 FUTURE_SLACK_MS = 120_000  # a device clock slightly ahead still counts as "now"
+PRUNE_EVERY_MS = 60_000  # observe() drops expired installs this often, read or not
 
 
 class LiveWindow:
@@ -26,6 +27,7 @@ class LiveWindow:
         self._installs: dict[str, dict[str, tuple[int, str, str, str, str]]] = defaultdict(dict)
         # app_id -> minute (epoch // 60000) -> events
         self._minutes: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int))
+        self._pruned_ms = 0
 
     def observe(
         self,
@@ -42,6 +44,10 @@ class LiveWindow:
         recent = [t for t in ts_list if now_ms - self.window_ms <= t <= now_ms + FUTURE_SLACK_MS]
         spark_from = now_ms - self.spark_minutes * 60_000
         with self._lock:
+            # without this, a collector nobody reads /live from (Cloud Run with no
+            # `pulse serve` polling) would keep every install it ever saw in memory
+            if now_ms - self._pruned_ms >= PRUNE_EVERY_MS:
+                self._prune(now_ms)
             mins = self._minutes[app_id]
             for t in ts_list:
                 if spark_from <= t <= now_ms + FUTURE_SLACK_MS:
@@ -58,16 +64,21 @@ class LiveWindow:
                 inst.pop(install_id, None)
 
     def _prune(self, now_ms: int) -> None:
+        self._pruned_ms = now_ms
         cut = now_ms - self.window_ms
         first_min = (now_ms - self.spark_minutes * 60_000) // 60_000
         for app_id in list(self._installs):
             inst = self._installs[app_id]
             for k in [k for k, v in inst.items() if v[0] < cut]:
                 del inst[k]
+            if not inst:
+                del self._installs[app_id]
         for app_id in list(self._minutes):
             mins = self._minutes[app_id]
             for m in [m for m in mins if m < first_min]:
                 del mins[m]
+            if not mins:
+                del self._minutes[app_id]
 
     def snapshot(self, now_ms: int) -> dict[str, dict[str, Any]]:
         """{app_id: {active, by: [...], events_per_min: [...]}} for apps with recent data."""

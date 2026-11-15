@@ -8,8 +8,15 @@ synchronous: the collector answers 2xx only after BigQuery acknowledged it.
 The app registry is one MERGE per (app_id, platform) on first sight (an
 in-process cache and lock make it one statement even under concurrent first
 batches; MERGE keeps it one row even across instances). Dedupe in cloud mode is
-an in-memory LRU of event ids and (install_id, seq) (one instance), backed by
-the warehouse's own dedupe in stg_pulse_events.
+an in-memory, bounded set of event ids and (install_id, seq) (`SeenSet`, one
+instance), backed by the warehouse's own dedupe in stg_pulse_events.
+
+Every BigQuery query bills at least 10 MB per table, and a MERGE takes a second or
+two, so the registry is touched sparingly: a MERGE when an app is first promoted or
+shows a version this process has not seen (up to MAX_VERSIONS per app), otherwise at
+most once per TOUCH_EVERY_MS per (app_id, platform); `registry()` is cached for
+REGISTRY_TTL_MS (`/live` polls every 5 s). Without that, two app versions in the wild
+alternate on every batch and each batch would run a MERGE.
 
 Needs the optional extra `cloud` (google-cloud-bigquery-storage,
 google-cloud-bigquery). Tested only with fake clients in this repository; it
@@ -19,7 +26,7 @@ has not been run against a real project.
 from __future__ import annotations
 
 import threading
-from collections import OrderedDict
+import time
 from collections.abc import Iterable
 from typing import Any
 
@@ -54,23 +61,46 @@ def to_arrow(rows: list[dict[str, Any]], table: str) -> pa.RecordBatch:
     return pa.RecordBatch.from_arrays(arrays, schema=schema)
 
 
-class LRUSet:
+class SeenSet:
+    """Recently seen dedupe keys in bounded memory: two generations of 64-bit fingerprints.
+
+    A key is remembered for at least `capacity // 2` and at most `capacity` later
+    additions (when the newer generation is full it becomes the older one and the
+    older one is dropped). Only `hash(key)` is kept: capacity 1 M peaked at ~92 MB RSS
+    (measured), where the earlier LRU of tuples took ~470 MB for 2 M keys and, next to
+    the ~175 MB of the cloud libraries, did not fit a 512 MiB container. A 64-bit collision
+    could count a new event as a repeat; at a million keys the chance per event is
+    ~1e-13. The warehouse dedupes again, so a forgotten key costs a stored duplicate,
+    never a doubled metric.
+    """
+
     def __init__(self, capacity: int) -> None:
+        if capacity < 2:
+            raise ValueError("dedupe capacity must be at least 2")
         self.capacity = capacity
-        self._d: OrderedDict[Any, None] = OrderedDict()
+        self._half = capacity // 2
+        self._new: set[int] = set()
+        self._old: set[int] = set()
+
+    def __len__(self) -> int:
+        return len(self._new) + len(self._old)
 
     def __contains__(self, key: Any) -> bool:
-        if key in self._d:
-            self._d.move_to_end(key)
-            return True
-        return False
+        h = hash(key)
+        return h in self._new or h in self._old
 
     def add(self, key: Any) -> None:
-        self._d[key] = None
-        self._d.move_to_end(key)
-        while len(self._d) > self.capacity:
-            self._d.popitem(last=False)
+        h = hash(key)
+        if h in self._new:
+            return
+        self._new.add(h)
+        if len(self._new) >= self._half:
+            self._old, self._new = self._new, set()
 
+
+TOUCH_EVERY_MS = 15 * 60_000  # last_seen in the registry: a quarter of an hour is enough
+MAX_VERSIONS = 20  # new versions per app that MERGE at once; more wait for the timer
+REGISTRY_TTL_MS = 60_000  # /live reads the registry at most once a minute
 
 MERGE_SQL = """
 MERGE `{table}` T
@@ -99,7 +129,7 @@ class BigQueryStore:
         write_client: Any = None,
         query_client: Any = None,
         location: str | None = None,
-        dedupe_capacity: int = 2_000_000,
+        dedupe_capacity: int = 1_000_000,
     ) -> None:
         self.project, self.dataset, self.location = project, dataset, location
         if write_client is None or query_client is None:
@@ -114,10 +144,13 @@ class BigQueryStore:
             query_client = query_client or bigquery.Client(project=project, location=location)
         self.write_client = write_client
         self.query_client = query_client
-        self._seen = LRUSet(dedupe_capacity)
+        self._seen = SeenSet(dedupe_capacity)
         self._lock = threading.Lock()
         self._registered: set[tuple[str, str]] = set()
         self._reg_lock = threading.Lock()
+        # (app_id, platform) -> last MERGE (ms), versions merged, promoted
+        self._touched: dict[tuple[str, str], tuple[int, set[str], bool]] = {}
+        self._registry_cache: tuple[float, list[dict[str, Any]]] | None = None
         self._deleted: set[str] | None = None
         self.merges = 0
 
@@ -126,7 +159,12 @@ class BigQueryStore:
         bq = settings.bigquery
         if not bq.get("project") or not bq.get("dataset"):
             raise RuntimeError("cloud mode needs bigquery.project and bigquery.dataset")
-        return cls(bq["project"], bq["dataset"], location=bq.get("location"))
+        return cls(
+            bq["project"],
+            bq["dataset"],
+            location=bq.get("location"),
+            dedupe_capacity=settings.dedupe_capacity,
+        )
 
     def table_path(self, table: str) -> str:
         return f"projects/{self.project}/datasets/{self.dataset}/tables/{table}"
@@ -199,25 +237,49 @@ class BigQueryStore:
                 return False
             self._merge(app_id, platform, now_ms, **kw)
             self._registered.add((app_id, platform))
+            version = kw.get("version")
+            self._touched[(app_id, platform)] = (now_ms, {version} if version else set(), False)
+            self._registry_cache = None
             return True
 
     def touch_app(self, app_id: str, platform: str, now_ms: int, **kw: Any) -> str:
         promote = bool(kw.get("release") or kw.get("test_store"))
-        if promote or kw.get("version"):
-            self._merge(app_id, platform, now_ms, version=kw.get("version"), promote=promote)
-        return "testing" if promote else "new"
+        version = kw.get("version")
+        if not (promote or version):
+            return "new"
+        key = (app_id, platform)
+        with self._reg_lock:
+            at, versions, promoted = self._touched.get(key, (None, set(), False))
+            due = (
+                (promote and not promoted)
+                or (bool(version) and version not in versions and len(versions) < MAX_VERSIONS)
+                or at is None
+                or now_ms - at >= TOUCH_EVERY_MS
+            )
+            if due:
+                self._merge(app_id, platform, now_ms, version=version, promote=promote)
+                if version and len(versions) < MAX_VERSIONS:
+                    versions.add(version)
+                self._touched[key] = (now_ms, versions, promoted or promote)
+                self._registry_cache = None
+        return "testing" if promote or promoted else "new"
 
     def add_prod_installs(self, rows: Iterable[tuple[str, str, str]], now_ms: int) -> None:
         """Cloud mode counts production installs from the events table (`pulse apps refresh`)."""
 
     def registry(self) -> list[dict[str, Any]]:
+        cached = self._registry_cache
+        if cached is not None and time.monotonic() * 1000 - cached[0] < REGISTRY_TTL_MS:
+            return cached[1]
         sql = (
             "SELECT app_id, platform, display_name, genre, status, "
             "UNIX_MILLIS(first_seen) AS first_seen_ms, UNIX_MILLIS(last_seen) AS last_seen_ms, "
             "first_version, last_version FROM "
             f"`{self.project}.{self.dataset}.app_registry` ORDER BY app_id, platform"
         )
-        return [dict(r.items()) for r in self.query_client.query(sql).result()]
+        rows = [dict(r.items()) for r in self.query_client.query(sql).result()]
+        self._registry_cache = (time.monotonic() * 1000, rows)
+        return rows
 
     def add_deletion(self, install_id: str, app_id: str | None, reason: str, now_ms: int) -> None:
         self._append(
