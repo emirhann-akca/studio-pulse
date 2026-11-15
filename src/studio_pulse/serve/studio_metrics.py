@@ -90,6 +90,22 @@ def fmt(v: float | None, kind: str, lang: str) -> str:
     return f"${s}" if kind == "usd" else s
 
 
+def _value(v: float | None, m: Metric, lang: str) -> str:
+    """An average under 10 keeps one decimal (0.6 DAU is not '1'; the dashboard says 0.6)."""
+    if v is not None and m.fmt == "num" and m.agg == "avg" and abs(v) < 10:
+        s = f"{v:.1f}"
+        return s.replace(".", ",") if lang == "tr" else s
+    return fmt(v, m.fmt, lang)
+
+
+def _signed(change: float, lang: str) -> str:
+    """+%4,1 / −%2,2; a change that rounds to zero has no sign (never '−%0,0')."""
+    text = fmt(abs(change), "pct", lang)
+    if round(abs(change) * 100, 1) == 0:
+        return text
+    return ("+" if change >= 0 else "−") + text
+
+
 def aggregate(rows: list[dict[str, Any]], how: str) -> tuple[float | None, float]:
     """(value, n) for the period."""
     vals = [(float(r["value"]), float(r["n"] or 0)) for r in rows if r["value"] is not None]
@@ -176,18 +192,18 @@ def compute(
         "key": key,
         "label": m.tr if lang == "tr" else m.en,
         "note": m.note_tr if lang == "tr" else m.note_en,
-        "value": fmt(v if enough else None, m.fmt, lang),
+        "value": _value(v if enough else None, m, lang),
         "raw": v,
         "enough": enough or v is None,
         "has_data": v is not None,
         "n": int(n),
         "min_n": m.min_n,
         "change": change,
-        "change_text": None
-        if change is None
-        else (("+" if change >= 0 else "−") + fmt(abs(change), "pct", lang)),
-        "good": None if change is None else ((change >= 0) == m.higher_is_better),
-        "prev_value": fmt(pv if prev_enough else None, m.fmt, lang),
+        "change_text": None if change is None else _signed(change, lang),
+        "good": None
+        if change is None or round(abs(change) * 100, 1) == 0
+        else ((change >= 0) == m.higher_is_better),
+        "prev_value": _value(pv if prev_enough else None, m, lang),
         "spark": spark([float(r["value"]) for r in cur_rows if r["value"] is not None]),
         "rows": cur_rows,
         "prev_rows": prev_rows,

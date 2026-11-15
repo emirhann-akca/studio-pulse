@@ -60,8 +60,17 @@ T = {
         "rank": "Sıra",
         "count": "Puan sayısı",
         "per_day": "Puan/gün",
-        "installs": "realInstalls",
+        "installs": "Kurulum sayacı (realInstalls)",
         "refresh": "Sayaç",
+        "b": "Eğim (b)",
+        "rv": {
+            "lifetime": "çıkıştan beri ortalama",
+            "window": "pencere farkı",
+            "reset": "sıfırlandı",
+            "unconfirmed_drop": "doğrulanmamış düşüş",
+        },
+        "games": "oyun",
+        "ckind": {"downloads": "indirme", "revenue": "hasılat"},
         "refreshed": "yenilendi",
         "stale": "yenilenmedi (puan arttı)",
         "same": "aynı",
@@ -108,8 +117,17 @@ T = {
         "rank": "Rank",
         "count": "Ratings",
         "per_day": "Ratings/day",
-        "installs": "realInstalls",
+        "installs": "Install counter (realInstalls)",
         "refresh": "Counter",
+        "b": "Slope (b)",
+        "rv": {
+            "lifetime": "average since release",
+            "window": "window difference",
+            "reset": "reset",
+            "unconfirmed_drop": "unconfirmed drop",
+        },
+        "games": "games",
+        "ckind": {"downloads": "downloads", "revenue": "revenue"},
         "refreshed": "refreshed",
         "stale": "not refreshed (ratings grew)",
         "same": "same",
@@ -297,6 +315,9 @@ def game_view(con, key: str, lang: str) -> dict[str, Any]:
         [lists_today],
     )
     for c in calib:
+        c["kind_name"] = T[lang]["ckind"].get(c.get("kind"), c.get("kind"))
+        if lang == "tr" and c.get("note"):
+            c["note"] = str(c["note"]).replace(" games ", " oyun ")
         c["list_name"] = (
             COUNTRY[lang].get(c["country"], c["country"].upper())
             + " · "

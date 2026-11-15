@@ -37,7 +37,7 @@ from fastapi.templating import Jinja2Templates
 from .. import __version__, checks, runstate, schedule, warehouse
 from ..config import Config
 from ..dashboard.assets import CHART_CSS, CSS, JS
-from . import security, ui
+from . import dataflow, security, ui
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
@@ -196,6 +196,16 @@ def create_app(
             "lang": lang,
             "s": ui.S[lang],
             "age": lambda iso: ui.age(iso, lang),
+            "ago": lambda v: dataflow.ago(v, lang),
+            "local_time": lambda v: dataflow.local_time(v, lang),
+            "dur": lambda v: dataflow.duration(v, lang),
+            "fmt_num": lambda v: dataflow.num(v, lang),
+            "mech": lambda k: ui.mechanic(k, lang),
+            "check_msg": lambda m: dataflow.check_message(m, lang),
+            "run_error": lambda m: dataflow.run_error(m, lang),
+            "sched_state": lambda v: dataflow.launchd_state(v, lang),
+            "source_label": lambda k: dataflow.source_label(k, lang),
+            "app_names": {a.id: a.name or a.id for a in cfg.apps},
             "alert_text": lambda a: alert_text(a, lang),
             "static": False,
             "chosen": "@" + page,
@@ -208,6 +218,7 @@ def create_app(
             },
             **state(),
         }
+        base["fresh"] = dataflow.light_status(base["hb"], lang)
         side = getattr(app.state, "studio_side", None)
         if side is not None and "apps" not in extra and page != "fragment":
             base.update(side(lang, "@" + page))
@@ -245,6 +256,10 @@ def create_app(
     def healthz() -> dict[str, Any]:
         return {"ok": True, "version": __version__}
 
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon() -> RedirectResponse:  # browsers ask for it on every page; no 404 in the console
+        return RedirectResponse("/static/favicon.svg", status_code=308)
+
     @app.get("/")
     def home() -> RedirectResponse:
         return RedirectResponse("/studio", status_code=307)
@@ -257,10 +272,9 @@ def create_app(
         finally:
             if con is not None:
                 con.close()
-        try:
-            sched = schedule.backend().status(schedule_name)
-        except schedule.ScheduleError as exc:
-            sched = {"registered": False, "note": str(exc)}
+        sched = dataflow.schedule_info(cfg, schedule_name)
+        history = runstate.read_history(cfg.state_dir, 20)
+        bg = dataflow.scheduled_failure(sched.get("log_file"), history)
         return templates.TemplateResponse(
             request,
             "health.html",
@@ -268,11 +282,37 @@ def create_app(
                 request,
                 "health",
                 source=source,
-                history=runstate.read_history(cfg.state_dir, 20),
+                history=history,
                 schedule=sched,
+                bg_failure=bg,
                 schedule_name=schedule_name,
                 **data,
             ),
+        )
+
+    @app.get("/connections", response_class=HTMLResponse)
+    def connections_page(request: Request):
+        """Bağlantılar / Connections: every source, its last fetch and the next step."""
+        lang = ui.request_lang(request)
+        sched = dataflow.schedule_info(cfg, schedule_name)
+        fetch_live = getattr(app.state, "live_data", None)
+        try:
+            live = fetch_live() if fetch_live else None
+        except Exception:  # the collector is optional here
+            live = None
+        con, source = open_db(cfg)
+        try:
+            df = dataflow.build(
+                cfg, con, lang, hb=state()["hb"], history=runstate.read_history(cfg.state_dir, 20),
+                sched=sched, live=live,
+            )  # fmt: skip
+        finally:
+            if con is not None:
+                con.close()
+        return templates.TemplateResponse(
+            request,
+            "connections.html",
+            context(request, "connections", source=source, df=df, lang=lang),
         )
 
     @app.get("/alerts", response_class=HTMLResponse)
@@ -348,7 +388,7 @@ def create_app(
 
     from ..radar.page import register as register_radar
 
-    register_radar(app, cfg, templates, context)
+    register_radar(app, cfg, templates, context, open_db)
     from ..radar.estimate.page import register as register_radar_game  # /radar/oyun/<id>
 
     register_radar_game(app, cfg, templates, context, open_db)

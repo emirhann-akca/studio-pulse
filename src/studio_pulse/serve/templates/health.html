@@ -10,19 +10,31 @@
 </header>
 <div id="run-result"></div>
 {% include "_status.html" %}
+{% if hb and hb.summary and hb.summary.source_errors %}
+<section class="card">
+  <h2>{{ s.h_src_errors }}</h2>
+  <div class="table-scroll"><table class="t"><tbody>
+  {% for key, msg in hb.summary.source_errors.items() %}<tr><td class="nowrap"><code>{{ key }}</code></td><td class="wrap" style="font-size:12.5px">{{ msg }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <p class="muted" style="font-size:12px;margin:8px 0 0"><a href="/connections">{{ s.fresh_more }}</a></p>
+</section>
+{% endif %}
+{% if bg_failure %}<div class="callout {{ 'warn' if bg_failure.locked else 'bad' }}" role="alert"><span class="ic">{{ icon('warn')|safe }}</span><div><b>{{ s.h_bg_failed.format(when=local_time(bg_failure.when), rc=bg_failure.rc) }}</b> <code>{{ bg_failure.line }}</code><br><span class="muted" style="font-size:12px">{{ bg_failure.log_file }}</span></div></div>{% endif %}
 
 <section class="card">
-  <header><h2>{{ s.h_schedule }}</h2>{% if schedule.registered %}<span class="badge good">{{ s.h_sched_on }}</span>{% else %}<span class="badge warn">{{ s.h_sched_off }}</span>{% endif %}</header>
-  {% if not schedule.registered %}
+  <header><h2>{{ s.h_schedule }}</h2>{% if schedule.for_this_config %}<span class="badge good">{{ s.h_sched_on }}</span>{% elif schedule.other_config %}<span class="badge warn">{{ s.h_sched_other }}</span>{% else %}<span class="badge warn">{{ s.h_sched_off }}</span>{% endif %}</header>
+  {% if schedule.other_config %}<p style="margin:0 0 8px">{{ s.h_sched_other_long.format(path=schedule.other_config) }}</p>{% endif %}
+  {% if not schedule.for_this_config %}
     <p style="margin:0 0 8px">{{ s.h_sched_how }}</p>
     <pre style="margin:0;background:var(--panel-2);padding:10px;border-radius:8px;white-space:pre-wrap;word-break:break-all"><code>pulse schedule install --config "{{ config_path }}"</code></pre>
   {% endif %}
   <table class="t" style="margin-top:8px"><tbody>
     {% if schedule.id %}<tr><td class="muted" style="width:180px">{{ s.h_sched_entry }}</td><td><code>{{ schedule.id }}</code> ({{ schedule.backend }})</td></tr>{% endif %}
-    {% if schedule.state %}<tr><td class="muted">{{ s.h_sched_state }}</td><td>{{ schedule.state }}</td></tr>{% endif %}
-    {% if schedule.next_run %}<tr><td class="muted">{{ s.h_sched_next }}</td><td>{{ schedule.next_run }}</td></tr>{% endif %}
+    {% if schedule.at %}<tr><td class="muted">{{ s.h_sched_at }}</td><td>{{ schedule.at }}</td></tr>{% endif %}
+    {% if schedule.state %}<tr><td class="muted">{{ s.h_sched_state }}</td><td>{{ sched_state(schedule.state) }}</td></tr>{% endif %}
+    {% if schedule.next_run %}<tr><td class="muted">{{ s.h_sched_next }}</td><td>{{ local_time(schedule.next_run) }}</td></tr>{% endif %}
     {% if schedule.last_exit_code is defined %}<tr><td class="muted">{{ s.h_sched_exit }}</td><td>{{ schedule.last_exit_code }}</td></tr>{% endif %}
-    {% if schedule.note %}<tr><td class="muted">Not</td><td>{{ schedule.note }}</td></tr>{% endif %}
+    {% if schedule.note %}<tr><td class="muted">{{ s.h_note }}</td><td>{{ schedule.note }}</td></tr>{% endif %}
   </tbody></table>
 </section>
 
@@ -34,7 +46,7 @@
     {% if failing %}
     <h2 style="font-size:12.5px;color:var(--text-3);margin:4px 0 6px">{{ s.h_failing }}</h2>
     <div class="table-scroll"><table class="t"><thead><tr><th>{{ s.h_check }}</th><th>{{ s.h_table }}</th><th>{{ s.h_sev }}</th><th>{{ s.h_status }}</th><th class="num">{{ s.h_rows }}</th><th>{{ s.h_result }}</th></tr></thead><tbody>
-    {% for c in failing %}<tr><td><code>{{ c.name }}</code></td><td class="muted">{{ c.table or '' }}</td><td>{{ s['st_' ~ c.severity] if ('st_' ~ c.severity) in s else c.severity }}</td><td><span class="badge {{ cls.get(c.status, 'outline') }}">{{ s['st_' ~ c.status] if ('st_' ~ c.status) in s else c.status }}</span></td><td class="num">{{ c.failing_rows }}</td><td class="wrap">{{ c.message }}</td></tr>{% endfor %}
+    {% for c in failing %}<tr><td><code>{{ c.name }}</code></td><td class="muted">{{ c.table or '' }}</td><td>{{ s['st_' ~ c.severity] if ('st_' ~ c.severity) in s else c.severity }}</td><td><span class="badge {{ cls.get(c.status, 'outline') }}">{{ s['st_' ~ c.status] if ('st_' ~ c.status) in s else c.status }}</span></td><td class="num">{{ c.failing_rows }}</td><td class="wrap">{{ check_msg(c.message) }}</td></tr>{% endfor %}
     </tbody></table></div>
     {% endif %}
     {% if passing %}
@@ -51,7 +63,7 @@
   <h2>{{ s.h_fresh }}</h2>
   {% if freshness %}
   <div class="table-scroll"><table class="t"><thead><tr><th>{{ s.h_app }}</th><th>{{ s.h_source }}</th><th>{{ s.h_through }}</th><th class="num">{{ s.h_lag }}</th><th class="num">{{ s.h_rows }}</th></tr></thead><tbody>
-  {% for r in freshness %}<tr><td>{{ r.app_id }}</td><td><code>{{ r.source }}</code></td><td>{{ r.data_through or '–' }}</td><td class="num">{% if r.lag is not none %}<span class="badge {{ 'good' if r.lag <= 2 else ('warn' if r.lag <= 7 else 'bad') }}">{{ r.lag }}</span>{% else %}–{% endif %}</td><td class="num muted">{{ r.rows_loaded }}</td></tr>{% endfor %}
+  {% for r in freshness %}<tr><td>{{ app_names.get(r.app_id, r.app_id) }}</td><td>{{ source_label(r.source) }}<div class="muted" style="font-size:11.5px"><code>{{ r.source }}</code></div></td><td>{{ r.data_through or '–' }}</td><td class="num">{% if r.lag is not none %}<span class="badge {{ 'good' if r.lag <= 2 else ('warn' if r.lag <= 7 else 'bad') }}">{{ r.lag }}</span>{% else %}–{% endif %}</td><td class="num muted">{{ fmt_num(r.rows_loaded) }}</td></tr>{% endfor %}
   </tbody></table></div>
   <p class="muted" style="font-size:12px;margin:8px 0 0">{{ s.h_fresh_note.format(as_of=as_of) }}</p>
   {% else %}<div class="empty compact"><p>{{ s.h_no_fresh }}</p></div>{% endif %}
@@ -59,8 +71,8 @@
 <section class="card">
   <h2>{{ s.h_runs }}</h2>
   {% if history %}
-  <div class="table-scroll"><table class="t"><thead><tr><th>{{ s.h_started_utc }}</th><th>{{ s.h_status }}</th><th class="num">{{ s.h_dur }}</th><th>{{ s.h_err }}</th></tr></thead><tbody>
-  {% for r in history %}<tr><td class="muted" style="white-space:nowrap">{{ r.start[:16]|replace('T', ' ') }}</td><td><span class="badge {{ cls.get(r.status, 'outline') }}">{{ s['st_' ~ r.status] if ('st_' ~ r.status) in s else r.status }}</span></td><td class="num">{{ r.duration_s }} sn</td><td class="wrap" style="font-size:12px">{{ r.error or '' }}</td></tr>{% endfor %}
+  <div class="table-scroll"><table class="t"><thead><tr><th>{{ s.h_started_local }}</th><th>{{ s.h_status }}</th><th class="num">{{ s.h_dur }}</th><th>{{ s.h_err }}</th></tr></thead><tbody>
+  {% for r in history %}<tr><td class="muted" style="white-space:nowrap">{{ local_time(r.start) }}</td><td><span class="badge {{ cls.get(r.status, 'outline') }}">{{ s['st_' ~ r.status] if ('st_' ~ r.status) in s else r.status }}</span></td><td class="num nowrap">{{ dur(r.duration_s) }}</td><td class="wrap" style="font-size:12px">{{ run_error(r.error) }}</td></tr>{% endfor %}
   </tbody></table></div>
   {% else %}<div class="empty compact"><p>{{ s.h_no_runs }}</p></div>{% endif %}
 </section>

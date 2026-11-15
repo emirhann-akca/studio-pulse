@@ -16,7 +16,7 @@
 {% for a in arrived %}{{ app_link(a, palette[(loop.index0 + 3) % palette|length]) }}{% endfor %}
 {% endif %}
 <div class="nav-h">{{ s.tools }}</div>
-<a class="nav-item" href="{{ nav.market }}"{% if chosen == '@market' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('radar')|safe }}</span><span class="nav-l">{{ s.radar }}<small>US · TR · GB · DE</small></span></a>
+<a class="nav-item" href="{{ nav.market }}"{% if chosen == '@market' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('radar')|safe }}</span><span class="nav-l">{{ s.radar }}{% if radar_countries %}<small>{{ radar_countries }}</small>{% endif %}</span></a>
 {% if forge_url %}<a class="nav-item" href="{{ forge_url }}" rel="noopener"><span class="nav-ic">{{ icon('ads')|safe }}</span><span class="nav-l">{{ s.ads }}<small>{{ s.ads_sub }}</small></span><span class="nav-ic">{{ icon('external')|safe }}</span></a>
 {% else %}<span class="nav-item" data-tip="{{ s.ads_off }}"><span class="nav-ic">{{ icon('ads')|safe }}</span><span class="nav-l">{{ s.ads }}<small>{{ s.ads_sub }}</small></span><span class="dot off" aria-hidden="true"></span></span>{% endif %}
 {% if static %}
@@ -29,6 +29,7 @@
 <a class="nav-item" href="/ask"{% if chosen == '@ask' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('ask')|safe }}</span><span class="nav-l">{{ s.ask }}</span></a>
 <a class="nav-item" href="/alerts"{% if chosen == '@alerts' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('alerts')|safe }}</span><span class="nav-l">{{ s.alerts }}</span>{% if side_alerts %}<span class="badge warn" data-tip="{{ s.alerts_last }}">{{ side_alerts }}</span>{% endif %}</a>
 <a class="nav-item" href="/health"{% if chosen == '@health' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('health')|safe }}</span><span class="nav-l">{{ s.health }}</span>{% if side_failing %}<span class="badge bad" data-tip="{{ s.failing_checks }}">{{ side_failing }}</span>{% endif %}</a>
+<a class="nav-item" href="/connections"{% if chosen == '@connections' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('plug')|safe }}</span><span class="nav-l">{{ s.connections }}</span>{% if fresh and fresh.verdict in ('failed', 'stale') %}<span class="dot {{ 'bad' if fresh.verdict == 'failed' else 'warn' }}" data-tip="{{ fresh.text }}" aria-hidden="true"></span><span class="sr-only">{{ fresh.text }}</span>{% endif %}</a>
 {% if dashboard_ready %}<a class="nav-item" href="/dashboard/index.html"><span class="nav-ic">{{ icon('dashboard')|safe }}</span><span class="nav-l">{{ s.dashboard }}</span></a>{% endif %}
 <a class="nav-item" href="/settings"{% if chosen == '@settings' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('settings')|safe }}</span><span class="nav-l">{{ s.settings }}</span></a>
 {% endif %}
