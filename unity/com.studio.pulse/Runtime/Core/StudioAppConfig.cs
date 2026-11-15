@@ -20,6 +20,7 @@ namespace Studio.Pulse
         public LevelPlaySection levelplay = new LevelPlaySection();
         public MaxSection max = new MaxSection();
         public AppsFlyerSection appsflyer = new AppsFlyerSection();
+        public UmpSection ump = new UmpSection();
         public PacingSection pacing = new PacingSection();
 
         [Serializable]
@@ -109,6 +110,23 @@ namespace Studio.Pulse
             /// <summary>Numeric App Store id without "id" (needed on iOS only).</summary>
             public string iosAppId = "";
             public bool debug = false;
+        }
+
+        /// <summary>
+        /// Google User Messaging Platform (GDPR / UK consent form) before the ad SDK starts. LevelPlay (7.7.0+)
+        /// reads the consent UMP stores (IAB TCF + Google Additional Consent) by itself. Needs the native UMP
+        /// SDK in the build and the STUDIO_PULSE_UMP define; empty ids skip it.
+        /// </summary>
+        [Serializable]
+        public sealed class UmpSection
+        {
+            /// <summary>AdMob app id per platform (ca-app-pub-...~...), from AdMob > Apps > App settings.</summary>
+            public string iosAppId = "";
+            public string androidAppId = "";
+            /// <summary>Development builds only: "eea", "other", "us_state" force the form's geography ("" = real).</summary>
+            public string debugGeography = "";
+            /// <summary>Development builds only: device ids UMP prints in the log, so debugGeography applies to them.</summary>
+            public string[] testDeviceIds = new string[0];
         }
 
         /// <summary>Optional limits the Ads facade applies on top of the game's own (0 = no limit).</summary>
@@ -220,9 +238,40 @@ namespace Studio.Pulse
                 p.Add("privacy: the iOS tracking prompt needs an English attUsageDescription (no ATT prompt without it)");
             if (privacy != null && !Blank(privacy.gdprConsent) && privacy.gdprConsent.Trim() != "granted" && privacy.gdprConsent.Trim() != "denied")
                 p.Add("privacy: gdprConsent must be \"\", \"granted\" or \"denied\"");
+            string umpId = UmpAppId(platform);
+            if (umpId.Length > 0 && (!umpId.StartsWith("ca-app-pub-", StringComparison.Ordinal) || umpId.IndexOf('~') < 0))
+                p.Add("ump: the " + platform + " AdMob app id looks wrong (ca-app-pub-...~...): " + umpId);
+            if (umpId.Length > 0 && provider == Max)
+                p.Add("ump: MAX runs its own consent flow; the ump section is used with LevelPlay only");
             if (appsflyer != null && !Blank(appsflyer.devKey) && platform == "ios" && Blank(appsflyer.iosAppId))
                 p.Add("appsflyer: iosAppId is required on iOS (MMP stays off)");
             return p;
+        }
+
+        /// <summary>The AdMob app id UMP needs on this platform ("" when none).</summary>
+        public string UmpAppId(string platform)
+        {
+            if (ump == null) return "";
+            string id = platform == "ios" ? ump.iosAppId : platform == "android" ? ump.androidAppId : "";
+            return Blank(id) ? "" : id.Trim();
+        }
+
+        /// <summary>UMP debug geography code for "eea" / "us_state" / "other" (0 = off; same numbers on iOS and Android).</summary>
+        public static int UmpDebugGeography(string debugGeography)
+        {
+            switch ((debugGeography ?? "").Trim().ToLowerInvariant())
+            {
+                case "eea": return 1;
+                case "us_state": return 3;
+                case "other": return 4;
+                default: return 0;
+            }
+        }
+
+        /// <summary>The UMP consent step runs on this platform (an AdMob app id is set).</summary>
+        public bool UmpConfigured(string platform)
+        {
+            return UmpAppId(platform).Length > 0;
         }
 
         /// <summary>The provider asks for ATT on iOS: MAX in its consent flow, LevelPlay through StudioAtt.</summary>

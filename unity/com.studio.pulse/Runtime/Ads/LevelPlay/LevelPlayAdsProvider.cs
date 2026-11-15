@@ -1,7 +1,8 @@
 // Compiled only when Unity LevelPlay 9.5+ is in the project (com.unity.services.levelplay,
 // Studio.Pulse.Ads.LevelPlay.asmdef). Follows Unity's LevelPlay guides, checked against package
 // 9.6.0: privacy flags (LevelPlayPrivacySettings.SetCOPPA / SetGDPRConsent / SetCCPA) and the
-// iOS ATT prompt BEFORE LevelPlay.Init; ad objects created after OnInitSuccess
+// iOS ATT prompt BEFORE LevelPlay.Init (and Google UMP's consent form before both, StudioUmp);
+// ad objects created after OnInitSuccess
 // (LevelPlayRewardedAd, LevelPlayInterstitialAd, LevelPlayBannerAd); reward only in OnAdRewarded
 // (it may arrive after OnAdClosed); reload after an ad closes or fails to show; failed loads
 // retried with exponential backoff (2^min(6, n) s); impression-level revenue from each ad's
@@ -63,23 +64,27 @@ namespace Studio.Pulse.Ads
             _ready = ready;
             PulseAdBridge.Register(PulseAdRevenueMap.PlatformLevelPlay);
 
-            // Privacy flags before Init (LevelPlay regulation settings).
-            if (config.privacy != null && config.privacy.childDirected) LevelPlayPrivacySettings.SetCOPPA(true);
-            bool? gdpr = StudioAds.GdprConsentOverride ?? config.GdprConsent;
-            if (gdpr.HasValue) LevelPlayPrivacySettings.SetGDPRConsent(gdpr.Value);
-            if (StudioAds.DoNotSellOverride.HasValue) LevelPlayPrivacySettings.SetCCPA(StudioAds.DoNotSellOverride.Value);
-
-            bool att = platform == "ios" && config.AttWanted(StudioAppConfig.LevelPlay) && config.AttText("en") != null;
-            if (att && StudioAtt.Available) StudioAtt.Request(_ => StartSdk());
-            else
+            // Order (Google / LevelPlay guidance): GDPR / UK consent form (UMP), then the iOS tracking prompt,
+            // then the privacy flags and LevelPlay.Init. LevelPlay reads UMP's stored consent itself.
+            StudioUmp.Gather(config, platform, _ =>
             {
-                if (att) StudioAtt.WarnIfMissing("LevelPlay starts without the tracking prompt");
-                StartSdk();
-            }
+                bool att = platform == "ios" && config.AttWanted(StudioAppConfig.LevelPlay) && config.AttText("en") != null;
+                if (att && StudioAtt.Available) StudioAtt.Request(__ => StartSdk());
+                else
+                {
+                    if (att) StudioAtt.WarnIfMissing("LevelPlay starts without the tracking prompt");
+                    StartSdk();
+                }
+            });
         }
 
         void StartSdk()
         {
+            // Privacy flags before Init (LevelPlay regulation settings).
+            if (_cfg.privacy != null && _cfg.privacy.childDirected) LevelPlayPrivacySettings.SetCOPPA(true);
+            bool? gdpr = StudioAds.GdprConsentOverride ?? _cfg.GdprConsent;
+            if (gdpr.HasValue) LevelPlayPrivacySettings.SetGDPRConsent(gdpr.Value);
+            if (StudioAds.DoNotSellOverride.HasValue) LevelPlayPrivacySettings.SetCCPA(StudioAds.DoNotSellOverride.Value);
             LevelPlay.OnInitSuccess += OnInitSuccess;
             LevelPlay.OnInitFailed += OnInitFailed;
             if (_cfg.levelplay.testSuite && Debug.isDebugBuild) LevelPlay.SetMetaData("is_test_suite", "enable");
@@ -304,16 +309,15 @@ namespace Studio.Pulse.Ads
             StudioMainThread.Run(a);
         }
 
-        // LevelPlay has no consent form of its own: a GDPR "privacy settings" button belongs to the
-        // CMP the game uses (Google UMP), which LevelPlay reads.
+        // LevelPlay has no consent form of its own: the "privacy settings" button reopens UMP's form.
         public bool PrivacyOptionsRequired
         {
-            get { return false; }
+            get { return StudioUmp.PrivacyOptionsRequired; }
         }
 
         public void ShowPrivacyOptions(Action done)
         {
-            if (done != null) done();
+            StudioUmp.ShowPrivacyOptions(done);
         }
     }
 }

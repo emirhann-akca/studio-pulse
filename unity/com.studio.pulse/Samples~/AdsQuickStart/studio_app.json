@@ -11,7 +11,10 @@
     "privacyPolicyUrl": "",
     "termsOfServiceUrl": "",
     "attUsageDescription": [
-      { "lang": "en", "text": "" }
+      {
+        "lang": "en",
+        "text": ""
+      }
     ],
     "requestAtt": true,
     "gdprConsent": "",
@@ -21,16 +24,32 @@
     "_help": "Unity LevelPlay (first choice): app keys from the LevelPlay platform (Apps), ad unit ids (Ad units). tools/ads_onboard.py fills these in.",
     "iosAppKey": "",
     "androidAppKey": "",
-    "ios": { "rewarded": "", "interstitial": "", "banner": "" },
-    "android": { "rewarded": "", "interstitial": "", "banner": "" },
+    "ios": {
+      "rewarded": "",
+      "interstitial": "",
+      "banner": ""
+    },
+    "android": {
+      "rewarded": "",
+      "interstitial": "",
+      "banner": ""
+    },
     "testSuite": false,
     "bannerPosition": "bottom"
   },
   "max": {
     "_help": "AppLovin MAX (used only when levelplay is empty for the platform): SDK key (Account > General > Keys) and ad unit ids. tools/ads_onboard.py --provider max fills the ids in.",
     "sdkKey": "",
-    "ios": { "rewarded": "", "interstitial": "", "banner": "" },
-    "android": { "rewarded": "", "interstitial": "", "banner": "" },
+    "ios": {
+      "rewarded": "",
+      "interstitial": "",
+      "banner": ""
+    },
+    "android": {
+      "rewarded": "",
+      "interstitial": "",
+      "banner": ""
+    },
     "termsAndPrivacyFlow": true,
     "verboseLogging": false,
     "bannerPosition": "bottom"
@@ -40,6 +59,13 @@
     "devKey": "",
     "iosAppId": "",
     "debug": false
+  },
+  "ump": {
+    "_help": "Google UMP consent form (EEA / UK) before LevelPlay starts: AdMob app ids (ca-app-pub-...~...). Needs StudioPulseUmpDependencies.xml in Assets and the STUDIO_PULSE_UMP define. Empty: skipped.",
+    "iosAppId": "",
+    "androidAppId": "",
+    "debugGeography": "",
+    "testDeviceIds": []
   },
   "pacing": {
     "_help": "Optional limits on top of the game's own (0 = none).",

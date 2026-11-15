@@ -81,8 +81,8 @@ for plat in "${plats[@]}"; do
   cc -warnaserror -define:"$d;STUDIO_PULSE_MAX" -out:"$o/Studio.Pulse.Ads.Max.dll" "${R3[@]}" -r:"$o/MaxSdk.Scripts.dll" "$pkg"/Runtime/Ads/Max/*.cs
   cc -warnaserror -define:"$d;STUDIO_PULSE_APPSFLYER" -out:"$o/Studio.Pulse.Ads.AppsFlyer.dll" "${R3[@]}" -r:"$o/AppsFlyer.dll" "$pkg"/Runtime/Ads/AppsFlyer/*.cs
   cc -warnaserror -define:"$d;STUDIO_PULSE_LEVELPLAY_ADS" -out:"$o/Studio.Pulse.Ads.LevelPlay.dll" "${R3[@]}" -r:"$o/Unity.LevelPlay.dll" "$pkg"/Runtime/Ads/LevelPlay/*.cs
-  # the ATT variant of the ads assembly (iOS builds that define STUDIO_PULSE_ATT)
-  cc -warnaserror -define:"$d;STUDIO_PULSE_ATT" -out:"$o/Studio.Pulse.Ads.Att.dll" "${R2[@]}" "$pkg"/Runtime/Ads/*.cs
+  # the ATT + UMP variant of the ads assembly (builds that define STUDIO_PULSE_ATT / STUDIO_PULSE_UMP)
+  cc -warnaserror -define:"$d;STUDIO_PULSE_ATT;STUDIO_PULSE_UMP" -out:"$o/Studio.Pulse.Ads.Att.dll" "${R2[@]}" "$pkg"/Runtime/Ads/*.cs
   cc -warnaserror -define:"$d" -out:"$o/AdsQuickStart.dll" "${R3[@]}" "$pkg"/Samples~/AdsQuickStart/*.cs
   echo "compiled runtime assemblies ($plat)"
   case "$plat" in UNITY_EDITOR*)
@@ -96,4 +96,14 @@ for plat in "${plats[@]}"; do
     echo "compiled editor assemblies ($plat)";;
   esac
 done
+# the iOS plug-ins: ATT, and UMP against the UMP SDK's own headers (CocoaPods GoogleUserMessagingPlatform 3.1.0)
+if [ ! -d "$V/ump-3.1.0" ]; then
+  mkdir -p "$V/ump-3.1.0.tmp" && curl -fsSL https://dl.google.com/dl/cpdc/70c87bb94f697e08/GoogleUserMessagingPlatform-3.1.0.tar.gz | tar xz -C "$V/ump-3.1.0.tmp" && mv "$V/ump-3.1.0.tmp" "$V/ump-3.1.0"
+fi
+sdk="$(xcrun -sdk iphoneos --show-sdk-path)"
+xcrun -sdk iphoneos clang++ -x objective-c++ -fsyntax-only -fobjc-arc -fmodules -Werror -target arm64-apple-ios13.0 -isysroot "$sdk" \
+  "$pkg/Plugins/iOS/Ads/StudioPulseAtt.mm"
+xcrun -sdk iphoneos clang++ -x objective-c++ -fsyntax-only -fobjc-arc -fmodules -Werror -target arm64-apple-ios13.0 -isysroot "$sdk" \
+  -F "$V/ump-3.1.0/Frameworks/Release/UserMessagingPlatform.xcframework/ios-arm64" "$pkg/Plugins/iOS/Ads/StudioPulseUmp.mm"
+echo "checked the iOS plug-ins (ATT, UMP)"
 echo "ads-compile: all assemblies compiled"

@@ -270,6 +270,27 @@ namespace Studio.Pulse.Tests
         }
 
         [PulseTest]
+        public static void Ump_runs_only_with_an_admob_app_id()
+        {
+            var c = new StudioAppConfig();
+            Check.True(!c.UmpConfigured("ios") && !c.UmpConfigured("android"), "empty: UMP skipped");
+            c.ump.iosAppId = " ca-app-pub-1234567890123456~1234567890 ";
+            Check.True(c.UmpConfigured("ios") && !c.UmpConfigured("android"), "per platform");
+            Check.Equal("ca-app-pub-1234567890123456~1234567890", c.UmpAppId("ios"), "trimmed");
+            Check.Equal(0, c.Problems("ios", true).Count, "a well-formed id is not a problem");
+            c.ump.androidAppId = "ca-app-pub-1234567890123456/1234567890";
+            Check.True(c.Problems("android", true).Any(p => p.Contains("looks wrong")), "an ad unit id instead of an app id is reported");
+            c.max.sdkKey = "K";
+            c.max.ios.rewarded = "r";
+            Check.True(c.Problems("ios", true).Any(p => p.Contains("MAX runs its own consent flow")), "UMP is for LevelPlay");
+            Check.Equal(1, StudioAppConfig.UmpDebugGeography("EEA"), "eea");
+            Check.Equal(3, StudioAppConfig.UmpDebugGeography("us_state"), "us state");
+            Check.Equal(4, StudioAppConfig.UmpDebugGeography("other"), "other");
+            Check.Equal(0, StudioAppConfig.UmpDebugGeography(""), "off");
+            Check.Equal(0, StudioAppConfig.UmpDebugGeography("mars"), "unknown: off");
+        }
+
+        [PulseTest]
         public static void One_impression_reported_twice_counts_once()
         {
             var gate = new PulseAdRevenueGate();
