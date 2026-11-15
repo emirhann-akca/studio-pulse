@@ -259,6 +259,9 @@ def test_deploy_files_size_the_service_and_hold_no_secret():
         assert "--cpu-throttling" in text and "PULSE_DEDUPE_CAPACITY=" in text
         assert "pulse-write-keys:latest" in text and "sp_pub_" not in text
         assert "contract/generated/bigquery" in text
+        # dataEditor on the dataset only (DCL; `bq add-iam-policy-binding -d` needs allowlisting)
+        assert "roles/bigquery.dataEditor" in text and "ON SCHEMA" in text
+        assert "run bq add-iam-policy-binding" not in text and "'bq', 'add-iam" not in text
     # a second run keeps what exists: every create is behind an existence check
     assert len(re.findall(r"^missing ", sh, re.M)) == 7 and ps.count("if (Missing ") == 7
     assert "--apply" in sh and "-Apply" in ps  # print-only unless asked

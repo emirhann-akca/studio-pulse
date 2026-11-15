@@ -73,7 +73,9 @@ missing bq show "$PROJECT:$DATASET.deletion_requests" &&
 # 2. A service account that can only write this dataset and run its MERGE
 missing gcloud iam service-accounts describe "$SA" --project "$PROJECT" &&
   run gcloud iam service-accounts create "$SERVICE" --project "$PROJECT" --display-name "Studio Pulse collector"
-run bq add-iam-policy-binding -d --member="serviceAccount:$SA" --role=roles/bigquery.dataEditor "$PROJECT:$DATASET"
+# dataset-level IAM through SQL (DCL): `bq add-iam-policy-binding -d` needs allowlisting
+run bq query --project_id="$PROJECT" --location="$BQ_LOCATION" --nouse_legacy_sql \
+  "GRANT \`roles/bigquery.dataEditor\` ON SCHEMA \`$PROJECT.$DATASET\` TO 'serviceAccount:$SA'"
 run gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" --role=roles/bigquery.jobUser
 run gcloud secrets add-iam-policy-binding pulse-write-keys --project "$PROJECT" --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor
 run gcloud secrets add-iam-policy-binding pulse-read-key --project "$PROJECT" --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor

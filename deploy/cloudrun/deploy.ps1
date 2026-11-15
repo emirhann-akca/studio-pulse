@@ -63,7 +63,8 @@ if (Missing @('bq', 'show', "${Project}:$Dataset.quarantine")) { Run @('bq', 'mk
 if (Missing @('bq', 'show', "${Project}:$Dataset.app_registry")) { Run @('bq', 'mk', '--table', "${Project}:$Dataset.app_registry", "$Schemas/app_registry.json") }
 if (Missing @('bq', 'show', "${Project}:$Dataset.deletion_requests")) { Run @('bq', 'mk', '--table', "${Project}:$Dataset.deletion_requests", "$Schemas/deletion_requests.json") }
 if (Missing @('gcloud', 'iam', 'service-accounts', 'describe', $Sa, '--project', $Project)) { Run @('gcloud', 'iam', 'service-accounts', 'create', $Service, '--project', $Project, '--display-name', "Studio Pulse collector") }
-Run @('bq', 'add-iam-policy-binding', '-d', "--member=serviceAccount:$Sa", '--role=roles/bigquery.dataEditor', "${Project}:$Dataset")
+# dataset-level IAM through SQL (DCL): `bq add-iam-policy-binding -d` needs allowlisting
+Run @('bq', 'query', "--project_id=$Project", "--location=$BqLocation", '--nouse_legacy_sql', "GRANT ``roles/bigquery.dataEditor`` ON SCHEMA ``$Project.$Dataset`` TO 'serviceAccount:$Sa'")
 Run @('gcloud', 'projects', 'add-iam-policy-binding', $Project, "--member=serviceAccount:$Sa", '--role=roles/bigquery.jobUser')
 Run @('gcloud', 'secrets', 'add-iam-policy-binding', 'pulse-write-keys', '--project', $Project, "--member=serviceAccount:$Sa", '--role=roles/secretmanager.secretAccessor')
 Run @('gcloud', 'secrets', 'add-iam-policy-binding', 'pulse-read-key', '--project', $Project, "--member=serviceAccount:$Sa", '--role=roles/secretmanager.secretAccessor')
