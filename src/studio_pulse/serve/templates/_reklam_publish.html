@@ -76,6 +76,6 @@
 
 {% if mine.configs %}
 <section class="card"><header><h2>{{ t.configs }}</h2></header>
-  <ul class="list">{% for c in mine.configs %}<li><code>{{ c.path }}</code> {% for n, m in (c.networks or {}).items() %}<span class="badge {{ mode_badge.get(m, 'outline') }}">{{ n }}: {{ t['mode_' ~ m] if ('mode_' ~ m) in t else m }}</span>{% endfor %}</li>{% endfor %}</ul>
+  <ul class="list">{% for c in mine.configs %}<li><code class="rk-break">{{ c.path }}</code> {% for n, m in (c.networks or {}).items() %}<span class="badge {{ mode_badge.get(m, 'outline') }}">{{ n }}: {{ t['mode_' ~ m] if ('mode_' ~ m) in t else m }}</span>{% endfor %}</li>{% endfor %}</ul>
 </section>
 {% endif %}

@@ -264,7 +264,6 @@ empty and fails the check `ua_spend_converted`.
 | CTR | clicks / impressions | `fct_ua_daily.ctr` |
 | IPM | network installs / impressions x 1000 | `fct_ua_daily.ipm` |
 | Spend share | the campaign's spend / the app's spend that day | `fct_ua_daily.spend_share` |
-| Video views, completions | the network's own view count (Meta: 3-second views, the `video_view` action; TikTok: 2-second views) and views watched to 100% (Meta `video_p100_watched_actions`, TikTok `video_views_p100`); empty where a network reports none | `stg_ua_spend.video_views`, `video_completions` |
 | Cohort revenue by day N | see the two bases below; cumulative over days 0..N of the install cohort of the spend day | `stg_ua_cohort_cum.cum_revenue_usd` |
 | Cohort ROAS DN | cohort revenue by day N / spend of that day; empty until day N is complete | `fct_ua_cohort_roas.roas_d0/d7/d30` |
 | Pooled ROAS curve | sum over the cohorts that have reached day N of revenue by day N / their spend; points backed by fewer than 7 cohorts are dropped | `fct_ua_roas_curve.roas` |
@@ -272,6 +271,13 @@ empty and fails the check `ua_spend_converted`.
 | Blended ROAS | revenue of *all* new users (paid and organic) of the spend days / spend | `fct_ua_roas_curve.blended_roas` (app rows) |
 | CPI (basis) | spend / installs on the network's attribution basis, 30 days | `fct_ua_summary.cpi_30d_usd` |
 | Payback day (predicted) | the first day the pLTV model's predicted cumulative ARPU reaches the CPI (UA page) | `fct_pltv_curve` |
+
+Video views are the network's own count (Meta: 3-second views, the `video_view`
+action; TikTok: 2-second views, `video_watched_2s`) and completions the views
+watched to 100% (Meta `video_p100_watched_actions`, TikTok `video_views_p100`), in
+the `video_views` and `video_completions` columns of `stg_ua_spend`; they stay
+empty for networks that report no views, so a view rate is computed only over the
+rows that have them (the ad centre, [REKLAM.md](REKLAM.md)).
 
 Spend on day d is assumed to buy the installs of cohort d. Two attribution
 bases, chosen per network in the config (`attribution:`; default `ga4` for

@@ -9,7 +9,7 @@
     <div class="rk-pl-frame">{% if pl.token %}<iframe title="{{ t.pl_frame }}" sandbox="allow-scripts" src="/reklam/oynat/{{ pl.token }}" loading="lazy"></iframe>{% endif %}</div>
     <div class="rk-pl-b">
       <h3>{{ pl.name }}</h3>
-      <p class="muted rk-small"><code>{{ pl.path }}</code> · {{ fmt(pl.size / 1024, 'ipm') }} KB</p>
+      <p class="muted rk-small"><code class="rk-break">{{ pl.path }}</code> · {{ fmt(pl.size / 1024, 'ipm') }} KB</p>
       <h4>{{ t.pl_builds }}</h4>
       {% if pl.builds %}<ul class="list">{% for b in pl.builds %}<li><b>{{ b.network }}</b>
         {% for c in b.checks[-1:] %}<span class="badge {{ st_badge.get(c.status, 'outline') }}">{{ t['pl_status_' ~ c.status] if ('pl_status_' ~ c.status) in t else c.status }}</span>{% endfor %}
