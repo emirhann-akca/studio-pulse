@@ -96,6 +96,7 @@ def to_vertex_schema(schema: dict[str, Any]) -> dict[str, Any]:
 
 class GeminiVertexProvider(Provider):
     name = "gemini"
+    supports_video = True  # public YouTube URLs as fileData (Vertex AI video understanding)
 
     def __init__(
         self,
@@ -156,6 +157,20 @@ class GeminiVertexProvider(Provider):
             {"inlineData": {"mimeType": im.mime, "data": base64.b64encode(im.data).decode()}}
             for im in req.images
         ]
+        for v in req.videos:
+            # Vertex fetches the URL itself (one public YouTube video per request); nothing
+            # is downloaded here. videoMetadata bounds what is analysed and billed.
+            part: dict[str, Any] = {"fileData": {"fileUri": v.uri, "mimeType": v.mime}}
+            meta: dict[str, Any] = {}
+            if v.start_s:
+                meta["startOffset"] = f"{int(v.start_s)}s"
+            if v.end_s is not None:
+                meta["endOffset"] = f"{int(v.end_s)}s"
+            if v.fps:
+                meta["fps"] = float(v.fps)
+            if meta:
+                part["videoMetadata"] = meta
+            parts.append(part)
         parts.append({"text": req.prompt})
         gen: dict[str, Any] = {
             "temperature": req.temperature,
@@ -462,6 +477,7 @@ class FakeProvider(Provider):
     the text length so budgets and ledgers can be tested."""
 
     name = "fake"
+    supports_video = True  # tests answer video requests from the request text
 
     def __init__(
         self,
@@ -490,7 +506,9 @@ class FakeProvider(Provider):
         text = out if isinstance(out, str) else json.dumps(out, ensure_ascii=False)
         return Completion(
             text=text,
-            input_tokens=max(1, len(req.system + req.prompt) // 4) + 258 * len(req.images),
+            input_tokens=max(1, len(req.system + req.prompt) // 4)
+            + 258 * len(req.images)
+            + 300 * sum(v.seconds for v in req.videos),
             output_tokens=max(1, len(text) // 4),
             model=self.model,
             stop_reason="stop",

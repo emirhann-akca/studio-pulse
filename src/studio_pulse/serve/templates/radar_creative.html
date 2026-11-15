@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}{{ v.adv }} · {{ t.title }}{% endblock %}
+{% block head %}<style>
+.cd-top { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 900px) { .cd-top { grid-template-columns: 1fr; } }
+.cd-media { position: relative; aspect-ratio: 16 / 9; border-radius: var(--r-3); overflow: hidden; background: var(--panel-2); border: 1px solid var(--line); }
+.cd-media iframe, .cd-media img { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; object-fit: cover; }
+.cd-ph { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 16px; color: var(--text-2); font-size: 13px; }
+.cd-ph b { display: block; font-size: 34px; color: var(--text-3); margin-bottom: 6px; }
+.cd-score { font-size: 40px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+.cd-score small { font-size: 14px; font-weight: 500; color: var(--text-3); }
+.cd-kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; font-size: 13px; margin: 0; }
+.cd-kv dt { color: var(--text-3); }
+.cd-kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.cd-tl { position: relative; height: 12px; border-radius: 6px; background: var(--panel-3); margin: 8px 0 4px; }
+.cd-tl i { position: absolute; top: 0; bottom: 0; border-radius: 6px; background: var(--accent); min-width: 3px; }
+.cd-tl-ax { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-3); }
+.cd-quote { margin: 6px 0 0; padding: 8px 10px; border-left: 3px solid var(--line-2); background: var(--panel-2); border-radius: 4px; font-size: 13px; overflow-wrap: anywhere; }
+.cd-ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.cd-ul li { margin: 3px 0; overflow-wrap: anywhere; }
+.cd-make { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.cd-sim { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 10px; }
+.cd-sim a { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-2); background: var(--panel); color: var(--text); text-decoration: none; min-width: 0; }
+.cd-sim a:hover { background: var(--panel-2); }
+.cd-sim small { color: var(--text-3); }
+</style>{% endblock %}
+{% block body %}
+<p style="margin:0 0 10px"><a href="/radar/kreatifler{% if lang == 'en' %}?lang=en{% endif %}">← {{ t.title }}</a></p>
+<header class="page-head">
+  <h1>{{ v.adv }}: {{ v.hook }}</h1>
+  <span class="badge outline">{{ v.source }}</span><span class="badge outline">{{ v.format }}</span><span class="badge outline">{{ v.genre }}</span>
+  {% if v.running %}<span class="badge good">{{ t.running }}</span>{% endif %}
+</header>
+
+<div class="cd-top">
+  <section>
+    <div class="cd-media">
+      {% if r.links.embed %}
+        <iframe src="{{ r.links.embed }}" title="YouTube: {{ v.adv }}" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups" allow="encrypted-media; picture-in-picture; fullscreen"></iframe>
+      {% else %}
+        <div class="cd-ph"><div><b>{{ v.initials }}</b>{{ t.no_preview }}</div></div>
+      {% endif %}
+    </div>
+    <p class="muted" style="font-size:12px;margin:6px 0 0">{% if r.links.embed %}{{ t.yt_attr }} {% endif %}{% if r.links.source %}<a href="{{ r.links.source }}" rel="noopener noreferrer nofollow">{{ t.open_source }} ↗</a>{% endif %}{% if r.links.youtube %} · <a href="{{ r.links.youtube }}" rel="noopener noreferrer nofollow">YouTube ↗</a>{% endif %}</p>
+    {% if r.ad_text or r.ad_title %}<div style="margin-top:10px"><b style="font-size:12.5px">{{ t.ad_text }}</b>
+      {% if r.ad_title %}<p class="cd-quote"><b>{{ r.ad_title }}</b></p>{% endif %}
+      {% if r.ad_text %}<p class="cd-quote">{{ r.ad_text }}</p>{% endif %}</div>{% endif %}
+  </section>
+  <section class="card" style="margin:0">
+    <h2>{{ t.score }}</h2>
+    <div class="cd-score">{{ r.score|round|int }} <small>/ 100</small></div>
+    <p class="muted" style="font-size:12px;margin:6px 0 12px">{{ t.score_note }}</p>
+    <div class="cd-make">
+      <a class="btn primary" href="{{ brief }}">{{ t.make }}</a>
+    </div>
+    <p class="muted" style="font-size:12px;margin:6px 0 0">{{ t.make_sub }}</p>
+    <h2 style="margin-top:16px">{{ t.timeline }}</h2>
+    {% if v.timeline %}
+    <div class="cd-tl" role="img" aria-label="{{ t.first_shown }} {{ r.first_shown }}, {{ t.last_shown }} {{ r.last_shown }}"><i style="left:{{ v.timeline.left }}%;width:{{ v.timeline.width }}%"></i></div>
+    <div class="cd-tl-ax"><span>{{ v.timeline.start }}</span><span>{{ as_of }}</span></div>
+    {% endif %}
+    <dl class="cd-kv" style="margin-top:8px">
+      {% if r.note %}<dt>{{ t.note_google if r.source == 'google_atc' else (t.note_meta if r.source == 'meta' else t.note_owner) }}</dt><dd>{{ r.note }}</dd>{% endif %}
+      <dt>{{ t.first_shown }}</dt><dd>{{ r.first_shown or '-' }}</dd>
+      <dt>{{ t.last_shown }}</dt><dd>{{ r.last_shown or '-' }}{% if v.ago is not none and not v.running %} ({{ t.stopped.format(d=v.ago) }}){% endif %}</dd>
+      {% if v.days %}<dt></dt><dd>{{ t.days_live.format(d=v.days) }}</dd>{% endif %}
+      {% if r.regions %}<dt>{{ t.region }}</dt><dd>{{ r.regions|join(', ') }}</dd>{% endif %}
+      {% if r.platforms %}<dt>{{ t.platforms }}</dt><dd>{{ r.platforms|join(', ') }}</dd>{% endif %}
+      {% if r.times_shown_min is not none %}<dt></dt><dd>{{ t.times_shown.format(n=fmt_num(r.times_shown_min)) }}</dd>{% endif %}
+      {% if r.eu_reach is not none %}<dt></dt><dd>{{ t.eu_reach.format(n=fmt_num(r.eu_reach)) }}{% if r.reach_bucket %} ({{ r.reach_bucket }}){% endif %}</dd>{% endif %}
+    </dl>
+  </section>
+</div>
+
+<section class="card" style="margin-top:14px">
+  <h2>{{ t.tags }}</h2>
+  {% if r.evidence.is_game_ad is sameas false %}<div class="callout warn" role="note">{{ t.not_game }}</div>{% endif %}
+  <dl class="cd-kv">
+    <dt>{{ t.tag_source }}</dt><dd>{{ v.tag_source }}{% if r.model %} <small class="muted">({{ r.model }})</small>{% endif %}</dd>
+    <dt>{{ t.hook }}</dt><dd><b>{{ v.hook }}</b>{% if r.hook_confidence is not none %} <small class="muted">({{ t.confidence }} {{ (r.hook_confidence * 100)|round|int }}%)</small>{% endif %}</dd>
+    <dt>{{ t.ai }}</dt><dd>{{ v.ai }} <small class="muted">({{ t.likelihood }})</small>{% if r.ai_signals %}: {% for sgn in r.ai_signals %}{{ label(L.AI_SIGNALS, sgn) }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</dd>
+    <dt>{{ t.orientation }}</dt><dd>{{ label(L.ORIENT_NAMES, r.orientation or 'unknown') }}</dd>
+    <dt>{{ t.duration }}</dt><dd>{{ label(L.DURATION_NAMES, r.duration or 'unknown') }}</dd>
+    <dt>{{ t.mechanic }}</dt><dd>{{ mech(r.mechanic) if r.mechanic else '-' }}</dd>
+    <dt>{{ t.cta }}</dt><dd>{{ label(L.CTAS, r.cta or 'unknown') }}{% if r.evidence.cta_text %} <small class="muted">“{{ r.evidence.cta_text }}”</small>{% endif %}</dd>
+    <dt>{{ t.language }}</dt><dd>{{ r.tag_language or (r.languages|join(', ') if r.languages else '-') }}</dd>
+    <dt>{{ t.why }}</dt><dd>{% set why = r.why_tr if lang == 'tr' else r.why_en %}{% if why %}{{ why }}{% elif signal_why %}{{ signal_why }} <small class="muted">({{ t.why_signals }})</small>{% else %}{{ t.why_none }}{% endif %}</dd>
+  </dl>
+  {% if r.evidence.observations %}<h3 style="font-size:12.5px;margin:12px 0 0">{{ t.evidence }}</h3>
+  <ol class="cd-ul">{% for o in r.evidence.observations %}<li lang="en">{{ o }}</li>{% endfor %}</ol>{% endif %}
+  {% if r.evidence.hook_observed %}<p class="cd-quote" lang="en">0-3 s: {{ r.evidence.hook_observed }}</p>{% endif %}
+  {% if r.evidence.on_screen_text %}<ul class="cd-ul">{% for x in r.evidence.on_screen_text %}<li>“{{ x }}”</li>{% endfor %}</ul>{% endif %}
+  {% for k in ('hook', 'mechanic', 'cta') %}{% if r.evidence[k] and r.evidence[k].quote %}<p class="cd-quote">{{ k }}: “{{ r.evidence[k].quote }}” <small class="muted">({{ r.evidence[k].field }})</small></p>{% endif %}{% endfor %}
+  {% if r.tag_source in (none, 'metadata') and r.source == 'google_atc' %}<p class="muted" style="font-size:12px">{{ t.untagged_note }}</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ t.breakdown }}</h2>
+  <div class="table-scroll"><table class="t">
+    <thead><tr><th>{{ t.part }}</th><th>{{ t.signal }}</th><th>{{ t.value }}</th><th>{{ t.weight }}</th><th>{{ t.points }}</th></tr></thead>
+    <tbody>
+    {% for k, w in weights.items() %}{% set p = r.parts[k] %}
+      <tr>
+        <td>{{ label(L.PARTS, k) }}</td>
+        <td>{% if p.signal is none %}<span class="muted">{{ t.missing }}</span>
+            {% elif k == 'longevity' %}{{ t.days_live.format(d=p.signal) }}
+            {% elif k == 'active' %}{% if p.signal <= active_days %}{{ t.running }}{% else %}{{ t.stopped.format(d=p.signal) }}{% endif %}
+            {% elif k == 'variants' %}{{ t.variants.format(n=p.signal) }}
+            {% elif k == 'spread' %}{{ t.regions.format(n=p.signal.regions) }}{% if p.signal.networks %} · {{ p.signal.networks }} {{ t.platforms|lower }}{% endif %}
+            {% elif k == 'volume' %}{% if p.kind == 'times_shown' %}{{ t.times_shown.format(n=fmt_num(p.signal)) }}{% else %}{{ t.eu_reach.format(n=fmt_num(p.signal)) }}{% endif %}
+            {% endif %}</td>
+        <td>{{ '%.2f' % p.value }}</td><td>{{ '%.2f' % w }}</td><td>{{ '%.1f' % (100 * w * p.value) }}</td>
+      </tr>
+    {% endfor %}
+      <tr><td colspan="4"><b>{{ t.score }}</b></td><td><b>{{ '%.1f' % r.score }}</b></td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted" style="font-size:12px;margin:8px 0 0">{{ t.parts_note }} {{ t.cluster_note }}</p>
+</section>
+
+<section class="card">
+  <h2>{{ t.similar }}</h2>
+  {% if similar %}<div class="cd-sim">{% for x, xv in similar %}
+    <a href="/radar/kreatifler/{{ xv.key }}{% if lang == 'en' %}?lang=en{% endif %}"><b>{{ xv.adv }}</b><span>{{ xv.hook }}</span><small>{{ t.score }} {{ x.score|round|int }} · {{ xv.format }} · {{ x.first_shown or '?' }} → {{ x.last_shown or '?' }}</small></a>
+  {% endfor %}</div>{% else %}<p class="muted" style="font-size:13px">{{ t.similar_none }}</p>{% endif %}
+</section>
+{% endblock %}

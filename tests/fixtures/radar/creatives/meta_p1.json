@@ -1,0 +1,46 @@
+{
+ "data": [
+  {
+   "id": "910000000000001",
+   "page_id": "510000000000001",
+   "page_name": "Pebble Sort (synthetic)",
+   "ad_delivery_start_time": "2026-09-25",
+   "ad_delivery_stop_time": "2026-11-02",
+   "ad_creative_bodies": ["Only 1% can sort them all! <script>alert('x')</script> Relax with Pebble Sort."],
+   "ad_creative_link_titles": ["Pebble Sort - Play Now"],
+   "ad_creative_link_captions": ["play.google.com"],
+   "publisher_platforms": ["facebook", "instagram", "audience_network"],
+   "languages": ["en"],
+   "eu_total_reach": 120000,
+   "age_country_gender_reach_breakdown": [
+    {"country": "DE", "age_gender_breakdowns": [{"age_range": "18-24", "male": 100, "female": 120}]},
+    {"country": "FR", "age_gender_breakdowns": []}
+   ]
+  },
+  {
+   "id": "910000000000002",
+   "page_id": "510000000000001",
+   "page_name": "Pebble Sort (synthetic)",
+   "ad_delivery_start_time": "2026-11-05",
+   "ad_creative_bodies": ["So satisfying: watch every pebble click into place."],
+   "ad_creative_link_titles": ["Install Pebble Sort"],
+   "publisher_platforms": ["instagram"],
+   "languages": ["en", "de"],
+   "eu_total_reach": 30500
+  },
+  {
+   "id": "910000000000003",
+   "page_id": "520000000000009",
+   "page_name": "A fan page that mentions Pebble Sort",
+   "ad_delivery_start_time": "2026-11-01",
+   "ad_creative_bodies": ["We love Pebble Sort"],
+   "publisher_platforms": ["facebook"],
+   "languages": ["en"],
+   "eu_total_reach": 50
+  }
+ ],
+ "paging": {
+  "cursors": {"after": "c2"},
+  "next": "https://graph.facebook.com/v24.0/ads_archive?after=c2&search_terms=Pebble+Sort"
+ }
+}

@@ -1,0 +1,16 @@
+{
+ "data": {
+  "ads": [
+   {"ad": {"id": 7300000000000000001, "first_shown_date": "20260901", "last_shown_date": "20261110",
+           "status": "active", "reach": {"unique_users_seen": "100K+"},
+           "videos": [{"url": "https://example.invalid/video.mp4"}]},
+    "advertiser": {"business_id": 7200000000000000001, "business_name": "Example Pebbleworks Ltd"}},
+   {"ad": {"id": 7300000000000000002, "first_shown_date": "20261020", "last_shown_date": "20261101",
+           "status": "inactive", "reach": {"unique_users_seen": "11K"}},
+    "advertiser": {"business_id": 7200000000000000001, "business_name": "Example Pebbleworks Ltd"}}
+  ],
+  "has_more": "false",
+  "search_id": "s-1"
+ },
+ "error": {"code": "ok", "message": "", "log_id": "x"}
+}

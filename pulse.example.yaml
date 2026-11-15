@@ -114,6 +114,13 @@ apps:
 #   llm: {max_apps: 25, narrate: false}
 #   estimates: {panel_size: 80, min_games: 10}   # rank -> downloads / revenue bands
 #   out_dir: local/radar
+#   # Competitor creative library (/radar/kreatifler): weekly Google Ads Transparency scan
+#   # (~27.5 GB, dry-run first), Meta Ad Library with PULSE_META_AD_LIBRARY_TOKEN, LLM tags.
+#   creatives:
+#     enabled: true
+#     max_gb: 30
+#     advertisers: [{name: Example Games, genre: sort, meta_page_ids: ["123456789"]}]
+#     tagging: {budget_usd: 0.10, max_per_run: 20}
 #
 # Shared LLM provider (radar classification). Project ids and keys come from the environment:
 # PULSE_LLM_PROJECT (Vertex AI), PULSE_LLM_BASE_URL / PULSE_LLM_API_KEY, ANTHROPIC_API_KEY.

@@ -39,6 +39,24 @@ class ImagePart:
         return hashlib.sha256(self.data).hexdigest()
 
 
+@dataclass(frozen=True)
+class VideoPart:
+    """A video the provider fetches itself by URL (Gemini: a public YouTube URL as fileUri).
+    Nothing is downloaded or stored by this package; `end_s` caps how much is analysed (and
+    billed), `fps` the frames sampled per second."""
+
+    uri: str
+    mime: str = "video/mp4"
+    start_s: int = 0
+    end_s: int | None = None
+    fps: float | None = None
+
+    @property
+    def seconds(self) -> int:
+        """Seconds analysed at most (the budget's worst case); unbounded counts as 120."""
+        return max(1, (self.end_s if self.end_s is not None else 120) - self.start_s)
+
+
 @dataclass
 class LLMRequest:
     prompt: str
@@ -48,10 +66,11 @@ class LLMRequest:
     temperature: float = 0.0
     max_output_tokens: int = 2048
     purpose: str = "llm"
+    videos: list[VideoPart] = field(default_factory=list)
 
     def cache_material(self) -> dict[str, Any]:
         """Everything that decides the answer (not the purpose label)."""
-        return {
+        out: dict[str, Any] = {
             "system": self.system,
             "prompt": self.prompt,
             "schema": self.schema,
@@ -59,6 +78,9 @@ class LLMRequest:
             "temperature": self.temperature,
             "max_output_tokens": self.max_output_tokens,
         }
+        if self.videos:  # only when present: earlier cache keys stay valid
+            out["videos"] = [(v.uri, v.mime, v.start_s, v.end_s, v.fps) for v in self.videos]
+        return out
 
 
 @dataclass
@@ -91,6 +113,9 @@ class Provider:
 
     name = "provider"
     model = ""
+    # True when complete() sends LLMRequest.videos to the model; a provider that cannot must
+    # never be given a video request (it would answer without seeing the video).
+    supports_video = False
     # Price per million tokens (input, output) when the provider knows it better than the
     # shared table (a local model is free). None: look the model up in pricing.PRICES.
     price: tuple[float, float] | None = None

@@ -665,3 +665,138 @@ The first live weekly extract billed 26.64 GB (26.62 GB scan plus the 10 MB sche
 returned 498,647 advertisers in 264 s before the "games-topic >= 10 or a radar developer" rule
 (since then part of the scan itself) kept 104,678; Dream Games, King, Playrix, Scopely and Grand
 Games were found, two of the three dossier developers were not.
+
+## Competitor creative library (Rakip Kreatif Kütüphanesi)
+
+Which ad creatives the big casual / puzzle publishers run, split by hook type, with the
+likelihood that a video was made with generative AI and a winner score estimated from public
+signals. Code: `radar/creatives/`; page: `/radar/kreatifler` in `pulse serve`.
+
+```bash
+pulse radar creatives refresh --dry-run -c pulse.yaml     # BigQuery dry runs only: bytes, no scan
+pulse radar creatives refresh -c pulse.yaml               # Google weekly, Meta (token), tags
+pulse radar creatives list --hook challenge --json -c pulse.yaml
+pulse radar creatives show g-CR0123... -c pulse.yaml      # tags, score parts, the /reklam link
+pulse radar creatives add https://youtu.be/<id> --advertiser "Dream Games" --tag -c pulse.yaml
+pulse radar creatives add https://youtu.be/<id> --for g-CR0123... --tag -c pulse.yaml
+pulse radar creatives tag --limit 10 -c pulse.yaml        # new or changed creatives only
+```
+
+With `radar.creatives.enabled: true` it runs inside `pulse run` (after the radar and the
+advertiser extract): Google at most every `every_days` (7), Meta daily with a token, tags
+within the tagging budget. Nothing about a competitor's video is downloaded or stored.
+
+### Sources, and why each is allowed (checked 15 Nov 2026)
+
+| Source | What is kept | Rule |
+|---|---|---|
+| Google Ads Transparency Center, public BigQuery dataset `bigquery-public-data.google_ads_transparency_center.creative_stats` | per creative: id, format, regions, first/last shown, the lower bound of times shown (EEA and a few countries such as TR only), the creative page link (rebuilt from the ids) | Google's own published dataset, queried under BigQuery's terms. Schema checked with `bq show --schema` and free `tabledata.list` samples: there is **no** video id, YouTube id, image or text field. The creative page (adstransparency.google.com, no robots.txt) is a script application fed by undocumented internal endpoints, which are not called |
+| Meta Ad Library API `graph.facebook.com/{v}/ads_archive` ([reference](https://developers.facebook.com/docs/graph-api/reference/ads_archive/), [ArchivedAd](https://developers.facebook.com/docs/graph-api/reference/archived-ad/)) | per ad: dates, page, platforms, languages, countries reached, `eu_total_reach`, body and link title (cut to 500 / 150 characters) | the documented API with the studio's own token (`PULSE_META_AD_LIBRARY_TOKEN`); www.facebook.com/robots.txt forbids automated collection, so no facebook.com page is fetched. `ad_snapshot_url` is not requested (its URL carries the token); the stored link is the public Ad Library page of the ad id. Video only (`media_type=VIDEO`); EU-delivered ads (commercial ads outside the EU are not in the API). `paging.next` is followed only to graph.facebook.com. **Not run live** (no token yet): fixture-tested |
+| TikTok Commercial Content API ([product page](https://developers.tiktok.com/products/commercial-content-api), [query ads](https://developers.tiktok.com/doc/commercial-content-api-query-ads)) | per ad: dates, status, reach bucket, the library link | needs an approved application (TikTok for Developers account, a form, about two working days); EU data only. library.tiktok.com/robots.txt disallows everything and TikTok's terms forbid automated collection, Creative Center data comes from internal endpoints: no scraping path exists. **Disabled** connector: off unless `radar.creatives.tiktok.enabled: true` and `PULSE_TIKTOK_CLIENT_KEY` / `_SECRET`; `ad.videos` is never requested |
+| YouTube, by hand | a video id and what the owner typed | the YouTube Data API is **not** used: its [developer policies](https://developers.google.com/youtube/terms/developer-policies) forbid creating derived metrics from API data (III.E.4.h), limit aggregation to one content owner (III.E.2.a) and cap stored statistics at 30 days. No YouTube view count feeds anything. The page shows the official embedded player (youtube-nocookie) and the standard thumbnail, attributed to YouTube; Gemini reads the public URL itself (Vertex AI video understanding), nothing is downloaded |
+
+### Tables
+
+`mr_creative` (one row per creative and source; `creative_key` is `g-CR...`, `m-<ad id>`,
+`t-<ad id>` or `y-<YouTube id>`; Google rows are replaced weekly, keeping a YouTube id attached
+with `add --for`), `mr_creative_tag` (the newest row per creative counts; three kept),
+`mr_creative_advertiser` (tracked advertisers and the Google ids they resolved to),
+`mr_creative_run` (every source's run with the bytes BigQuery estimated and billed).
+
+### Tracked advertisers
+
+`settings.SEED`: twenty big casual / puzzle publishers (Dream Games, King, Playrix, Peak,
+Easybrain, Tripledot, Magic Tavern, Hungry Studio, Grand Games, Good Job Games, Matchingham,
+Rollic, Moon Active, Scopely, Playtika, Voodoo, SayGames, Supersonic, CrazyLabs, Kwalee), with
+flagship game names as Meta search terms. `radar.creatives.advertisers` adds to it (`seed:
+false` drops it); `discover` adds the publishers with the most chart rows in the radar's own
+snapshots of the last 28 days, genre from their games (a sort mechanic in `fct_mr_app_tags`,
+else the Apple genre). Names resolve to Google advertiser ids locally from `raw_mr_adv` when the
+weekly advertiser extract exists, else with one query (advertiser_id, name, topic: 10.81 GB,
+cap `resolve_max_gb` 15, cached 30 days). A name matches when the advertiser's name without
+legal-form words equals it or starts with it, with at least 3 games-topic creatives making up at
+least a fifth of the advertiser's (namesakes are dropped).
+
+### Cost
+
+The creatives query names seven columns, 27.50 GB (dry run, 15 Nov 2026): advertiser_id 3.94,
+creative_id 3.94, ad_format_type 1.04, region_code 2.25, first_shown 6.27, last_shown 6.27,
+times_shown_lower_bound 3.78. creative_page_url (16.7 GB) and surface_serving_stats (16+ GB)
+are never read. The table is not partitioned, so a WHERE clause does not lower the bill and a
+daily Google run would cost seven times as much: Google is weekly, the free Meta API is daily,
+tags are incremental. Each query is dry-run first and refused above its cap (`max_gb` 30, at
+most 50), then run with `maximum_bytes_billed`.
+
+### Tags (grounded)
+
+Hook in the first three seconds (fail / almost win, satisfying / ASMR, "only X% can solve"
+challenge, fake / stylised gameplay, real gameplay, UGC / person, AI-generated character /
+scene, before / after, story / drama, celebrity / meme, other), AI-generated likelihood (low,
+medium, high, unknown: a likelihood, never a certainty), orientation, length bucket, the
+mechanic shown (radar taxonomy), CTA, language, and one line "why it may work".
+
+- `llm_video` (a YouTube row, or a YouTube id attached to a Google / Meta row): Gemini watches
+  the public URL (first `video_seconds`, 60). The model lists observations; code keeps an
+  observation or reason only without numbers (on-screen text is transcribed separately), the
+  reason must cite kept observations, and medium / high AI likelihood must name a concrete
+  sign (morphing, hands / faces, garbled text, synthetic voice, uncanny motion, AI render
+  style), else it is lowered to low. What a video shows cannot be checked by code: these tags
+  are labelled observations.
+- `llm_text` (Meta ad text): every tag carries a verbatim quote checked against the text.
+- `keyword` / `metadata`: whole-word keywords in ad text, else format, dates and regions; the
+  page then explains the creative with a sentence built from the score's signals.
+Budget: `tagging.budget_usd` (0.10) and `llm.budget_usd`, the lower one per run; a creative is
+re-tagged only when its input or the prompt version changes; a video the model cannot read
+(private, removed) is not re-sent every run.
+
+### Winner score (kazanan puanı) - an ESTIMATE
+
+Nobody publishes a competitor's installs or ROAS; what is public is how long and how widely an
+advertiser keeps paying for a creative. Every part is 0-1 and non-decreasing in its signal
+(tested); a part without data is 0 and shown as "no data".
+
+```
+longevity = min(1, ln(1 + days_live) / ln(181))           days_live = last - first + 1
+active    = 1 if last shown <= active_days (14) ago, then linear to 0 at 90 days
+variants  = min(1, log2(n) / 4)      n = the advertiser's creatives with the same tagged hook
+                                     and mechanic (no data when untagged)
+spread    = max(min(1, (regions - 1) / 19), min(1, (networks - 1) / 3))
+volume    = min(1, log10(1 + evidence) / 7)   Google times-shown lower bound, else Meta EU
+                                              reach, else TikTok's reach bucket floor
+score = 100 x (0.35 longevity + 0.15 active + 0.20 variants + 0.15 spread + 0.15 volume)
+```
+
+Weights: `radar.creatives.weights` (must add up to 1). No visual similarity is used: no ad
+repository here gives the images.
+
+### Page
+
+`/radar/kreatifler`: summary strip (top hooks this month in our genres, the share of watched
+videos with a medium / high AI likelihood, advertisers with the most running creatives),
+filters (genre, advertiser, hook, AI likelihood, format, region, source, minimum score, still
+running), three views (all; AI-generated videos; other videos by hook) and cards.
+`/radar/kreatifler/<key>`: the player or an outbound link, tags with their evidence, the score
+parts table, a timeline, similar creatives and "Bu fikirle kreatif üret", which opens the Ad
+Center wizard at `/reklam?brief=<text>&hook=<hook>&mechanic=<taxonomy key>&orientation=
+<portrait|landscape|square>&genre=<genre>&ref=<creative key>&lang=<tr|en>` (the brief is built
+from tags only, at most 400 characters; the competitor's video is never passed on). Everything
+from an ad repository is escaped; links are rebuilt from validated ids; filter values are
+matched against the offered options (nothing typed is echoed). The two routes send the shell's
+CSP plus `img-src https://i.ytimg.com` and, on the detail page, `frame-src
+https://www.youtube-nocookie.com`; scripts stay as strict as elsewhere.
+
+### What the owner needs to do
+
+- Meta: a Meta developer app with the Ad Library API (identity confirmation), its token in
+  `PULSE_META_AD_LIBRARY_TOKEN`; optionally the official page ids of the tracked games in
+  `meta_page_ids` (more precise than name search).
+- TikTok: apply for the Commercial Content API; on approval read the CCL data terms, put the
+  keys in the environment and set `radar.creatives.tiktok.enabled: true`.
+- Videos for the LLM: paste public YouTube ad URLs (`add`, or `add --for <g-CR...>` for the
+  video a Google creative page plays).
+
+The first live run (15 Nov 2026, a copy of the warehouse): 30 advertisers tracked (20 seed,
+10 from the charts), 21 resolved to 32 Google ids (resolve billed 10.81 GB), 1,541 creatives
+(1,536 video) stored (creatives query billed 27.50 GB, cap 30); five of six public YouTube ads
+tagged by Gemini 3.5 Flash-Lite (the sixth answered 403: not readable by Vertex), 0.027 USD in
+all over three passes (a prompt revision re-tagged them), about 0.003 USD a video.

@@ -34,6 +34,7 @@ from .base import (
     LLMResponse,
     Provider,
     TransientLLMError,
+    VideoPart,
     redact,
 )
 from .client import LLMClient
@@ -60,6 +61,7 @@ __all__ = [
     "OpenAICompatibleProvider",
     "Provider",
     "TransientLLMError",
+    "VideoPart",
     "client_from_settings",
     "make_provider",
     "redact",

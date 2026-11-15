@@ -516,6 +516,13 @@ def _radar(
     except Exception as exc:
         report.errors["adintel"] = f"{type(exc).__name__}: {exc}"
         log(f"    ERROR adintel: {report.errors['adintel']}")
+    try:  # creative library (radar.creatives.enabled): Google weekly, Meta daily, tags
+        from .radar.creatives.run import run_in_pipeline as creatives_weekly
+
+        creatives_weekly(con, cfg, log)
+    except Exception as exc:
+        report.errors["creatives"] = f"{type(exc).__name__}: {exc}"
+        log(f"    ERROR creatives: {report.errors['creatives']}")
     return out
 
 

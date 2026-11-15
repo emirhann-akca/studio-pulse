@@ -1,0 +1,20 @@
+[
+  {"advertiser_id": "AR10000000000000000001", "creative_id": "CR20000000000000000001", "fmt": "VIDEO",
+   "first_shown": "2026-03-02", "last_shown": "2026-11-13", "regions_n": 24,
+   "regions": ["AT", "BE", "BR", "DE", "EEA", "FR", "GB", "TR", "US"], "times_min": 3000000, "times_regions": 3},
+  {"advertiser_id": "AR10000000000000000001", "creative_id": "CR20000000000000000002", "fmt": "VIDEO",
+   "first_shown": "2026-10-20", "last_shown": "2026-11-12", "regions_n": 3,
+   "regions": ["DE", "TR", "US"], "times_min": 10000, "times_regions": 1},
+  {"advertiser_id": "AR10000000000000000001", "creative_id": "CR20000000000000000003", "fmt": "IMAGE",
+   "first_shown": "2026-01-10", "last_shown": "2026-02-01", "regions_n": 1,
+   "regions": ["US"], "times_min": null, "times_regions": 0},
+  {"advertiser_id": "AR10000000000000000004", "creative_id": "CR20000000000000000004", "fmt": "VIDEO",
+   "first_shown": "2026-09-01", "last_shown": "2026-11-14", "regions_n": 12,
+   "regions": ["BR", "DE", "EEA", "TR", "US"], "times_min": 1000000, "times_regions": 2},
+  {"advertiser_id": "AR19999999999999999999", "creative_id": "CR29999999999999999999", "fmt": "VIDEO",
+   "first_shown": "2026-09-01", "last_shown": "2026-11-14", "regions_n": 1,
+   "regions": ["US"], "times_min": null, "times_regions": 0},
+  {"advertiser_id": "AR10000000000000000004", "creative_id": "not-a-creative-id", "fmt": "VIDEO",
+   "first_shown": "2026-09-01", "last_shown": "2026-11-14", "regions_n": 1,
+   "regions": ["US"], "times_min": null, "times_regions": 0}
+]

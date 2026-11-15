@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}{{ t.title }}{% endblock %}
+{% block head %}<style>
+.cr-filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 8px 12px; align-items: end; }
+.cr-filters .field { margin: 0; }
+.cr-filters .select { width: 100%; }
+.cr-filters .check { display: flex; gap: 6px; align-items: center; font-size: 13px; min-height: 34px; }
+.cr-filters .acts { display: flex; gap: 8px; align-items: center; }
+.cr-sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 10px; margin-bottom: 14px; }
+.cr-sum .kpi ol { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--text-2); }
+.cr-sum .kpi li { margin: 2px 0; }
+.cr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 232px), 1fr)); gap: 12px; }
+.cr-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-3); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.cr-media { position: relative; display: block; aspect-ratio: 16 / 9; background: var(--panel-2); color: var(--text-2); text-decoration: none; }
+.cr-media:hover { text-decoration: none; }
+.cr-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cr-ph { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; gap: 2px; }
+.cr-ph b { font-size: 26px; letter-spacing: .02em; color: var(--text-3); }
+.cr-ph small { display: block; font-size: 11px; }
+.cr-score { position: absolute; right: 8px; top: 8px; font-weight: 700; font-size: 13px; padding: 2px 8px; border-radius: var(--r-pill); background: var(--panel); color: var(--text); box-shadow: var(--shadow); font-variant-numeric: tabular-nums; }
+.cr-score.strong { background: var(--good-soft); color: var(--good-text); }
+.cr-score.medium { background: var(--warn-soft); color: var(--warn-text); }
+.cr-yt { position: absolute; left: 8px; bottom: 8px; font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: rgba(0,0,0,.6); color: #fff; }
+.cr-body { padding: 10px 12px 12px; display: grid; gap: 6px; min-width: 0; }
+.cr-adv { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-adv small { font-weight: 450; color: var(--text-3); }
+.cr-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.cr-tags .badge { white-space: normal; text-align: left; }
+.cr-meta { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.cr-bar { height: 4px; border-radius: 4px; background: var(--panel-3); overflow: hidden; }
+.cr-bar i { display: block; height: 100%; background: var(--accent); }
+.cr-foot { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+</style>{% endblock %}
+{% block body %}
+<p style="margin:0 0 10px"><a href="/radar">← {{ t.back }}</a></p>
+<header class="page-head">
+  <h1>{{ t.title }}</h1><span class="badge outline">{{ as_of }}</span>
+  <p class="sub">{{ t.sub }}</p>
+</header>
+{% if error %}<div class="callout bad" role="alert">{{ error }}</div>{% endif %}
+
+{% if all_n %}
+<section aria-label="{{ t.summary.format(genres=genre_names|join(', ')) }}">
+  <h2 style="font-size:13.5px;margin:0 0 8px">{{ t.summary.format(genres=genre_names|join(', ')) }}</h2>
+  <div class="cr-sum">
+    <div class="kpi"><div class="k">{{ t.top_hooks }}</div>
+      {% if summary.top_hooks %}<ol>{% for h in summary.top_hooks %}<li>{{ label(L.HOOKS, h.hook) }} <span class="muted">· {{ h.n }} ({{ ((h.share * 100)|round|int) }}%)</span></li>{% endfor %}</ol>
+      {% else %}<div class="v na">{{ t.no_tags }}</div>{% endif %}</div>
+    <div class="kpi"><div class="k">{{ t.ai_share }}</div>
+      {% if summary.ai.share is not none %}<div class="v">{{ (summary.ai.share * 100)|round|int }}%</div><div class="d">{{ t.ai_share_sub.format(a=summary.ai.n, b=summary.ai.of) }}</div>
+      {% else %}<div class="v na">{{ t.no_tags }}</div>{% endif %}</div>
+    <div class="kpi"><div class="k">{{ t.top_advs }}</div>
+      {% if summary.top_advertisers %}<ol>{% for a in summary.top_advertisers %}<li>{{ a.name }} <span class="muted">· {{ a.active }}</span></li>{% endfor %}</ol>
+      {% else %}<div class="v na">-</div>{% endif %}</div>
+  </div>
+</section>
+{% endif %}
+
+<section class="card">
+  <form method="get" action="/radar/kreatifler" class="cr-filters" aria-label="{{ t.filters }}">
+    <div class="field"><label for="f-genre">{{ t.genre }}</label>
+      <select class="select" id="f-genre" name="genre"><option value="">{{ t.all }}</option>
+      {% for k, n in opts.genre %}<option value="{{ k }}"{% if f.genre == k %} selected{% endif %}>{{ label(L.GENRE_NAMES, k) }} ({{ n }})</option>{% endfor %}</select></div>
+    <div class="field"><label for="f-adv">{{ t.advertiser }}</label>
+      <select class="select" id="f-adv" name="advertiser"><option value="">{{ t.all }}</option>
+      {% for k, n in opts.advertiser %}<option value="{{ k }}"{% if f.advertiser == k %} selected{% endif %}>{{ adv_names.get(k) or k }} ({{ n }})</option>{% endfor %}</select></div>
+    <div class="field"><label for="f-hook">{{ t.hook }}</label>
+      <select class="select" id="f-hook" name="hook"><option value="">{{ t.all }}</option>
+      {% for k, n in opts.hook %}<option value="{{ k }}"{% if f.hook == k %} selected{% endif %}>{{ label(L.HOOKS, k) }} ({{ n }})</option>{% endfor %}</select></div>
+    <div class="field"><label for="f-ai">{{ t.ai }}</label>
+      <select class="select" id="f-ai" name="ai"><option value="">{{ t.all }}</option>
+      {% for k, n in opts.ai %}<option value="{{ k }}"{% if f.ai == k %} selected{% endif %}>{{ label(L.AI_LEVELS, k) }} ({{ n }})</option>{% endfor %}</select></div>
+    <div class="field"><label for="f-format">{{ t.format }}</label>
+      <select class="select" id="f-format" name="format"><option value="">{{ t.all }}</option>
+      {% for k, n in opts.format %}<option value="{{ k }}"{% if f.format == k %} selected{% endif %}>{{ label(L.FORMATS, k) }} ({{ n }})</option>{% endfor %}</select></div>
+    <div class="field"><label for="f-region">{{ t.region }}</label>
+      <select class="select" id="f-region" name="region"><option value="">{{ t.all }}</option>
+      {% for k, n in opts.region[:60] %}<option value="{{ k }}"{% if f.region == k %} selected{% endif %}>{{ k }} ({{ n }})</option>{% endfor %}</select></div>
+    <div class="field"><label for="f-source">{{ t.source }}</label>
+      <select class="select" id="f-source" name="source"><option value="">{{ t.all }}</option>
+      {% for k, n in opts.source %}<option value="{{ k }}"{% if f.source == k %} selected{% endif %}>{{ label(L.SOURCES, k) }} ({{ n }})</option>{% endfor %}</select></div>
+    <div class="field"><label for="f-score">{{ t.min_score }}</label>
+      <select class="select" id="f-score" name="min_score"><option value="">{{ t.all }}</option>
+      {% for m in min_scores %}<option value="{{ m }}"{% if f.min_score == m %} selected{% endif %}>≥ {{ m }}</option>{% endfor %}</select></div>
+    <label class="check"><input type="checkbox" name="active" value="1"{% if f.active %} checked{% endif %}> {{ t.active }}</label>
+    {% if lang == 'en' %}<input type="hidden" name="lang" value="en">{% endif %}
+    {% if view != 'all' %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
+    <div class="acts"><button class="btn primary" type="submit">{{ t.apply }}</button><a class="btn ghost" href="/radar/kreatifler">{{ t.reset }}</a></div>
+  </form>
+</section>
+
+{% macro card(r, v) %}
+  <article class="cr-card">
+    <a class="cr-media" href="/radar/kreatifler/{{ v.key }}{% if lang == 'en' %}?lang=en{% endif %}" aria-label="{{ t.detail }}: {{ v.adv }}, {{ v.hook }}">
+      {% if r.links.thumb %}<img src="{{ r.links.thumb }}" alt="" loading="lazy" referrerpolicy="no-referrer"><span class="cr-yt">YouTube</span>
+      {% else %}<span class="cr-ph"><span><b>{{ v.initials }}</b><small>{{ v.format }} · {{ v.source }}</small></span></span>{% endif %}
+      <span class="cr-score {{ v.band }}" title="{{ t.score }} ({{ t.score_note }})">{{ r.score|round|int }}</span>
+    </a>
+    <div class="cr-body">
+      <div class="cr-adv" title="{{ v.adv }}">{{ v.adv }} <small>· {{ v.genre }}</small></div>
+      <div class="cr-tags">
+        <span class="badge {{ 'info' if v.hook_key != 'unknown' else '' }}">{{ v.hook }}</span>
+        <span class="badge {{ 'warn' if v.ai_key in ('medium', 'high') else 'outline' }}">YZ {{ t.likelihood }}: {{ v.ai }}</span>
+        <span class="badge outline">{{ v.format }}</span>
+      </div>
+      <div class="cr-meta">{{ r.first_shown or '?' }} → {{ r.last_shown or '?' }}{% if v.days %} · {{ t.days_live.format(d=v.days) }}{% endif %}{% if r.regions_n %} · {{ t.regions.format(n=r.regions_n) }}{% endif %}</div>
+      <div class="cr-meta">{% if v.running %}<span class="badge good">{{ t.running }}</span>{% elif v.ago is not none %}{{ t.stopped.format(d=v.ago) }}{% endif %}{% if r.variants and r.variants > 1 %} · {{ t.variants.format(n=r.variants) }}{% endif %}</div>
+      <div class="cr-bar" aria-hidden="true"><i style="width:{{ r.score|round|int }}%"></i></div>
+      <div class="cr-foot"><a href="/radar/kreatifler/{{ v.key }}{% if lang == 'en' %}?lang=en{% endif %}">{{ t.detail }}</a>{% if r.links.source %}<a href="{{ r.links.source }}" rel="noopener noreferrer nofollow">{{ t.open_source }} ↗</a>{% endif %}</div>
+    </div>
+  </article>
+{% endmacro %}
+<nav class="seg" aria-label="{{ t.filters }}" style="margin:0 0 12px;flex-wrap:wrap">{% for v, href in views %}<a href="{{ href }}"{% if v == view %} aria-current="true"{% endif %}>{{ t['view_' + v] }}</a>{% endfor %}</nav>
+<p class="muted" style="font-size:12.5px;margin:0 0 10px">{{ t.results.format(n=total) }}{% if view != 'hooks' and total > cards|length %} · {{ t.showing.format(n=total, m=cards|length) }}{% endif %} · {{ t.score_note }}</p>
+{% if view == 'ai' %}<div class="callout info" role="note">{{ t.ai_view_note.format(w=watched) }}</div>{% endif %}
+{% if view == 'hooks' %}
+  <p class="muted" style="font-size:12.5px;margin:0 0 10px">{{ t.hooks_note.format(u=untagged) }}</p>
+  {% if not groups %}<section class="card"><div class="empty"><p>{{ t.hooks_empty }}</p></div></section>{% endif %}
+  {% for g in groups %}
+  <section style="margin-bottom:18px" aria-labelledby="h-{{ g.hook }}">
+    <h2 id="h-{{ g.hook }}" style="font-size:14px;margin:0 0 8px">{{ label(L.HOOKS, g.hook) }} <span class="muted" style="font-weight:450">· {{ g.n }}</span></h2>
+    <div class="cr-grid">{% for r, v in g.cards %}{{ card(r, v) }}{% endfor %}</div>
+    {% if g.n > g.cards|length %}<p style="font-size:12.5px;margin:6px 0 0">{{ t.more.format(n=g.n) }} <a href="/radar/kreatifler?hook={{ g.hook }}{% if lang == 'en' %}&amp;lang=en{% endif %}">{{ label(L.HOOKS, g.hook) }} →</a></p>{% endif %}
+  </section>
+  {% endfor %}
+{% elif not cards %}
+  <section class="card"><div class="empty"><div class="ic">{{ icon('radar')|safe }}</div><p>{{ (t.ai_view_empty.format(w=watched) if view == 'ai' else t.empty) if all_n else t.empty_all }}</p></div></section>
+{% else %}
+<div class="cr-grid">
+{% for r, v in cards %}{{ card(r, v) }}{% endfor %}
+</div>
+{% endif %}
+<p class="note muted" style="font-size:12px;margin-top:14px">{{ t.sources_note }}{% if runs %} {{ t.updated }}: {% for x in runs[:3] %}{{ label(L.SOURCES, x.source) if x.source in L.SOURCES else x.source }} {{ x.status }} ({{ x.run_at.strftime('%Y-%m-%d') if x.run_at else '-' }}{% if x.billed_bytes %}, {{ ((x.billed_bytes / 1e9) * 100)|round|int / 100 }} GB{% endif %}){% if not loop.last %}; {% endif %}{% endfor %}{% endif %}</p>
+{% endblock %}
