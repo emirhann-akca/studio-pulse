@@ -256,10 +256,15 @@ CREATE TABLE IF NOT EXISTS raw_ua_spend (
     impressions       BIGINT,
     clicks            BIGINT,
     network_installs  DOUBLE,
+    video_views       BIGINT,    -- the network's own "view" (Meta 3-second, TikTok 2-second views), NULL when not reported
+    video_completions BIGINT,    -- views watched to 100% (Meta video_p100_watched_actions, TikTok video_views_p100)
     _file             VARCHAR,
     _source           VARCHAR NOT NULL,
     _loaded_at        TIMESTAMP
 );
+-- warehouses created before the two video columns existed
+ALTER TABLE raw_ua_spend ADD COLUMN IF NOT EXISTS video_views BIGINT;
+ALTER TABLE raw_ua_spend ADD COLUMN IF NOT EXISTS video_completions BIGINT;
 
 -- How each app's UA networks are attributed (written from the config at ingest).
 CREATE TABLE IF NOT EXISTS meta_ua_networks (

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ t.d_title }} · {{ app.name or app.id }}{% endblock %}
+{% block head %}<style>{{ chart_css|safe }}</style><link rel="stylesheet" href="/static/reklam.css"><script src="/static/reklam.js" defer></script>{% endblock %}
+{% block body %}
+<p><a href="/reklam/{{ app.id }}">← {{ t.title }}</a></p>
+<section class="card">{% include "_reklam_drawer.html" %}</section>
+{% endblock %}

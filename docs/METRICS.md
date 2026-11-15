@@ -272,6 +272,13 @@ empty and fails the check `ua_spend_converted`.
 | CPI (basis) | spend / installs on the network's attribution basis, 30 days | `fct_ua_summary.cpi_30d_usd` |
 | Payback day (predicted) | the first day the pLTV model's predicted cumulative ARPU reaches the CPI (UA page) | `fct_pltv_curve` |
 
+Video views are the network's own count (Meta: 3-second views, the `video_view`
+action; TikTok: 2-second views, `video_watched_2s`) and completions the views
+watched to 100% (Meta `video_p100_watched_actions`, TikTok `video_views_p100`), in
+the `video_views` and `video_completions` columns of `stg_ua_spend`; they stay
+empty for networks that report no views, so a view rate is computed only over the
+rows that have them (the ad centre, [REKLAM.md](REKLAM.md)).
+
 Spend on day d is assumed to buy the installs of cohort d. Two attribution
 bases, chosen per network in the config (`attribution:`; default `ga4` for
 Google Ads, `network_installs` for the rest):

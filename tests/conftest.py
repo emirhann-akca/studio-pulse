@@ -139,6 +139,9 @@ class DemoBuild:
                 for key in ("path", "response_file", "replay"):
                     if key in src:
                         src[key] = str((self.work / src[key]).resolve())
+        # the ad centre's demo change files are read from the session's build; forge folders stay per copy
+        rk = data.get("reklam") or {}
+        rk["changes"] = [str((self.work / c).resolve()) for c in rk.get("changes") or []]
         if (data.get("collector") or {}).get("data_dir"):  # the SDK games' collector store
             data["collector"]["data_dir"] = str(
                 (self.work / data["collector"]["data_dir"]).resolve()

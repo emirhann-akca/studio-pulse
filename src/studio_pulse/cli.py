@@ -194,12 +194,20 @@ def cmd_build_dashboard(args: argparse.Namespace) -> int:
 
 def cmd_run(args: argparse.Namespace) -> int:
     cfg = load_config(args.config)
+    if getattr(
+        args, "through_today", False
+    ):  # the ad centre's refresh: today's partial numbers too
+        import dataclasses
+
+        cfg = dataclasses.replace(cfg, end_date=dt.date.today())
     try:
         res = pipeline.run_all(
             cfg,
             rules_path=_rules(cfg, args.rules),
             checks_path=_checks(cfg, args.checks),
             dry_run_notify=not args.notify,
+            apps=getattr(args, "app", None),
+            sources=getattr(args, "source", None),
         )
     except runstate.LockedError as exc:
         return _locked(exc)
@@ -547,6 +555,11 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--checks", help="data-quality checks file")
     r.add_argument(
         "--notify", action="store_true", help="actually send notifications (default: dry run)"
+    )
+    r.add_argument("--app", action="append", help="ingest only this app id (repeatable)")
+    r.add_argument("--source", action="append", help="ingest only this source kind (repeatable)")
+    r.add_argument(
+        "--through-today", action="store_true", help="read up to today (default: yesterday)"
     )
     r.set_defaults(func=cmd_run)
 

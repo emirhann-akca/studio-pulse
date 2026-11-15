@@ -1,0 +1,104 @@
+{% set qsx = ('&' ~ qs) if qs else '' %}
+{% if not data.has_ua %}
+<section class="card"><div class="empty">
+  <div class="ic">{{ icon('plug')|safe }}</div>
+  <h3>{{ t.no_ua }}</h3>
+  <p>{{ t.no_ua_sub }}</p>
+  <a class="btn primary" href="/connections">{{ t.connect }}</a>
+</div></section>
+{% elif not data.totals.spend %}
+<div class="callout info" role="note"><span class="ic">{{ icon('info')|safe }}</span><div>{{ t.no_period }}</div></div>
+{% endif %}
+
+{% if data.has_ua %}
+<div class="kpis rk-kpis">
+  {% for k in data.kpis %}
+  <div class="kpi" {% if k.note %}data-tip="{{ k.note }}" tabindex="0"{% endif %}>
+    <div class="k">{{ k.label }}</div>
+    <div class="v{% if k.na %} na{% endif %}">{{ k.value }}</div>
+    <div class="d">{% if k.change %}<span class="{{ 'up' if k.good else ('down' if k.good is sameas false else '') }}">{{ k.change }}</span> {{ t.k_vs }}{% elif k.prev and k.prev != '—' %}{{ t.k_prev }}: {{ k.prev }}{% elif k.sub %}{{ k.sub }}{% endif %}</div>
+    {% if k.sub and k.change %}<div class="d">{{ k.sub }}</div>{% endif %}
+    {{ k.spark|safe }}
+  </div>
+  {% endfor %}
+</div>
+
+<section class="card rk-ai" id="rk-ai" hx-get="/reklam/{{ app.id }}/ozet?{{ qs }}" hx-trigger="load" hx-swap="innerHTML">
+  <header><h2>{{ icon('insights')|safe }} {{ t.ai }}</h2></header>
+  <p class="muted">{{ t.ai_loading }}</p>
+</section>
+
+<div class="dash rk-charts">
+  <div class="rk-grid">{{ data.charts.spend|safe }}{{ data.charts.installs|safe }}</div>
+  <div class="rk-grid">{{ data.charts.cpi|safe }}{{ data.charts.roas|safe }}</div>
+</div>
+
+<section class="card rk-changes">
+  <header><h2>{{ t.changes }}</h2></header>
+  <p class="muted rk-small">{{ t.changes_sub }}</p>
+  {% if data.events %}
+  <ol class="rk-events">
+    {% for e in data.events %}<li><span class="mk-n static" aria-hidden="true">{{ loop.index }}</span><span class="rk-ev-d">{{ day(e.day) }}</span> {{ ev_text(e) }} <span class="badge {{ 'info' if e.source == 'forge' else 'outline' }}">{{ t['src_' ~ e.source] if ('src_' ~ e.source) in t else e.source }}</span>{% if e.mode == 'mock' %}<span class="badge dashed">{{ t.mode_mock }}</span>{% endif %}</li>{% endfor %}
+  </ol>
+  {% else %}<p class="muted">{{ t.changes_none }}</p>{% endif %}
+</section>
+
+<section class="card flush rk-table-card" id="kampanyalar">
+  <header><h2>{{ t.table }}</h2><span class="spacer"></span><span class="muted rk-small">{{ t.table_sub }}</span></header>
+  <div class="table-scroll">
+  <table class="t rk-tree" data-sortable>
+    <thead><tr>
+      <th class="rk-name" data-sort="name">{{ t.c_name }}</th>
+      <th data-sort="status">{{ t.c_status }}</th>
+      <th class="num" data-sort="spend" aria-sort="descending">{{ t.c_spend }}</th>
+      <th class="num" data-sort="delta">{{ t.c_delta }}</th>
+      <th class="num" data-sort="imps">{{ t.c_imps }}</th>
+      <th class="num" data-sort="views">{{ t.c_views }}</th>
+      <th class="num" data-sort="complete">{{ t.c_complete }}</th>
+      <th class="num" data-sort="ctr">{{ t.c_ctr }}</th>
+      <th class="num" data-sort="ipm">{{ t.c_ipm }}</th>
+      <th class="num" data-sort="installs">{{ t.c_installs }}</th>
+      <th class="num" data-sort="cpi">{{ t.c_cpi }}</th>
+      <th class="num" data-sort="roas">{{ t.c_roas }}</th>
+      <th>{{ t.c_trend }}</th>
+    </tr></thead>
+    <tbody>
+    {% macro row(x, depth, parent, roas) %}
+      {% set cf = data.cf_camps.get(x.name) if x.level == 'campaign' else none %}
+      <tr class="lv-{{ x.level }}" data-id="{{ x.key }}" data-parent="{{ parent }}" data-depth="{{ depth }}"
+          data-name="{{ x.name }}" data-status="{{ 1 if x.live else 0 }}" data-spend="{{ x.spend or 0 }}" data-delta="{{ ((x.spend or 0) - (x.prev_spend or 0)) }}"
+          data-imps="{{ x.impressions or 0 }}" data-views="{{ x.views or -1 }}" data-complete="{{ x.completion if x.completion is not none else -1 }}"
+          data-ctr="{{ x.ctr or 0 }}" data-ipm="{{ x.ipm or 0 }}" data-installs="{{ x.installs or 0 }}" data-cpi="{{ x.cpi if x.cpi is not none else 1e9 }}" data-roas="{{ roas if roas is not none else -1 }}">
+        <td class="rk-name">
+          <span class="rk-indent" style="--d:{{ depth }}"></span>
+          {% if x.children %}<button type="button" class="rk-tog" aria-expanded="true" aria-label="{{ t.expand }}" data-toggle="{{ x.key }}">▾</button>{% else %}<span class="rk-tog-sp"></span>{% endif %}
+          {% if x.level == 'network' %}<i class="sw b{{ slot(x.network) }}" aria-hidden="true"></i><b>{{ x.name }}</b>
+          {% elif x.level == 'campaign' %}<span class="rk-camp">{{ x.name }}</span>
+          {% else %}<a class="rk-cr" href="/reklam/{{ app.id }}/kreatif?key={{ x.creative_key|urlencode }}{{ qsx }}" hx-get="/reklam/{{ app.id }}/kreatif?key={{ x.creative_key|urlencode }}{{ qsx }}" hx-target="#rk-drawer-body" hx-swap="innerHTML" data-drawer-open title="{{ x.name }}">{{ short(x.name) }}</a>{% if x.days_live %} <span class="muted rk-small rk-nowrap">{{ x.days_live }} {{ 'gün' if lang == 'tr' else 'd' }}</span>{% endif %}{% endif %}
+        </td>
+        <td>{% if cf %}<span class="badge {{ 'good' if cf.status == 'ACTIVE' else 'outline' }}">{{ t.st_active if cf.status == 'ACTIVE' else t.st_paused }}</span>{% elif x.live %}<span class="badge good">{{ t.st_live }}</span>{% else %}<span class="badge outline" data-tip="{{ day(x.last_delivery) if x.last_delivery else '' }}">{{ t.st_stopped }}</span>{% endif %}</td>
+        <td class="num">{{ fmt(x.spend, 'usd') }}</td>
+        <td class="num muted">{% if x.prev_spend %}{{ signed((x.spend or 0) / x.prev_spend - 1) }}{% else %}—{% endif %}</td>
+        <td class="num">{{ fmt(x.impressions, 'count') }}</td>
+        <td class="num">{{ fmt(x.views, 'count') if x.views is not none else '—' }}</td>
+        <td class="num">{{ fmt(x.completion, 'pct') if x.completion is not none else '—' }}</td>
+        <td class="num">{{ fmt(x.ctr, 'pct2') }}</td>
+        <td class="num">{{ fmt(x.ipm, 'ipm') }}</td>
+        <td class="num">{{ fmt(x.installs, 'count') }}</td>
+        <td class="num">{{ fmt(x.cpi, 'usd') }}</td>
+        <td class="num">{{ fmt(roas, 'roas') if roas is not none else '—' }}</td>
+        <td class="rk-spark">{{ spark(x.series)|safe }}</td>
+      </tr>
+      {% for c in x.children %}{{ row(c, depth + 1, x.key, data.roas_by.get(c.key) if c.level == 'campaign' else none) }}{% endfor %}
+    {% endmacro %}
+    {% for n in data.tree %}{{ row(n, 0, '', data.roas_by.get(n.network)) }}{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<div class="dash rk-charts">
+  <div class="rk-grid">{{ data.charts.fat_ipm|safe }}{{ data.charts.fat_ctr|safe }}</div>
+  {{ data.charts.split|safe }}
+</div>
+{% endif %}

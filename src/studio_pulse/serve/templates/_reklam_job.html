@@ -1,0 +1,11 @@
+{% if j.state == 'running' %}
+<li class="rk-job" hx-get="/reklam/{{ app_id }}/is/{{ j.id }}" hx-trigger="every 2s" hx-swap="outerHTML">
+  <progress max="{{ j.total }}" value="{{ j.done }}" aria-label="{{ j.done }}/{{ j.total }}"></progress>
+  <span>{{ t.job_running.format(d=j.done, t=j.total, m=j.message[:80]) }}</span> <span class="muted">{{ j.seconds }} sn</span>
+</li>
+{% elif j.state == 'done' %}
+<li class="rk-job done"><span class="badge good">✓</span> {{ t.job_done.format(n=(j.result.exports|length) if j.result and j.result.exports else 0) }}
+  {% if j.args.brief %}<span class="muted">“{{ j.args.brief }}”</span>{% endif %} <a href="?sekme=uret#inceleme" data-reload>{{ t.review }} →</a></li>
+{% else %}
+<li class="rk-job failed"><span class="badge bad">!</span> {{ t.job_failed.format(e=j.error[:300]) }}</li>
+{% endif %}
