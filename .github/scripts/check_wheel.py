@@ -39,6 +39,10 @@ NEED = [
     "studio_pulse/radar/estimate/checks.yaml",
     "studio_pulse/radar/estimate/models/stg_mr_play_counter.sql",
     "studio_pulse/serve/templates/radar_game.html",
+    "studio_pulse/radar/models/fct_mr_launches.sql",
+    "studio_pulse/radar/publishers.yaml",  # radar.publisher_preset
+    "studio_pulse/radar/launches_deck.html",  # pulse radar launches --share
+    "studio_pulse/serve/templates/radar_launches.html",
 ]
 
 

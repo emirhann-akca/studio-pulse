@@ -8,15 +8,16 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
 import yaml
 from radar_synth import LAUNCH_DAY, SYNTH_PUBLISHER, build_launches
 
-from studio_pulse import warehouse
+from studio_pulse import cli, warehouse
 from studio_pulse.config import ConfigError, config_from_dict
-from studio_pulse.radar import apple, digest, launches, publishers, store
+from studio_pulse.radar import apple, digest, launches, launches_deck, publishers, store
 from studio_pulse.radar import run as radar_run
 from studio_pulse.radar.settings import DEFAULT_PARAMS, from_config
 from studio_pulse.radar.taxonomy import load as load_taxonomy
@@ -426,3 +427,106 @@ def test_launches_page_without_a_radar_run(tmp_path):
     r = c.get("/radar/yeni")
     assert r.status_code == 200 and "Henüz yeni çıkan yok" in r.text
     assert "radar.publisher_preset: casual" in r.text
+
+
+# -- the shareable deck ------------------------------------------------------------------------
+
+
+def _deck_cfg(tmp_path: Path) -> Path:
+    _warehouse(tmp_path)
+    path = tmp_path / "pulse.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "apps": [{"id": "x"}],
+                "warehouse": str(tmp_path / "w.duckdb"),
+                "state_dir": str(tmp_path / "state"),
+                "radar": {
+                    "out_dir": str(tmp_path / "radar"),
+                    "publishers": [{"id": SYNTH_PUBLISHER, "name": "Synth Publisher"}],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_deck_is_written_and_the_pdf_is_skipped_without_a_browser(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr("studio_pulse.desktop.find_browser", lambda *a, **k: None)
+    cfg = _deck_cfg(tmp_path)
+    out = tmp_path / "deck"
+    rc = cli.main(["radar", "launches", "-c", str(cfg), "--share", "--out", str(out)])
+    assert rc == 0
+    cap = capsys.readouterr()
+    res = json.loads(cap.out)
+    assert res["games"] == 5 and "pdf" not in res and "PDF skipped" in cap.err
+    html = Path(res["html"]).read_text(encoding="utf-8")
+    assert Path(res["html"]).name == "launches_2026-11-02_2026-11-15.tr.html"
+    # cover, one slide per game, the full list
+    assert html.count('<section class="slide') == 1 + 5 + 1
+    assert "width: 1080px; height: 1350px" in html and "@page { size: 1080px 1350px" in html
+    assert "2–15 Kas 2026" in html and ">5<" in html.replace("\n", "")
+    assert "<script" not in html and "evil.example" not in html and "javascript:" not in html
+    meta = html.split('http-equiv="Content-Security-Policy" content="', 1)[1].split('"', 1)[0]
+    assert "default-src 'none'" in meta and all(h in meta for h in CDN_HOSTS)
+    assert "Synth Block Jam" in html and "apps.apple.com/tr/app/id990100002" in html
+    # --limit caps the game slides; the full list still has every game
+    rc = cli.main(["radar", "launches", "-c", str(cfg), "--share", "--out", str(out),
+                   "--limit", "2", "--lang", "en", "--no-pdf"])  # fmt: skip
+    assert rc == 0
+    en = Path(json.loads(capsys.readouterr().out)["html"]).read_text(encoding="utf-8")
+    assert en.count('<section class="slide') == 1 + 2 + 1 and "Nov 2–15, 2026" in en
+    assert en.count("<li>") == 5 and "Synth Block Jam" in en.split("Full list")[0]
+
+
+def test_launches_cli_lists_games_and_checks_its_window(tmp_path, capsys):
+    cfg = _deck_cfg(tmp_path)
+    assert cli.main(["radar", "launches", "-c", str(cfg), "--json", "--lang", "en"]) == 0
+    games = json.loads(capsys.readouterr().out)
+    assert {g["app_id"] for g in games} == LAUNCHED
+    jam = next(g for g in games if g["app_id"] == "990100002")
+    assert jam["via"] == "both" and jam["best"] == "Turkey Games #12"
+    assert cli.main(["radar", "launches", "-c", str(cfg), "--days", "30"]) == 0
+    text = capsys.readouterr()
+    assert "Synth Month Old" in text.out and "6 game(s)" in text.err
+    assert cli.main(["radar", "launches", "-c", str(cfg), "--days", "0"]) == 2
+
+
+def test_pdf_printing_runs_a_headless_browser_in_a_throwaway_profile(tmp_path):
+    html = tmp_path / "deck.html"
+    html.write_text("<!doctype html><title>x</title>", encoding="utf-8")
+    pdf = tmp_path / "deck.pdf"
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["cmd"] = cmd
+        Path(next(a for a in cmd if a.startswith("--print-to-pdf=")).split("=", 1)[1]).write_bytes(
+            b"%PDF-1.4"
+        )
+        return subprocess.CompletedProcess(cmd, 0)
+
+    notes = []
+    got = launches_deck.print_pdf(html, pdf, browser="chrome", run=fake_run, log=notes.append)
+    assert got == pdf and pdf.read_bytes() == b"%PDF-1.4"
+    cmd = seen["cmd"]
+    assert cmd[0] == "chrome" and "--headless=new" in cmd and cmd[-1] == html.resolve().as_uri()
+    profile = next(a for a in cmd if a.startswith("--user-data-dir=")).split("=", 1)[1]
+    assert not Path(profile).exists()  # removed after printing
+
+    def broken(cmd, **kw):
+        raise OSError("no such browser")
+
+    assert launches_deck.print_pdf(html, pdf, browser="x", run=broken, log=notes.append) is None
+    failed = lambda cmd, **kw: subprocess.CompletedProcess(cmd, 1)  # noqa: E731
+    assert launches_deck.print_pdf(html, pdf, browser="x", run=failed, log=notes.append) is None
+    assert not pdf.exists() and len(notes) == 2 and all("PDF skipped" in n for n in notes)
+
+
+def test_deck_date_ranges():
+    r = launches_deck.range_text
+    assert r(dt.date(2026, 11, 9), dt.date(2026, 11, 15), "tr") == "9–15 Kas 2026"
+    assert r(dt.date(2026, 11, 9), dt.date(2026, 11, 15), "en") == "Nov 9–15, 2026"
+    assert r(dt.date(2026, 10, 28), dt.date(2026, 11, 3), "tr") == "28 Eki – 3 Kas 2026"
+    assert r(dt.date(2026, 10, 28), dt.date(2026, 11, 3), "en") == "Oct 28 – Nov 3, 2026"
+    assert r(dt.date(2026, 12, 28), dt.date(2027, 1, 3), "en") == "Dec 28, 2026 – Jan 3, 2027"
