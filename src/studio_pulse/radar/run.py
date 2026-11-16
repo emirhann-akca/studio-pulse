@@ -168,10 +168,19 @@ def run_radar(
                 "SELECT DISTINCT app_id FROM stg_mr_chart WHERE snapshot_date = ? ORDER BY 1", [day]
             ).fetchall()
         ]
+        # new launches seen only in a publisher catalogue get keyword tags too (no LLM call)
+        launched = [
+            r[0]
+            for r in con.execute(
+                "SELECT DISTINCT app_id FROM fct_mr_launches WHERE snapshot_date = ? ORDER BY 1",
+                [day],
+            ).fetchall()
+        ]
         classify.store_profiles(con, charted, day)
         res.counts["keyword_profiles"] = classify.keyword_profiles(
-            con, charted, tax, s.primary_country
+            con, list(dict.fromkeys([*charted, *launched])), tax, s.primary_country
         )
+        res.counts["launches"] = len(launched)
         client = llm_client
         if client is None and use_llm:
             ls = llm_settings(cfg.raw.get("llm"))

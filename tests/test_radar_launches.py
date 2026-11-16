@@ -7,16 +7,19 @@ and the PDF step never starts a real browser."""
 from __future__ import annotations
 
 import datetime as dt
+import json
 from pathlib import Path
 
 import pytest
 import yaml
-from radar_synth import LAUNCH_DAY
+from radar_synth import LAUNCH_DAY, SYNTH_PUBLISHER, build_launches
 
 from studio_pulse import warehouse
 from studio_pulse.config import ConfigError, config_from_dict
-from studio_pulse.radar import apple, publishers, store
-from studio_pulse.radar.settings import from_config
+from studio_pulse.radar import apple, digest, launches, publishers, store
+from studio_pulse.radar import run as radar_run
+from studio_pulse.radar.settings import DEFAULT_PARAMS, from_config
+from studio_pulse.radar.taxonomy import load as load_taxonomy
 
 D = LAUNCH_DAY
 CDN_HOSTS = [f"https://is{i}-ssl.mzstatic.com" for i in range(1, 6)]
@@ -199,3 +202,138 @@ def test_a_publisher_catalogue_is_asked_for_its_newest_apps():
     assert F.url.startswith("https://itunes.apple.com/lookup?")
     assert "id=1452111779" in F.url and "sort=recent" in F.url and "limit=200" in F.url
     assert "country=us" in F.url and "/search" not in F.url
+
+
+# -- the model ---------------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def lcon():
+    c = warehouse.connect(":memory:")
+    store.init_schema(c)
+    store.set_params(c, DEFAULT_PARAMS)
+    build_launches(c)
+    radar_run.run_models(c)
+    yield c
+    c.close()
+
+
+def _rows(con, sql, params=None):
+    cur = con.execute(sql, params or [])
+    cols = [c[0] for c in cur.description]
+    return [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
+
+
+def test_launch_model_window_found_via_and_exclusions(lcon):
+    rows = {
+        r["app_id"]: r
+        for r in _rows(lcon, "SELECT * FROM fct_mr_launches WHERE snapshot_date = ?", [D])
+    }
+    assert set(rows) == LAUNCHED
+    # one row per day and game, whatever the storefronts and sources
+    n, distinct = lcon.execute(
+        "SELECT COUNT(*), COUNT(DISTINCT (snapshot_date, app_id)) FROM fct_mr_launches"
+    ).fetchone()
+    assert n == distinct
+    # never: a 400-day-old first chart entry, a soft launch from 100 days ago, a pre-order, an app
+    ever = {r[0] for r in lcon.execute("SELECT DISTINCT app_id FROM fct_mr_launches").fetchall()}
+    assert not ever & {"990100005", "990100006", "990100007", "990100008", "990100099"}
+    jam = rows["990100002"]
+    assert jam["found_via"] == "both" and jam["release_source"] == "lookup"
+    assert (jam["best_rank"], jam["best_country"], jam["best_list"]) == (
+        12, "tr", "tr:topfreeapplications:6014",
+    )  # fmt: skip
+    assert jam["countries"] == ["tr", "us"] and jam["age_days"] == 5
+    assert jam["mechanic_primary"] == "jam" and jam["mechanics"] == ["block-puzzle", "jam"]
+    assert jam["store_url"] == "https://apps.apple.com/tr/app/id990100002"
+    assert jam["first_seen"] == D - dt.timedelta(days=1) and not jam["first_chart_entry"]
+    assert rows["990100001"]["found_via"] == "publisher" and rows["990100001"]["best_rank"] is None
+    run_ = rows["990100003"]
+    assert run_["found_via"] == "chart" and run_["first_chart_entry"] and run_["listed_today"]
+    feed = rows["990100004"]
+    assert feed["release_source"] == "feed" and feed["release_date"] == D - dt.timedelta(days=6)
+    assert feed["icon_url"] is None and json.loads(feed["screenshot_urls"]) == []
+    for r in rows.values():
+        shots = json.loads(r["screenshot_urls"])
+        assert len(shots) <= 3 and all(apple.image_url(u) == u for u in shots)
+        assert r["is_game"] and 0 <= r["age_days"] <= 14
+    bad = rows["990100010"]  # a non-CDN icon and two bad screenshot URLs are dropped
+    assert bad["icon_url"] is None and len(json.loads(bad["screenshot_urls"])) == 1
+    # Month Old was a launch 20 days ago only
+    old = _rows(lcon, "SELECT snapshot_date FROM fct_mr_launches WHERE app_id = '990100009'")
+    assert [r["snapshot_date"] for r in old] == [D - dt.timedelta(days=20)]
+
+
+def test_launch_window_follows_the_parameter_and_recent_reads_the_newest_row(lcon):
+    assert {r["app_id"] for r in launches.recent(lcon, D, 14)} == LAUNCHED
+    month = launches.recent(lcon, D, 30)
+    assert {r["app_id"] for r in month} == LAUNCHED | {"990100009"}
+    # its newest row is from 20 days ago, when it was 2 days old; today it is 22
+    assert next(r for r in month if r["app_id"] == "990100009")["age_days"] == 22
+    assert [r["release_date"] for r in month] == sorted(
+        (r["release_date"] for r in month), reverse=True
+    )
+    assert {r["app_id"] for r in launches.recent(lcon, D, 7)} == LAUNCHED
+    assert launches.latest_day(lcon) == D
+    store.set_params(lcon, {**DEFAULT_PARAMS, "launch_days": 4})
+    radar_run.run_models(lcon)
+    got = {
+        r[0]
+        for r in lcon.execute(
+            "SELECT app_id FROM fct_mr_launches WHERE snapshot_date = ?", [D]
+        ).fetchall()
+    }
+    assert got == {
+        "990100001",
+        "990100003",
+    }  # 2 and 3 days old (window: ages 0-3); the others are 4-6
+    empty = warehouse.connect(":memory:")
+    try:
+        assert launches.recent(empty, D, 14) == [] and launches.latest_day(empty) is None
+    finally:
+        empty.close()
+
+
+# -- facts and digest --------------------------------------------------------------------------
+
+
+def test_launches_in_the_facts_and_the_digest(lcon, tmp_path):
+    s = from_config(_cfg(tmp_path, publishers=[{"id": SYNTH_PUBLISHER, "name": "Synth Publisher"}]))
+    facts = digest.build_facts(lcon, s, D, load_taxonomy())
+    assert digest.check_labels(facts) == []
+    lb = facts["launches"]
+    assert lb["window"] == {
+        "days": 14,
+        "from": "2026-11-02",
+        "to": "2026-11-15",
+        "basis": "observed",
+    }
+    assert lb["count"] == {"value": 5, "basis": "observed"}
+    assert {k: v["value"] for k, v in lb["by_found_via"].items()} == {
+        "both": 1, "publisher": 2, "chart": 2,
+    }  # fmt: skip
+    jam = next(i for i in lb["items"] if i["app_id"] == "990100002")
+    assert jam["publisher"] == "Synth Publisher" and jam["found_via"] == "both"
+    assert jam["best_rank"] == {"value": 12, "basis": "observed", "list": "topfreeapplications:6014",
+                                "country": "tr"}  # fmt: skip
+    assert jam["release"] == {"value": "2026-11-10", "basis": "observed", "source": "lookup"}
+    tr, en = digest.render(facts, "tr"), digest.render(facts, "en")
+    assert "## Yeni çıkanlar (son 14 gün)" in tr and "## New launches (last 14 days)" in en
+    assert "- Synth Block Jam (Synth Publisher): çıkış 2026-11-10 · yayıncı + liste" in tr
+    assert "Türkiye Oyunlar #12" in tr and "Turkey Games #12" in en
+    assert "publisher + chart" in en and "(OBSERVED)" in en
+    # the watched-publisher section is still there, and still before the new one
+    assert tr.index("## İzlenen yayıncıların yeni oyunları") < tr.index("## Yeni çıkanlar")
+    assert tr.count("### ") == en.count("### ")
+    # launch numbers are facts a narration may use; others are still refused
+    assert digest.verify_narration("5 new games, the best at #12.", facts) == []
+    assert digest.verify_narration("98 new games.", facts) == ["98"]
+    empty = warehouse.connect(":memory:")
+    try:
+        store.init_schema(empty)
+        f0 = digest.build_facts(empty, s, D, load_taxonomy())
+        assert f0["launches"]["items"] == [] and "Bu pencerede yeni oyun görülmedi." in (
+            digest.render(f0, "tr")
+        )
+    finally:
+        empty.close()
