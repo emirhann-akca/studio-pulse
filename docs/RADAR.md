@@ -11,7 +11,8 @@ pulse radar show -c pulse.yaml --lang en         # print the newest digest
 pulse radar plan -c pulse.yaml                   # expected store requests per day
 pulse radar watch add 6811006356 -c pulse.yaml   # look this game up daily (also: remove, list)
 pulse radar news -c pulse.yaml --days 7          # industry news feeds: fetch, tag, list (--json)
-pulse serve -c pulse.yaml                        # /radar and /radar/oyun/<id>: game page
+pulse radar launches -c pulse.yaml --days 7 --share   # new games of the week: 1080x1350 deck
+pulse serve -c pulse.yaml                        # /radar, /radar/yeni (new launches), /radar/oyun/<id>
 ```
 
 With `radar.enabled: true` the radar also runs inside every `pulse run`, so `pulse schedule
@@ -78,6 +79,7 @@ Raw (`radar/schema.sql`): `raw_mr_chart` (one row per day, country, list and ran
 | `fct_mr_breakout_daily` | day x charted app | every component, the score, the gates and the class |
 | `fct_mr_app_tags` | app x claim | the profile used: newest LLM profile, else keyword profile; store-derived monetisation |
 | `fct_mr_mechanic_weekly` / `fct_mr_trend_weekly` | week x country x mechanic | chart share, the 4-week baseline, z and the trend flag |
+| `fct_mr_launches` | day x new game | games released in the last `launch_days` (14) days, seen in a watched publisher's catalogue and/or a chart ("New launches" below) |
 
 Market estimates and history (`radar/estimate/schema.sql`, `radar/estimate/models/`):
 `stg_mr_rank_input` / `stg_mr_rank_lists` (the estimates' only chart input: the RSS lists plus
@@ -185,6 +187,8 @@ outright when the lists plus one Lookup per country already exceed `radar.apple.
 | itunes.apple.com, Lookup | ~28 (250-320 distinct apps per storefront, 100 ids a request) + up to 16 rechecks + 8 for the watchlist | ~35 + 20 + 10 | 120 a day (`apple.daily_budget`; raise it to ~150 for 10 countries with a watchlist) | >= 3 s |
 | play.google.com | robots.txt + new-game candidates (~50) + watched games + calibration panel (`estimates.panel_size`, 80): at most 200 | same | 200, hard cap (`play.daily_budget` above 200 is lowered to 200) | >= 3 s |
 
+Watched publishers add one Lookup each per check (`publisher_every_days`, weekly by default;
+the opt-in `publisher_preset: casual` adds 18 a day, see "New launches").
 At 3 s per request a full day takes about 10 minutes of wall time. The panel only uses Play
 budget the radar's own candidates left, and keeps `estimates.play_reserve` (10) for a re-run.
 
@@ -367,6 +371,8 @@ radar:
     - {chart: topfreeapplications, genre: "7015"}
     - {chart: topgrossingapplications, genre: "6014"}
   publishers: [{id: "1743349083", name: ABI Global}]
+  publisher_preset: casual     # opt-in curated list (radar/publishers.yaml); see New launches
+  publisher_every_days: 7      # default 7; 1 when a preset is set and this key is not
   apple: {chart_source: web, spacing_s: 3, daily_budget: 120, web_daily_budget: 60,
           lookup_batch: 100}   # chart_source rss: only with --replay of recorded fixtures
   play: {country: us, lang: en, spacing_s: 3, daily_budget: 200, map_file: play_map.yaml,
@@ -385,7 +391,7 @@ radar:
   llm: {max_apps: 25, screenshots: 0, narrate: false}
   news: {enabled: true, days: 7, max_llm_items: 60,
          feeds: [gamigion, mobilegamer, pocketgamer, naavik]}   # default: all four
-  params: {breakout_min: 0.35}
+  params: {breakout_min: 0.35, launch_days: 14}
   out_dir: local/radar
   creative_forge_library: ~/Library/Application Support/creative-forge/library
 llm:
@@ -395,6 +401,96 @@ llm:
 
 `play_map.yaml` (`apple_to_play: {"<apple id>": <package or null>}`) overrides the bundleId
 mapping.
+
+## New launches ("Yeni Çıkanlar")
+
+A daily list of newly released games: what came out in the last days, who published it, and
+whether it is already in a chart. One model, one digest section, one local page and one
+shareable export, all built from what the radar already collects.
+
+```bash
+pulse radar launches -c pulse.yaml                 # the last launch_days (14) days, newest first
+pulse radar launches -c pulse.yaml --days 7 --json # as JSON (validated links only)
+pulse radar launches -c pulse.yaml --days 7 --share [--out DIR] [--lang en] [--limit 20] [--no-pdf]
+```
+
+**What counts.** `fct_mr_launches` keeps, for every radar day, each Apple game released in
+the `launch_days` calendar days up to that day (age 0 to 13 by default;
+`radar.params.launch_days`, 1-90) that the radar saw that day:
+
+- in a watched publisher's catalogue (`raw_mr_app` rows with `source = 'publisher'`), and/or
+- in a tracked chart (`stg_mr_chart`).
+
+`found_via` is `publisher`, `chart` or `both` (what the radar had seen of the game up to that
+day). The release date is the earliest Lookup release over every storefront and source (a
+game soft-launched months ago in another storefront is not new: the recorded Police Chief
+case), else the chart feed's date; a game with neither is left out, and so are pre-orders
+(release after the day) and apps whose Lookup genre is not Games. One row per day and game
+whatever the storefronts and sources; `best_rank` / `best_list` / `best_country` are the best
+chart position since release, `countries` every storefront it charted in, `first_chart_entry`
+says the game entered a chart for the first time that day. Icon, genre and up to three
+screenshots come from the newest Apple row; mechanic tags from `fct_mr_app_tags` (keyword
+profiles are now also written for launches seen only in a publisher catalogue, no LLM call).
+A 30-day view uses each game's newest row while it was in the window, so it still lists a
+game the radar saw while it was new.
+
+**Icons.** `raw_mr_app.icon_url` (added with `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`) is
+Lookup's `artworkUrl512`, else `artworkUrl100`, kept only when it is an https URL on Apple's
+image CDN (`is1`..`is5-ssl.mzstatic.com`, no port, no user info, no characters that need
+escaping); anything else is stored as NULL. Screenshots are filtered the same way when read.
+
+**Watched publishers and the preset.** `radar.publishers` works as before (weekly). The
+opt-in `radar.publisher_preset: casual` adds a curated list of casual, hybrid-casual and
+puzzle publishers from `radar/publishers.yaml` (18 App Store accounts of 17 publishers: name,
+artistId, the artistName Apple returned and the day it was checked). Every id was checked on
+16 Nov 2026 against Apple's public Lookup: the ids were read from the public chart pages
+(apps.apple.com, allowed by robots.txt) and the batched Lookup of the charted apps, then one
+batched Lookup of the artist ids confirmed each artistName. The Search API was not used:
+`itunes.apple.com/robots.txt` disallows `/search*`. Publishers with no app in the charts that
+day could not be verified without guessing and are not listed (the file names them); add
+one by hand once a Lookup shows its id. An explicit `publishers` entry with the same id
+keeps its own name. With a preset and no `publisher_every_days`, catalogues are read daily
+(a weekly check would show a launch up to six days late); existing configs without a preset
+keep the weekly default. A catalogue is read with `sort=recent`: Lookup returns at most 200
+apps, and without it a large publisher's 200 were not its newest (16 Nov 2026: one
+catalogue left out 3 of its 8 apps released in 2026).
+
+**Request volume.** One Lookup per watched publisher per check, to `itunes.apple.com`, in the
+primary storefront, at least 3 s apart, inside `apple.daily_budget` (120): the preset adds 18
+requests a day (about 1 minute of wall time) and up to 18 x 200 `raw_mr_app` rows a day. The
+config is refused when the lists, one Lookup per storefront and the catalogues due on an
+average day exceed the budget; `pulse radar plan` counts them. Nothing else is fetched for
+launches: icons and screenshots are not downloaded (the page and the deck link Apple's URLs).
+
+**Limits.** Only games the radar sees are listed: games that reach a tracked chart (the
+configured storefronts and lists) or belong to a watched publisher. A game released only on
+Google Play is not seen, nor one from a publisher nobody watches that never charts. The
+App Store web charts stop at rank 200 and have no new-games list, so a launch that stays
+below rank 200 everywhere appears only through its publisher. Release dates are Apple's
+(per storefront; the earliest wins).
+
+**Digest and facts.** The facts JSON has a `launches` block (window, `count`, `by_found_via`,
+`watched_publishers`, items with release, age, best rank, countries, mechanics and a store
+link; every number with its basis) and the digest a "Yeni çıkanlar (son 14 gün)" / "New
+launches (last 14 days)" section after the watched-publisher one (at most 40 lines).
+
+**Page.** `/radar/yeni` in `pulse serve` (local only, linked from `/radar` and the sidebar):
+a card per game with icon, name, publisher, store badge, release date, how it was found,
+mechanic tags, up to two screenshots and a store link, filtered by window (7, 14 or 30 days
+up to the radar's newest day) and mechanic. Filter values are matched against the offered
+options only; store text is escaped; store and Play links are rebuilt from validated ids. The
+route's Content-Security-Policy is the shell's plus Apple's five image hosts in `img-src`.
+
+**Shareable deck.** `--share` writes `launches_<from>_<to>.<lang>.html` under
+`<out_dir>/launches` (or `--out`): 1080x1350 slides (a cover with the count and the date
+range, one slide per selected game, found both ways first and then by best rank, with icon,
+name, publisher, store and two screenshots, and closing slides with the full list, 30 games
+each). `--days 7` covers seven calendar days ending on the radar's newest day (or `--date`). The file
+has no script and its own policy (images only from Apple's CDN); images load from Apple when
+it is opened. When Chrome, Edge, Brave or Chromium is installed (the desktop app's browser
+lookup; `PULSE_APP_BROWSER` names one) it is also printed to a PDF with a headless browser in
+a throwaway profile; without one the PDF is skipped with a note. The design is the package's
+own; no studio or person is named on it.
 
 ## Industry news (`radar/news.py`)
 
