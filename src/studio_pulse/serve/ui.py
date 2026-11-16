@@ -119,6 +119,7 @@ S: dict[str, dict[str, str]] = {
         "new_section": "Yeni gelenler",
         "tools": "Araçlar",
         "radar": "Pazar radarı",
+        "launches": "Yeni çıkanlar",
         "ads": "Reklamlar",
         "reklam": "Reklam Merkezi",
         "ads_sub": "Creative Forge",
@@ -341,6 +342,7 @@ S: dict[str, dict[str, str]] = {
         "new_section": "New arrivals",
         "tools": "Tools",
         "radar": "Market radar",
+        "launches": "New launches",
         "ads": "Ads",
         "reklam": "Ad Centre",
         "ads_sub": "Creative Forge",
@@ -603,6 +605,7 @@ def commands(
     return out + [
         {"label": s[k], "href": href, "hint": s["tools"]}
         for k, href in (
+            ("launches", "/radar/yeni"),
             ("reklam", "/reklam"),
             ("live_nav", "/live"),
             ("insights", "/insights"),

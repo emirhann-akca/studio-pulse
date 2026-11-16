@@ -337,3 +337,92 @@ def test_launches_in_the_facts_and_the_digest(lcon, tmp_path):
         )
     finally:
         empty.close()
+
+
+# -- the page ----------------------------------------------------------------------------------
+
+
+def _warehouse(tmp_path: Path, mutate=None) -> Path:
+    path = tmp_path / "w.duckdb"
+    con = warehouse.connect(path)
+    try:
+        store.init_schema(con)
+        store.set_params(con, DEFAULT_PARAMS)
+        build_launches(con)
+        if mutate:
+            mutate(con)
+        radar_run.run_models(con)
+    finally:
+        con.close()
+    return path
+
+
+def _client(cfg):
+    from fastapi.testclient import TestClient
+
+    from studio_pulse.serve.app import create_app
+
+    return TestClient(create_app(cfg, token="t"), base_url="http://127.0.0.1:8765")
+
+
+def _csp(resp) -> dict[str, str]:
+    out = {}
+    for part in resp.headers["content-security-policy"].split(";"):
+        if part.strip():
+            k, _, v = part.strip().partition(" ")
+            out[k] = v
+    return out
+
+
+def test_launches_page_cards_filters_and_policy(tmp_path):
+    def hostile(con):  # store text anyone can write
+        con.execute(
+            "UPDATE raw_mr_app SET name = '<b>Synth</b> \"Pop\" Sort' WHERE app_id = '990100001'"
+        )
+
+    _warehouse(tmp_path, hostile)
+    cfg = _cfg(tmp_path, publishers=[{"id": SYNTH_PUBLISHER, "name": "Synth Publisher"}])
+    c = _client(cfg)
+    r = c.get("/radar/yeni")
+    assert r.status_code == 200
+    page = r.text
+    assert "Yeni çıkanlar" in page and page.count('class="ln-card"') == 5
+    assert "Synth Month Old" not in page  # 22 days old: outside the default 14-day window
+    assert "&lt;b&gt;Synth&lt;/b&gt;" in page and "<b>Synth</b>" not in page
+    assert "https://apps.apple.com/tr/app/id990100002" in page
+    assert (
+        "https://is1-ssl.mzstatic.com/image/thumb/Synthetic/v4/990100002/AppIcon/512x512bb.jpg"
+        in page
+    )
+    assert "evil.example" not in page and "javascript:" not in page
+    assert 'href="/radar/yeni" aria-current="page"' in page  # the sidebar entry
+    # the policy: the shell's own, plus Apple's image CDN in img-src and nothing else
+    csp, shell = _csp(r), _csp(c.get("/radar"))
+    assert csp["img-src"].split() == shell["img-src"].split() + CDN_HOSTS
+    assert {k: v for k, v in csp.items() if k != "img-src"} == {
+        k: v for k, v in shell.items() if k != "img-src"
+    }
+    assert "'unsafe-inline'" not in csp["script-src"]
+    # filters: offered values only, nothing echoed
+    month = c.get("/radar/yeni", params={"days": "30"}).text
+    assert month.count('class="ln-card"') == 6 and "Synth Month Old" in month
+    odd = c.get("/radar/yeni", params={"days": "365", "mechanic": "<script>alert(1)</script>"})
+    assert odd.status_code == 200 and odd.text.count('class="ln-card"') == 5
+    assert 'value="365"' not in odd.text and "days=365" not in odd.text
+    assert "alert(1)" not in odd.text
+    jam = c.get("/radar/yeni", params={"mechanic": "jam"}).text
+    assert jam.count('class="ln-card"') == 1 and "Synth Block Jam" in jam
+    assert '<option value="jam" selected>' in jam
+    unknown = c.get("/radar/yeni", params={"mechanic": "merge"}).text
+    assert unknown.count('class="ln-card"') == 5 and 'value="merge"' not in unknown
+    en = c.get("/radar/yeni", params={"lang": "en"}).text
+    assert "New launches" in en and "publisher + chart" in en
+    # linked from the radar page
+    assert 'href="/radar/yeni"' in c.get("/radar").text
+
+
+def test_launches_page_without_a_radar_run(tmp_path):
+    c = _client(_cfg(tmp_path))
+    r = c.get("/radar/yeni")
+    assert r.status_code == 200 and "Henüz yeni çıkan yok" in r.text
+    assert "radar.publisher_preset: casual" in r.text
