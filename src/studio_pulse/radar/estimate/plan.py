@@ -3,7 +3,8 @@
 Apple (itunes.apple.com): one RSS request per list and country, a batched Lookup per 100
 charted apps per storefront (the five default lists of 100 hold ~250-320 distinct apps), up
 to two rechecks per storefront when a rating count looks wrong, one Lookup per storefront for
-the watchlist, publisher catalogues weekly. Google Play: the radar's own candidates, watched
+the watchlist, one Lookup per publisher catalogue every publisher_every_days (weekly by
+default, daily with a publisher preset). Google Play: the radar's own candidates, watched
 games and the calibration panel, never more than the daily budget (at most 200). Every
 request waits at least 3 s after the previous one to the same host.
 """

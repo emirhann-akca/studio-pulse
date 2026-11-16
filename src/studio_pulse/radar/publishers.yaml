@@ -1,0 +1,40 @@
+# Curated publisher watch lists for the market radar (docs/RADAR.md, "New launches").
+# Opt-in: `radar.publisher_preset: casual` adds every publisher below to `radar.publishers`.
+#
+# Each entry is an App Store artistId with the artistName Apple returned for it. How the ids
+# were found and checked (16 Nov 2026, 50 requests in all, at least 3.5 s apart):
+#   1. twelve public chart pages, apps.apple.com/{us,tr,gb}/iphone/charts/{genre} (robots.txt
+#      allows them), and batched iTunes Lookups of the apps on them (about 3,000 storefront
+#      rows, 1,306 distinct developers), which give each app's artistId and artistName;
+#   2. one batched Lookup of the candidate ids (itunes.apple.com/lookup?id=<ids>): every id
+#      below answered wrapperType "artist", artistType "Software Artist" and exactly the
+#      artist_name written here.
+# The Search API is not used: itunes.apple.com/robots.txt disallows /search*.
+# Never add an id that was not checked this way (tests/test_radar_launches.py checks the shape).
+#
+# Not listed: publishers with no app in the charts read on 16 Nov 2026, so no artistId could
+# be verified without guessing (Bigger Games, Fomo Games, Machina Games, Magic Games, Sonat,
+# Spyke, Tuna Games, Whalo). Add one by hand once a chart or a Lookup shows its id.
+version: 1
+presets:
+  casual:
+    title: Casual, hybrid-casual and puzzle publishers
+    publishers:
+      - {id: "1452111779", name: Rollic, artist_name: Rollic Games, verified_on: 2026-11-16}
+      - {id: "714804730", name: Voodoo, artist_name: Voodoo, verified_on: 2026-11-16}
+      - {id: "1499845738", name: Supersonic, artist_name: SUPERSONIC STUDIOS LTD, verified_on: 2026-11-16}
+      - {id: "1551847165", name: SayGames, artist_name: SayGames LTD, verified_on: 2026-11-16}
+      - {id: "1296347323", name: Azur Games, artist_name: Azur Interactive Games Limited, verified_on: 2026-11-16}
+      - {id: "1508492426", name: Homa, artist_name: HOMA GAMES, verified_on: 2026-11-16}
+      - {id: "1610194568", name: Lion Studios Plus, artist_name: Lion Studios Plus, verified_on: 2026-11-16}
+      - {id: "1362220666", name: Lion Studios, artist_name: Lion Studios, verified_on: 2026-11-16}
+      - {id: "721307559", name: CrazyLabs, artist_name: Crazy Labs, verified_on: 2026-11-16}
+      - {id: "497961736", name: Kwalee, artist_name: Kwalee Ltd, verified_on: 2026-11-16}
+      - {id: "1191495496", name: Good Job Games, artist_name: Good Job Games, verified_on: 2026-11-16}
+      - {id: "1742757639", name: Grand Games, artist_name: Grand Games A.Ş., verified_on: 2026-11-16}
+      - {id: "1482155846", name: Dream Games, artist_name: Dream Games, verified_on: 2026-11-16}
+      - {id: "476160947", name: Peak, artist_name: Peak Games, verified_on: 2026-11-16}
+      - {id: "545605917", name: Panteon, artist_name: Panteon Yazilim Oyun Egitim Teknolojileri ve Hizmetleri Sanayi Ticaret Anonim Sirketi, verified_on: 2026-11-16}
+      - {id: "1468099707", name: Loop Games, artist_name: Loop Games Oyun Teknolojileri Anonim Sirketi, verified_on: 2026-11-16}
+      - {id: "1592714885", name: Agave Games, artist_name: Agave Games, verified_on: 2026-11-16}
+      - {id: "1487320337", name: Playgendary, artist_name: Playgendary Limited, verified_on: 2026-11-16}
