@@ -17,6 +17,7 @@
 {% endif %}
 <div class="nav-h">{{ s.tools }}</div>
 <a class="nav-item" href="{{ nav.market }}"{% if chosen == '@market' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('radar')|safe }}</span><span class="nav-l">{{ s.radar }}{% if radar_countries %}<small>{{ radar_countries }}</small>{% endif %}</span></a>
+{% if not static %}<a class="nav-item" href="/radar/yeni"{% if chosen == '@launches' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('apps')|safe }}</span><span class="nav-l">{{ s.launches }}</span></a>{% endif %}
 {% if reklam_nav and not static %}<a class="nav-item" href="/reklam"{% if chosen == '@reklam' %} aria-current="page"{% endif %}><span class="nav-ic">{{ icon('ads')|safe }}</span><span class="nav-l">{{ s.reklam }}</span></a>{% endif %}
 {% if forge_url %}<a class="nav-item" href="{{ forge_url }}" rel="noopener"><span class="nav-ic">{{ icon('ads')|safe }}</span><span class="nav-l">{{ s.ads }}<small>{{ s.ads_sub }}</small></span><span class="nav-ic">{{ icon('external')|safe }}</span></a>
 {% else %}<span class="nav-item" data-tip="{{ s.ads_off }}"><span class="nav-ic">{{ icon('ads')|safe }}</span><span class="nav-l">{{ s.ads }}<small>{{ s.ads_sub }}</small></span><span class="dot off" aria-hidden="true"></span></span>{% endif %}

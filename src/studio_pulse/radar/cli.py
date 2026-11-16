@@ -145,6 +145,64 @@ def cmd_radar_news(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_radar_launches(args: argparse.Namespace) -> int:
+    """List the new launches of the last --days days; --share writes the 1080x1350 deck."""
+    from .. import warehouse
+    from ..serve.ui import mechanic
+    from . import launches
+    from .run import _guard_out_dir
+    from .settings import from_config
+
+    cfg = load_config(args.config)
+    s = from_config(cfg)
+    days = args.days if args.days is not None else int(s.params["launch_days"])
+    if not 1 <= days <= 90:
+        print("--days must be between 1 and 90", file=sys.stderr)
+        return 2
+    if not cfg.warehouse.exists():
+        print(f"no warehouse at {cfg.warehouse}: run `pulse radar run` first", file=sys.stderr)
+        return 2
+    con = warehouse.connect(cfg.warehouse, read_only=True)
+    try:
+        if args.date:
+            day = args.date
+        else:
+            day = s.as_of or cfg.as_of or launches.latest_day(con) or dt.date.today()
+        rows = launches.recent(con, day, days)
+    finally:
+        con.close()
+    log = lambda m: print(m, file=sys.stderr)  # noqa: E731 - stdout carries the result
+    if args.share:
+        from .launches_deck import write_share
+
+        out = Path(args.out) if args.out else s.out_dir / "launches"
+        _guard_out_dir(out)
+        files = write_share(
+            rows, out, day=day, days=days, lang=args.lang, publishers=s.publishers,
+            limit=args.limit, pdf=not args.no_pdf,
+            mechanic_label=lambda k: mechanic(k, args.lang), log=log,
+        )  # fmt: skip
+        print(json.dumps({"games": len(rows), "day": day.isoformat(), "days": days, **files},
+                         ensure_ascii=False, indent=2))  # fmt: skip
+        return 0
+    watched = launches.watched_names(s.publishers)
+    cards = [launches.view(r, args.lang, watched) for r in rows]
+    if args.json:
+        print(json.dumps(cards, ensure_ascii=False, indent=2, default=str))
+        return 0
+    t = launches.T[args.lang]
+    for c in cards:
+        print(f"{c['release']}  {c['name']} ({c['publisher']}) · {c['via_label']}"
+              + (f" · {t['best']} {c['best']}" if c["best"] else "")
+              + (f" · {', '.join(c['mechanics'])}" if c["mechanics"] else ""))  # fmt: skip
+        if c["store_url"]:
+            print(f"    {c['store_url']}")
+    start = launches.window_start(day, days)
+    print(f"{len(cards)} game(s) released {start} – {day}; {len(s.publishers)} publisher(s) watched",
+          file=sys.stderr)  # fmt: skip
+    return 0
+
+
 def add_parser(sub: argparse._SubParsersAction, with_config) -> None:
     r = sub.add_parser("radar", help="daily market radar: store charts, breakouts, trends, digest")
     rs = r.add_subparsers(dest="radar_cmd", required=True)
@@ -170,6 +228,24 @@ def add_parser(sub: argparse._SubParsersAction, with_config) -> None:
     nw.add_argument("--no-llm", action="store_true", help="keyword tags only, no LLM call")
     nw.add_argument("--no-fetch", action="store_true", help="list stored items, send nothing")
     nw.set_defaults(func=cmd_radar_news)
+    la = with_config(
+        rs.add_parser(
+            "launches", help="new games of the last days; --share writes a 1080x1350 deck"
+        )
+    )
+    la.add_argument("--days", type=int, help="window in days (default: params.launch_days, 14)")
+    la.add_argument(
+        "--date",
+        type=dt.date.fromisoformat,
+        help="last day of the window, YYYY-MM-DD (default: the radar's newest day)",
+    )
+    la.add_argument("--json", action="store_true", help="print the games as JSON")
+    la.add_argument("--share", action="store_true", help="write the HTML deck (and a PDF)")
+    la.add_argument("--out", help="with --share: output folder (default: <radar out_dir>/launches)")
+    la.add_argument("--lang", choices=["tr", "en"], default="tr")
+    la.add_argument("--limit", type=int, default=20, help="with --share: game slides (20)")
+    la.add_argument("--no-pdf", action="store_true", help="with --share: HTML only")
+    la.set_defaults(func=cmd_radar_launches)
     show = with_config(rs.add_parser("show", help="print the newest digest"))
     show.add_argument("--lang", choices=["tr", "en"], default="tr")
     show.add_argument("--date")

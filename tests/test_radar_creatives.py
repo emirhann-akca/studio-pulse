@@ -758,7 +758,8 @@ def test_youtube_ids_and_manual_add(tmp_path, capsys):
     cfg_file = tmp_path / "pulse.yaml"
     import yaml
 
-    cfg_file.write_text(yaml.safe_dump(cfg.raw), encoding="utf-8")
+    # a fixed day: the longevity signal counts the days from --first to the config's as_of
+    cfg_file.write_text(yaml.safe_dump({**cfg.raw, "as_of": "2026-11-15"}), encoding="utf-8")
     assert cli.main(["radar", "creatives", "add", "https://youtu.be/AbCdEfGhIj0",
                      "--advertiser", "Example Pebbleworks", "--first", "2026-09-01",
                      "-c", str(cfg_file)]) == 0  # fmt: skip

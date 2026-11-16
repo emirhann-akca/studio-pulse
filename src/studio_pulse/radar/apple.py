@@ -8,6 +8,10 @@ The newer RSS (rss.marketingtools.apple.com/api/v2) lists only the Apps tab: no 
 genre filter is ignored, at most 50 rows (and its games endpoint answers 404), so it is not used.
 The legacy feed is undocumented: if it breaks, the radar's freshness checks say so.
 Rating counts are per storefront and Lookup answers are cached by Apple for up to 24 hours.
+A publisher's catalogue is read with `sort=recent`: Lookup returns at most 200 apps, and without
+it a large catalogue's 200 are not the newest (16 Nov 2026: one publisher's unsorted answer left
+out 3 of its 8 apps released in 2026).
+App icons and screenshots are kept only as https URLs on Apple's image CDN (`image_url`).
 """
 
 from __future__ import annotations
@@ -17,9 +21,9 @@ import hashlib
 import json
 import re
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
-from .http import Fetcher
+from .http import APPLE_IMAGE_HOSTS, Fetcher
 
 RSS_URL = "https://itunes.apple.com/{cc}/rss/{chart}/limit={limit}/genre={genre}/json"
 LOOKUP_URL = "https://itunes.apple.com/lookup"
@@ -147,6 +151,29 @@ def fetch_chart(
     )
 
 
+def image_url(u: Any) -> str | None:
+    """`u` if it is an https URL on Apple's image CDN (is1..is5-ssl.mzstatic.com), else None.
+
+    The host must be exactly one of those names (no port, no user info), and characters that
+    would need escaping in HTML or CSS are refused, so a stored URL can go into an <img> as is."""
+    if not isinstance(u, str) or not u or len(u) > 1000:
+        return None
+    if any(c in u for c in " \"'<>\\`(){}") or any(ord(c) < 33 or ord(c) == 127 for c in u):
+        return None
+    try:
+        p = urlsplit(u)
+    except ValueError:
+        return None
+    if p.scheme != "https" or p.netloc not in APPLE_IMAGE_HOSTS or not p.path.startswith("/"):
+        return None
+    return u
+
+
+def icon_url(r: dict[str, Any]) -> str | None:
+    """The app icon from a Lookup result: artworkUrl512, else artworkUrl100 (Apple CDN only)."""
+    return image_url(r.get("artworkUrl512")) or image_url(r.get("artworkUrl100"))
+
+
 def lookup_url(**query: Any) -> str:
     return f"{LOOKUP_URL}?{urlencode(query, safe=',')}"
 
@@ -186,6 +213,7 @@ def app_row(r: dict[str, Any], snapshot_date: dt.date, cc: str, source: str) -> 
         "description": r.get("description"),
         "release_notes": r.get("releaseNotes"),
         "screenshot_urls": json.dumps((r.get("screenshotUrls") or [])[:6]),
+        "icon_url": icon_url(r),
         "store_url": (r.get("trackViewUrl") or "").split("?")[0] or None,
         "source": source,
         "meta_sha256": meta_sha(r.get("trackName"), r.get("description"), genres),
@@ -237,7 +265,10 @@ def lookup_bundle(f: Fetcher, bundle_id: str, cc: str) -> dict[str, Any] | None:
 
 
 def lookup_publisher(f: Fetcher, artist_id: str, cc: str) -> list[dict[str, Any]]:
-    url = lookup_url(id=str(artist_id), entity="software", country=cc.lower(), limit=200)
+    """A publisher's newest apps (at most 200) in storefront `cc`."""
+    url = lookup_url(
+        id=str(artist_id), entity="software", country=cc.lower(), limit=200, sort="recent"
+    )
     res = f.get(url, f"publisher:{cc}")
     if res.status != 200:
         raise RuntimeError(f"publisher lookup answered {res.status}")

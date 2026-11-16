@@ -124,3 +124,6 @@ def register(app: FastAPI, cfg: Config, templates: Any, context: Any, open_db: A
     from .creatives.page import register as register_creatives  # /radar/kreatifler
 
     register_creatives(app, cfg, templates, context, open_db)
+    from .launches_page import register as register_launches  # /radar/yeni
+
+    register_launches(app, cfg, templates, context, open_db)

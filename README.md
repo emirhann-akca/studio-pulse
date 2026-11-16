@@ -91,7 +91,9 @@ question box, no polling) with an invented market-radar day; Turkish under
   calibrated on the studio's own Google Play reads, revenue bands follow from
   them and public revenue-per-download benchmarks (no compliant top-grossing
   source exists); a game page shows its rank, version and rating history and a
-  watchlist keeps games looked up daily. It runs inside
+  watchlist keeps games looked up daily. A "new launches" list (games released
+  in the last 14 days, from the charts and an opt-in list of watched publishers)
+  has its own local page and a shareable 1080x1350 weekly deck. It runs inside
   `pulse run`, shows on a local `pulse serve` page and feeds
   [creative-forge](https://github.com/emirhann-akca/creative-forge)'s idea
   library through `market_trends.yaml`. Store data never goes to the public demo.
@@ -117,7 +119,7 @@ question box, no polling) with an invented market-radar day; Turkish under
   names (or it is refused with the reason), and a language model may only
   rephrase or propose a checked SELECT (see below and
   [docs/ANALYST.md](docs/ANALYST.md)).
-- 837 Python tests, 45 Flutter tests and 40 C# SDK tests (`dotnet test`), ruff,
+- 1,122 Python tests, 45 Flutter tests and 40 C# SDK tests (`dotnet test`), ruff,
   dart analyze; CI on Windows, macOS and Linux x Python 3.11-3.13.
 
 ## Install

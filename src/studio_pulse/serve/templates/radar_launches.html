@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ t.title }}{% endblock %}
+{% block head %}<style>
+.ln-filters { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; }
+.ln-filters .field { margin: 0; min-width: min(100%, 160px); }
+.ln-filters .select { width: 100%; }
+.ln-filters .acts { display: flex; gap: 8px; align-items: center; }
+.ln-sum { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 12px; font-size: 12.5px; color: var(--text-2); }
+.ln-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.ln-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-3); padding: 12px; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.ln-top { display: flex; gap: 11px; align-items: center; min-width: 0; }
+.ln-icon { width: 56px; height: 56px; flex: 0 0 56px; border-radius: 13px; object-fit: cover; background: var(--panel-2); border: 1px solid var(--line); }
+.ln-icon.ph { display: grid; place-items: center; font-weight: 700; color: var(--text-3); font-size: 18px; }
+.ln-id { min-width: 0; }
+.ln-id h3 { margin: 0; font-size: 14.5px; line-height: 1.25; overflow-wrap: anywhere; }
+.ln-id .pub { font-size: 12.5px; color: var(--text-2); overflow-wrap: anywhere; }
+.ln-badges, .ln-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.ln-badges a.badge { text-decoration: none; }
+.ln-meta { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.ln-shots { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ln-shots img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); }
+.ln-foot { margin-top: auto; display: flex; gap: 10px; flex-wrap: wrap; font-size: 12.5px; }
+</style>{% endblock %}
+{% block body %}
+<p style="margin:0 0 10px"><a href="/radar">← {{ t.back }}</a></p>
+<header class="page-head">
+  <h1>{{ t.title }}</h1>{% if day %}<span class="badge outline">{{ start }} – {{ day }}</span>{% endif %}
+  <p class="sub">{{ t.sub }}</p>
+</header>
+{% if error %}<div class="callout bad" role="alert">{{ error }}</div>{% endif %}
+<section class="card">
+  <form method="get" action="/radar/yeni" class="ln-filters" aria-label="{{ t.days }}, {{ t.mech_filter }}">
+    <div class="field"><label for="f-days">{{ t.days }}</label>
+      <select class="select" id="f-days" name="days">{% for d in day_options %}<option value="{{ d }}"{% if d == days %} selected{% endif %}>{{ t.days_opt.format(d=d) }}</option>{% endfor %}</select></div>
+    <div class="field"><label for="f-mech">{{ t.mech_filter }}</label>
+      <select class="select" id="f-mech" name="mechanic"><option value="">{{ t.all }}</option>
+      {% for m in mech_opts %}<option value="{{ m }}"{% if m == mechanic %} selected{% endif %}>{{ mech(m) }}</option>{% endfor %}</select></div>
+    {% if lang == 'en' %}<input type="hidden" name="lang" value="en">{% endif %}
+    <div class="acts"><button class="btn primary" type="submit">{{ t.apply }}</button><a class="btn ghost" href="/radar/yeni{% if lang == 'en' %}?lang=en{% endif %}">{{ t.reset }}</a></div>
+  </form>
+</section>
+<nav class="seg" aria-label="{{ t.days }}" style="margin:12px 0;flex-wrap:wrap">{% for d, href in day_links %}<a href="{{ href }}"{% if d == days %} aria-current="true"{% endif %}>{{ t.days_opt.format(d=d) }}</a>{% endfor %}</nav>
+{% if not total %}
+<section class="card"><div class="empty"><div class="ic">{{ icon('apps')|safe }}</div><p>{{ t.empty }}</p></div></section>
+{% else %}
+<div class="ln-sum">
+  <b>{{ t.results.format(n=cards|length) }}</b>
+  {% for k in ('both', 'publisher', 'chart') %}{% if counts[k] %}<span class="badge {{ 'good' if k == 'both' else ('info' if k == 'publisher' else 'outline') }}">{{ t.via[k] }} · {{ counts[k] }}</span>{% endif %}{% endfor %}
+  {% if watched_n %}<span>{{ t.watched.format(n=watched_n) }}</span>{% endif %}
+  <span class="lbl">{{ observed }}</span>
+</div>
+<div class="ln-grid">
+{% for c in cards %}
+  <article class="ln-card" aria-label="{{ c.name }}">
+    <div class="ln-top">
+      {% if c.icon %}<img class="ln-icon" src="{{ c.icon }}" alt="" width="56" height="56" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="ln-icon ph" aria-hidden="true">{{ c.initials }}</span>{% endif %}
+      <div class="ln-id"><h3>{{ c.name }}</h3><div class="pub">{{ c.publisher }}</div></div>
+    </div>
+    <div class="ln-badges">
+      <span class="badge outline">App Store</span>{% if c.play_url %}<a class="badge outline" href="{{ c.play_url }}" rel="noopener noreferrer nofollow">Google Play ↗</a>{% endif %}
+      <span class="badge {{ 'good' if c.via == 'both' else ('info' if c.via == 'publisher' else 'outline') }}" title="{{ t.via_long[c.via] }}">{{ c.via_label }}</span>
+      {% if c.first_entry %}<span class="badge warn">{{ t.first_entry }}</span>{% endif %}
+    </div>
+    <div class="ln-meta">{{ t.released }} {{ c.release }}{% if c.age is not none %} · {{ t.age.format(d=c.age) }}{% endif %}{% if c.best %} · {{ t.best }}: {{ c.best }}{% endif %}</div>
+    <div class="ln-tags">{% for m in c.mechanics %}<span class="badge info" title="{{ m }}">{{ mech(m) }}</span>{% else %}<span class="muted" style="font-size:12px">{{ t.no_tags }}</span>{% endfor %}</div>
+    {% if c.shots %}<div class="ln-shots">{% for u in c.shots %}<img src="{{ u }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endfor %}</div>{% endif %}
+    <div class="ln-foot">{% if c.store_url %}<a href="{{ c.store_url }}" rel="noopener noreferrer nofollow">{{ t.store }} ↗</a>{% endif %}</div>
+  </article>
+{% else %}
+  <p class="muted">{{ t.none }}</p>
+{% endfor %}
+</div>
+{% endif %}
+<p class="note" style="margin-top:14px">{{ t.local }} {{ t.share }}</p>
+{% endblock %}

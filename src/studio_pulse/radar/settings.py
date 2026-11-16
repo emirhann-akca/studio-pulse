@@ -11,12 +11,16 @@ radar:
     - {chart: topgrossingapplications, genre: 6014}
   limit: 100
   publishers: [{id: "1743349083", name: ABI Global}]   # artistIds, checked weekly
+  publisher_preset: casual      # opt-in: adds the curated list in radar/publishers.yaml and,
+                                # unless publisher_every_days is set, checks catalogues daily
+  publisher_every_days: 7       # 7 by default; 1 with a preset (new launches show up that day)
   apple: {chart_source: web, spacing_s: 3, daily_budget: 120, web_daily_budget: 60,
           lookup_batch: 100}     # web: apps.apple.com chart pages; rss: replay of fixtures only
   play: {enabled: true, country: us, lang: en, spacing_s: 3, daily_budget: 200,
          map_file: play_map.yaml, watch: [com.example.package]}
   llm: {max_apps: 25, screenshots: 0, narrate: true}   # provider: top-level `llm:` block
-  params: {breakout_min: 0.35}  # any scoring parameter (fct_mr_breakout_daily.sql)
+  params: {breakout_min: 0.35, launch_days: 14}  # any scoring parameter (models/*.sql);
+                                # launch_days: the new-launches window (fct_mr_launches.sql)
   news: {enabled: true, days: 7, feeds: [gamigion, mobilegamer, pocketgamer, naavik],
          max_llm_items: 60}     # industry news feeds (radar/news.py); hosts are fixed in code
   out_dir: local/radar          # digest, facts and market_trends.yaml (kept local)
@@ -26,6 +30,7 @@ radar:
 from __future__ import annotations
 
 import datetime as dt
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -71,6 +76,8 @@ DEFAULT_PARAMS: dict[str, float] = {
     "trend_z_min": 2,
     "trend_min_apps": 3,
     "trend_prior_weeks": 4,
+    # New launches (fct_mr_launches.sql): games released at most this many days before a snapshot
+    "launch_days": 14,
 }
 
 
@@ -92,6 +99,8 @@ class RadarSettings:
     countries: list[str] = field(default_factory=lambda: list(DEFAULT_COUNTRIES))
     charts: list[ChartSpec] = field(default_factory=list)
     publishers: list[dict[str, str]] = field(default_factory=list)
+    # Curated watch lists from radar/publishers.yaml (opt-in), already merged into `publishers`.
+    publisher_preset: list[str] = field(default_factory=list)
     publisher_every_days: int = 7
     apple_spacing_s: float = 3.0
     apple_budget: int = 120
@@ -163,7 +172,25 @@ def from_config(cfg: Config) -> RadarSettings:
         {"id": str(p["id"]), "name": str(p.get("name", p["id"]))}
         for p in raw.get("publishers") or []
     ]
-    s.publisher_every_days = int(raw.get("publisher_every_days", 7))
+    preset = raw.get("publisher_preset")
+    s.publisher_preset = (
+        [str(preset)] if isinstance(preset, str) else [str(x) for x in preset or []]
+    )
+    if s.publisher_preset:
+        from .publishers import PresetError, preset_publishers
+
+        try:
+            extra = preset_publishers(s.publisher_preset)
+        except PresetError as exc:
+            raise ConfigError(f"radar.publisher_preset: {exc}") from exc
+        have = {p["id"] for p in s.publishers}
+        s.publishers += [p for p in extra if p["id"] not in have]
+    # Weekly by default; a preset is for spotting launches, so its catalogues are read daily
+    # unless the interval is set explicitly (docs/RADAR.md, "New launches").
+    every = raw.get("publisher_every_days")
+    s.publisher_every_days = int(every) if every is not None else (1 if s.publisher_preset else 7)
+    if s.publisher_every_days < 1:
+        raise ConfigError("radar.publisher_every_days must be at least 1")
     apple = raw.get("apple") or {}
     s.apple_spacing_s = float(apple.get("spacing_s", 3.0))
     s.apple_budget = int(apple.get("daily_budget", 120))
@@ -187,6 +214,8 @@ def from_config(cfg: Config) -> RadarSettings:
     s.narrate = bool(llm.get("narrate", False))
     s.trend_list = str(raw.get("trend_list", "topfreeapplications:6014"))
     need = len(s.countries)  # one Lookup per storefront at least
+    # and the publisher catalogues due on an average day (one Lookup each)
+    need += math.ceil(len(s.publishers) / s.publisher_every_days)
     if s.apple_chart_source == "rss":
         need += sum(len(s.charts_for(cc)) for cc in s.countries)
     else:
@@ -200,13 +229,16 @@ def from_config(cfg: Config) -> RadarSettings:
             )
     if need > s.apple_budget:
         raise ConfigError(
-            f"radar: {len(s.countries)} countries need at least {need} Apple requests a day "
-            f"(lists + one Lookup each) but radar.apple.daily_budget is {s.apple_budget}"
+            f"radar: {len(s.countries)} countries and {len(s.publishers)} publishers need at "
+            f"least {need} Apple requests a day (lists, one Lookup each and the publisher "
+            f"catalogues due) but radar.apple.daily_budget is {s.apple_budget}"
         )
     s.params = {**DEFAULT_PARAMS, **{k: float(v) for k, v in (raw.get("params") or {}).items()}}
     unknown = set(s.params) - set(DEFAULT_PARAMS)
     if unknown:
         raise ConfigError(f"radar.params: unknown keys {sorted(unknown)}")
+    if not 1 <= s.params["launch_days"] <= 90:
+        raise ConfigError("radar.params.launch_days must be between 1 and 90")
     s.out_dir = _path(cfg, raw.get("out_dir")) or cfg.warehouse.parent / "radar"
     s.cache_keep_days = int(raw.get("cache_keep_days", 3))
     s.creative_forge_library = _path(cfg, raw.get("creative_forge_library"))

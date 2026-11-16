@@ -546,6 +546,9 @@ def build_facts(
         "AND a.release_date <= ? ORDER BY a.release_date DESC, a.app_id",
         [day, day],
     )
+    from .launches import facts_section  # launches imports this module's labels
+
+    launch_facts = facts_section(con, day, int(s.params["launch_days"]), s.publishers)
     facts = {
         "as_of": day.isoformat(),
         "countries": s.countries,
@@ -561,6 +564,7 @@ def build_facts(
             }
             for p in pubs
         ],
+        "launches": launch_facts,
         "ideas": ideas(out_items, tax),
         "meta": meta or {},
         "quality": {"checks": [c if isinstance(c, dict) else c.__dict__ for c in checks or []]},
@@ -660,6 +664,9 @@ def render(facts: dict[str, Any], lang: str, narration: str | None = None) -> st
                 f"{_label(lang, 'observed', 'Lookup')}"
             )
         L.append("")
+    from .launches import render_md as render_launches
+
+    L += render_launches(facts, lang)
     L += [f"## {t['ideas']}", ""]
     ideas_ = facts.get("ideas") or []
     if not ideas_:

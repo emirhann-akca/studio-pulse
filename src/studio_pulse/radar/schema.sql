@@ -19,8 +19,11 @@ CREATE TABLE IF NOT EXISTS raw_mr_app (
   installs_bucket VARCHAR, min_installs BIGINT, real_installs BIGINT, histogram VARCHAR,
   price DOUBLE, currency VARCHAR, offers_iap BOOLEAN, iap_range VARCHAR, contains_ads BOOLEAN,
   description VARCHAR, release_notes VARCHAR, summary VARCHAR, screenshot_urls VARCHAR,
-  video_url VARCHAR, store_url VARCHAR, source VARCHAR, meta_sha256 VARCHAR
+  video_url VARCHAR, store_url VARCHAR, source VARCHAR, meta_sha256 VARCHAR, icon_url VARCHAR
 );
+-- App icon (Apple Lookup artworkUrl512, else artworkUrl100): only https URLs on Apple's image
+-- CDN (is1..is5-ssl.mzstatic.com) are kept, NULL otherwise (radar/apple.py image_url).
+ALTER TABLE raw_mr_app ADD COLUMN IF NOT EXISTS icon_url VARCHAR;
 
 -- iOS app -> Play package. status: mapped | not_found | manual_none
 CREATE TABLE IF NOT EXISTS raw_mr_xref (

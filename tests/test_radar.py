@@ -949,6 +949,30 @@ def test_digest_sections_in_both_languages(replay_run):
     assert tr.count("### ") == en.count("### ")
 
 
+def test_new_launches_on_the_recorded_day(replay_run):
+    # 12 Nov 2026: the games released in the 14 days up to that day, seen in the recorded
+    # charts (the watched publisher had no new game). Police Chief is a soft launch from May.
+    work, con = replay_run
+    facts = json.loads((work / "radar" / "2026-11-12.facts.json").read_text(encoding="utf-8"))
+    lb = facts["launches"]
+    ids = [i["app_id"] for i in lb["items"]]
+    assert lb["count"]["value"] == len(ids) == len(set(ids)) == 11
+    assert {i["found_via"] for i in lb["items"]} == {"chart"}
+    assert "6757350661" not in ids and "6811006356" not in ids  # Police Chief, Foodie Pop!
+    ungodly = next(i for i in lb["items"] if i["app_id"] == "6740617332")
+    assert ungodly["release"] == {"value": "2026-11-11", "basis": "observed", "source": "lookup"}
+    assert all("2026-10-30" <= i["release"]["value"] <= "2026-11-12" for i in lb["items"])
+    n = con.execute(
+        "SELECT COUNT(*), COUNT(DISTINCT app_id) FROM fct_mr_launches WHERE snapshot_date = ?",
+        [DAY],
+    ).fetchone()
+    assert n == (11, 11)
+    tr = (work / "radar" / "2026-11-12.tr.md").read_text(encoding="utf-8")
+    en = (work / "radar" / "2026-11-12.en.md").read_text(encoding="utf-8")
+    assert "## Yeni çıkanlar (son 14 gün)" in tr and "## New launches (last 14 days)" in en
+    assert "- UnGodly (Azra Games): çıkış 2026-11-11 · liste" in tr
+
+
 def test_narration_verifier():
     facts = {
         "as_of": "2026-11-12",
