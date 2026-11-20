@@ -255,3 +255,166 @@ def test_state_dir_matches_the_python_package(tmp_path):
     assert (
         tool.user_state_dir({"XDG_STATE_HOME": str(tmp_path)}, "linux") == tmp_path / "studio-pulse"
     )
+
+
+# ---------------------------------------------------------------------------- --unity
+
+
+def unity_project(tmp_path, deps=None, registries=None, version="6000.3.23f1"):
+    """<tmp>/game (a repository) with a Unity project in Unity/Game, like ~/kup-dunya."""
+    p = tmp_path / "game" / "Unity" / "Game"
+    (p / "Packages").mkdir(parents=True)
+    (p / "ProjectSettings").mkdir()
+    (tmp_path / "game" / ".git").mkdir()
+    m = {"dependencies": deps or {"com.unity.ugui": "2.0.0"}}
+    if registries:
+        m["scopedRegistries"] = registries
+    (p / "Packages" / "manifest.json").write_text(json.dumps(m, indent=2), encoding="utf-8")
+    (p / "ProjectSettings" / "ProjectVersion.txt").write_text(
+        f"m_EditorVersion: {version}\n", encoding="utf-8"
+    )
+    return p
+
+
+def never_unity(argv, extra):
+    raise AssertionError(f"Unity ran: {argv}")
+
+
+def test_unity_plan_changes_nothing(tmp_path):
+    p = unity_project(tmp_path)
+    before = (p / "Packages" / "manifest.json").read_bytes()
+    lines: list[str] = []
+    rc = tool.main([*ARGS, "--unity", str(p), "--skip-collector"], run=never, client=None,
+                   state=tmp_path / "s", unity_run=never_unity, out=lines.append)  # fmt: skip
+    assert rc == 0
+    printed = "\n".join(lines)
+    assert (p / "Packages" / "manifest.json").read_bytes() == before
+    assert not (p / "Packages" / "com.studio.pulse").exists()
+    assert not (tmp_path / "game" / "studio-app.json").exists()
+    assert "+ manifest.json com.unity.services.levelplay: 9.6.0" in printed
+    assert "+ manifest.json com.google.external-dependency-manager: 1.2.190" in printed
+    assert "scopedRegistries: https://package.openupm.com" in printed
+    assert f"Packages/com.studio.pulse: {len(tool.package_files())} dosya" in printed
+    assert "-executeMethod Studio.Pulse.Editor.StudioAppSetup.Run" in printed
+    manifest = (tmp_path / "game" / "studio-app.json").resolve()
+    assert f"STUDIO_APP_MANIFEST={manifest}" in printed, "the manifest goes to the repository root"
+
+
+def test_unity_apply_embeds_the_package_and_runs_the_setup(tmp_path, monkeypatch):
+    p = unity_project(tmp_path)
+    monkeypatch.setenv("UNITY_EDITOR", str(tmp_path / "Unity"))
+    seen: dict = {}
+
+    def fake_unity(argv, extra):
+        seen.update(argv=argv, extra=extra)
+        assert Path(extra["STUDIO_APP_MANIFEST"]).is_file(), "studio-app.json before Unity runs"
+        assert (p / "Packages" / "com.studio.pulse" / "package.json").is_file()
+        return 1, (
+            "Loading...\n[Studio.Setup] FIXED config: made\n"
+            "UnityEngine.Debug:Log\n[Studio.Setup] TODO  levelplay-native: open the Editor\n"
+            "[Studio.Setup] NOT READY: 1 to do\n"
+        )
+
+    lines: list[str] = []
+    args = [*ARGS, "--unity", str(p), "--skip-collector", "--apply"]
+    rc = tool.main(args, run=never, client=None, state=tmp_path / "s", unity_run=fake_unity,
+                   out=lines.append)  # fmt: skip
+    assert rc == 0, "\n".join(lines)
+    m = json.loads((p / "Packages" / "manifest.json").read_text(encoding="utf-8"))
+    assert m["dependencies"]["com.unity.services.levelplay"] == "9.6.0"
+    assert m["dependencies"]["com.google.external-dependency-manager"] == "1.2.190"
+    assert m["dependencies"]["com.unity.ugui"] == "2.0.0", "the game's own packages kept"
+    assert "com.studio.pulse" not in m["dependencies"], "embedded, not a dependency line"
+    assert m["scopedRegistries"] == [
+        {
+            "name": "package.openupm.com",
+            "url": "https://package.openupm.com",
+            "scopes": ["com.google.external-dependency-manager"],
+        }
+    ]
+    dest = p / "Packages" / "com.studio.pulse"
+    files = tool.package_files()
+    assert len([f for f in dest.rglob("*") if f.is_file()]) == len(files) + 1
+    for f in files:
+        assert (dest / f).read_bytes() == (tool.PACKAGE_DIR / f).read_bytes(), f
+    assert (dest / ".studio-pulse-source").read_text(
+        encoding="utf-8"
+    ).strip() == tool.package_source()
+    assert seen["argv"][0] == str(tmp_path / "Unity")
+    assert seen["argv"][seen["argv"].index("-executeMethod") + 1] == tool.SETUP_METHOD
+    assert seen["argv"][seen["argv"].index("-projectPath") + 1] == str(p.resolve())
+    assert {"-batchmode", "-quit", "-nographics"} <= set(seen["argv"])
+    printed = "\n".join(lines)
+    assert "[Studio.Setup] TODO  levelplay-native" in printed and "UnityEngine.Debug" not in printed
+    assert "kalan 1 iş" in printed
+
+    manifest_bytes = (p / "Packages" / "manifest.json").read_bytes()
+    (dest / "Runtime" / "stale.cs").write_text("// an old file", encoding="utf-8")
+    rc = tool.main(args, run=never, client=None, state=tmp_path / "s", unity_run=fake_unity,
+                   out=lambda s: None)  # fmt: skip
+    assert rc == 0
+    assert (p / "Packages" / "manifest.json").read_bytes() == manifest_bytes, "second run: same"
+    assert not (dest / "Runtime" / "stale.cs").exists(), "files the package no longer has go"
+
+
+def test_unity_manifest_git_mode_and_existing_registries():
+    before = {
+        "dependencies": {"com.unity.services.levelplay": "9.5.0", "com.studio.pulse": "file:../x"},
+        "scopedRegistries": [
+            {"name": "openupm", "url": "https://package.openupm.com/", "scopes": ["com.other"]}
+        ],
+    }
+    m = tool.unity_manifest(before, "git", "abc123-dirty")
+    assert m["dependencies"]["com.unity.services.levelplay"] == "9.5.0", "a chosen version kept"
+    assert m["dependencies"]["com.studio.pulse"] == tool.PULSE_GIT + "#abc123"
+    assert m["scopedRegistries"][0]["scopes"] == [
+        "com.other",
+        "com.google.external-dependency-manager",
+    ]
+    assert len(m["scopedRegistries"]) == 1
+    assert "com.studio.pulse" not in tool.unity_manifest(before, "embed", "abc")["dependencies"]
+    assert before["dependencies"]["com.studio.pulse"] == "file:../x", "the input is not changed"
+
+
+def test_unity_setup_failure_and_missing_unity(tmp_path, monkeypatch, capsys):
+    p = unity_project(tmp_path)
+    monkeypatch.setenv("UNITY_EDITOR", str(tmp_path / "Unity"))
+    args = [*ARGS, "--unity", str(p), "--skip-collector", "--apply"]
+    rc = tool.main(args, run=never, client=None, state=tmp_path / "s",
+                   unity_run=lambda a, e: (2, "error CS0246: boom"), out=lambda s: None)  # fmt: skip
+    assert rc == 2 and "Unity kurulum adımı başarısız" in capsys.readouterr().err
+
+    monkeypatch.delenv("UNITY_EDITOR")
+    q = unity_project(tmp_path / "other", version="1.0.0f1")
+    lines: list[str] = []
+    rc = tool.main([*ARGS, "--unity", str(q), "--skip-collector", "--apply"], run=never,
+                   client=None, state=tmp_path / "s", unity_run=never_unity,
+                   out=lines.append)  # fmt: skip
+    assert rc == 0
+    assert "Unity bulunamadı" in "\n".join(lines) and (q / "Packages/com.studio.pulse").is_dir()
+
+
+def test_unity_is_found_from_the_project_version(tmp_path):
+    p = unity_project(tmp_path, version="1.2.3f4")
+    assert tool.find_unity(p, {"UNITY_EDITOR": "/opt/Unity"}) == Path("/opt/Unity")
+    assert tool.find_unity(p, {}) is None, "a version that is not installed"
+    assert tool.find_unity(tmp_path, {}) is None, "not a project"
+    assert tool.repo_root(p) == (tmp_path / "game").resolve()
+
+
+def test_unity_log_goes_to_a_file_not_a_pipe(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_run(argv, **kw):
+        seen.update(argv=argv, kw=kw)
+        Path(argv[argv.index("-logFile") + 1]).write_text(
+            "[Studio.Setup] READY\n", encoding="utf-8"
+        )
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setattr(tool.subprocess, "run", fake_run)
+    code, log = tool.unity_subprocess(["Unity", "-batchmode", "-logFile", "-"], {"X": "1"})
+    assert code == 0 and log == "[Studio.Setup] READY\n"
+    path = seen["argv"][seen["argv"].index("-logFile") + 1]
+    assert path != "-" and not Path(path).exists(), "a temporary file, removed afterwards"
+    assert seen["kw"]["stdout"] is subprocess.DEVNULL and seen["kw"]["env"]["X"] == "1"

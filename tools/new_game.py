@@ -18,6 +18,14 @@
    missing. Their ids go into the manifest's networks.levelplay.
 3. The game's studio-app.json (docs/YENI_OYUN_KURULUM.md): printed by the plan, written by
    --apply; an existing file is merged (ids already in it are kept unless step 2 found others).
+   With --unity and no --manifest it goes to the root of the project's repository.
+4. With --unity <Unity project>: Packages/manifest.json gets Unity LevelPlay 9.6.0 and EDM4U
+   1.2.190 (OpenUPM registry); Studio Pulse is embedded as Packages/com.studio.pulse (this
+   checkout's package, its commit in .studio-pulse-source) or, with --package git, referenced by
+   git URL at this commit. Then Unity runs the package's setup in batchmode
+   (Studio.Pulse.Editor.StudioAppSetup.Run: the keyless studio_app.json, Google UMP dependencies,
+   scripting defines; it lists what is left, e.g. LevelPlay's native SDK description, which
+   LevelPlay downloads only in an opened Editor).
 
 Without --apply nothing changes anywhere: no file, no secret, no service, no ad platform. Keys are
 never printed (only their key id, the hash prefix the collector stores). Standard library only.
@@ -30,8 +38,10 @@ import copy
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 from collections.abc import Callable
@@ -54,10 +64,21 @@ ads_onboard = _load("ads_onboard", ROOT / "tools" / "ads_onboard.py")
 DEFAULT_PROJECT = "grich-pulse"
 DEFAULT_REGION = "us-central1"
 DEFAULT_SERVICE = "pulse-collector"
-SECRET = "pulse-write-keys"
+KEYS_STORE = "pulse-write-keys"
 
 # (argv, stdin) -> stdout; raises NewGameError when the command fails
 Runner = Callable[[list[str], str | None], str]
+# (argv, extra environment) -> (exit code, output)
+UnityRunner = Callable[[list[str], dict[str, str]], tuple[int, str]]
+
+LEVELPLAY_PACKAGE = ("com.unity.services.levelplay", "9.6.0")
+EDM4U_PACKAGE = ("com.google.external-dependency-manager", "1.2.190")
+OPENUPM = "https://package.openupm.com"
+PULSE_PACKAGE = "com.studio.pulse"
+PULSE_GIT = "https://github.com/emirhann-akca/studio-pulse.git?path=/unity/com.studio.pulse"
+PACKAGE_DIR = ROOT / "unity" / PULSE_PACKAGE
+SOURCE_FILE = ".studio-pulse-source"  # Unity ignores dot files
+SETUP_METHOD = "Studio.Pulse.Editor.StudioAppSetup.Run"
 
 
 class NewGameError(Exception):
@@ -199,18 +220,18 @@ def collector_step(
 ) -> None:
     env_path = state / "collector.env"
     gc = ["--project", project]
-    out(f"1/3 Toplayıcı yazma anahtarı: {label} -> {', '.join(app_ids)}")
+    out(f"1/4 Toplayıcı yazma anahtarı: {label} -> {', '.join(app_ids)}")
     out(f"    GCP projesi {project} (gcloud'a --project ve CLOUDSDK_CORE_PROJECT={project})")
     try:
         make_keys.cmd_keys(env_path, [f"{label}={'|'.join(app_ids)}"], dry=not apply)
     except make_keys.Problem as e:
         raise NewGameError(f"make_keys: {e}") from None
     if not apply:
-        out(f"+ gcloud secrets versions add {SECRET} --data-file=- --project {project}")
+        out(f"+ gcloud secrets versions add {KEYS_STORE} --data-file=- --project {project}")
         out(f"    (değer {env_path} içindeki PULSE_WRITE_KEYS; komut satırına ve ekrana girmez)")
         out(
             f"+ gcloud run services update {service} --region {region} --project {project} "
-            f"--update-secrets PULSE_WRITE_KEYS={SECRET}:<yeni sürüm>"
+            f"--update-secrets PULSE_WRITE_KEYS={KEYS_STORE}:<yeni sürüm>"
         )
         out("    (toplayıcı anahtarları açılışta okur: yeni revizyon yeni anahtarı tanır)")
         out(
@@ -222,34 +243,34 @@ def collector_step(
     keys = values.get("PULSE_WRITE_KEYS", "")
     try:
         current = run(
-            ["gcloud", "secrets", "versions", "access", "latest", "--secret", SECRET, *gc], None
+            ["gcloud", "secrets", "versions", "access", "latest", "--secret", KEYS_STORE, *gc], None
         )
     except NewGameError:
         current = None
         out(
-            f"    {SECRET} okunamadı (toplayıcı hiç kurulmadıysa önce deploy/cloudrun/bootstrap.sh)"
+            f"    {KEYS_STORE} okunamadı (toplayıcı hiç kurulmadıysa önce deploy/cloudrun/bootstrap.sh)"
         )
     if current == keys:
-        out(f"    {SECRET} zaten güncel")
+        out(f"    {KEYS_STORE} zaten güncel")
         version = run(
-            ["gcloud", "secrets", "versions", "describe", "latest", "--secret", SECRET, *gc,
+            ["gcloud", "secrets", "versions", "describe", "latest", "--secret", KEYS_STORE, *gc,
              "--format=value(name)"],
             None,
         )  # fmt: skip
     else:
         version = run(
-            ["gcloud", "secrets", "versions", "add", SECRET, "--data-file=-", *gc,
+            ["gcloud", "secrets", "versions", "add", KEYS_STORE, "--data-file=-", *gc,
              "--format=value(name)"],
             keys,
         )  # fmt: skip
-        out(f"    {SECRET}: yeni sürüm {version.rsplit('/', 1)[-1]}")
+        out(f"    {KEYS_STORE}: yeni sürüm {version.rsplit('/', 1)[-1]}")
     number = version.rsplit("/", 1)[-1]
     run(
         ["gcloud", "run", "services", "update", service, "--region", region, *gc,
-         f"--update-secrets=PULSE_WRITE_KEYS={SECRET}:{number}"],
+         f"--update-secrets=PULSE_WRITE_KEYS={KEYS_STORE}:{number}"],
         None,
     )  # fmt: skip
-    out(f"    {service}: yeni revizyon, {SECRET}:{number}")
+    out(f"    {service}: yeni revizyon, {KEYS_STORE}:{number}")
     url = run(
         ["gcloud", "run", "services", "describe", service, "--region", region, *gc,
          "--format=value(status.url)"],
@@ -270,7 +291,7 @@ def collector_step(
 def levelplay_step(
     manifest: dict[str, Any], apply: bool, client: Any, out: Callable[[str], None]
 ) -> tuple[dict[Any, str] | None, list[str]]:
-    out("2/3 LevelPlay uygulaması ve reklam birimleri (tools/ads_onboard.py)")
+    out("2/4 LevelPlay uygulaması ve reklam birimleri (tools/ads_onboard.py)")
     if client is None:
         out("    LEVELPLAY_SECRET_KEY ve LEVELPLAY_REFRESH_TOKEN yok: adım atlandı.")
         out("    (LevelPlay platformu > My Account; değerleri yalnız ortam değişkeninde tut)")
@@ -281,6 +302,228 @@ def levelplay_step(
     if problems and not apply:
         out("    --apply eksikleri kurar (uygulama için mağaza adresi gerekir)")
     return values, problems
+
+
+# ---------------------------------------------------------------------------- Unity project
+
+
+def repo_root(path: Path) -> Path | None:
+    """The folder with .git at or above `path` (at most 4 levels up), or None."""
+    p = path.resolve()
+    for _ in range(5):
+        if (p / ".git").exists():
+            return p
+        if p.parent == p:
+            return None
+        p = p.parent
+    return None
+
+
+def package_source() -> str:
+    """This checkout's commit (+ "-dirty" when the package has local changes)."""
+
+    def git(*args: str) -> str:
+        p = subprocess.run(
+            ["git", "-C", str(ROOT), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+        return p.stdout.strip() if p.returncode == 0 else ""
+
+    sha = git("rev-parse", "HEAD")
+    if not sha:
+        return "unknown"
+    return sha + ("-dirty" if git("status", "--porcelain", "--", str(PACKAGE_DIR)) else "")
+
+
+def package_files() -> list[Path]:
+    """The package's files, relative (git's list when there is one: no local junk)."""
+    p = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(ROOT),
+            "ls-files",
+            "-z",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "--",
+            str(PACKAGE_DIR),
+        ],  # fmt: skip
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    prefix = PACKAGE_DIR.relative_to(ROOT).as_posix() + "/"
+    if p.returncode == 0 and p.stdout:
+        rel = {f[len(prefix) :] for f in p.stdout.split("\0") if f.startswith(prefix)}
+        return sorted(Path(r) for r in rel if (PACKAGE_DIR / r).is_file())
+    return sorted(
+        f.relative_to(PACKAGE_DIR)
+        for f in PACKAGE_DIR.rglob("*")
+        if f.is_file() and f.name != ".DS_Store"
+    )
+
+
+def unity_manifest(existing: dict[str, Any], mode: str, source: str) -> dict[str, Any]:
+    """Packages/manifest.json with LevelPlay, EDM4U (OpenUPM) and Studio Pulse; others kept."""
+    m = copy.deepcopy(existing)
+    deps: dict[str, Any] = m.setdefault("dependencies", {})
+    deps.setdefault(*LEVELPLAY_PACKAGE)
+    deps.setdefault(*EDM4U_PACKAGE)
+    regs: list[dict[str, Any]] = m.setdefault("scopedRegistries", [])
+    reg = next((r for r in regs if str(r.get("url", "")).rstrip("/") == OPENUPM), None)
+    if reg is None:
+        regs.append({"name": "package.openupm.com", "url": OPENUPM, "scopes": [EDM4U_PACKAGE[0]]})
+    elif EDM4U_PACKAGE[0] not in reg.setdefault("scopes", []):
+        reg["scopes"].append(EDM4U_PACKAGE[0])
+    if mode == "git":
+        deps[PULSE_PACKAGE] = f"{PULSE_GIT}#{source.removesuffix('-dirty')}"
+    else:
+        deps.pop(PULSE_PACKAGE, None)  # the embedded copy in Packages/ is the package
+    return m
+
+
+def find_unity(project: Path, env: dict[str, str] | None = None) -> Path | None:
+    """$UNITY_EDITOR, else the Hub install of the project's version (ProjectVersion.txt)."""
+    env = os.environ if env is None else env
+    if env.get("UNITY_EDITOR"):
+        return Path(env["UNITY_EDITOR"])
+    pv = project / "ProjectSettings" / "ProjectVersion.txt"
+    if not pv.is_file():
+        return None
+    version = ""
+    for line in pv.read_text(encoding="utf-8").splitlines():
+        if line.startswith("m_EditorVersion:"):
+            version = line.split(":", 1)[1].strip()
+    if not version:
+        return None
+    if sys.platform == "darwin":
+        exe = Path(f"/Applications/Unity/Hub/Editor/{version}/Unity.app/Contents/MacOS/Unity")
+    elif sys.platform == "win32":
+        exe = Path(rf"C:\Program Files\Unity\Hub\Editor\{version}\Editor\Unity.exe")
+    else:
+        exe = Path.home() / "Unity" / "Hub" / "Editor" / version / "Editor" / "Unity"
+    return exe if exe.exists() else None
+
+
+def unity_subprocess(argv: list[str], extra: dict[str, str]) -> tuple[int, str]:
+    """Runs Unity with its log in a file, not a pipe: Unity's Package Manager server can outlive
+    the Editor and would hold a pipe open, so reading the output would never end (seen 20 Nov 2026)."""
+    fd, log = tempfile.mkstemp(prefix="studio-pulse-setup-", suffix=".log")
+    os.close(fd)
+    argv = list(argv)
+    if "-logFile" in argv:
+        argv[argv.index("-logFile") + 1] = log
+    else:
+        argv += ["-logFile", log]
+    try:
+        p = subprocess.run(
+            argv,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env={**os.environ, **extra},
+            check=False,
+            timeout=3600,
+        )
+        return p.returncode, Path(log).read_text(encoding="utf-8", errors="replace")
+    finally:
+        Path(log).unlink(missing_ok=True)
+
+
+def unity_step(
+    project: Path,
+    manifest_path: Path,
+    mode: str,
+    apply: bool,
+    unity_run: UnityRunner,
+    out: Callable[[str], None],
+) -> list[str]:
+    """Step 4: packages + the package's setup in batchmode. Returns what is left to do."""
+    out(f"4/4 Unity projesi: {project}")
+    mj = project / "Packages" / "manifest.json"
+    if not mj.is_file():
+        raise NewGameError(f"{mj} yok: --unity bir Unity projesi klasörü olmalı")
+    source = package_source()
+    before = json.loads(mj.read_text(encoding="utf-8"))
+    after = unity_manifest(before, mode, source)
+    added = [
+        f"{k}: {after['dependencies'][k]}"
+        for k in after["dependencies"]
+        if before.get("dependencies", {}).get(k) != after["dependencies"][k]
+    ]
+    removed = [k for k in before.get("dependencies", {}) if k not in after["dependencies"]]
+    if before.get("scopedRegistries") != after.get("scopedRegistries"):
+        added.append(f"scopedRegistries: {OPENUPM} ({EDM4U_PACKAGE[0]})")
+    for line in added:
+        out(f"    + manifest.json {line}")
+    for k in removed:
+        out(f"    - manifest.json {k} (Packages/{PULSE_PACKAGE} gömülü kopya kullanılır)")
+    if not added and not removed:
+        out("    manifest.json zaten tamam")
+    dest = project / "Packages" / PULSE_PACKAGE
+    files = package_files() if mode == "embed" else []
+    if mode == "embed":
+        stale = 0
+        if dest.is_dir():
+            want = {f.as_posix() for f in files} | {SOURCE_FILE}
+            stale = sum(
+                1
+                for f in dest.rglob("*")
+                if f.is_file() and f.relative_to(dest).as_posix() not in want
+            )
+        changed = sum(
+            1
+            for f in files
+            if not (dest / f).is_file() or (dest / f).read_bytes() != (PACKAGE_DIR / f).read_bytes()
+        )
+        out(
+            f"    Packages/{PULSE_PACKAGE}: {len(files)} dosya, {changed} yeni/değişen, "
+            f"{stale} silinecek; kaynak {source}"
+        )
+    unity = find_unity(project)
+    cmd = [
+        str(unity or "<Unity>"),
+        "-batchmode",
+        "-nographics",
+        "-quit",
+        "-projectPath",
+        str(project),
+        "-executeMethod",
+        SETUP_METHOD,
+        "-logFile",
+        "-",
+    ]
+    if not apply:
+        out(f"+ STUDIO_APP_MANIFEST={manifest_path} {' '.join(cmd)}")
+        out("    (paketi kurar ve eksikleri listeler; Unity'de bu proje açıkken koşmaz)")
+        return []
+    if added or removed:
+        mj.write_text(json.dumps(after, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if mode == "embed":
+        if dest.exists():
+            shutil.rmtree(dest)
+        for f in files:
+            (dest / f).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(PACKAGE_DIR / f, dest / f)
+        (dest / SOURCE_FILE).write_text(source + "\n", encoding="utf-8")
+    if unity is None:
+        out("    Unity bulunamadı (UNITY_EDITOR ya da ProjectVersion.txt'teki sürüm Hub'da yok):")
+        out(f"    elle koş: STUDIO_APP_MANIFEST={manifest_path} {' '.join(cmd)}")
+        return ["unity: kurulum adımı koşulmadı"]
+    code, log = unity_run(cmd, {"STUDIO_APP_MANIFEST": str(manifest_path)})
+    lines = [ln[ln.index("[Studio.Setup]") :] for ln in log.splitlines() if "[Studio.Setup]" in ln]
+    for ln in lines:
+        out("    " + ln)
+    if code not in (0, 1) or not lines:
+        tail = "\n".join(log.splitlines()[-15:])
+        raise NewGameError(f"Unity kurulum adımı başarısız (çıkış {code}):\n{tail}")
+    return [ln for ln in lines if ln.startswith("[Studio.Setup] TODO")]
 
 
 def http_get(url: str) -> str:
@@ -309,7 +552,16 @@ def parse(argv: list[str]) -> argparse.Namespace:
     ap.add_argument("--privacy-url", help="gizlilik politikası adresi")
     ap.add_argument("--website", help="geliştirici sitesi (app-ads.txt bu alanın kökünde)")
     ap.add_argument(
-        "--manifest", type=Path, default=Path("studio-app.json"), help="oyunun studio-app.json'ı"
+        "--manifest",
+        type=Path,
+        help="oyunun studio-app.json'ı (varsayılan: --unity projesinin depo kökü, yoksa ./)",
+    )
+    ap.add_argument("--unity", type=Path, help="Unity proje klasörü: paketler + kurulum adımı")
+    ap.add_argument(
+        "--package",
+        choices=["embed", "git"],
+        default="embed",
+        help="Studio Pulse: Packages/'a gömülü kopya (varsayılan) ya da git adresi",
     )
     ap.add_argument(
         "--project", default=DEFAULT_PROJECT, help=f"GCP projesi (varsayılan {DEFAULT_PROJECT})"
@@ -344,6 +596,7 @@ def main(
     client: Any = "env",
     state: Path | None = None,
     fetch: Callable[[str], str] = http_get,
+    unity_run: UnityRunner = unity_subprocess,
     out: Callable[[str], None] = print,
 ) -> int:
     a = parse(sys.argv[1:] if argv is None else argv)
@@ -358,14 +611,20 @@ def main(
                 if all(secrets)
                 else None
             )
-        path = a.manifest.expanduser()
+        unity = a.unity.expanduser().resolve() if a.unity else None
+        if a.manifest:
+            path = a.manifest.expanduser()
+        elif unity:
+            path = (repo_root(unity) or unity) / "studio-app.json"
+        else:
+            path = Path("studio-app.json")
         existing = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
         manifest = build_manifest(existing, a)
         ids = list(dict.fromkeys(v for v in (a.ios, a.android) if v))
         mode = "UYGULA" if a.apply else "PLAN (hiçbir şey değişmez; uygulamak için --apply)"
         out(f"Yeni oyun: {a.name} [{a.label}] {', '.join(ids)} -- {mode}")
         if a.skip_collector:
-            out("1/3 Toplayıcı adımı atlandı (--skip-collector)")
+            out("1/4 Toplayıcı adımı atlandı (--skip-collector)")
         else:
             collector_step(
                 a.label, ids, state, a.project, a.region, a.service, a.apply, run, fetch, out
@@ -374,7 +633,7 @@ def main(
         if values:
             for c in put_levelplay(manifest, values):
                 out(f"    {c}")
-        out(f"3/3 {path}")
+        out(f"3/4 {path}")
         text = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
         if a.apply:
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -384,8 +643,16 @@ def main(
             out("    yazılmadı; --apply ile yazılacak içerik:")
             for line in text.splitlines():
                 out("    | " + line)
-        out("Sıradaki (docs/YENI_OYUN_KURULUM.md): UMP kimlikleri (AdMob), app-ads.txt, ")
-        out("  Unity paketleri, ödül yerleri, mağaza beyanları, gizlilik sayfası.")
+        todo: list[str] = []
+        if unity:
+            todo = unity_step(unity, path.resolve(), a.package, a.apply, unity_run, out)
+        else:
+            out("4/4 Unity projesi: --unity verilmedi (paketler ve kurulum adımı elle)")
+        out("Sıradaki (docs/YENI_OYUN_KURULUM.md): AdMob kimlikleri (networks.ump), app-ads.txt,")
+        out("  oyunda üç bağlama noktası (StudioApp.Launch, ödül arayüzü, Pulse.LevelAttempt),")
+        out("  mağaza beyanları, gizlilik sayfası.")
+        if todo:
+            out(f"  Unity kurulumunda kalan {len(todo)} iş yukarıda (TODO).")
         for line in ads_onboard.app_ads_txt(manifest, "levelplay", None):
             out("  " + line)
         return 1 if problems and a.apply else 0
