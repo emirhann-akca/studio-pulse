@@ -134,7 +134,17 @@ Manager `pulse-write-keys` gets a new version and the Cloud Run service a revisi
 `<state>/sdk/<label>.env` for the release build; `--project`, default `grich-pulse`, is passed as
 `--project` and `CLOUDSDK_CORE_PROJECT`), the LevelPlay app and ad units (below) and the game's
 `studio-app.json`. Without `--apply` it only prints the plan and changes nothing. Step by step,
-in Turkish: docs/YENI_OYUN_KURULUM.md.
+in Turkish: docs/YENI_OYUN_KURULUM.md. With `--unity <project>` it also adds LevelPlay 9.6.0 and EDM4U
+1.2.190 (OpenUPM) to `Packages/manifest.json`, embeds this package as `Packages/com.studio.pulse` (or
+`--package git`) and runs the package's setup in batchmode.
+
+**Game setup (`StudioAppSetup`)**: `-executeMethod Studio.Pulse.Editor.StudioAppSetup.Run` or *Tools >
+Studio Pulse > Set up this game*, idempotent: makes the keyless `Assets/Resources/studio_app.json` from
+the sample (privacy URL, en + tr tracking prompt, COPPA flag from `studio-app.json`), copies the Google
+UMP dependencies, adds `STUDIO_PULSE_ATT` / `STUDIO_PULSE_UMP`, and lists what is left (packages,
+LevelPlay's native SDK description, which LevelPlay downloads only in an opened Editor, the ids, the
+collector key on this machine). Exit code 0 ready, 1 something left, 2 error. Store builds log what
+it still lists.
 
 Standard library only. A per-app manifest (kept in the game's repository) names the bundle
 ids, store ids, formats and the config path; the tool lists the app and its ad units on the

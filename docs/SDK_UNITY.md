@@ -271,6 +271,7 @@ TestFlight `sandbox` answer and the App Store `production` answer); pause / resu
 the 30-minute rule on real devices; WebGL (the queue then lives in the browser's
 IndexedDB-backed file system, untested); the ad revenue bridges with real ads (MAX and
 LevelPlay revenue callbacks on a device). Unity 6000.3.23f1 opened the package on
-20 Nov 2026 (an empty project with `"testables": ["com.studio.pulse"]`): the 10 EditMode tests of
-`Tests/Editor` passed and four iOS player builds (Xcode export) checked the release keys step;
-the rest of the package is compile-checked against the Editor's UnityEngine assemblies.
+20 Nov 2026: the EditMode tests of `unity/editor-tests` (a minimal project using the package; the
+tests live outside the package so a game that embeds it never compiles them) passed, four iOS player
+builds (Xcode export) checked the release keys step, and `tools/new_game.py --unity` set up an empty
+project end to end; the rest of the package is compile-checked against the Editor's UnityEngine assemblies.

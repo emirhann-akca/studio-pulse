@@ -1,9 +1,9 @@
 # Yeni oyuna kurulum (Studio Pulse: analitik + reklam)
 
 Bir Unity oyununa (Unity 6000.3; 2021.3+ yeter) analitik, ödüllü/geçiş reklamı, AB/BK onay formu ve
-ATT'yi **"paketleri ekle + bir ayar dosyası + oyunda üç bağlama noktası"** ile kurmak. Acorn Mart
-1.0.1'de oyuna özel yazılan üç parça (yayın derlemesine kimlik yazma, açılış, deneme analitiği) artık
-paketin içinde; oyunda yalnız oyuna özgü olan kalır (ödül arayüzü, olayların tetiklendiği yerler).
+ATT'yi **tek komut + oyunda üç bağlama noktası** ile kurmak. Acorn Mart 1.0.1'de oyuna özel yazılan
+üç parça (yayın derlemesine kimlik yazma, açılış, deneme analitiği) artık paketin içinde; oyunda yalnız
+oyuna özgü olan kalır (ödül arayüzü, olayların tetiklendiği yerler).
 
 | Ne | Nerede | Depoda mı |
 |---|---|---|
@@ -16,63 +16,28 @@ Geliştirme, test ve simülatör derlemeleri anahtarsız ayarla çıkar: ağ ça
 sorusu yok, reklam tuşu yok. Yalnız yayın derlemesi kimlikleri içeri yazar ve derleme bitince dosyayı
 bayt bayt geri alır (`StudioAppRelease`, docs/ADS_UNITY.md "Release keys").
 
-## 1. Paketler
+**Elle kalanların tamamı** (gerisini komut ve Unity'deki kurulum adımı yapar):
 
-`Packages/manifest.json` (sürümler Acorn Mart 1.0.1'de denenenler):
+1. Komutu önce plan kipinde koş, çıktıyı oku; `--apply`'ı stüdyo sahibi onaylar (bulutta anahtar açar).
+2. Projeyi Unity Editor'de **bir kez aç** (batchmode değil): LevelPlay yerel SDK tanımlarını indirir;
+   `Assets/LevelPlay/Editor` ve kurulumun yazdığı dosyaları commit et.
+3. AdMob uygulama kimlikleri → `studio-app.json` `networks.ump`; AdMob'da GDPR mesajı yayında.
+4. Oyunda üç bağlama noktası (3. adım).
+5. Mağaza beyanları (4. adım), gizlilik sayfası ve `app-ads.txt` (5. adım).
 
-```json
-{
-  "scopedRegistries": [
-    { "name": "package.openupm.com", "url": "https://package.openupm.com",
-      "scopes": ["com.google.external-dependency-manager"] }
-  ],
-  "dependencies": {
-    "com.unity.services.levelplay": "9.6.0",
-    "com.google.external-dependency-manager": "1.2.190",
-    "com.studio.pulse": "https://github.com/emirhann-akca/studio-pulse.git?path=/unity/com.studio.pulse#<commit>"
-  }
-}
-```
-
-- **Studio Pulse:** depo gizliyse ortak (Hasan) git adresini çözemez. O zaman Acorn Mart gibi paketi
-  projeye göm: `cp -R studio-pulse/unity/com.studio.pulse <oyun>/Unity/<Proje>/Packages/` ve
-  manifest'ten git satırını sil (Unity `Packages/` altındakini kendiliğinden alır). Hangi commit'ten
-  kopyalandığını commit mesajına yaz. Her dosyanın `.meta`'sı pakette hazır.
-- **LevelPlay 9.x** (Ads Mediation, Unity Registry): Editor'ü bir kez **açık** (batchmode değil) başlat;
-  LevelPlay yerel SDK tanımlarını indirir (`Assets/LevelPlay/Editor/IronSourceSDKDependencies.xml` ve ağ
-  bağdaştırıcıları, ör. `ISUnityAdsAdapterDependencies.xml`). Bu dosyaları commit et: batchmode'da inmezler.
-- **EDM4U** (OpenUPM): Android bağımlılıklarını `Assets/Plugins/Android/mainTemplate.gradle`'a yazar.
-  Batchmode'da: `-executeMethod Studio.Pulse.Editor.StudioAppRelease.ResolveAndroidDependencies`
-  (çıkış kodu 0 / 1). Gradle şablonlarını commit et.
-- **AB/BK onayı (Google UMP):** `Samples~/AdsQuickStart/StudioPulseUmpDependencies.xml` dosyasını
-  `Assets/Plugins/StudioPulse/Editor/`'e kopyala (iOS pod `GoogleUserMessagingPlatform` 3.1.0, Android
-  `com.google.android.ump:user-messaging-platform` 4.0.0).
-- **Scripting Define Symbols:** iOS'a `STUDIO_PULSE_ATT` ve `STUDIO_PULSE_UMP`, Android'e
-  `STUDIO_PULSE_UMP`. (`STUDIO_PULSE_IOS_NATIVE`: Pulse'un gizlilik manifesti + kurulum kaynağı eklentisi;
-  isteğe bağlı, anahtarsız derlemelere de geçer.)
-
-## 2. Ayar dosyası
-
-### 2a. Unity ayarı (anahtarsız)
-
-`Samples~/AdsQuickStart/studio_app.json` → `Assets/Resources/studio_app.json`. Yalnız kimlik olmayanları
-doldur: `privacy.privacyPolicyUrl`, `privacy.attUsageDescription` (en zorunlu, tr önerilir; ATT sorusunun
-metni), `privacy.childDirected` (çocuklara yönelik değilse `false`). Bütün anahtarlar **boş** kalır;
-`pacing` 0 kalır (reklam sınırları oyunun kendi kuralında).
-
-### 2b. Oyunun kurulum dosyası: tek komut
+## 1. Paketler ve ayar dosyası: tek komut
 
 ```bash
 cd ~/studio-pulse      # main'in temiz kopyası (deploy/ ve tools/ orada)
 python3 tools/new_game.py kupdunyalari --name "Küp Dünyaları" \
   --ios com.emirhan.kupdunya --android com.emirhan.kupdunya \
   --privacy-url https://grichai.com/kup-dunyalari/privacy --website https://grichai.com \
-  --manifest ~/kup-dunya/studio-app.json
+  --unity ~/kup-dunya/Unity/KupDunya
 ```
 
-`--apply` olmadan **plan**: hiçbir şey değişmez (dosya, gizli değer, servis, reklam platformu), yalnız
-yapılacaklar ve yazılacak `studio-app.json` basılır. Anahtarlar ekrana asla gelmez; yalnız kimlik özeti
-(toplayıcının da sakladığı 8 haneli hash). `--apply` ile:
+`--apply` olmadan **plan**: hiçbir şey değişmez (dosya, gizli değer, servis, reklam platformu, Unity
+projesi), yalnız yapılacaklar ve yazılacak `studio-app.json` basılır. Anahtarlar ekrana asla gelmez;
+yalnız kimlik özeti (toplayıcının da sakladığı 8 haneli hash). `--apply` ile dört adım:
 
 1. **Toplayıcı yazma anahtarı** (`deploy/cloudrun/make_keys.py`, `bootstrap.sh`'ın APPS mantığı):
    `collector.env`'e oyunun etiketiyle, bundle id'lerine **bağlı** yeni anahtar (bağlı anahtar başka
@@ -81,25 +46,64 @@ yapılacaklar ve yazılacak `studio-app.json` basılır. Anahtarlar ekrana asla 
    yeni revizyon (toplayıcı anahtarları açılışta okur) → `sdk/<etiket>.env` → `/health`. GCP projesi
    `--project` (varsayılan `grich-pulse`); her gcloud çağrısına `--project` ve
    `CLOUDSDK_CORE_PROJECT=grich-pulse` verilir (makinenin varsayılanı silinmiş proje olabilir). İmaj
-   yeniden derlenmez.
+   yeniden derlenmez. (`--skip-collector`: bu adımı atla.)
 2. **LevelPlay** (`tools/ads_onboard.py`): `LEVELPLAY_SECRET_KEY` ve `LEVELPLAY_REFRESH_TOKEN` ortamda
    varsa iOS / Android uygulamasını bundle id ile bulur, yoksa mağaza adresinden kurar (iOS için
    `--app-store-id` gerekir; mağazada olmayan oyunun uygulamasını panelde elle aç, komut onu bulur),
    eksik `rewarded` / `interstitial` birimlerini açar, duraklatılmışları açar; kimlikler
    `networks.levelplay`'e yazılır. Plan yalnız okur.
-3. **`studio-app.json`** yazılır; dosya varsa birleştirilir (içindeki kimlikler korunur, `unity_ads`
-   gibi bölümlere dokunulmaz). Komutu tekrar koşmak güvenlidir.
+3. **`studio-app.json`** Unity projesinin depo köküne yazılır (`--manifest` ile başka yer); dosya
+   varsa birleştirilir (içindeki kimlikler korunur, `unity_ads` gibi bölümlere dokunulmaz).
+4. **Unity projesi** (`--unity`): `Packages/manifest.json`'a Unity LevelPlay 9.6.0 ve EDM4U 1.2.190
+   (OpenUPM kaydı) eklenir; Studio Pulse `Packages/com.studio.pulse` olarak **gömülür** (depo gizli
+   olsa da ortak açabilsin diye; hangi commit'ten geldiği `.studio-pulse-source`'ta; `--package git` ile
+   git adresi). Sonra Unity batchmode'da paketin kurulum adımını koşar
+   (`Studio.Pulse.Editor.StudioAppSetup.Run`, aşağıda) ve sonucunu satır satır basar.
 
-`--apply` bulutta değişiklik yapar (Secret Manager sürümü, Cloud Run revizyonu): stüdyo sahibinin onayıyla
-koşulur. Plan çıktısı (20 Kas 2026, Küp Dünyaları, bu makine): yeni `kupdunyalari` anahtarı "new",
-acornmart ve zevo "kept", LevelPlay sırları ortamda olmadığı için adım atlandı, dosya yazılmadı.
+Komutu tekrar koşmak güvenlidir (ikinci koşu manifest'i değiştirmez; gömülü paketi bu kopyayla
+eşitler, artık olmayan dosyaları siler). Projeyi Unity'de açıkken koşma (batchmode aynı projeyi açamaz).
 
-**Elle kalan:** AdMob uygulama kimlikleri (`ca-app-pub-...~...`, AdMob > Apps > App settings) →
+### Unity'deki kurulum adımı (`StudioAppSetup`)
+
+Komut çağırır; Editor'de **Tools > Studio Pulse > Set up this game** ile de koşar (yalnız denetim:
+*Check this game's setup*). Her koşu aynı sonucu verir, düzeltebildiğini düzeltir, gerisini listeler:
+
+| Satır | Yaptığı |
+|---|---|
+| `config` | `Assets/Resources/studio_app.json` yoksa paketin örneğinden **anahtarsız** oluşturur: gizlilik adresi, oyunun adıyla İngilizce + Türkçe ATT metni, COPPA bayrağı `studio-app.json`'dan. Varsa yalnız boş gizlilik adresini / boş ATT metnini doldurur. |
+| `ump-sdk` | Google UMP bağımlılık dosyasını `Assets/Plugins/StudioPulse/Editor/`'e kopyalar (iOS pod 3.1.0, Android 4.0.0). |
+| `defines-ios`, `defines-android` | iOS'a `STUDIO_PULSE_ATT` + `STUDIO_PULSE_UMP`, Android'e `STUDIO_PULSE_UMP` ekler (başka define'lara dokunmaz). |
+| `levelplay`, `edm4u` | paketler kurulu mu (komut ekler) |
+| `levelplay-native` | **TODO** kalır: LevelPlay'in yerel SDK tanımı yalnız açık Editor'de iner (elle 2. madde). |
+| `keyless`, `privacy`, `att-text` | depodaki ayarda anahtar var mı, gizlilik adresi ve ATT metni dolu mu |
+| `ump-ids`, `levelplay-ids`, `collector` | uyarı: kimlikler / bu makinedeki toplayıcı anahtarı yoksa yayın derlemesi reklamsız / analitiksiz çıkar |
+
+Çıkış kodu 0: hazır, 1: elle iş kaldı, 2: hata. Development olmayan her derleme de bu denetimi koşar ve
+eksikleri günlüğe uyarı olarak yazar (derlemeyi durdurmaz). Android bağımlılıkları (EDM4U, Gradle
+şablonları): `-buildTarget Android -executeMethod Studio.Pulse.Editor.StudioAppRelease.ResolveAndroidDependencies`.
+
+**Elle yapmak istersen** (komut ve kurulum adımının yaptığı): `Packages/manifest.json`'a
+
+```json
+"scopedRegistries": [{ "name": "package.openupm.com", "url": "https://package.openupm.com",
+                       "scopes": ["com.google.external-dependency-manager"] }],
+"dependencies": { "com.unity.services.levelplay": "9.6.0", "com.google.external-dependency-manager": "1.2.190" }
+```
+
+ve `cp -R studio-pulse/unity/com.studio.pulse <proje>/Packages/`; `Samples~/AdsQuickStart/studio_app.json`
+→ `Assets/Resources/` (yalnız gizlilik alanlarını doldur), `StudioPulseUmpDependencies.xml` →
+`Assets/Plugins/StudioPulse/Editor/`, yukarıdaki define'lar. (`STUDIO_PULSE_IOS_NATIVE`: Pulse'un
+gizlilik manifesti + kurulum kaynağı eklentisi; isteğe bağlı, kurulum adımı eklemez.)
+
+Plan çıktısı (20 Kas 2026, Küp Dünyaları, bu makine): yeni `kupdunyalari` anahtarı "new", acornmart ve
+zevo "kept", LevelPlay sırları ortamda olmadığı için adım atlandı, dosya yazılmadı.
+
+**Komutun dışında kalan:** AdMob uygulama kimlikleri (`ca-app-pub-...~...`, AdMob > Apps > App settings) →
 `networks.ump.ios_app_id` / `android_app_id`; AdMob > Privacy & messaging'de GDPR mesajı **yayında**.
 Unity Ads'i LevelPlay'de teklifçi yapmak (Mediation > Setup > SDK Networks; `ads_onboard.py` eksikleri
 `networks.unity_ads`'teki oyun kimlikleriyle liste olarak basar). `app-ads.txt` (5. adım).
 
-### 2c. Derleme ne zaman kimlik alır
+## 2. Derleme ne zaman kimlik alır
 
 | `studio-app.json` | Davranış |
 |---|---|
@@ -383,20 +387,30 @@ public static void IzCoz(string[] t, string[] d, out int[] dokunus, out float[] 
   `studio_app.json` ve `studio-app.json` dosyalarıyla, SahneKur metnine bakan 7. test hariç) yukarıdaki
   ince sarmalayıcıyla Unity 6000.3.23f1'de koşuldu: **6/6 geçti**; günlükte
   `REKLAM_YAYIN uygulandı: ... analitik=açık (...)` satırı aynı biçimde.
-- **Paket Editor'de:** `Tests/Editor` (10 EditMode testi) Unity 6000.3.23f1'de geçti; dört gerçek iOS
-  derlemesinde (Xcode dışa aktarımı) 15 denetim geçti: mağaza derlemesi kimlikleri taşıyor ve
-  `StudioAppBuild` onları görüyor (Info.plist'te `GADApplicationIdentifier`), Development derlemesi ve
-  "manual" kipteki düz derleme anahtarsız, `BuildPlayer(opt, ads: false)` yalnız toplayıcıyı yazıyor,
-  başarısız derlemede bile `studio_app.json` bayt bayt geri geliyor.
+- **Paket Editor'de:** `unity/editor-tests` (paketi kullanan küçük Unity projesi; testler paketin
+  dışında, böylece paketi gömen oyun onları derlemez) 12 EditMode testi Unity 6000.3.23f1'de geçti.
+  Dört gerçek iOS derlemesinde (Xcode dışa aktarımı) 15 denetim geçti: mağaza derlemesi kimlikleri
+  taşıyor ve `StudioAppBuild` onları görüyor (Info.plist'te `GADApplicationIdentifier`), Development
+  derlemesi ve "manual" kipteki düz derleme anahtarsız, `BuildPlayer(opt, ads: false)` yalnız toplayıcıyı
+  yazıyor, başarısız derlemede bile `studio_app.json` bayt bayt geri geliyor.
+- **Yeni oyun uçtan uca:** boş bir Unity 6000.3 projesinde (depo + `Unity/YeniOyun`)
+  `tools/new_game.py ... --unity ... --skip-collector --apply` tek seferde: `studio-app.json` depo
+  köküne, LevelPlay 9.6.0 + EDM4U 1.2.190 + OpenUPM kaydı manifest'e, Studio Pulse `Packages/`'a
+  gömüldü; Unity batchmode'da kurulum adımı anahtarsız `studio_app.json`'u (gizlilik adresi, İngilizce +
+  Türkçe ATT metni), UMP bağımlılığını ve define'ları kurdu; tek TODO LevelPlay'in yerel SDK tanımı (açık
+  Editor ister). İkinci koşu hiçbir dosyayı değiştirmedi. Bu deneme iki kusur yakaladı ve düzeltildi:
+  paket testleri gömülü pakette derleniyordu (testler `unity/editor-tests`'e taşındı) ve Unity'nin
+  Package Manager sunucusu çıktı borusunu açık tutup komutu kilitliyordu (günlük artık dosyaya).
 - **Koşulmayan:** Acorn'un tam test takımı ve `bash tools/reklam_dogrula.sh` (Acorn deposuna dokunulmadı).
   Geçiş yapılınca önce bunlar koşulmalı: `DOGRULAMA_TAMAM` ve EditMode testlerinin tamamı.
 
 ## Kontrol listesi
 
-1. Paketler + LevelPlay xml'leri + EDM4U Gradle şablonları commit edildi; define'lar ProjectSettings'te.
-2. `Assets/Resources/studio_app.json` anahtarsız, gizlilik metinleri dolu.
-3. `tools/new_game.py ... --apply` (sahip onayıyla) → `studio-app.json` commit; `sdk/<etiket>.env` bu
-   makinede; AdMob kimlikleri `networks.ump`'ta.
+1. `tools/new_game.py ... --unity <proje>` önce plan, sonra sahip onayıyla `--apply`.
+2. Projeyi Unity Editor'de bir kez aç (LevelPlay yerel SDK tanımı iner); *Tools > Studio Pulse > Check
+   this game's setup* "READY" desin; `Assets/LevelPlay/Editor`, `Assets/Resources/studio_app.json`,
+   `Assets/Plugins/StudioPulse`, `ProjectSettings`, `Packages/` ve `studio-app.json`'ı commit et.
+3. AdMob kimlikleri `networks.ump`'ta; `sdk/<etiket>.env` yayın derlemesini yapan makinede.
 4. Oyunda `StudioApp.Launch`, ödül arayüzü, `Pulse.LevelAttempt` ve diğer kancalar.
 5. Yayın derlemesi günlüğünde `analytics=on` ve `ads levelplay`; derleme sonrası `git status` temiz.
 6. Simülatörde Development + `BuildPlayer(opt, ads: false)` ile olayların toplayıcıya geldiğini gör
