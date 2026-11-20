@@ -246,9 +246,12 @@ def test_google_refresh_resolves_scans_and_logs_bytes(tmp_path):
         # forced: the cached ids are reused, only the creatives query runs
         bq3 = FakeBQ()
         assert google_refresh(con, cfg, bq3, force=False) and bq3.jobs == []
+        # a week later: the last run is stamped with the real clock (store.utcnow), so "later" is
+        # counted from today, not from DAY (DAY + 8 stopped being a week later on 17 Nov 2026)
+        later = max(DAY, dt.date.today()) + dt.timedelta(days=8)
         res = run.refresh_google(con, settings.from_config(cfg),
                                  settings.from_config(cfg).advertisers, project=None,
-                                 client=bq3, today=DAY + dt.timedelta(days=8), force=False,
+                                 client=bq3, today=later, force=False,
                                  dry_run_only=False, log=lambda m: None)  # fmt: skip
         assert res["resolve"]["source"] == "cache" and len(bq3.jobs) == 2
     finally:

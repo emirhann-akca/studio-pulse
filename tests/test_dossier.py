@@ -1038,15 +1038,18 @@ def test_pulse_run_hook_refreshes_weekly_only_when_enabled(tmp_path, monkeypatch
         )
         pipeline._radar(con, cfg_on, report, log=lambda m: None)
         assert "adintel" in report.errors  # a refused extract is visible, not silent
-        # a fresh extract is not refreshed and no project is looked up
+        # a fresh extract is not refreshed and no project is looked up. The hook ages the extract
+        # against the real date (cfg.as_of is not set), so "fresh" is one day before today, not a
+        # fixed date (a fixed 13 Nov 2026 stopped being fresh on 20 Nov 2026).
+        yesterday = dt.date.today() - dt.timedelta(days=1)
         con.execute("DELETE FROM raw_mr_adintel_run")
         store.insert(
             con,
             "raw_mr_adintel_run",
             [
                 {
-                    "run_at": dt.datetime(2026, 11, 13, 9),
-                    "extract_date": DAY - dt.timedelta(days=1),
+                    "run_at": dt.datetime.combine(yesterday, dt.time(9)),
+                    "extract_date": yesterday,
                     "status": "ok",
                 }
             ],
