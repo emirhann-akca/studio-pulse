@@ -1,0 +1,27 @@
+{
+    "name": "Studio.Pulse.Editor.Tests",
+    "rootNamespace": "Studio.Pulse.Editor.Tests",
+    "references": [
+        "Studio.Pulse.Core",
+        "Studio.Pulse",
+        "Studio.Pulse.Ads",
+        "Studio.Pulse.Ads.Editor",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

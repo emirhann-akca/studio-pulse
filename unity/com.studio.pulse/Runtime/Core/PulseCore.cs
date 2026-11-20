@@ -824,6 +824,23 @@ namespace Studio.Pulse
             }
         }
 
+        readonly PulseParams _attemptParams = new PulseParams();
+
+        /// <summary>
+        /// level_attempt (<see cref="PulseAttempt"/>): one event per finished attempt; the tap trace
+        /// only when <paramref name="withTrace"/> (the install is in the trace sample).
+        /// </summary>
+        public bool LevelAttempt(PulseAttempt attempt, bool withTrace)
+        {
+            if (attempt == null) return false;
+            lock (_gate)
+            {
+                try { attempt.Fill(_attemptParams, withTrace); }
+                catch (Exception ex) { Warn("LevelAttempt: " + ex.Message); return false; }
+                return Track(PulseAttempt.EventName, _attemptParams);
+            }
+        }
+
         /// <summary>v1 perf telemetry (pulse_perf / pulse_load from the perf sampler and load timer).</summary>
         public bool RecordPerf(string name, PulseParams p)
         {

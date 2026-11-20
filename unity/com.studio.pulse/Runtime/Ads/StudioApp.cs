@@ -68,6 +68,37 @@ namespace Studio.Pulse.Ads
             }
         }
 
+        /// <summary>True once <see cref="Launch"/> ran.</summary>
+        public static bool Launched { get; private set; }
+
+        /// <summary>
+        /// The one line a game needs, e.g. the first line of the first scene's Start (the app is
+        /// active then, so the iOS tracking prompt can show). Once; later calls do nothing; never throws:
+        /// <code>StudioApp.Launch(() => MyAnalytics.Bind(), () => MyRewards.Use(new MyAdsBridge()));</code>
+        /// 1. <see cref="Start"/> (a failure is logged, the game goes on without analytics and ads);
+        /// 2. <paramref name="started"/>, always: bind the game's analytics hooks there (Pulse.Core is
+        ///    non-null when analytics is on; with a keyless config it is null and nothing is sent);
+        /// 3. <paramref name="adsReady"/>, only when an ad provider is attached (StudioAds.Provider):
+        ///    hand StudioAds to the game's own reward code there. With a keyless config it never runs,
+        ///    so the game shows no ad button.
+        /// </summary>
+        public static void Launch(Action started = null, Action adsReady = null)
+        {
+            if (Launched) return;
+            Launched = true;
+            try { Start(); }
+            catch (Exception ex) { Debug.LogWarning("[Studio.Ads] StudioApp.Start failed, analytics and ads stay off: " + ex.Message); }
+            Call(started, "started");
+            if (StudioAds.Provider != null) Call(adsReady, "adsReady");
+        }
+
+        static void Call(Action a, string what)
+        {
+            if (a == null) return;
+            try { a(); }
+            catch (Exception ex) { Debug.LogWarning("[Studio.Ads] StudioApp.Launch " + what + ": " + ex.GetType().Name + ": " + ex.Message); }
+        }
+
         /// <summary>
         /// Starts what the config turns on (once; later calls do nothing). Pass a config to override
         /// the file (tests). Order: Pulse, then ads (consent flow), then the MMP after the flow.
