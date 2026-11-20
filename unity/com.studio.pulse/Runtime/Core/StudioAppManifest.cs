@@ -34,6 +34,10 @@ namespace Studio.Pulse
         public string pulse_env = "";
         /// <summary><see cref="InjectStore"/> (empty) or <see cref="InjectManual"/>.</summary>
         public string release_inject = "";
+        /// <summary>The game's privacy policy (setup writes it into the keyless config).</summary>
+        public string privacy_policy_url = "";
+        /// <summary>Directed at children (setup writes privacy.childDirected).</summary>
+        public bool coppa = false;
         public NetworksSection networks = new NetworksSection();
 
         [Serializable]

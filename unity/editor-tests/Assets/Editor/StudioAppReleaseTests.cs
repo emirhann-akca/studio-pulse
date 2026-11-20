@@ -1,7 +1,7 @@
-// EditMode tests of the Editor side (run them by adding "testables": ["com.studio.pulse"] to the
-// project's Packages/manifest.json; the pure rules are also tested without Unity in
-// unity/dotnet/Studio.Pulse.Core.Tests/ReleaseTests.cs and AttemptTests.cs). Every test that touches
-// Assets/Resources/studio_app.json puts it back byte for byte.
+// EditMode tests of the package's Editor side, in their own Unity project (unity/editor-tests,
+// README.md there) so a game that embeds the package never compiles them. The pure rules are also
+// tested without Unity in unity/dotnet/Studio.Pulse.Core.Tests (ReleaseTests, AttemptTests). Every
+// test that touches Assets/Resources/studio_app.json, PlayerPrefs or the defines puts them back.
 using System;
 using System.IO;
 using System.Linq;
@@ -146,6 +146,7 @@ namespace Studio.Pulse.Editor.Tests
             UseFiles(true);
             string path = StudioAppRelease.ConfigPath;
             bool existed = File.Exists(path);
+            bool folder = Directory.Exists(Path.GetDirectoryName(path));
             byte[] before = existed ? File.ReadAllBytes(path) : null;
             try
             {
@@ -158,16 +159,21 @@ namespace Studio.Pulse.Editor.Tests
                 Assert.AreEqual(Key, onDisk.pulse.writeKey, "and the collector key");
                 var loaded = StudioApp.LoadConfig();
                 Assert.AreEqual("1a2b3c4d5", loaded.levelplay.iosAppKey, "Resources sees them (re-imported)");
-                Assert.IsTrue(File.Exists(StudioAppRelease.BackupPath), "a copy waits in Library/ in case of a crash");
+                Assert.IsTrue(StudioAppRelease.RestorePending, "a copy (or a note that there was none) waits in Library/ in case of a crash");
             }
             finally
             {
                 StudioAppRelease.Restore();
             }
             Assert.IsFalse(StudioAppRelease.Applied);
-            Assert.IsFalse(File.Exists(StudioAppRelease.BackupPath), "the copy is gone");
+            Assert.IsFalse(StudioAppRelease.RestorePending, "the copy is gone");
             if (existed) CollectionAssert.AreEqual(before, File.ReadAllBytes(path), "byte for byte");
-            else Assert.IsFalse(File.Exists(path), "a config the build created is deleted again");
+            else
+            {
+                Assert.IsFalse(File.Exists(path), "a config the build created is deleted again");
+                Assert.IsFalse(StudioApp.LoadConfig().PulseConfigured, "and Resources no longer sees the keyed one");
+                Assert.AreEqual(folder, Directory.Exists(Path.GetDirectoryName(path)), "a Resources folder the build made is gone too");
+            }
             StudioAppRelease.Restore();
         }
 
@@ -198,6 +204,62 @@ namespace Studio.Pulse.Editor.Tests
             Assert.IsFalse(StudioAppRelease.Applied);
             if (before != null) CollectionAssert.AreEqual(before, File.ReadAllBytes(path));
             else Assert.IsFalse(File.Exists(path));
+        }
+
+        [Test]
+        public void Setup_check_changes_nothing()
+        {
+            UseFiles(true);
+            string path = StudioAppRelease.ConfigPath;
+            byte[] before = File.Exists(path) ? File.ReadAllBytes(path) : null;
+            string ios = UnityEditor.PlayerSettings.GetScriptingDefineSymbols(UnityEditor.Build.NamedBuildTarget.iOS);
+            var items = StudioAppSetup.Check(false);
+            Assert.IsTrue(items.Any(i => i.Id == "manifest" && i.State == StudioAppSetup.State.Ok), string.Join("\n", items));
+            Assert.IsFalse(items.Any(i => i.State == StudioAppSetup.State.Fixed), "a check fixes nothing");
+            Assert.IsTrue(items.Any(i => i.Id == "collector" && i.State == StudioAppSetup.State.Ok), "the .env of the test is found");
+            if (before != null) CollectionAssert.AreEqual(before, File.ReadAllBytes(path));
+            Assert.AreEqual(ios, UnityEditor.PlayerSettings.GetScriptingDefineSymbols(UnityEditor.Build.NamedBuildTarget.iOS));
+            var lines = new System.Collections.Generic.List<string>();
+            int code = StudioAppSetup.Report(items, lines.Add);
+            Assert.AreEqual(items.Any(i => i.State == StudioAppSetup.State.Todo) ? 1 : 0, code);
+            StringAssert.StartsWith("[Studio.Setup] ", lines.Last());
+        }
+
+        [Test]
+        public void Setup_makes_a_keyless_config_when_there_is_none()
+        {
+            string manifest = Path.Combine(_dir, StudioAppManifest.FileName);
+            File.WriteAllText(manifest, "{ \"name\": \"Küp Dünyaları\", \"privacy_policy_url\": \"https://example.com/kup/privacy\", \"coppa\": false }");
+            Environment.SetEnvironmentVariable(StudioAppRelease.ManifestVariable, manifest);
+            string path = StudioAppRelease.ConfigPath;
+            string aside = Path.Combine(_dir, "config.json");
+            bool existed = File.Exists(path);
+            bool folder = Directory.Exists(Path.GetDirectoryName(path));
+            if (existed) File.Move(path, aside);
+            try
+            {
+                var items = StudioAppSetup.Check(true);
+                Assert.IsTrue(items.Any(i => i.Id == "config" && i.State == StudioAppSetup.State.Fixed), string.Join("\n", items));
+                var c = JsonUtility.FromJson<StudioAppConfig>(File.ReadAllText(path));
+                Assert.AreEqual("https://example.com/kup/privacy", c.privacy.privacyPolicyUrl);
+                StringAssert.Contains("Küp Dünyaları", c.AttText("en"));
+                StringAssert.StartsWith("Bu izin", c.AttText("tr"));
+                Assert.AreEqual(0, StudioAppSetupRules.KeysIn(c).Count, "keyless");
+                Assert.IsFalse(StudioApp.LoadConfig().PulseConfigured, "Resources sees a keyless config");
+                var again = StudioAppSetup.Check(true);
+                Assert.IsTrue(again.Any(i => i.Id == "config" && i.State == StudioAppSetup.State.Ok), "a second run changes nothing");
+            }
+            finally
+            {
+                if (existed)
+                {
+                    File.Delete(path); // its .meta stays: the original keeps its GUID
+                    File.Move(aside, path);
+                    UnityEditor.AssetDatabase.ImportAsset(path, UnityEditor.ImportAssetOptions.ForceUpdate);
+                }
+                else UnityEditor.AssetDatabase.DeleteAsset(path);
+                if (!folder) UnityEditor.AssetDatabase.DeleteAsset(Path.GetDirectoryName(path).Replace('\\', '/'));
+            }
         }
 
         [Test]

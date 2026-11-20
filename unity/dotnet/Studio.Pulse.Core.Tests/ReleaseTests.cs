@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Studio.Pulse.Tests
@@ -9,7 +10,7 @@ namespace Studio.Pulse.Tests
     /// The release build's rules (StudioAppManifest.ApplyTo, PulseEnvFile, PulseStudioPaths): the
     /// game's studio-app.json + the studio's .env -> the release studio_app.json. Shaped like Acorn
     /// Mart's files (its ids replaced by made-up ones). The Editor step around it (StudioAppRelease:
-    /// JSON, apply / restore, the build hooks) is tested in Unity: Tests/Editor/StudioAppReleaseTests.cs.
+    /// JSON, apply / restore, the build hooks) is tested in Unity: unity/editor-tests.
     /// </summary>
     public static class ReleaseTests
     {
@@ -193,6 +194,59 @@ namespace Studio.Pulse.Tests
             Check.Equal("/override.env", PulseStudioPaths.SdkEnvPath(m, "/repo", env, home, false, true), "STUDIO_PULSE_SDK_ENV wins");
             vars.Remove(PulseStudioPaths.SdkEnvVariable);
             Check.True(PulseStudioPaths.SdkEnvPath(new StudioAppManifest(), "/repo", env, home, false, true) == null, "no label, no pulse_env: no file");
+        }
+        // ------------------------------------------------------------------ game setup (StudioAppSetup)
+
+        static string SampleConfig()
+        {
+            return File.ReadAllText(PulseTestRunner.FindRepoFile(Path.Combine("unity", "com.studio.pulse", "Samples~", "AdsQuickStart", "studio_app.json")));
+        }
+
+        [PulseTest]
+        public static void Setup_makes_a_keyless_config_from_the_sample()
+        {
+            string made = StudioAppSetupRules.ConfigFromSample(SampleConfig(), "Küp \"Dünyaları\"", "https://example.com/kup/privacy", false);
+            Check.True(made != null, "the sample has the expected fields");
+            var json = (Dictionary<string, object>)MiniJson.Parse(made);
+            var privacy = (Dictionary<string, object>)json["privacy"];
+            Check.Equal("https://example.com/kup/privacy", privacy["privacyPolicyUrl"], "privacy URL");
+            var att = ((List<object>)privacy["attUsageDescription"]).Cast<Dictionary<string, object>>().ToList();
+            Check.Equal("en,tr", string.Join(",", att.Select(a => a["lang"])), "en + tr prompt");
+            Check.True(((string)att[0]["text"]).Contains("Küp \"Dünyaları\""), "the name, quotes escaped: " + att[0]["text"]);
+            Check.True(((string)att[1]["text"]).StartsWith("Bu izin,"), "Turkish text");
+            Check.Equal(false, privacy["childDirected"], "not for children");
+            Check.True(((string)json["_help"]).Contains("KEYLESS"), "says it stays keyless");
+            var c = new StudioAppConfig();
+            Check.Equal(0, StudioAppSetupRules.KeysIn(c).Count, "a new config has no key");
+            string child = StudioAppSetupRules.ConfigFromSample(SampleConfig(), "Kids", "", true);
+            Check.Equal(true, ((Dictionary<string, object>)((Dictionary<string, object>)MiniJson.Parse(child))["privacy"])["childDirected"], "COPPA flag");
+            Check.True(StudioAppSetupRules.ConfigFromSample("{}", "X", "", false) == null, "an unexpected sample: null (plain config instead)");
+        }
+
+        [PulseTest]
+        public static void Setup_fills_only_what_is_empty()
+        {
+            string made = StudioAppSetupRules.ConfigFromSample(SampleConfig(), "Game", "https://example.com/p", false);
+            Check.Equal(made, StudioAppSetupRules.FillMissing(made, "Other", "https://other.example.com"), "a filled config is left alone");
+            string sample = SampleConfig().Replace("\r\n", "\n");
+            string filled = StudioAppSetupRules.FillMissing(sample, "Game", "https://example.com/p");
+            var privacy = (Dictionary<string, object>)((Dictionary<string, object>)MiniJson.Parse(filled))["privacy"];
+            Check.Equal("https://example.com/p", privacy["privacyPolicyUrl"], "empty URL filled");
+            Check.Equal(2, ((List<object>)privacy["attUsageDescription"]).Count, "empty prompt filled");
+            var noUrl = (Dictionary<string, object>)((Dictionary<string, object>)MiniJson.Parse(StudioAppSetupRules.FillMissing(sample, "Game", null)))["privacy"];
+            Check.Equal("", noUrl["privacyPolicyUrl"], "no URL given: it stays empty");
+            Check.Equal(2, ((List<object>)noUrl["attUsageDescription"]).Count, "the prompt is still filled");
+        }
+
+        [PulseTest]
+        public static void Setup_defines_and_keys()
+        {
+            Check.Equal("A;STUDIO_PULSE_ATT;STUDIO_PULSE_UMP", StudioAppSetupRules.AddDefines(" A ;; STUDIO_PULSE_ATT", StudioAppSetupRules.AttDefine, StudioAppSetupRules.UmpDefine), "appended once, blanks dropped");
+            Check.Equal("STUDIO_PULSE_UMP", StudioAppSetupRules.AddDefines(null, StudioAppSetupRules.UmpDefine), "from nothing");
+            StudioAppConfig keyed = Manifest().ApplyTo(Keyless(), true, Env);
+            Check.Equal("pulse.writeKey,pulse.collectorUrl,levelplay.iosAppKey,levelplay.androidAppKey,ump.iosAppId,ump.androidAppId",
+                string.Join(",", StudioAppSetupRules.KeysIn(keyed)), "a release config is not keyless");
+            Check.Equal("\"a\\\"b\\\\c\\nd\\u0001\"", StudioAppSetupRules.JsonString("a\"b\\c\nd\u0001"), "JSON escaping");
         }
     }
 }

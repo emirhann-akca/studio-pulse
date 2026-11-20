@@ -1,0 +1,16 @@
+# Unity makes everything else on first open; only the manifest, the version and the tests are kept.
+/Library/
+/Temp/
+/Logs/
+/UserSettings/
+/obj/
+/Build/
+*.csproj
+*.sln
+/Packages/packages-lock.json
+/ProjectSettings/*
+!/ProjectSettings/ProjectVersion.txt
+/Assets/*
+!/Assets/Editor/
+/Assets/Editor/*.meta
+/Assets/Editor.meta

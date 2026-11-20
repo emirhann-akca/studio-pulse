@@ -37,6 +37,7 @@ namespace Studio.Pulse.Editor
         /// <summary>Where the original config waits while the release ids are in (survives a crash).</summary>
         public const string BackupPath = "Library/StudioPulse/studio_app.json.orig";
         const string AbsentMarker = "Library/StudioPulse/studio_app.json.absent";
+        const string CreatedFolder = "the build created Assets/Resources too";
 
         static bool _applied;
         static bool _auto;
@@ -63,6 +64,12 @@ namespace Studio.Pulse.Editor
         public static bool Applied
         {
             get { return _applied; }
+        }
+
+        /// <summary>A copy of the keyless config waits in Library/ (applied now, or a build crashed).</summary>
+        public static bool RestorePending
+        {
+            get { return Leftover; }
         }
 
         static bool Leftover
@@ -175,7 +182,7 @@ namespace Studio.Pulse.Editor
 
             Directory.CreateDirectory(Path.GetDirectoryName(BackupPath));
             if (original != null) File.WriteAllBytes(BackupPath, original);
-            else File.WriteAllText(AbsentMarker, "");
+            else File.WriteAllText(AbsentMarker, Directory.Exists(Path.GetDirectoryName(ConfigPath)) ? "" : CreatedFolder);
             _applied = true;
             _auto = auto;
             Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath));
@@ -204,10 +211,26 @@ namespace Studio.Pulse.Editor
             }
             else if (File.Exists(AbsentMarker))
             {
-                File.Delete(ConfigPath);
-                if (File.Exists(ConfigPath + ".meta")) File.Delete(ConfigPath + ".meta");
+                // through the AssetDatabase: deleting only the file would leave the keyed asset
+                // loaded, and Resources.Load (and the next build) would still see it
+                bool gone = false;
+                try { gone = AssetDatabase.DeleteAsset(ConfigPath); }
+                catch (Exception) { /* quitting */ }
+                if (!gone)
+                {
+                    if (File.Exists(ConfigPath)) File.Delete(ConfigPath);
+                    if (File.Exists(ConfigPath + ".meta")) File.Delete(ConfigPath + ".meta");
+                }
+                string folder = Path.GetDirectoryName(ConfigPath).Replace('\\', '/');
+                if (File.ReadAllText(AbsentMarker) == CreatedFolder && Directory.Exists(folder)
+                    && !Directory.EnumerateFileSystemEntries(folder).Any())
+                {
+                    try { AssetDatabase.DeleteAsset(folder); }
+                    catch (Exception) { /* quitting */ }
+                }
                 File.Delete(AbsentMarker);
-                restored = true;
+                Debug.Log(Tag + ConfigPath + " removed again (the build created it)");
+                return;
             }
             if (!restored) return;
             try { AssetDatabase.ImportAsset(ConfigPath, ImportAssetOptions.ForceUpdate); }
