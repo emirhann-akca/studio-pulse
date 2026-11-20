@@ -483,7 +483,8 @@ by the Python connector (`tests/test_flutter_package.py`).
 ## Unity SDK
 
 [`unity/com.studio.pulse`](unity/com.studio.pulse): the analytics SDK for Unity
-games ([docs/SDK_UNITY.md](docs/SDK_UNITY.md)), a UnityEngine-free netstandard2.1
+games ([docs/SDK_UNITY.md](docs/SDK_UNITY.md); a new game in one command and one setup
+file, in Turkish: [docs/YENI_OYUN_KURULUM.md](docs/YENI_OYUN_KURULUM.md)), a UnityEngine-free netstandard2.1
 core (tested with `dotnet test` on three OSes and under Unity's Mono) plus a thin
 adapter. Its perf telemetry: one `pulse_perf` event per
 30 s window (frame time p50/p95/max, frames over 33.3 ms, CPU main-thread and

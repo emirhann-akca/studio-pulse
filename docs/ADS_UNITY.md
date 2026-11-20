@@ -12,7 +12,7 @@ call and shows no ad**, so a build without keys behaves like a build without the
 | AppLovin MAX provider | `Studio.Pulse.Ads.Max` | `com.applovin.mediation.ads` 8.0.0+ |
 | AppsFlyer MMP | `Studio.Pulse.Ads.AppsFlyer` | `appsflyer-unity-plugin` 7.0.0+ |
 | Ad revenue bridges (no game code) | `Studio.Pulse.LevelPlay`, `Studio.Pulse.AppLovinMax` | LevelPlay 8.9.0 to < 10, MAX 8.0.0+ |
-| Build steps (MAX settings, Android manifest, iOS ATT text) | `Studio.Pulse.Ads.Editor`, `Studio.Pulse.Ads.Max.Editor` | Editor |
+| Build steps (release keys, MAX settings, Android manifest, iOS ATT text) | `Studio.Pulse.Ads.Editor`, `Studio.Pulse.Ads.Max.Editor` | Editor |
 
 UPM installs set the symbols through the asmdefs' `versionDefines`. SDKs imported as a
 `.unitypackage` into `Assets/` get the same symbols from `Editor/PulseAdSdkDefines.cs`
@@ -27,7 +27,10 @@ defines*), which also removes them when the SDK goes away.
    once lets LevelPlay install its native SDK description (`Assets/LevelPlay/Editor/*.xml`) and
    the dependency resolver; commit those files.
 2. Copy `Samples~/AdsQuickStart/studio_app.json` to `Assets/Resources/studio_app.json`.
-3. At startup: `StudioApp.Start();` Ad buttons: `if (StudioAds.RewardedReady) ...`,
+3. At startup: `StudioApp.Start();`, or the one line that also wires the game in:
+   `StudioApp.Launch(started: () => MyAnalytics.Bind(), adsReady: () => MyRewards.Use(new MyAdsBridge()));`
+   (`started` always runs after the start, `adsReady` only when an ad provider is attached, so a
+   keyless build shows no ad button; never throws, runs once). Ad buttons: `if (StudioAds.RewardedReady) ...`,
    `StudioAds.ShowRewarded(placement, granted => ...)`, `StudioAds.ShowInterstitial(placement, then)`.
    Callbacks run on the main thread; `StudioAds.AvailabilityChanged` fires when an ad loads.
 4. iOS with LevelPlay: add `STUDIO_PULSE_ATT` to the iOS Scripting Define Symbols (it compiles
@@ -94,7 +97,44 @@ its key **and** at least one ad unit id for the platform are set; LevelPlay wins
   a key, a privacy URL and an English ATT text), so the Integration Manager never has to be
   edited by hand and an empty config never fails the build.
 
-## Onboarding an app: `tools/ads_onboard.py`
+## Release keys (`StudioAppRelease`)
+
+The game's `Assets/Resources/studio_app.json` can stay **keyless** in its repository, so
+development, test and simulator builds start nothing. The ids live in the game's
+`studio-app.json` (the manifest below, next to the Unity project) and the collector key in the
+studio's `<state>/sdk/<label>.env` (deploy/cloudrun/make_keys.py; never in a repository). A
+build step copies them in and writes the file back byte for byte when the build ends:
+
+| From | Into `studio_app.json` |
+|---|---|
+| `networks.levelplay.{ios,android}.app_key`, `.ad_units.*` | `levelplay` app keys and ad units (a platform is replaced as a whole) |
+| `networks.ump.{ios,android}_app_id` | `ump.iosAppId`, `ump.androidAppId` |
+| `networks.pulse.collectorUrl` / `writeKey`, else the `.env` (`PULSE_COLLECTOR_URL`, `PULSE_WRITE_KEY`) | `pulse.collectorUrl`, `pulse.writeKey` |
+
+| Manifest key / variable | |
+|---|---|
+| `release_inject` | `store` (default): every non-development build; `manual`: only builds whose script calls `StudioAppRelease.BuildPlayer(options, ads)` (or `Apply` / `Restore`) |
+| `pulse_label` | the key label; default: the `name` in lower-case ASCII (`Acorn Mart` -> `acornmart`) |
+| `pulse_env` | another `.env` (relative to the manifest, `~` allowed) |
+| `STUDIO_APP_MANIFEST` | the manifest's path; default: the project folder and up to three folders above it, not above the repository root |
+| `STUDIO_PULSE_SDK_ENV` | the `.env`'s path (wins over `pulse_env`) |
+| `STUDIO_APP_RELEASE=off` | no automatic step (CI) |
+
+The step runs before `StudioAppBuild` (so its log and iOS / Android steps see the ids) and is
+undone after every other post-process step, by `BuildPlayer`'s `finally`, when the Editor quits
+and, after a crash, when the Editor loads again (a copy waits in `Library/StudioPulse/`). The log
+names the collector's host, never the key. `StudioAppRelease.ResolveAndroidDependencies` runs
+EDM4U's Android resolver in batchmode (`-executeMethod`, exit code 0 / 1).
+
+## Onboarding an app: `tools/new_game.py` and `tools/ads_onboard.py`
+
+`tools/new_game.py LABEL --name ... --ios ... --android ... --manifest <game>/studio-app.json`
+does a new game in one go: the collector write key bound to its bundle ids (make_keys.py; Secret
+Manager `pulse-write-keys` gets a new version and the Cloud Run service a revision pinned to it;
+`<state>/sdk/<label>.env` for the release build; `--project`, default `grich-pulse`, is passed as
+`--project` and `CLOUDSDK_CORE_PROJECT`), the LevelPlay app and ad units (below) and the game's
+`studio-app.json`. Without `--apply` it only prints the plan and changes nothing. Step by step,
+in Turkish: docs/YENI_OYUN_KURULUM.md.
 
 Standard library only. A per-app manifest (kept in the game's repository) names the bundle
 ids, store ids, formats and the config path; the tool lists the app and its ad units on the
@@ -133,5 +173,7 @@ LevelPlay 9.6.0 and 8.9.0, Google Mobile Ads 11.7.0 `AdValue`, AppsFlyer 7.0.41)
 Android, Editor and standalone: `unity/dotnet/ads-compile.sh` (set `UGUI_DLL` to a Unity 6
 project's `Library/ScriptAssemblies/UnityEngine.UI.dll` for the Editor variants). The ATT
 plug-in passes `clang -fsyntax-only` for iOS. The rules without Unity (mapping, de-duplication,
-config decisions, retry, pacing) are unit tests in `unity/dotnet`. Not yet run inside the
-Unity Editor, in a player build or with real ad accounts.
+config decisions, retry, pacing, the release keys) are unit tests in `unity/dotnet`. The release
+keys step ran in Unity 6000.3.23f1 (EditMode tests and four iOS player builds, 20 Nov 2026); the
+ad providers have not run in the Editor, in a player build or with real ad accounts here (Acorn
+Mart's own checks: its docs/YAYIN-1.0.1.md).

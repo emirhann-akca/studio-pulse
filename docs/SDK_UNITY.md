@@ -47,6 +47,7 @@ called from any thread (network requests start on the main thread).
 | `AdImpression(adPlatform, adFormat, value, currency, adSource, adUnitName, placement, precision)` | `ad_impression`, by hand; AppLovin MAX and Unity LevelPlay are captured automatically (below) |
 | `AdEvent(action, adFormat, placement, errorCode)` | `ad_event` (`request`, `fill`, `show`, `click`, `reward`, `fail`) |
 | `Screen(name, screenClass)` | `screen_view` |
+| `LevelAttempt(PulseAttempt)` | `level_attempt`: one event per finished attempt with the help it used; on a quarter of installs also the tap trace (below) |
 | `Experiment(key, variations, weights, coverage)` | returns the variation to show (0 = control, -1 = outside the experiment or before consent: show the control) and sends `experiment_exposure` once per session and key. The assignment is GrowthBook's hash v2 of the key and install id (MIT), the same in C#, Dart and Python, so the warehouse can recompute every install's variation from its id |
 | `Track(name, PulseParams)` | a custom event: name `[a-z][a-z0-9_]{0,39}`, not `pulse_*`, not a Firebase-reserved name or prefix, at most 25 int / double / bool / string params. Reuse one `PulseParams` (`Clear()`) and it allocates nothing |
 | `ReportException(ex, fatal)` | `pulse_error` for a handled exception |
@@ -56,6 +57,43 @@ called from any thread (network requests start on the main thread).
 
 Invalid input (unknown setting or ad action, NaN values, bad names) is counted in
 `Stats.Rejected` and logged once, never sent to be quarantined.
+
+## Level attempts
+
+Difficulty is usually measured without boosters and continues; comparing it with real players
+needs how much help each attempt used. `Pulse.LevelAttempt` sends one `level_attempt` each time an
+attempt ends (won or lost); a continue followed by another end is a second event with a higher
+`continues`. First shipped by Acorn Mart 1.0.1 (19 Nov 2026): the name, parameters, order and
+types are the ones it sent, and its old code and the SDK give identical parameter lists on 45,000
+random attempts.
+
+```csharp
+Pulse.LevelAttempt(new PulseAttempt {
+    Level = 12, Table = 12, Band = "hard", Try = 3, Won = false, Reason = "out_of_time",
+    Continues = 1, Boosters = 2, Seconds = 84.2, Progress = 0.7,
+    Taps = moveIds, TapTimes = secondsSinceStart });   // a booster / continue tap is -1
+```
+
+| Parameter | Type | |
+|---|---|---|
+| `level`, `table` | int | `table`: the board / layout number that rebuilds the level (only when set) |
+| `band` | string | difficulty band (only when set) |
+| `try` | int | the game's attempt counter for the level |
+| `won`, `reason` | bool, string | `reason` a short code; empty: `won` / `unknown` |
+| `continues`, `boosters`, `moves` | int | `moves`: given, or the taps that are not -1 |
+| `seconds`, `progress` | double | rounded to 0.1 s and 0.001 |
+| `trace`, `t0`-`t5`, `d0`-`d5` | string | the tap trace, only on sampled installs |
+
+**Tap trace (v1, `PulseTrace`)**: each value is two characters of a 64-letter alphabet (0-4095):
+the move id + 1 (-1, not a move, is 0) and the tap's time as the 0.1 s gap to the previous tap, so
+rounding errors do not add up (gaps over 409.5 s are clipped). Parts of 50 taps fit the
+100-character string limit; 6 parts = 300 taps. `trace` is `v1`, `v1-kesik` (longer attempt, the
+first 300 sent) or `v1-bozuk` (a move id over 4094: no parts). With the trace an event has at most
+24 parameters and about 1.3 KB. `PulseTrace.Decode` gives the taps and times back.
+
+**Sample**: `PulseAttemptTrace.Rate` (0.25) of installs send the trace, chosen once per install and
+kept in PlayerPrefs (`pulse_iz_ornek`, Acorn Mart's key), so a player's skill can be read across
+their attempts. Child mode drops the trace strings like any custom string.
 
 ## Captured automatically
 
@@ -207,7 +245,7 @@ unity/dotnet/ads-compile.sh        # ad bridges + ads package against the real M
 dotnet test unity/dotnet/Studio.Pulse.Core.Tests   # what CI runs on Windows, macOS, Linux
 ```
 
-56 cases: the ad revenue mapping, de-duplication and ads config rules (AdRevenueTests), GrowthBook's own assignment cases and the exposure event, kill mid-flush (no loss, the re-sent batch deduped), a torn line, 24 h
+71 cases: `level_attempt` and the tap trace against Acorn Mart's own vectors and fixed golden strings (AttemptTests), the release build's rules for `studio-app.json` and the studio's `.env` (ReleaseTests), the ad revenue mapping, de-duplication and ads config rules (AdRevenueTests), GrowthBook's own assignment cases and the exposure event, kill mid-flush (no loss, the re-sent batch deduped), a torn line, 24 h
 offline replay, 413 halving, 400 drop, 401 disable, 429/5xx backoff timings and
 Retry-After with a fake clock, flush triggers, gzip threshold, queue cap, 30-minute and
 24-hour session rules, heartbeat, `seq` across six restarts, install / update / exit
@@ -232,5 +270,7 @@ real Unity iOS build (Swift sources from a package, `@_cdecl` symbols, the
 TestFlight `sandbox` answer and the App Store `production` answer); pause / resume and
 the 30-minute rule on real devices; WebGL (the queue then lives in the browser's
 IndexedDB-backed file system, untested); the ad revenue bridges with real ads (MAX and
-LevelPlay revenue callbacks on a device). The Unity Editor itself has not opened the
-package: compile checks use the Editor's UnityEngine assemblies.
+LevelPlay revenue callbacks on a device). Unity 6000.3.23f1 opened the package on
+20 Nov 2026 (an empty project with `"testables": ["com.studio.pulse"]`): the 10 EditMode tests of
+`Tests/Editor` passed and four iOS player builds (Xcode export) checked the release keys step;
+the rest of the package is compile-checked against the Editor's UnityEngine assemblies.
